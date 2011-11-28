@@ -62,28 +62,34 @@ public class TestHiveServerSessions extends TestCase {
     }
   }
 
-   @Override
+  @Override
   protected void tearDown() throws Exception {
-     super.tearDown();
-     for (TSocket socket : transports) {
-       if (socket != null) {
-         try {
-           socket.close();
-         } catch (Exception e) {
-           // ignroe
-         }
-       }
-     }
-     if (server != null) {
+    super.tearDown();
+    for (TSocket socket : transports) {
+      if (socket != null) {
+        try {
+          socket.close();
+        } catch (Exception e) {
+          // ignore
+        }
+      }
+    }
+    if (server != null) {
       server.interrupt();
     }
   }
 
   private int findFreePort() throws IOException {
-    ServerSocket socket= new ServerSocket(0);
-    int port = socket.getLocalPort();
-    socket.close();
-    return port;
+    ServerSocket socket = new ServerSocket(0);
+    try {
+      int port = socket.getLocalPort();
+      if (port < 0) {
+        throw new IOException("failed to find free port");
+      }
+      return port;
+    } finally {
+      socket.close();
+    }
   }
 
   public void testSessionVars() throws Exception {
