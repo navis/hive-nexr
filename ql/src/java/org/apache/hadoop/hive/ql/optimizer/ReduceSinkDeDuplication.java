@@ -32,6 +32,7 @@ import org.apache.hadoop.hive.ql.exec.ColumnInfo;
 import org.apache.hadoop.hive.ql.exec.ExtractOperator;
 import org.apache.hadoop.hive.ql.exec.FilterOperator;
 import org.apache.hadoop.hive.ql.exec.ForwardOperator;
+import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.OperatorFactory;
 import org.apache.hadoop.hive.ql.exec.ReduceSinkOperator;
@@ -150,6 +151,12 @@ public class ReduceSinkDeDuplication implements Transform{
         ReduceSinkOperator childReduceSink = (ReduceSinkOperator)nd;
         
         if(ctx.contains(childReduceSink)) {
+          return null;
+        }
+
+        List<Operator<? extends Serializable>> childOp = childReduceSink.getChildOperators();
+        if (childOp != null && childOp.size() == 1 && childOp.get(0) instanceof GroupByOperator) {
+          ctx.addRejectedReduceSinkOperator(childReduceSink);
           return null;
         }
         
