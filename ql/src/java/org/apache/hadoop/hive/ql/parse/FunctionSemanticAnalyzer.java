@@ -55,15 +55,19 @@ public class FunctionSemanticAnalyzer extends BaseSemanticAnalyzer {
   }
 
   private void analyzeCreateFunction(ASTNode ast) throws SemanticException {
+    int count = ast.getChildCount();
     String functionName = ast.getChild(0).getText();
     String className = unescapeSQLString(ast.getChild(1).getText());
-    CreateFunctionDesc desc = new CreateFunctionDesc(functionName, className);
+    boolean temporary = count > 2 && "temporary".equalsIgnoreCase(ast.getChild(count - 1).getText());
+    CreateFunctionDesc desc = new CreateFunctionDesc(functionName, className, temporary);
     rootTasks.add(TaskFactory.get(new FunctionWork(desc), conf));
   }
 
   private void analyzeDropFunction(ASTNode ast) throws SemanticException {
+    int count = ast.getChildCount();
     String functionName = ast.getChild(0).getText();
     boolean ifExists = (ast.getFirstChildWithType(TOK_IFEXISTS) != null);
+    boolean temporary = count > 1 && "temporary".equalsIgnoreCase(ast.getChild(count - 1).getText());
     // we want to signal an error if the function doesn't exist and we're
     // configured not to ignore this
     boolean throwException =
@@ -72,7 +76,7 @@ public class FunctionSemanticAnalyzer extends BaseSemanticAnalyzer {
       throw new SemanticException(ErrorMsg.INVALID_FUNCTION.getMsg(functionName));
     }
 
-    DropFunctionDesc desc = new DropFunctionDesc(functionName);
+    DropFunctionDesc desc = new DropFunctionDesc(functionName, temporary);
     rootTasks.add(TaskFactory.get(new FunctionWork(desc), conf));
   }
 }

@@ -24,12 +24,14 @@ import org.apache.hadoop.hive.common.JavaUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.DriverContext;
+import org.apache.hadoop.hive.ql.exec.FunctionRegistry.Registry;
 import org.apache.hadoop.hive.ql.QueryPlan;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.CreateFunctionDesc;
 import org.apache.hadoop.hive.ql.plan.DropFunctionDesc;
 import org.apache.hadoop.hive.ql.plan.FunctionWork;
 import org.apache.hadoop.hive.ql.plan.api.StageType;
+import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFResolver;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDTF;
@@ -70,27 +72,30 @@ public class FunctionTask extends Task<FunctionWork> {
     return 0;
   }
 
+  @SuppressWarnings("unchecked")
   private int createFunction(CreateFunctionDesc createFunctionDesc) {
+    boolean temporary = createFunctionDesc.getTemporary();
+    Registry registry = temporary ? SessionState.getRegistry() : FunctionRegistry.get();
     try {
       Class<?> udfClass = getUdfClass(createFunctionDesc);
       if (UDF.class.isAssignableFrom(udfClass)) {
-        FunctionRegistry.registerTemporaryUDF(createFunctionDesc
+        registry.registerUDF(createFunctionDesc
             .getFunctionName(), (Class<? extends UDF>) udfClass, false);
         return 0;
       } else if (GenericUDF.class.isAssignableFrom(udfClass)) {
-        FunctionRegistry.registerTemporaryGenericUDF(createFunctionDesc
+        registry.registerGenericUDF(createFunctionDesc
             .getFunctionName(), (Class<? extends GenericUDF>) udfClass);
         return 0;
       } else if (GenericUDTF.class.isAssignableFrom(udfClass)) {
-        FunctionRegistry.registerTemporaryGenericUDTF(createFunctionDesc
+        registry.registerGenericUDTF(createFunctionDesc
             .getFunctionName(), (Class<? extends GenericUDTF>) udfClass);
         return 0;
       } else if (UDAF.class.isAssignableFrom(udfClass)) {
-        FunctionRegistry.registerTemporaryUDAF(createFunctionDesc
+        registry.registerUDAF(createFunctionDesc
             .getFunctionName(), (Class<? extends UDAF>) udfClass);
         return 0;
       } else if (GenericUDAFResolver.class.isAssignableFrom(udfClass)) {
-        FunctionRegistry.registerTemporaryGenericUDAF(createFunctionDesc
+        registry.registerGenericUDAF(createFunctionDesc
             .getFunctionName(), (GenericUDAFResolver) ReflectionUtils
             .newInstance(udfClass, null));
         return 0;
@@ -104,9 +109,10 @@ public class FunctionTask extends Task<FunctionWork> {
   }
 
   private int dropFunction(DropFunctionDesc dropFunctionDesc) {
+    boolean temporary = dropFunctionDesc.getTemporary();
+    Registry registry = temporary ? SessionState.getRegistry() : FunctionRegistry.get();
     try {
-      FunctionRegistry.unregisterTemporaryUDF(dropFunctionDesc
-          .getFunctionName());
+      registry.unregisterUDF(dropFunctionDesc.getFunctionName());
       return 0;
     } catch (HiveException e) {
       LOG.info("drop function: " + StringUtils.stringifyException(e));
