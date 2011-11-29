@@ -287,6 +287,7 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
       new HashMap<CombinePathInputFormat, CombineFilter>();
     Set<Path> poolSet = new HashSet<Path>();
 
+    List<Path> revisedPaths = new ArrayList<Path>();
     for (Path path : paths) {
 
       PartitionDesc part = HiveFileFormatUtils.getPartitionDescFromPathRecursively(
@@ -295,6 +296,10 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
       if ((tableDesc != null) && tableDesc.isNonNative()) {
         return super.getSplits(job, numSplits);
       }
+      String pattern = tableDesc == null ? null : (String) tableDesc.getProperties().get("pattern");
+
+      List<Path> revisedPath = revisePath(path, pattern, job);
+      revisedPaths.addAll(revisedPath);
 
       // Use HiveInputFormat if any of the paths is not splittable
       Class inputFormatClass = part.getInputFileFormatClass();
@@ -311,26 +316,28 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
         FileSystem inpFs = path.getFileSystem(job);
 
         if (inputFormat instanceof TextInputFormat) {
-          Queue<Path> dirs = new LinkedList<Path>();
-          FileStatus fStats = inpFs.getFileStatus(path);
+          for (Path revised : revisedPath) {
+            Queue<Path> dirs = new LinkedList<Path>();
+            FileStatus fStats = inpFs.getFileStatus(revised);
 
-          // If path is a directory
-          if (fStats.isDir()) {
-            dirs.offer(path);
-          }
-          else if ((new CompressionCodecFactory(job)).getCodec(path) != null) {
-            return super.getSplits(job, numSplits);
-          }
+            // If path is a directory
+            if (fStats.isDir()) {
+              dirs.offer(revised);
+            }
+            else if ((new CompressionCodecFactory(job)).getCodec(revised) != null) {
+              return super.getSplits(job, numSplits);
+            }
 
-          while (dirs.peek() != null) {
-            Path tstPath = dirs.remove();
-            FileStatus[] fStatus = inpFs.listStatus(tstPath);
-            for (int idx = 0; idx < fStatus.length; idx++) {
-              if (fStatus[idx].isDir()) {
-                dirs.offer(fStatus[idx].getPath());
-              }
-              else if ((new CompressionCodecFactory(job)).getCodec(fStatus[idx].getPath()) != null) {
-                return super.getSplits(job, numSplits);
+            while (dirs.peek() != null) {
+              Path tstPath = dirs.remove();
+              FileStatus[] fStatus = inpFs.listStatus(tstPath);
+              for (int idx = 0; idx < fStatus.length; idx++) {
+                if (fStatus[idx].isDir()) {
+                  dirs.offer(fStatus[idx].getPath());
+                }
+                else if ((new CompressionCodecFactory(job)).getCodec(fStatus[idx].getPath()) != null) {
+                  return super.getSplits(job, numSplits);
+                }
               }
             }
           }
@@ -370,7 +377,7 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
 
       if (!done) {
         if (f == null) {
-          f = new CombineFilter(filterPath);
+          f = new CombineFilter(revisedPath);
           LOG.info("CombineHiveInputSplit creating pool for " + path +
                    "; using filter path " + filterPath);
           combine.createPool(job, f);
@@ -380,10 +387,12 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
         } else {
           LOG.info("CombineHiveInputSplit: pool is already created for " + path +
                    "; using filter path " + filterPath);
-          f.addPath(filterPath);
+          f.addPath(revisedPath);
         }
       }
     }
+
+    FileInputFormat.setInputPaths(job, revisedPaths.toArray(new Path[revisedPaths.size()]));
 
     // Processing directories
     List<InputSplitShim> iss = new ArrayList<InputSplitShim>();
@@ -397,7 +406,7 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
       if (inpFiles.size() > 0) {
         // Processing files
         for (Path filterPath : poolSet) {
-          combine.createPool(job, new CombineFilter(filterPath));
+          combine.createPool(job, new CombineFilter(Arrays.asList(filterPath)));
         }
         processPaths(job, combine, iss, inpFiles.toArray(new Path[0]));
       }
@@ -414,6 +423,24 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
 
     LOG.info("number of splits " + result.size());
     return result.toArray(new CombineHiveInputSplit[result.size()]);
+  }
+
+  private List<Path> revisePath(Path path, String pattern, JobConf job) throws IOException {
+    if (pattern == null) {
+      return Arrays.asList(path);
+    }
+    Path globPath = new Path(path, pattern);
+    FileStatus[] statuses = path.getFileSystem(job).globStatus(globPath);
+    if (statuses == null || statuses.length == 0) {
+      return Arrays.asList(path);   // empty path made by ExecDriver
+    }
+    List<Path> revisedPath = new ArrayList<Path>();
+    for (FileStatus status : statuses) {
+      if (!status.isDir()) {
+        revisedPath.add(status.getPath());
+      }
+    }
+    return revisedPath;
   }
 
     private void processPaths(JobConf job, CombineFileInputFormatShim combine,
@@ -541,16 +568,17 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
 
     // store a path prefix in this TestFilter
     // PRECONDITION: p should always be a directory
-    public CombineFilter(Path p) {
+    public CombineFilter(List<Path> p) {
       // we need to keep the path part only because the Hadoop CombineFileInputFormat will
       // pass the path part only to accept().
       // Trailing the path with a separator to prevent partial matching.
       addPath(p);
     }
 
-    public void addPath(Path p) {
-      String pString = p.toUri().getPath().toString();
-      pStrings.add(pString);
+    public void addPath(List<Path> ps) {
+      for (Path p : ps) {
+        pStrings.add(p.toUri().getPath());
+      }
     }
 
     // returns true if the specified path matches the prefix stored

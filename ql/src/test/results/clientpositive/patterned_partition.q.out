@@ -1,0 +1,116 @@
+PREHOOK: query: drop table p
+PREHOOK: type: DROPTABLE
+POSTHOOK: query: drop table p
+POSTHOOK: type: DROPTABLE
+PREHOOK: query: drop table q
+PREHOOK: type: DROPTABLE
+POSTHOOK: query: drop table q
+POSTHOOK: type: DROPTABLE
+PREHOOK: query: create external table p (name string, phone string) partitioned by (dt string)
+  row format delimited fields terminated by ' ' lines terminated by '\n' stored as textfile
+  location 'tmp/dpal-129/p/{**/*.data}'
+PREHOOK: type: CREATETABLE
+POSTHOOK: query: create external table p (name string, phone string) partitioned by (dt string)
+  row format delimited fields terminated by ' ' lines terminated by '\n' stored as textfile
+  location 'tmp/dpal-129/p/{**/*.data}'
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: default@p
+PREHOOK: query: create external table q (name string, phone string) partitioned by (dt string)
+  row format delimited fields terminated by ' ' lines terminated by '\n' stored as textfile
+  location 'tmp/dpal-129/q{/**/*.data}'
+PREHOOK: type: CREATETABLE
+POSTHOOK: query: create external table q (name string, phone string) partitioned by (dt string)
+  row format delimited fields terminated by ' ' lines terminated by '\n' stored as textfile
+  location 'tmp/dpal-129/q{/**/*.data}'
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: default@q
+PREHOOK: query: ALTER TABLE p ADD PARTITION (dt = '20110901')
+PREHOOK: type: ALTERTABLE_ADDPARTS
+PREHOOK: Input: default@p
+POSTHOOK: query: ALTER TABLE p ADD PARTITION (dt = '20110901')
+POSTHOOK: type: ALTERTABLE_ADDPARTS
+POSTHOOK: Input: default@p
+POSTHOOK: Output: default@p@dt=20110901
+PREHOOK: query: ALTER TABLE p ADD PARTITION (dt = '20110902')
+PREHOOK: type: ALTERTABLE_ADDPARTS
+PREHOOK: Input: default@p
+POSTHOOK: query: ALTER TABLE p ADD PARTITION (dt = '20110902')
+POSTHOOK: type: ALTERTABLE_ADDPARTS
+POSTHOOK: Input: default@p
+POSTHOOK: Output: default@p@dt=20110902
+PREHOOK: query: ALTER TABLE q ADD PARTITION (dt = '20110901')
+PREHOOK: type: ALTERTABLE_ADDPARTS
+PREHOOK: Input: default@q
+POSTHOOK: query: ALTER TABLE q ADD PARTITION (dt = '20110901')
+POSTHOOK: type: ALTERTABLE_ADDPARTS
+POSTHOOK: Input: default@q
+POSTHOOK: Output: default@q@dt=20110901
+PREHOOK: query: ALTER TABLE q ADD PARTITION (dt = '20110902')
+PREHOOK: type: ALTERTABLE_ADDPARTS
+PREHOOK: Input: default@q
+POSTHOOK: query: ALTER TABLE q ADD PARTITION (dt = '20110902')
+POSTHOOK: type: ALTERTABLE_ADDPARTS
+POSTHOOK: Input: default@q
+POSTHOOK: Output: default@q@dt=20110902
+PREHOOK: query: ALTER TABLE q ADD PARTITION (dt = '20110903')
+PREHOOK: type: ALTERTABLE_ADDPARTS
+PREHOOK: Input: default@q
+POSTHOOK: query: ALTER TABLE q ADD PARTITION (dt = '20110903')
+POSTHOOK: type: ALTERTABLE_ADDPARTS
+POSTHOOK: Input: default@q
+POSTHOOK: Output: default@q@dt=20110903
+PREHOOK: query: select name from p
+PREHOOK: type: QUERY
+PREHOOK: Input: default@p@dt=20110901
+PREHOOK: Input: default@p@dt=20110902
+PREHOOK: Output: file:/tmp/navis/hive_2011-11-28_22-06-34_772_2736169431099405032/-mr-10000
+POSTHOOK: query: select name from p
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@p@dt=20110901
+POSTHOOK: Input: default@p@dt=20110902
+POSTHOOK: Output: file:/tmp/navis/hive_2011-11-28_22-06-34_772_2736169431099405032/-mr-10000
+navis
+manse
+navis
+manse
+PREHOOK: query: select name from q
+PREHOOK: type: QUERY
+PREHOOK: Input: default@q@dt=20110901
+PREHOOK: Input: default@q@dt=20110902
+PREHOOK: Input: default@q@dt=20110903
+PREHOOK: Output: file:/tmp/navis/hive_2011-11-28_22-06-37_480_5079915014769774360/-mr-10000
+POSTHOOK: query: select name from q
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@q@dt=20110901
+POSTHOOK: Input: default@q@dt=20110902
+POSTHOOK: Input: default@q@dt=20110903
+POSTHOOK: Output: file:/tmp/navis/hive_2011-11-28_22-06-37_480_5079915014769774360/-mr-10000
+navis
+manse
+navis
+manse
+PREHOOK: query: select * from p join q on p.name=q.name
+PREHOOK: type: QUERY
+PREHOOK: Input: default@p@dt=20110901
+PREHOOK: Input: default@p@dt=20110902
+PREHOOK: Input: default@q@dt=20110901
+PREHOOK: Input: default@q@dt=20110902
+PREHOOK: Input: default@q@dt=20110903
+PREHOOK: Output: file:/tmp/navis/hive_2011-11-28_22-06-40_112_5088453231816925366/-mr-10000
+POSTHOOK: query: select * from p join q on p.name=q.name
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@p@dt=20110901
+POSTHOOK: Input: default@p@dt=20110902
+POSTHOOK: Input: default@q@dt=20110901
+POSTHOOK: Input: default@q@dt=20110902
+POSTHOOK: Input: default@q@dt=20110903
+POSTHOOK: Output: file:/tmp/navis/hive_2011-11-28_22-06-40_112_5088453231816925366/-mr-10000
+manse	234-023-2342	20110901	manse	234-023-2342	20110902
+manse	234-023-2342	20110901	manse	234-023-2342	20110903
+manse	234-023-2342	20110902	manse	234-023-2342	20110902
+manse	234-023-2342	20110902	manse	234-023-2342	20110903
+navis	123-123-1232	20110901	navis	123-123-1232	20110902
+navis	123-123-1232	20110901	navis	123-123-1232	20110903
+navis	123-123-1232	20110902	navis	123-123-1232	20110902
+navis	123-123-1232	20110902	navis	123-123-1232	20110903
+Deleted file:/home/navis/apache/oss-hive/ql/tmp/dpal-129
