@@ -42,6 +42,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.Map.Entry;
+import java.util.regex.*;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -3245,7 +3246,13 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       tbl.setProperty("comment", crtTbl.getComment());
     }
     if (crtTbl.getLocation() != null) {
-      tbl.setDataLocation(new Path(crtTbl.getLocation()).toUri());
+      String[] patterned = splitPattern(crtTbl.getLocation());
+      if (patterned == null) {
+        tbl.setDataLocation(toAbsolutePath(crtTbl.getLocation()).toUri());
+      } else {
+        tbl.setDataLocation(toAbsolutePath(patterned[0]).toUri());
+        tbl.setProperty("pattern", patterned[1]);
+      }
     }
 
     tbl.setInputFormatClass(crtTbl.getInputFormat());
@@ -3303,6 +3310,36 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
     db.createTable(tbl, crtTbl.getIfNotExists());
     work.getOutputs().add(new WriteEntity(tbl));
     return 0;
+  }
+
+  private Path toAbsolutePath(String location) throws HiveException {
+    Path path = new Path(location);
+    try {
+      if (!path.isAbsolute()) {
+        Path working = path.getFileSystem(conf).getWorkingDirectory();
+        return new Path(working, path);
+      }
+      return path;
+    } catch (Exception e) {
+      throw new HiveException(e);
+    }
+  }
+
+  private String[] splitPattern(String pathStr) {
+    Pattern pattern = Pattern.compile("(.+)\\{(.+)\\}");
+    Matcher matcher = pattern.matcher(pathStr);
+    if (matcher.matches()) {
+      String rootPath = matcher.group(1);
+      String patternPath = matcher.group(2);
+      if (rootPath.endsWith("/")) {
+        rootPath = rootPath.substring(0, rootPath.length() - 1);
+      }
+      if (patternPath.startsWith("/")) {
+        patternPath = patternPath.substring(1);
+      }
+      return new String[] {rootPath, patternPath};
+    }
+    return null;
   }
 
   /**
