@@ -36,6 +36,7 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
+import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.ql.udf.UDAFPercentile;
 import org.apache.hadoop.hive.ql.udf.UDFAbs;
 import org.apache.hadoop.hive.ql.udf.UDFAcos;
@@ -217,249 +218,319 @@ public final class FunctionRegistry {
 
   private static Log LOG = LogFactory.getLog(FunctionRegistry.class);
 
-  /**
-   * The mapping from expression function names to expression classes.
-   */
-  static Map<String, FunctionInfo> mFunctions = new LinkedHashMap<String, FunctionInfo>();
+  private static Registry instance = new Registry();
   static {
-    registerUDF("concat", UDFConcat.class, false);
-    registerUDF("substr", UDFSubstr.class, false);
-    registerUDF("substring", UDFSubstr.class, false);
-    registerUDF("space", UDFSpace.class, false);
-    registerUDF("repeat", UDFRepeat.class, false);
-    registerUDF("ascii", UDFAscii.class, false);
-    registerUDF("lpad", UDFLpad.class, false);
-    registerUDF("rpad", UDFRpad.class, false);
+    instance.registerUDF("concat", UDFConcat.class, false);
+    instance.registerUDF("substr", UDFSubstr.class, false);
+    instance.registerUDF("substring", UDFSubstr.class, false);
+    instance.registerUDF("space", UDFSpace.class, false);
+    instance.registerUDF("repeat", UDFRepeat.class, false);
+    instance.registerUDF("ascii", UDFAscii.class, false);
+    instance.registerUDF("lpad", UDFLpad.class, false);
+    instance.registerUDF("rpad", UDFRpad.class, false);
 
-    registerGenericUDF("size", GenericUDFSize.class);
+    instance.registerGenericUDF("size", GenericUDFSize.class);
 
-    registerUDF("round", UDFRound.class, false);
-    registerUDF("floor", UDFFloor.class, false);
-    registerUDF("sqrt", UDFSqrt.class, false);
-    registerUDF("ceil", UDFCeil.class, false);
-    registerUDF("ceiling", UDFCeil.class, false);
-    registerUDF("rand", UDFRand.class, false);
-    registerUDF("abs", UDFAbs.class, false);
-    registerUDF("pmod", UDFPosMod.class, false);
+    instance.registerUDF("round", UDFRound.class, false);
+    instance.registerUDF("floor", UDFFloor.class, false);
+    instance.registerUDF("sqrt", UDFSqrt.class, false);
+    instance.registerUDF("ceil", UDFCeil.class, false);
+    instance.registerUDF("ceiling", UDFCeil.class, false);
+    instance.registerUDF("rand", UDFRand.class, false);
+    instance.registerUDF("abs", UDFAbs.class, false);
+    instance.registerUDF("pmod", UDFPosMod.class, false);
 
-    registerUDF("ln", UDFLn.class, false);
-    registerUDF("log2", UDFLog2.class, false);
-    registerUDF("sin", UDFSin.class, false);
-    registerUDF("asin", UDFAsin.class, false);
-    registerUDF("cos", UDFCos.class, false);
-    registerUDF("acos", UDFAcos.class, false);
-    registerUDF("log10", UDFLog10.class, false);
-    registerUDF("log", UDFLog.class, false);
-    registerUDF("exp", UDFExp.class, false);
-    registerUDF("power", UDFPower.class, false);
-    registerUDF("pow", UDFPower.class, false);
-    registerUDF("sign", UDFSign.class, false);
-    registerUDF("pi", UDFPI.class, false);
-    registerUDF("degrees", UDFDegrees.class, false);
-    registerUDF("radians", UDFRadians.class, false);
-    registerUDF("atan", UDFAtan.class, false);
-    registerUDF("tan", UDFTan.class, false);
-    registerUDF("e", UDFE.class, false);
+    instance.registerUDF("ln", UDFLn.class, false);
+    instance.registerUDF("log2", UDFLog2.class, false);
+    instance.registerUDF("sin", UDFSin.class, false);
+    instance.registerUDF("asin", UDFAsin.class, false);
+    instance.registerUDF("cos", UDFCos.class, false);
+    instance.registerUDF("acos", UDFAcos.class, false);
+    instance.registerUDF("log10", UDFLog10.class, false);
+    instance.registerUDF("log", UDFLog.class, false);
+    instance.registerUDF("exp", UDFExp.class, false);
+    instance.registerUDF("power", UDFPower.class, false);
+    instance.registerUDF("pow", UDFPower.class, false);
+    instance.registerUDF("sign", UDFSign.class, false);
+    instance.registerUDF("pi", UDFPI.class, false);
+    instance.registerUDF("degrees", UDFDegrees.class, false);
+    instance.registerUDF("radians", UDFRadians.class, false);
+    instance.registerUDF("atan", UDFAtan.class, false);
+    instance.registerUDF("tan", UDFTan.class, false);
+    instance.registerUDF("e", UDFE.class, false);
 
-    registerUDF("conv", UDFConv.class, false);
-    registerUDF("bin", UDFBin.class, false);
-    registerUDF("hex", UDFHex.class, false);
-    registerUDF("unhex", UDFUnhex.class, false);
+    instance.registerUDF("conv", UDFConv.class, false);
+    instance.registerUDF("bin", UDFBin.class, false);
+    instance.registerUDF("hex", UDFHex.class, false);
+    instance.registerUDF("unhex", UDFUnhex.class, false);
 
-    registerUDF("upper", UDFUpper.class, false);
-    registerUDF("lower", UDFLower.class, false);
-    registerUDF("ucase", UDFUpper.class, false);
-    registerUDF("lcase", UDFLower.class, false);
-    registerUDF("trim", UDFTrim.class, false);
-    registerUDF("ltrim", UDFLTrim.class, false);
-    registerUDF("rtrim", UDFRTrim.class, false);
-    registerUDF("length", UDFLength.class, false);
-    registerUDF("reverse", UDFReverse.class, false);
-    registerGenericUDF("field", GenericUDFField.class);
-    registerUDF("find_in_set", UDFFindInSet.class, false);
+    instance.registerUDF("upper", UDFUpper.class, false);
+    instance.registerUDF("lower", UDFLower.class, false);
+    instance.registerUDF("ucase", UDFUpper.class, false);
+    instance.registerUDF("lcase", UDFLower.class, false);
+    instance.registerUDF("trim", UDFTrim.class, false);
+    instance.registerUDF("ltrim", UDFLTrim.class, false);
+    instance.registerUDF("rtrim", UDFRTrim.class, false);
+    instance.registerUDF("length", UDFLength.class, false);
+    instance.registerUDF("reverse", UDFReverse.class, false);
+    instance.registerGenericUDF("field", GenericUDFField.class);
+    instance.registerUDF("find_in_set", UDFFindInSet.class, false);
 
-    registerUDF("like", UDFLike.class, true);
-    registerUDF("rlike", UDFRegExp.class, true);
-    registerUDF("regexp", UDFRegExp.class, true);
-    registerUDF("regexp_replace", UDFRegExpReplace.class, false);
-    registerUDF("regexp_extract", UDFRegExpExtract.class, false);
-    registerUDF("parse_url", UDFParseUrl.class, false);
-    registerGenericUDF("split", GenericUDFSplit.class);
-    registerGenericUDF("str_to_map", GenericUDFStringToMap.class);
+    instance.registerUDF("like", UDFLike.class, true);
+    instance.registerUDF("rlike", UDFRegExp.class, true);
+    instance.registerUDF("regexp", UDFRegExp.class, true);
+    instance.registerUDF("regexp_replace", UDFRegExpReplace.class, false);
+    instance.registerUDF("regexp_extract", UDFRegExpExtract.class, false);
+    instance.registerUDF("parse_url", UDFParseUrl.class, false);
+    instance.registerGenericUDF("split", GenericUDFSplit.class);
+    instance.registerGenericUDF("str_to_map", GenericUDFStringToMap.class);
 
-    registerUDF("positive", UDFOPPositive.class, true, "+");
-    registerUDF("negative", UDFOPNegative.class, true, "-");
+    instance.registerUDF("positive", UDFOPPositive.class, true, "+");
+    instance.registerUDF("negative", UDFOPNegative.class, true, "-");
 
-    registerUDF("day", UDFDayOfMonth.class, false);
-    registerUDF("dayofmonth", UDFDayOfMonth.class, false);
-    registerUDF("month", UDFMonth.class, false);
-    registerUDF("year", UDFYear.class, false);
-    registerUDF("hour", UDFHour.class, false);
-    registerUDF("minute", UDFMinute.class, false);
-    registerUDF("second", UDFSecond.class, false);
-    registerUDF("from_unixtime", UDFFromUnixTime.class, false);
-    registerUDF("unix_timestamp", UDFUnixTimeStamp.class, false);
-    registerUDF("to_date", UDFDate.class, false);
-    registerUDF("weekofyear", UDFWeekOfYear.class, false);
+    instance.registerUDF("day", UDFDayOfMonth.class, false);
+    instance.registerUDF("dayofmonth", UDFDayOfMonth.class, false);
+    instance.registerUDF("month", UDFMonth.class, false);
+    instance.registerUDF("year", UDFYear.class, false);
+    instance.registerUDF("hour", UDFHour.class, false);
+    instance.registerUDF("minute", UDFMinute.class, false);
+    instance.registerUDF("second", UDFSecond.class, false);
+    instance.registerUDF("from_unixtime", UDFFromUnixTime.class, false);
+    instance.registerUDF("unix_timestamp", UDFUnixTimeStamp.class, false);
+    instance.registerUDF("to_date", UDFDate.class, false);
+    instance.registerUDF("weekofyear", UDFWeekOfYear.class, false);
 
-    registerUDF("date_add", UDFDateAdd.class, false);
-    registerUDF("date_sub", UDFDateSub.class, false);
-    registerUDF("datediff", UDFDateDiff.class, false);
+    instance.registerUDF("date_add", UDFDateAdd.class, false);
+    instance.registerUDF("date_sub", UDFDateSub.class, false);
+    instance.registerUDF("datediff", UDFDateDiff.class, false);
 
-    registerUDF("get_json_object", UDFJson.class, false);
+    instance.registerUDF("get_json_object", UDFJson.class, false);
 
-    registerUDF("xpath_string", UDFXPathString.class, false);
-    registerUDF("xpath_boolean", UDFXPathBoolean.class, false);
-    registerUDF("xpath_number", UDFXPathDouble.class, false);
-    registerUDF("xpath_double", UDFXPathDouble.class, false);
-    registerUDF("xpath_float", UDFXPathFloat.class, false);
-    registerUDF("xpath_long", UDFXPathLong.class, false);
-    registerUDF("xpath_int", UDFXPathInteger.class, false);
-    registerUDF("xpath_short", UDFXPathShort.class, false);
-    registerGenericUDF("xpath", GenericUDFXPath.class);
+    instance.registerUDF("xpath_string", UDFXPathString.class, false);
+    instance.registerUDF("xpath_boolean", UDFXPathBoolean.class, false);
+    instance.registerUDF("xpath_number", UDFXPathDouble.class, false);
+    instance.registerUDF("xpath_double", UDFXPathDouble.class, false);
+    instance.registerUDF("xpath_float", UDFXPathFloat.class, false);
+    instance.registerUDF("xpath_long", UDFXPathLong.class, false);
+    instance.registerUDF("xpath_int", UDFXPathInteger.class, false);
+    instance.registerUDF("xpath_short", UDFXPathShort.class, false);
+    instance.registerGenericUDF("xpath", GenericUDFXPath.class);
 
-    registerUDF("+", UDFOPPlus.class, true);
-    registerUDF("-", UDFOPMinus.class, true);
-    registerUDF("*", UDFOPMultiply.class, true);
-    registerUDF("/", UDFOPDivide.class, true);
-    registerUDF("%", UDFOPMod.class, true);
-    registerUDF("div", UDFOPLongDivide.class, true);
+    instance.registerUDF("+", UDFOPPlus.class, true);
+    instance.registerUDF("-", UDFOPMinus.class, true);
+    instance.registerUDF("*", UDFOPMultiply.class, true);
+    instance.registerUDF("/", UDFOPDivide.class, true);
+    instance.registerUDF("%", UDFOPMod.class, true);
+    instance.registerUDF("div", UDFOPLongDivide.class, true);
 
-    registerUDF("&", UDFOPBitAnd.class, true);
-    registerUDF("|", UDFOPBitOr.class, true);
-    registerUDF("^", UDFOPBitXor.class, true);
-    registerUDF("~", UDFOPBitNot.class, true);
+    instance.registerUDF("&", UDFOPBitAnd.class, true);
+    instance.registerUDF("|", UDFOPBitOr.class, true);
+    instance.registerUDF("^", UDFOPBitXor.class, true);
+    instance.registerUDF("~", UDFOPBitNot.class, true);
 
-    registerGenericUDF("isnull", GenericUDFOPNull.class);
-    registerGenericUDF("isnotnull", GenericUDFOPNotNull.class);
+    instance.registerGenericUDF("isnull", GenericUDFOPNull.class);
+    instance.registerGenericUDF("isnotnull", GenericUDFOPNotNull.class);
 
-    registerGenericUDF("if", GenericUDFIf.class);
-    registerGenericUDF("in", GenericUDFIn.class);
-    registerGenericUDF("and", GenericUDFOPAnd.class);
-    registerGenericUDF("or", GenericUDFOPOr.class);
-    registerGenericUDF("=", GenericUDFOPEqual.class);
-    registerGenericUDF("==", GenericUDFOPEqual.class);
-    registerGenericUDF("!=", GenericUDFOPNotEqual.class);
-    registerGenericUDF("<>", GenericUDFOPNotEqual.class);
-    registerGenericUDF("<", GenericUDFOPLessThan.class);
-    registerGenericUDF("<=", GenericUDFOPEqualOrLessThan.class);
-    registerGenericUDF(">", GenericUDFOPGreaterThan.class);
-    registerGenericUDF(">=", GenericUDFOPEqualOrGreaterThan.class);
-    registerGenericUDF("not", GenericUDFOPNot.class);
-    registerGenericUDF("!", GenericUDFOPNot.class);
+    instance.registerGenericUDF("if", GenericUDFIf.class);
+    instance.registerGenericUDF("in", GenericUDFIn.class);
+    instance.registerGenericUDF("and", GenericUDFOPAnd.class);
+    instance.registerGenericUDF("or", GenericUDFOPOr.class);
+    instance.registerGenericUDF("=", GenericUDFOPEqual.class);
+    instance.registerGenericUDF("==", GenericUDFOPEqual.class);
+    instance.registerGenericUDF("!=", GenericUDFOPNotEqual.class);
+    instance.registerGenericUDF("<>", GenericUDFOPNotEqual.class);
+    instance.registerGenericUDF("<", GenericUDFOPLessThan.class);
+    instance.registerGenericUDF("<=", GenericUDFOPEqualOrLessThan.class);
+    instance.registerGenericUDF(">", GenericUDFOPGreaterThan.class);
+    instance.registerGenericUDF(">=", GenericUDFOPEqualOrGreaterThan.class);
+    instance.registerGenericUDF("not", GenericUDFOPNot.class);
+    instance.registerGenericUDF("!", GenericUDFOPNot.class);
 
-    registerGenericUDF("ewah_bitmap_and", GenericUDFEWAHBitmapAnd.class);
-    registerGenericUDF("ewah_bitmap_or", GenericUDFEWAHBitmapOr.class);
-    registerGenericUDF("ewah_bitmap_empty", GenericUDFEWAHBitmapEmpty.class);
+    instance.registerGenericUDF("ewah_bitmap_and", GenericUDFEWAHBitmapAnd.class);
+    instance.registerGenericUDF("ewah_bitmap_or", GenericUDFEWAHBitmapOr.class);
+    instance.registerGenericUDF("ewah_bitmap_empty", GenericUDFEWAHBitmapEmpty.class);
 
 
     // Aliases for Java Class Names
     // These are used in getImplicitConvertUDFMethod
-    registerUDF(Constants.BOOLEAN_TYPE_NAME, UDFToBoolean.class, false,
+    instance.registerUDF(Constants.BOOLEAN_TYPE_NAME, UDFToBoolean.class, false,
         UDFToBoolean.class.getSimpleName());
-    registerUDF(Constants.TINYINT_TYPE_NAME, UDFToByte.class, false,
+    instance.registerUDF(Constants.TINYINT_TYPE_NAME, UDFToByte.class, false,
         UDFToByte.class.getSimpleName());
-    registerUDF(Constants.SMALLINT_TYPE_NAME, UDFToShort.class, false,
+    instance.registerUDF(Constants.SMALLINT_TYPE_NAME, UDFToShort.class, false,
         UDFToShort.class.getSimpleName());
-    registerUDF(Constants.INT_TYPE_NAME, UDFToInteger.class, false,
+    instance.registerUDF(Constants.INT_TYPE_NAME, UDFToInteger.class, false,
         UDFToInteger.class.getSimpleName());
-    registerUDF(Constants.BIGINT_TYPE_NAME, UDFToLong.class, false,
+    instance.registerUDF(Constants.BIGINT_TYPE_NAME, UDFToLong.class, false,
         UDFToLong.class.getSimpleName());
-    registerUDF(Constants.FLOAT_TYPE_NAME, UDFToFloat.class, false,
+    instance.registerUDF(Constants.FLOAT_TYPE_NAME, UDFToFloat.class, false,
         UDFToFloat.class.getSimpleName());
-    registerUDF(Constants.DOUBLE_TYPE_NAME, UDFToDouble.class, false,
+    instance.registerUDF(Constants.DOUBLE_TYPE_NAME, UDFToDouble.class, false,
         UDFToDouble.class.getSimpleName());
-    registerUDF(Constants.STRING_TYPE_NAME, UDFToString.class, false,
+    instance.registerUDF(Constants.STRING_TYPE_NAME, UDFToString.class, false,
         UDFToString.class.getSimpleName());
 
-    registerGenericUDF(Constants.TIMESTAMP_TYPE_NAME,
+    instance.registerGenericUDF(Constants.TIMESTAMP_TYPE_NAME,
         GenericUDFTimestamp.class);
 
     // Aggregate functions
-    registerGenericUDAF("max", new GenericUDAFMax());
-    registerGenericUDAF("min", new GenericUDAFMin());
+    instance.registerGenericUDAF("max", new GenericUDAFMax());
+    instance.registerGenericUDAF("min", new GenericUDAFMin());
 
-    registerGenericUDAF("sum", new GenericUDAFSum());
-    registerGenericUDAF("count", new GenericUDAFCount());
-    registerGenericUDAF("avg", new GenericUDAFAverage());
+    instance.registerGenericUDAF("sum", new GenericUDAFSum());
+    instance.registerGenericUDAF("count", new GenericUDAFCount());
+    instance.registerGenericUDAF("avg", new GenericUDAFAverage());
 
-    registerGenericUDAF("std", new GenericUDAFStd());
-    registerGenericUDAF("stddev", new GenericUDAFStd());
-    registerGenericUDAF("stddev_pop", new GenericUDAFStd());
-    registerGenericUDAF("stddev_samp", new GenericUDAFStdSample());
-    registerGenericUDAF("variance", new GenericUDAFVariance());
-    registerGenericUDAF("var_pop", new GenericUDAFVariance());
-    registerGenericUDAF("var_samp", new GenericUDAFVarianceSample());
-    registerGenericUDAF("covar_pop", new GenericUDAFCovariance());
-    registerGenericUDAF("covar_samp", new GenericUDAFCovarianceSample());
-    registerGenericUDAF("corr", new GenericUDAFCorrelation());
-    registerGenericUDAF("histogram_numeric", new GenericUDAFHistogramNumeric());
-    registerGenericUDAF("percentile_approx", new GenericUDAFPercentileApprox());
-    registerGenericUDAF("collect_set", new GenericUDAFCollectSet());
+    instance.registerGenericUDAF("std", new GenericUDAFStd());
+    instance.registerGenericUDAF("stddev", new GenericUDAFStd());
+    instance.registerGenericUDAF("stddev_pop", new GenericUDAFStd());
+    instance.registerGenericUDAF("stddev_samp", new GenericUDAFStdSample());
+    instance.registerGenericUDAF("variance", new GenericUDAFVariance());
+    instance.registerGenericUDAF("var_pop", new GenericUDAFVariance());
+    instance.registerGenericUDAF("var_samp", new GenericUDAFVarianceSample());
+    instance.registerGenericUDAF("covar_pop", new GenericUDAFCovariance());
+    instance.registerGenericUDAF("covar_samp", new GenericUDAFCovarianceSample());
+    instance.registerGenericUDAF("corr", new GenericUDAFCorrelation());
+    instance.registerGenericUDAF("histogram_numeric", new GenericUDAFHistogramNumeric());
+    instance.registerGenericUDAF("percentile_approx", new GenericUDAFPercentileApprox());
+    instance.registerGenericUDAF("collect_set", new GenericUDAFCollectSet());
 
-    registerGenericUDAF("ngrams", new GenericUDAFnGrams());
-    registerGenericUDAF("context_ngrams", new GenericUDAFContextNGrams());
+    instance.registerGenericUDAF("ngrams", new GenericUDAFnGrams());
+    instance.registerGenericUDAF("context_ngrams", new GenericUDAFContextNGrams());
 
-    registerGenericUDAF("ewah_bitmap", new GenericUDAFEWAHBitmap());
+    instance.registerGenericUDAF("ewah_bitmap", new GenericUDAFEWAHBitmap());
 
-    registerUDAF("percentile", UDAFPercentile.class);
+    instance.registerUDAF("percentile", UDAFPercentile.class);
 
 
     // Generic UDFs
-    registerGenericUDF("reflect", GenericUDFReflect.class);
+    instance.registerGenericUDF("reflect", GenericUDFReflect.class);
 
-    registerGenericUDF("array", GenericUDFArray.class);
-    registerGenericUDF("map", GenericUDFMap.class);
-    registerGenericUDF("struct", GenericUDFStruct.class);
-    registerGenericUDF("named_struct", GenericUDFNamedStruct.class);
-    registerGenericUDF("create_union", GenericUDFUnion.class);
+    instance.registerGenericUDF("array", GenericUDFArray.class);
+    instance.registerGenericUDF("map", GenericUDFMap.class);
+    instance.registerGenericUDF("struct", GenericUDFStruct.class);
+    instance.registerGenericUDF("named_struct", GenericUDFNamedStruct.class);
+    instance.registerGenericUDF("create_union", GenericUDFUnion.class);
 
-    registerGenericUDF("case", GenericUDFCase.class);
-    registerGenericUDF("when", GenericUDFWhen.class);
-    registerGenericUDF("hash", GenericUDFHash.class);
-    registerGenericUDF("coalesce", GenericUDFCoalesce.class);
-    registerGenericUDF("index", GenericUDFIndex.class);
-    registerGenericUDF("instr", GenericUDFInstr.class);
-    registerGenericUDF("locate", GenericUDFLocate.class);
-    registerGenericUDF("elt", GenericUDFElt.class);
-    registerGenericUDF("concat_ws", GenericUDFConcatWS.class);
-    registerGenericUDF("array_contains", GenericUDFArrayContains.class);
-    registerGenericUDF("sentences", GenericUDFSentences.class);
-    registerGenericUDF("map_keys", GenericUDFMapKeys.class);
-    registerGenericUDF("map_values", GenericUDFMapValues.class);
+    instance.registerGenericUDF("case", GenericUDFCase.class);
+    instance.registerGenericUDF("when", GenericUDFWhen.class);
+    instance.registerGenericUDF("hash", GenericUDFHash.class);
+    instance.registerGenericUDF("coalesce", GenericUDFCoalesce.class);
+    instance.registerGenericUDF("index", GenericUDFIndex.class);
+    instance.registerGenericUDF("instr", GenericUDFInstr.class);
+    instance.registerGenericUDF("locate", GenericUDFLocate.class);
+    instance.registerGenericUDF("elt", GenericUDFElt.class);
+    instance.registerGenericUDF("concat_ws", GenericUDFConcatWS.class);
+    instance.registerGenericUDF("array_contains", GenericUDFArrayContains.class);
+    instance.registerGenericUDF("sentences", GenericUDFSentences.class);
+    instance.registerGenericUDF("map_keys", GenericUDFMapKeys.class);
+    instance.registerGenericUDF("map_values", GenericUDFMapValues.class);
 
-    registerGenericUDF("from_utc_timestamp", GenericUDFFromUtcTimestamp.class);
-    registerGenericUDF("to_utc_timestamp", GenericUDFToUtcTimestamp.class);
+    instance.registerGenericUDF("from_utc_timestamp", GenericUDFFromUtcTimestamp.class);
+    instance.registerGenericUDF("to_utc_timestamp", GenericUDFToUtcTimestamp.class);
 
 
     // Generic UDTF's
-    registerGenericUDTF("explode", GenericUDTFExplode.class);
-    registerGenericUDTF("json_tuple", GenericUDTFJSONTuple.class);
-    registerGenericUDTF("parse_url_tuple", GenericUDTFParseUrlTuple.class);
+    instance.registerGenericUDTF("explode", GenericUDTFExplode.class);
+    instance.registerGenericUDTF("json_tuple", GenericUDTFJSONTuple.class);
+    instance.registerGenericUDTF("parse_url_tuple", GenericUDTFParseUrlTuple.class);
   }
 
-  public static void registerTemporaryUDF(String functionName,
+  public static Registry get() {
+    return instance;
+  }
+
+  public static FunctionInfo getFunctionInfo(String functionName) {
+    FunctionInfo info = null;
+    Registry registry = SessionState.getRegistry();
+    if (registry != null) {
+      info = registry.getFunctionInfo(functionName);
+    }
+    return info != null ? info : instance.getFunctionInfo(functionName);
+  }
+
+  public static Set<String> getFunctionNames() {
+    Set<String> names = new TreeSet<String>();
+    Registry registry = SessionState.getRegistry();
+    if (registry != null) {
+      names.addAll(registry.getFunctionNames());
+    }
+    names.addAll(instance.getFunctionNames());
+    return names;
+  }
+
+  public static Set<String> getFunctionNames(String funcPatternStr) {
+    Set<String> funcNames = new TreeSet<String>();
+    Registry registry = SessionState.getRegistry();
+    if (registry != null) {
+      funcNames.addAll(registry.getFunctionNames(funcPatternStr));
+    }
+    funcNames.addAll(instance.getFunctionNames(funcPatternStr));
+    return funcNames;
+  }
+
+  public static Set<String> getFunctionSynonyms(String funcName) {
+    Set<String> synonyms = new HashSet<String>();
+    Registry registry = SessionState.getRegistry();
+    if (registry != null) {
+      synonyms.addAll(registry.getFunctionSynonyms(funcName));
+    }
+    synonyms.addAll(instance.getFunctionSynonyms(funcName));
+    return synonyms;
+  }
+
+  public static GenericUDAFEvaluator getGenericUDAFEvaluator(String name,
+      List<TypeInfo> argumentTypeInfos, boolean isDistinct,
+      boolean isAllColumns) throws SemanticException {
+    GenericUDAFEvaluator evaluator = null;
+    Registry registry = SessionState.getRegistry();
+    if (registry != null) {
+      evaluator = registry.getGenericUDAFEvaluator(name, argumentTypeInfos, isDistinct, isAllColumns);
+    }
+    return evaluator != null ? evaluator : instance.getGenericUDAFEvaluator(name, argumentTypeInfos, isDistinct, isAllColumns);
+  }
+
+  public static GenericUDAFResolver getGenericUDAFResolver(String functionName) {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Looking up GenericUDAF: " + functionName);
+    }
+    GenericUDAFResolver evaluator = null;
+    Registry registry = SessionState.getRegistry();
+    if (registry != null) {
+      evaluator = registry.getGenericUDAFResolver(functionName);
+    }
+    return evaluator != null ? evaluator : instance.getGenericUDAFResolver(functionName);
+  }
+
+  public static class Registry {
+
+    /**
+   * The mapping from expression function names to expression classes.
+   */
+  final Map<String, FunctionInfo> mFunctions = new LinkedHashMap<String, FunctionInfo>();
+
+  public void registerTemporaryUDF(String functionName,
       Class<? extends UDF> UDFClass, boolean isOperator) {
     registerUDF(false, functionName, UDFClass, isOperator);
   }
 
-  static void registerUDF(String functionName, Class<? extends UDF> UDFClass,
+  void registerUDF(String functionName, Class<? extends UDF> UDFClass,
       boolean isOperator) {
     registerUDF(true, functionName, UDFClass, isOperator);
   }
 
-  public static void registerUDF(boolean isNative, String functionName,
+  public void registerUDF(boolean isNative, String functionName,
       Class<? extends UDF> UDFClass, boolean isOperator) {
     registerUDF(isNative, functionName, UDFClass, isOperator, functionName
         .toLowerCase());
   }
 
-  public static void registerUDF(String functionName,
+  public void registerUDF(String functionName,
       Class<? extends UDF> UDFClass, boolean isOperator, String displayName) {
     registerUDF(true, functionName, UDFClass, isOperator, displayName);
   }
 
-  public static void registerUDF(boolean isNative, String functionName,
+  public void registerUDF(boolean isNative, String functionName,
       Class<? extends UDF> UDFClass, boolean isOperator, String displayName) {
     if (UDF.class.isAssignableFrom(UDFClass)) {
       FunctionInfo fI = new FunctionInfo(isNative, displayName,
@@ -471,17 +542,17 @@ public final class FunctionRegistry {
     }
   }
 
-  public static void registerTemporaryGenericUDF(String functionName,
+  public void registerTemporaryGenericUDF(String functionName,
       Class<? extends GenericUDF> genericUDFClass) {
     registerGenericUDF(false, functionName, genericUDFClass);
   }
 
-  static void registerGenericUDF(String functionName,
+  void registerGenericUDF(String functionName,
       Class<? extends GenericUDF> genericUDFClass) {
     registerGenericUDF(true, functionName, genericUDFClass);
   }
 
-  public static void registerGenericUDF(boolean isNative, String functionName,
+  public void registerGenericUDF(boolean isNative, String functionName,
       Class<? extends GenericUDF> genericUDFClass) {
     if (GenericUDF.class.isAssignableFrom(genericUDFClass)) {
       FunctionInfo fI = new FunctionInfo(isNative, functionName,
@@ -493,17 +564,17 @@ public final class FunctionRegistry {
     }
   }
 
-  public static void registerTemporaryGenericUDTF(String functionName,
+  public void registerTemporaryGenericUDTF(String functionName,
       Class<? extends GenericUDTF> genericUDTFClass) {
     registerGenericUDTF(false, functionName, genericUDTFClass);
   }
 
-  static void registerGenericUDTF(String functionName,
+  void registerGenericUDTF(String functionName,
       Class<? extends GenericUDTF> genericUDTFClass) {
     registerGenericUDTF(true, functionName, genericUDTFClass);
   }
 
-  public static void registerGenericUDTF(boolean isNative, String functionName,
+  public void registerGenericUDTF(boolean isNative, String functionName,
       Class<? extends GenericUDTF> genericUDTFClass) {
     if (GenericUDTF.class.isAssignableFrom(genericUDTFClass)) {
       FunctionInfo fI = new FunctionInfo(isNative, functionName,
@@ -515,7 +586,7 @@ public final class FunctionRegistry {
     }
   }
 
-  public static FunctionInfo getFunctionInfo(String functionName) {
+  public FunctionInfo getFunctionInfo(String functionName) {
     return mFunctions.get(functionName.toLowerCase());
   }
 
@@ -525,7 +596,7 @@ public final class FunctionRegistry {
    *
    * @return set of strings contains function names
    */
-  public static Set<String> getFunctionNames() {
+  public Set<String> getFunctionNames() {
     return mFunctions.keySet();
   }
 
@@ -538,7 +609,7 @@ public final class FunctionRegistry {
    *          regular expression of the interested function names
    * @return set of strings contains function names
    */
-  public static Set<String> getFunctionNames(String funcPatternStr) {
+  public Set<String> getFunctionNames(String funcPatternStr) {
     Set<String> funcNames = new TreeSet<String>();
     Pattern funcPattern = null;
     try {
@@ -561,7 +632,7 @@ public final class FunctionRegistry {
    *          the name of the function
    * @return Set of synonyms for funcName
    */
-  public static Set<String> getFunctionSynonyms(String funcName) {
+  public Set<String> getFunctionSynonyms(String funcName) {
     Set<String> synonyms = new HashSet<String>();
 
     FunctionInfo funcInfo = getFunctionInfo(funcName);
@@ -582,106 +653,6 @@ public final class FunctionRegistry {
     return synonyms;
   }
 
-  static Map<TypeInfo, Integer> numericTypes = new HashMap<TypeInfo, Integer>();
-  static List<TypeInfo> numericTypeList = new ArrayList<TypeInfo>();
-
-  static void registerNumericType(String typeName, int level) {
-    TypeInfo t = TypeInfoFactory.getPrimitiveTypeInfo(typeName);
-    numericTypeList.add(t);
-    numericTypes.put(t, level);
-  }
-
-  static {
-    registerNumericType(Constants.TINYINT_TYPE_NAME, 1);
-    registerNumericType(Constants.SMALLINT_TYPE_NAME, 2);
-    registerNumericType(Constants.INT_TYPE_NAME, 3);
-    registerNumericType(Constants.BIGINT_TYPE_NAME, 4);
-    registerNumericType(Constants.FLOAT_TYPE_NAME, 5);
-    registerNumericType(Constants.DOUBLE_TYPE_NAME, 6);
-    registerNumericType(Constants.STRING_TYPE_NAME, 7);
-  }
-
-  /**
-   * Find a common class that objects of both TypeInfo a and TypeInfo b can
-   * convert to. This is used for comparing objects of type a and type b.
-   *
-   * When we are comparing string and double, we will always convert both of
-   * them to double and then compare.
-   *
-   * @return null if no common class could be found.
-   */
-  public static TypeInfo getCommonClassForComparison(TypeInfo a, TypeInfo b) {
-    // If same return one of them
-    if (a.equals(b)) {
-      return a;
-    }
-
-    for (TypeInfo t : numericTypeList) {
-      if (FunctionRegistry.implicitConvertable(a, t)
-          && FunctionRegistry.implicitConvertable(b, t)) {
-        return t;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Find a common class that objects of both TypeInfo a and TypeInfo b can
-   * convert to. This is used for places other than comparison.
-   *
-   * The common class of string and double is string.
-   *
-   * @return null if no common class could be found.
-   */
-  public static TypeInfo getCommonClass(TypeInfo a, TypeInfo b) {
-    if (a.equals(b)) {
-      return a;
-    }
-    Integer ai = numericTypes.get(a);
-    Integer bi = numericTypes.get(b);
-    if (ai == null || bi == null) {
-      // If either is not a numeric type, return null.
-      return null;
-    }
-    return (ai > bi) ? a : b;
-  }
-
-  /**
-   * Returns whether it is possible to implicitly convert an object of Class
-   * from to Class to.
-   */
-  public static boolean implicitConvertable(TypeInfo from, TypeInfo to) {
-    if (from.equals(to)) {
-      return true;
-    }
-    // Allow implicit String to Double conversion
-    if (from.equals(TypeInfoFactory.stringTypeInfo)
-        && to.equals(TypeInfoFactory.doubleTypeInfo)) {
-      return true;
-    }
-    // Void can be converted to any type
-    if (from.equals(TypeInfoFactory.voidTypeInfo)) {
-      return true;
-    }
-
-    if (from.equals(TypeInfoFactory.timestampTypeInfo)
-        && to.equals(TypeInfoFactory.stringTypeInfo)) {
-      return true;
-    }
-
-    // Allow implicit conversion from Byte -> Integer -> Long -> Float -> Double
-    // -> String
-    Integer f = numericTypes.get(from);
-    Integer t = numericTypes.get(to);
-    if (f == null || t == null) {
-      return false;
-    }
-    if (f.intValue() > t.intValue()) {
-      return false;
-    }
-    return true;
-  }
-
   /**
    * Get the GenericUDAF evaluator for the name and argumentClasses.
    *
@@ -691,7 +662,7 @@ public final class FunctionRegistry {
    * @return The UDAF evaluator
    */
   @SuppressWarnings("deprecation")
-  public static GenericUDAFEvaluator getGenericUDAFEvaluator(String name,
+  public GenericUDAFEvaluator getGenericUDAFEvaluator(String name,
       List<TypeInfo> argumentTypeInfos, boolean isDistinct,
       boolean isAllColumns) throws SemanticException {
 
@@ -707,8 +678,8 @@ public final class FunctionRegistry {
 
     GenericUDAFEvaluator udafEvaluator = null;
     if (udafResolver instanceof GenericUDAFResolver2) {
-      GenericUDAFParameterInfo paramInfo =
-          new SimpleGenericUDAFParameterInfo(
+    GenericUDAFParameterInfo paramInfo =
+        new SimpleGenericUDAFParameterInfo(
               parameters, isDistinct, isAllColumns);
       udafEvaluator =
           ((GenericUDAFResolver2) udafResolver).getEvaluator(paramInfo);
@@ -718,60 +689,39 @@ public final class FunctionRegistry {
     return udafEvaluator;
   }
 
-  /**
-   * This method is shared between UDFRegistry and UDAFRegistry. methodName will
-   * be "evaluate" for UDFRegistry, and "aggregate"/"evaluate"/"evaluatePartial"
-   * for UDAFRegistry.
-   * @throws UDFArgumentException
-   */
-  public static <T> Method getMethodInternal(Class<? extends T> udfClass,
-      String methodName, boolean exact, List<TypeInfo> argumentClasses)
-      throws UDFArgumentException {
-
-    List<Method> mlist = new ArrayList<Method>();
-
-    for (Method m : udfClass.getMethods()) {
-      if (m.getName().equals(methodName)) {
-        mlist.add(m);
-      }
-    }
-
-    return getMethodInternal(udfClass, mlist, exact, argumentClasses);
-  }
-
-  public static void registerTemporaryGenericUDAF(String functionName,
+  public void registerTemporaryGenericUDAF(String functionName,
       GenericUDAFResolver genericUDAFResolver) {
     registerGenericUDAF(false, functionName, genericUDAFResolver);
   }
 
-  static void registerGenericUDAF(String functionName,
+  void registerGenericUDAF(String functionName,
       GenericUDAFResolver genericUDAFResolver) {
     registerGenericUDAF(true, functionName, genericUDAFResolver);
   }
 
-  public static void registerGenericUDAF(boolean isNative, String functionName,
+  public void registerGenericUDAF(boolean isNative, String functionName,
       GenericUDAFResolver genericUDAFResolver) {
     mFunctions.put(functionName.toLowerCase(), new FunctionInfo(isNative,
         functionName.toLowerCase(), genericUDAFResolver));
   }
 
-  public static void registerTemporaryUDAF(String functionName,
+  public void registerTemporaryUDAF(String functionName,
       Class<? extends UDAF> udafClass) {
     registerUDAF(false, functionName, udafClass);
   }
 
-  static void registerUDAF(String functionName, Class<? extends UDAF> udafClass) {
+  void registerUDAF(String functionName, Class<? extends UDAF> udafClass) {
     registerUDAF(true, functionName, udafClass);
   }
 
-  public static void registerUDAF(boolean isNative, String functionName,
+  public void registerUDAF(boolean isNative, String functionName,
       Class<? extends UDAF> udafClass) {
     mFunctions.put(functionName.toLowerCase(), new FunctionInfo(isNative,
         functionName.toLowerCase(), new GenericUDAFBridge(
         (UDAF) ReflectionUtils.newInstance(udafClass, null))));
   }
 
-  public static void unregisterTemporaryUDF(String functionName) throws HiveException {
+  public void unregisterUDF(String functionName) throws HiveException {
     FunctionInfo fi = mFunctions.get(functionName.toLowerCase());
     if (fi != null) {
       if (!fi.isNative()) {
@@ -783,7 +733,7 @@ public final class FunctionRegistry {
     }
   }
 
-  public static GenericUDAFResolver getGenericUDAFResolver(String functionName) {
+  public GenericUDAFResolver getGenericUDAFResolver(String functionName) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Looking up GenericUDAF: " + functionName);
     }
@@ -793,6 +743,7 @@ public final class FunctionRegistry {
     }
     GenericUDAFResolver result = finfo.getGenericUDAFResolver();
     return result;
+  }
   }
 
   public static Object invoke(Method m, Object thisObject, Object... arguments)
@@ -882,6 +833,27 @@ public final class FunctionRegistry {
     }
 
     return -1;
+  }
+
+  /**
+   * This method is shared between UDFRegistry and UDAFRegistry. methodName will
+   * be "evaluate" for UDFRegistry, and "aggregate"/"evaluate"/"evaluatePartial"
+   * for UDAFRegistry.
+   * @throws UDFArgumentException
+   */
+  public static <T> Method getMethodInternal(Class<? extends T> udfClass,
+      String methodName, boolean exact, List<TypeInfo> argumentClasses)
+      throws UDFArgumentException {
+
+    List<Method> mlist = new ArrayList<Method>();
+
+    for (Method m : udfClass.getMethods()) {
+      if (m.getName().equals(methodName)) {
+        mlist.add(m);
+      }
+    }
+
+    return getMethodInternal(udfClass, mlist, exact, argumentClasses);
   }
 
   /**
@@ -1118,7 +1090,103 @@ public final class FunctionRegistry {
     return UDFOPPositive.class == udfClass;
   }
 
-  private FunctionRegistry() {
-    // prevent instantiation
+  static Map<TypeInfo, Integer> numericTypes = new HashMap<TypeInfo, Integer>();
+  static List<TypeInfo> numericTypeList = new ArrayList<TypeInfo>();
+
+  static void registerNumericType(String typeName, int level) {
+    TypeInfo t = TypeInfoFactory.getPrimitiveTypeInfo(typeName);
+    numericTypeList.add(t);
+    numericTypes.put(t, level);
+  }
+
+  static {
+    registerNumericType(Constants.TINYINT_TYPE_NAME, 1);
+    registerNumericType(Constants.SMALLINT_TYPE_NAME, 2);
+    registerNumericType(Constants.INT_TYPE_NAME, 3);
+    registerNumericType(Constants.BIGINT_TYPE_NAME, 4);
+    registerNumericType(Constants.FLOAT_TYPE_NAME, 5);
+    registerNumericType(Constants.DOUBLE_TYPE_NAME, 6);
+    registerNumericType(Constants.STRING_TYPE_NAME, 7);
+  }
+
+  /**
+   * Find a common class that objects of both TypeInfo a and TypeInfo b can
+   * convert to. This is used for comparing objects of type a and type b.
+   *
+   * When we are comparing string and double, we will always convert both of
+   * them to double and then compare.
+   *
+   * @return null if no common class could be found.
+   */
+  public static TypeInfo getCommonClassForComparison(TypeInfo a, TypeInfo b) {
+    // If same return one of them
+    if (a.equals(b)) {
+      return a;
+    }
+
+    for (TypeInfo t : numericTypeList) {
+      if (FunctionRegistry.implicitConvertable(a, t)
+          && FunctionRegistry.implicitConvertable(b, t)) {
+        return t;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Find a common class that objects of both TypeInfo a and TypeInfo b can
+   * convert to. This is used for places other than comparison.
+   *
+   * The common class of string and double is string.
+   *
+   * @return null if no common class could be found.
+   */
+  public static TypeInfo getCommonClass(TypeInfo a, TypeInfo b) {
+    if (a.equals(b)) {
+      return a;
+    }
+    Integer ai = numericTypes.get(a);
+    Integer bi = numericTypes.get(b);
+    if (ai == null || bi == null) {
+      // If either is not a numeric type, return null.
+      return null;
+    }
+    return (ai > bi) ? a : b;
+  }
+
+  /**
+   * Returns whether it is possible to implicitly convert an object of Class
+   * from to Class to.
+   */
+  public static boolean implicitConvertable(TypeInfo from, TypeInfo to) {
+    if (from.equals(to)) {
+      return true;
+    }
+    // Allow implicit String to Double conversion
+    if (from.equals(TypeInfoFactory.stringTypeInfo)
+        && to.equals(TypeInfoFactory.doubleTypeInfo)) {
+      return true;
+    }
+    // Void can be converted to any type
+    if (from.equals(TypeInfoFactory.voidTypeInfo)) {
+      return true;
+    }
+
+    if (from.equals(TypeInfoFactory.timestampTypeInfo)
+        && to.equals(TypeInfoFactory.stringTypeInfo)) {
+      return true;
+    }
+
+    // Allow implicit conversion from Byte -> Integer -> Long -> Float -> Double
+    // -> String
+    Integer f = numericTypes.get(from);
+    Integer t = numericTypes.get(to);
+    if (f == null || t == null) {
+      return false;
+    }
+    if (f.intValue() > t.intValue()) {
+      return false;
+    }
+    return true;
   }
 }

@@ -989,15 +989,15 @@ metastoreCheck
 createFunctionStatement
 @init { msgs.push("create function statement"); }
 @after { msgs.pop(); }
-    : KW_CREATE KW_TEMPORARY KW_FUNCTION Identifier KW_AS StringLiteral
-    -> ^(TOK_CREATEFUNCTION Identifier StringLiteral)
+    : KW_CREATE (temporary=KW_TEMPORARY)? KW_FUNCTION Identifier KW_AS StringLiteral
+    -> ^(TOK_CREATEFUNCTION Identifier StringLiteral $temporary?)
     ;
 
 dropFunctionStatement
 @init { msgs.push("drop temporary function statement"); }
 @after { msgs.pop(); }
-    : KW_DROP KW_TEMPORARY KW_FUNCTION ifExists? Identifier
-    -> ^(TOK_DROPFUNCTION Identifier ifExists?)
+    : KW_DROP (temporary=KW_TEMPORARY)? KW_FUNCTION ifExists? Identifier
+    -> ^(TOK_DROPFUNCTION Identifier ifExists? $temporary?)
     ;
 
 createViewStatement

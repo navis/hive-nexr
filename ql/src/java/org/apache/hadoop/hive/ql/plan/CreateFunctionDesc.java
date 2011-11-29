@@ -30,6 +30,7 @@ public class CreateFunctionDesc implements Serializable {
 
   private String functionName;
   private String className;
+  private boolean temporary;
 
   /**
    * For serialization only.
@@ -37,9 +38,10 @@ public class CreateFunctionDesc implements Serializable {
   public CreateFunctionDesc() {
   }
   
-  public CreateFunctionDesc(String functionName, String className) {
+  public CreateFunctionDesc(String functionName, String className, boolean temporary) {
     this.functionName = functionName;
     this.className = className;
+    this.temporary = temporary;
   }
 
   @Explain(displayName = "name")
@@ -58,6 +60,14 @@ public class CreateFunctionDesc implements Serializable {
 
   public void setClassName(String className) {
     this.className = className;
+  }
+
+  public boolean getTemporary() {
+    return temporary;
+  }
+
+  public void setTemporary(boolean temporary) {
+    this.temporary = temporary;
   }
 
 }
