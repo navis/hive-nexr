@@ -890,7 +890,7 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
           pathsProcessed.add(path);
 
           LOG.info("Adding input file " + path);
-          if (Utilities.isEmptyPath(job, path, ctx)) {
+          if (isEmptyPath(job, work, path, ctx)) {
             emptyPaths.add(path);
           } else {
             pathsToAdd.add(path);
@@ -918,6 +918,17 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
       }
     }
     setInputPaths(job, pathsToAdd);
+  }
+
+  private static boolean isEmptyPath(JobConf job, MapredWork work, String path, Context ctx) throws Exception {
+    PartitionDesc partDesc = work.getPathToPartitionInfo().get(path);
+    String pattern = (String) partDesc.getTableDesc().getProperties().get("pattern");
+    if (pattern != null) {
+      Path globPath = new Path(path, pattern);
+      FileStatus[] status = globPath.getFileSystem(job).globStatus(globPath);
+      return status == null || status.length == 0;
+    }
+    return Utilities.isEmptyPath(job, path, ctx);
   }
 
   private static void setInputPaths(JobConf job, List<String> pathsToAdd) {
