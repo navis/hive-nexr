@@ -16,6 +16,9 @@ class ThriftHiveIf : virtual public Apache::Hadoop::Hive::ThriftHiveMetastoreIf 
  public:
   virtual ~ThriftHiveIf() {}
   virtual void execute(const std::string& query) = 0;
+  virtual void executeTransient(const std::string& query) = 0;
+  virtual void compile(Apache::Hadoop::Hive::QueryPlan& _return, const std::string& query) = 0;
+  virtual void run() = 0;
   virtual void fetchOne(std::string& _return) = 0;
   virtual void fetchN(std::vector<std::string> & _return, const int32_t numRows) = 0;
   virtual void fetchAll(std::vector<std::string> & _return) = 0;
@@ -30,6 +33,15 @@ class ThriftHiveNull : virtual public ThriftHiveIf , virtual public Apache::Hado
  public:
   virtual ~ThriftHiveNull() {}
   void execute(const std::string& /* query */) {
+    return;
+  }
+  void executeTransient(const std::string& /* query */) {
+    return;
+  }
+  void compile(Apache::Hadoop::Hive::QueryPlan& /* _return */, const std::string& /* query */) {
+    return;
+  }
+  void run() {
     return;
   }
   void fetchOne(std::string& /* _return */) {
@@ -161,6 +173,326 @@ class ThriftHive_execute_presult {
   HiveServerException ex;
 
   _ThriftHive_execute_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _ThriftHive_executeTransient_args__isset {
+  _ThriftHive_executeTransient_args__isset() : query(false) {}
+  bool query;
+} _ThriftHive_executeTransient_args__isset;
+
+class ThriftHive_executeTransient_args {
+ public:
+
+  ThriftHive_executeTransient_args() : query("") {
+  }
+
+  virtual ~ThriftHive_executeTransient_args() throw() {}
+
+  std::string query;
+
+  _ThriftHive_executeTransient_args__isset __isset;
+
+  void __set_query(const std::string& val) {
+    query = val;
+  }
+
+  bool operator == (const ThriftHive_executeTransient_args & rhs) const
+  {
+    if (!(query == rhs.query))
+      return false;
+    return true;
+  }
+  bool operator != (const ThriftHive_executeTransient_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const ThriftHive_executeTransient_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class ThriftHive_executeTransient_pargs {
+ public:
+
+
+  virtual ~ThriftHive_executeTransient_pargs() throw() {}
+
+  const std::string* query;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _ThriftHive_executeTransient_result__isset {
+  _ThriftHive_executeTransient_result__isset() : ex(false) {}
+  bool ex;
+} _ThriftHive_executeTransient_result__isset;
+
+class ThriftHive_executeTransient_result {
+ public:
+
+  ThriftHive_executeTransient_result() {
+  }
+
+  virtual ~ThriftHive_executeTransient_result() throw() {}
+
+  HiveServerException ex;
+
+  _ThriftHive_executeTransient_result__isset __isset;
+
+  void __set_ex(const HiveServerException& val) {
+    ex = val;
+  }
+
+  bool operator == (const ThriftHive_executeTransient_result & rhs) const
+  {
+    if (!(ex == rhs.ex))
+      return false;
+    return true;
+  }
+  bool operator != (const ThriftHive_executeTransient_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const ThriftHive_executeTransient_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _ThriftHive_executeTransient_presult__isset {
+  _ThriftHive_executeTransient_presult__isset() : ex(false) {}
+  bool ex;
+} _ThriftHive_executeTransient_presult__isset;
+
+class ThriftHive_executeTransient_presult {
+ public:
+
+
+  virtual ~ThriftHive_executeTransient_presult() throw() {}
+
+  HiveServerException ex;
+
+  _ThriftHive_executeTransient_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _ThriftHive_compile_args__isset {
+  _ThriftHive_compile_args__isset() : query(false) {}
+  bool query;
+} _ThriftHive_compile_args__isset;
+
+class ThriftHive_compile_args {
+ public:
+
+  ThriftHive_compile_args() : query("") {
+  }
+
+  virtual ~ThriftHive_compile_args() throw() {}
+
+  std::string query;
+
+  _ThriftHive_compile_args__isset __isset;
+
+  void __set_query(const std::string& val) {
+    query = val;
+  }
+
+  bool operator == (const ThriftHive_compile_args & rhs) const
+  {
+    if (!(query == rhs.query))
+      return false;
+    return true;
+  }
+  bool operator != (const ThriftHive_compile_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const ThriftHive_compile_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class ThriftHive_compile_pargs {
+ public:
+
+
+  virtual ~ThriftHive_compile_pargs() throw() {}
+
+  const std::string* query;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _ThriftHive_compile_result__isset {
+  _ThriftHive_compile_result__isset() : success(false), ex(false) {}
+  bool success;
+  bool ex;
+} _ThriftHive_compile_result__isset;
+
+class ThriftHive_compile_result {
+ public:
+
+  ThriftHive_compile_result() {
+  }
+
+  virtual ~ThriftHive_compile_result() throw() {}
+
+  Apache::Hadoop::Hive::QueryPlan success;
+  HiveServerException ex;
+
+  _ThriftHive_compile_result__isset __isset;
+
+  void __set_success(const Apache::Hadoop::Hive::QueryPlan& val) {
+    success = val;
+  }
+
+  void __set_ex(const HiveServerException& val) {
+    ex = val;
+  }
+
+  bool operator == (const ThriftHive_compile_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    if (!(ex == rhs.ex))
+      return false;
+    return true;
+  }
+  bool operator != (const ThriftHive_compile_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const ThriftHive_compile_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _ThriftHive_compile_presult__isset {
+  _ThriftHive_compile_presult__isset() : success(false), ex(false) {}
+  bool success;
+  bool ex;
+} _ThriftHive_compile_presult__isset;
+
+class ThriftHive_compile_presult {
+ public:
+
+
+  virtual ~ThriftHive_compile_presult() throw() {}
+
+  Apache::Hadoop::Hive::QueryPlan* success;
+  HiveServerException ex;
+
+  _ThriftHive_compile_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+
+class ThriftHive_run_args {
+ public:
+
+  ThriftHive_run_args() {
+  }
+
+  virtual ~ThriftHive_run_args() throw() {}
+
+
+  bool operator == (const ThriftHive_run_args & /* rhs */) const
+  {
+    return true;
+  }
+  bool operator != (const ThriftHive_run_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const ThriftHive_run_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class ThriftHive_run_pargs {
+ public:
+
+
+  virtual ~ThriftHive_run_pargs() throw() {}
+
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _ThriftHive_run_result__isset {
+  _ThriftHive_run_result__isset() : ex(false) {}
+  bool ex;
+} _ThriftHive_run_result__isset;
+
+class ThriftHive_run_result {
+ public:
+
+  ThriftHive_run_result() {
+  }
+
+  virtual ~ThriftHive_run_result() throw() {}
+
+  HiveServerException ex;
+
+  _ThriftHive_run_result__isset __isset;
+
+  void __set_ex(const HiveServerException& val) {
+    ex = val;
+  }
+
+  bool operator == (const ThriftHive_run_result & rhs) const
+  {
+    if (!(ex == rhs.ex))
+      return false;
+    return true;
+  }
+  bool operator != (const ThriftHive_run_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const ThriftHive_run_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _ThriftHive_run_presult__isset {
+  _ThriftHive_run_presult__isset() : ex(false) {}
+  bool ex;
+} _ThriftHive_run_presult__isset;
+
+class ThriftHive_run_presult {
+ public:
+
+
+  virtual ~ThriftHive_run_presult() throw() {}
+
+  HiveServerException ex;
+
+  _ThriftHive_run_presult__isset __isset;
 
   uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
 
@@ -997,6 +1329,15 @@ class ThriftHiveClient : virtual public ThriftHiveIf, public Apache::Hadoop::Hiv
   void execute(const std::string& query);
   void send_execute(const std::string& query);
   void recv_execute();
+  void executeTransient(const std::string& query);
+  void send_executeTransient(const std::string& query);
+  void recv_executeTransient();
+  void compile(Apache::Hadoop::Hive::QueryPlan& _return, const std::string& query);
+  void send_compile(const std::string& query);
+  void recv_compile(Apache::Hadoop::Hive::QueryPlan& _return);
+  void run();
+  void send_run();
+  void recv_run();
   void fetchOne(std::string& _return);
   void send_fetchOne();
   void recv_fetchOne(std::string& _return);
@@ -1030,6 +1371,9 @@ class ThriftHiveProcessor : virtual public ::apache::thrift::TProcessor, public 
  private:
   std::map<std::string, void (ThriftHiveProcessor::*)(int32_t, ::apache::thrift::protocol::TProtocol*, ::apache::thrift::protocol::TProtocol*, void*)> processMap_;
   void process_execute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_executeTransient(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_compile(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_run(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_fetchOne(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_fetchN(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_fetchAll(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
@@ -1043,6 +1387,9 @@ class ThriftHiveProcessor : virtual public ::apache::thrift::TProcessor, public 
     Apache::Hadoop::Hive::ThriftHiveMetastoreProcessor(iface),
     iface_(iface) {
     processMap_["execute"] = &ThriftHiveProcessor::process_execute;
+    processMap_["executeTransient"] = &ThriftHiveProcessor::process_executeTransient;
+    processMap_["compile"] = &ThriftHiveProcessor::process_compile;
+    processMap_["run"] = &ThriftHiveProcessor::process_run;
     processMap_["fetchOne"] = &ThriftHiveProcessor::process_fetchOne;
     processMap_["fetchN"] = &ThriftHiveProcessor::process_fetchN;
     processMap_["fetchAll"] = &ThriftHiveProcessor::process_fetchAll;
@@ -1078,6 +1425,32 @@ class ThriftHiveMultiface : virtual public ThriftHiveIf, public Apache::Hadoop::
     size_t sz = ifaces_.size();
     for (size_t i = 0; i < sz; ++i) {
       ifaces_[i]->execute(query);
+    }
+  }
+
+  void executeTransient(const std::string& query) {
+    size_t sz = ifaces_.size();
+    for (size_t i = 0; i < sz; ++i) {
+      ifaces_[i]->executeTransient(query);
+    }
+  }
+
+  void compile(Apache::Hadoop::Hive::QueryPlan& _return, const std::string& query) {
+    size_t sz = ifaces_.size();
+    for (size_t i = 0; i < sz; ++i) {
+      if (i == sz - 1) {
+        ifaces_[i]->compile(_return, query);
+        return;
+      } else {
+        ifaces_[i]->compile(_return, query);
+      }
+    }
+  }
+
+  void run() {
+    size_t sz = ifaces_.size();
+    for (size_t i = 0; i < sz; ++i) {
+      ifaces_[i]->run();
     }
   }
 
