@@ -431,13 +431,22 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
 
       this.createTmpDirs();
 
+      String callback = ctx.getConf().get("task.notification.url");
+      if (callback != null) {
+        callback = callback.replaceAll("\\$stageId", getId());
+        job.setJobEndNotificationURI(callback);
+      }
+
       // Finally SUBMIT the JOB!
       rj = jc.submitJob(job);
       // replace it back
       if (pwd != null) {
         HiveConf.setVar(job, HiveConf.ConfVars.METASTOREPWD, pwd);
       }
-
+      if (callback != null) {
+        String jobID = rj.getJobID();
+        notify(callback.replaceAll("\\$jobId", jobID), "STARTED");
+      }
       returnVal = jobExecHelper.progress(rj, jc);
       success = (returnVal == 0);
     } catch (Exception e) {
