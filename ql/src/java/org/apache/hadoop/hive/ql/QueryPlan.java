@@ -40,7 +40,12 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.ql.exec.ConditionalTask;
 import org.apache.hadoop.hive.ql.exec.ExplainTask;
 import org.apache.hadoop.hive.ql.exec.FetchTask;
+import org.apache.hadoop.hive.ql.exec.FilterOperator;
+import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
+import org.apache.hadoop.hive.ql.exec.ScriptOperator;
+import org.apache.hadoop.hive.ql.exec.SelectOperator;
+import org.apache.hadoop.hive.ql.exec.TableScanOperator;
 import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.exec.mr.ExecDriver;
 import org.apache.hadoop.hive.ql.hooks.LineageInfo;
@@ -51,6 +56,8 @@ import org.apache.hadoop.hive.ql.parse.ColumnAccessInfo;
 import org.apache.hadoop.hive.ql.parse.TableAccessInfo;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.ReducerTimeStatsPerJob;
+import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
+import org.apache.hadoop.hive.ql.plan.MapredWork;
 import org.apache.hadoop.hive.ql.plan.api.AdjacencyType;
 import org.apache.hadoop.hive.ql.plan.api.NodeType;
 import org.apache.hadoop.hive.ql.plan.api.TaskType;
@@ -184,6 +191,8 @@ public class QueryPlan implements Serializable {
         new org.apache.hadoop.hive.ql.plan.api.Operator();
       operator.setOperatorId(op.getOperatorId());
       operator.setOperatorType(op.getType());
+      addOperationProps(op, operator);
+
       task.addToOperatorList(operator);
       // done processing the operator
       if (op.getChildOperators() != null) {
@@ -200,6 +209,62 @@ public class QueryPlan implements Serializable {
         task.getOperatorGraph().addToAdjacencyList(entry);
       }
     }
+  }
+
+  private void addOperationProps(Operator<? extends Serializable> op, org.apache.hadoop.hive.ql.plan.api.Operator operator) {
+    if (op instanceof TableScanOperator) {
+      TableScanOperator ts = (TableScanOperator) op;
+      if (ts.getConf() != null) {
+        String tableName = ts.getConf().getAlias();
+        operator.putToOperatorAttributes("alias", tableName);
+        if (ts.getConf().getFilterExpr() != null) {
+          operator.putToOperatorAttributes("filterExpr", ts.getConf().getFilterExpr().getExprString());
+        }
+      }
+    } else if (op instanceof SelectOperator) {
+      SelectOperator sel = (SelectOperator) op;
+      if (sel.getConf() != null) {
+        List<ExprNodeDesc> exprs = sel.getConf().getColList();
+        if (exprs != null && !exprs.isEmpty()) {
+          operator.putToOperatorAttributes("expressions", toString(exprs));
+        }
+      }
+    } else if (op instanceof FilterOperator) {
+      FilterOperator fil = (FilterOperator) op;
+      if (fil.getConf() != null) {
+        ExprNodeDesc expr = fil.getConf().getPredicate();
+        if (expr != null) {
+          operator.putToOperatorAttributes("predicate", expr.getExprString());
+        }
+      }
+    } else if (op instanceof ScriptOperator) {
+      ScriptOperator scr = (ScriptOperator) op;
+      if (scr.getConf() != null) {
+        String command = scr.getConf().getScriptCmd();
+        if (command != null) {
+          operator.putToOperatorAttributes("command", command);
+        }
+      }
+    } else if (op instanceof GroupByOperator) {
+      GroupByOperator gby = (GroupByOperator) op;
+      if (gby.getConf() != null) {
+        List<ExprNodeDesc> exprs = gby.getConf().getKeys();
+        if (exprs != null && !exprs.isEmpty()) {
+          operator.putToOperatorAttributes("keys", toString(exprs));
+        }
+      }
+    }
+  }
+
+  private String toString(List<ExprNodeDesc> exprs) {
+    StringBuilder builder = new StringBuilder();
+    for (int i = 0; i < exprs.size(); i++) {
+      builder.append(exprs.get(i).getExprString());
+      if (i < exprs.size() - 1) {
+        builder.append(", ");
+      }
+    }
+    return builder.toString();
   }
 
   /**
@@ -233,6 +298,7 @@ public class QueryPlan implements Serializable {
           new org.apache.hadoop.hive.ql.plan.api.Task();
         mapTask.setTaskId(stage.getStageId() + "_MAP");
         mapTask.setTaskType(TaskType.MAP);
+        mapTask.setTaskAttributes(populateTaskAttribute(mrTask));
         stage.addToTaskList(mapTask);
         populateOperatorGraph(mapTask, mrTask.getWork().getMapWork().getAliasToWork()
             .values());
@@ -300,6 +366,18 @@ public class QueryPlan implements Serializable {
         query.getStageGraph().addToAdjacencyList(entry);
       }
     }
+  }
+
+  private Map<String, String> populateTaskAttribute(ExecDriver task) {
+    Map<String, String> attributes = new HashMap<String, String>();
+    MapredWork work = task.getWork();
+    if (work.getMapWork().getNumMapTasks() != null) {
+      attributes.put("num.map.task", String.valueOf(work.getMapWork().getNumMapTasks()));
+    }
+    if (work.getReduceWork() != null && work.getReduceWork().getNumReduceTasks() != null) {
+      attributes.put("num.reduce.task", String.valueOf(work.getReduceWork()));
+    }
+    return attributes.isEmpty() ? null : attributes;
   }
 
   /**
