@@ -116,6 +116,7 @@ import org.apache.hadoop.hive.ql.plan.DynamicPartitionCtx;
 import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeConstantDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
+import org.apache.hadoop.hive.ql.plan.ExprNodeFieldDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeNullDesc;
 import org.apache.hadoop.hive.ql.plan.ExtractDesc;
@@ -2914,6 +2915,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         reduceSinkOutputRowResolver.putExpression(entry.getValue(),
             new ColumnInfo(field, type, null, false));
       }
+    }
+
+    int deficiency = outputKeyColumnNames.size() - reduceKeys.size();
+    for (; deficiency > 0; deficiency--) {
+      reduceKeys.add(new ExprNodeNullDesc());
     }
 
     ReduceSinkOperator rsOp = (ReduceSinkOperator) putOpInsertMap(
