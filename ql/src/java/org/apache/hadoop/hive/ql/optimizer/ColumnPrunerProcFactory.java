@@ -507,7 +507,16 @@ public final class ColumnPrunerProcFactory {
       String outputCol = keys.get(i);
       String[] nm = parResover.reverseLookup(outputCol);
       ColumnInfo colInfo = oldRR.get(nm[0], nm[1]);
+      if (colInfo == null) {
+        outputCol = Utilities.ReduceField.KEY.toString() + "." + outputCol;
+        nm = oldRR.reverseLookup(outputCol);
+        if (nm != null) {
+          colInfo = oldRR.get(nm[0], nm[1]);
+        }
+      }
       if (colInfo != null) {
+        String internalName=colInfo.getInternalName();
+        newMap.put(internalName, oldMap.get(internalName));
         newRR.put(nm[0], nm[1], colInfo);
       }
     }
