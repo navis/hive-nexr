@@ -2003,6 +2003,10 @@ precedenceEqualExpression
        -> ^(KW_NOT ^(TOK_FUNCTION KW_IN $precedenceEqualExpression expressions))
     | (KW_IN expressions)
        -> ^(TOK_FUNCTION KW_IN $precedenceEqualExpression expressions)
+    | ( KW_NOT KW_BETWEEN (min=precedenceBitwiseOrExpression) KW_AND (max=precedenceBitwiseOrExpression) )
+       -> ^(TOK_FUNCTION Identifier["btw"] KW_TRUE $left $min $max)
+    | ( KW_BETWEEN (min=precedenceBitwiseOrExpression) KW_AND (max=precedenceBitwiseOrExpression) )
+       -> ^(TOK_FUNCTION Identifier["btw"] KW_FALSE $left $min $max)
     )*
     ;
 
