@@ -1874,10 +1874,17 @@ atomExpression
     | LPAREN! expression RPAREN!
     ;
 
+betweenExpression
+    :
+    (subject=atomExpression) ( (not=KW_NOT)? between=KW_BETWEEN (left=atomExpression) KW_AND (right=atomExpression) )?
+    -> {$between == null}? $subject
+    -> {$not == null}? ^(TOK_FUNCTION Identifier["btw"] KW_FALSE $subject $left $right)
+    -> ^(TOK_FUNCTION Identifier["btw"] KW_TRUE $subject $left $right)
+    ;
 
 precedenceFieldExpression
     :
-    atomExpression ((LSQUARE^ expression RSQUARE!) | (DOT^ Identifier))*
+    betweenExpression ((LSQUARE^ expression RSQUARE!) | (DOT^ Identifier))*
     ;
 
 precedenceUnaryOperator
