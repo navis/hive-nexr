@@ -1,0 +1,60 @@
+PREHOOK: query: DESCRIBE FUNCTION btw
+PREHOOK: type: DESCFUNCTION
+POSTHOOK: query: DESCRIBE FUNCTION btw
+POSTHOOK: type: DESCFUNCTION
+btw a [NOT] BETWEEN b AND c - evaluate if a is [not] in between b and c
+PREHOOK: query: DESCRIBE FUNCTION EXTENDED btw
+PREHOOK: type: DESCFUNCTION
+POSTHOOK: query: DESCRIBE FUNCTION EXTENDED btw
+POSTHOOK: type: DESCFUNCTION
+btw a [NOT] BETWEEN b AND c - evaluate if a is [not] in between b and c
+PREHOOK: query: SELECT btw(false,  50, 100, 200), btw(false, 100, 100, 200), btw(false, 150, 100, 200),
+       btw(false, 200, 100, 200), btw(false, 250, 100, 200),
+       btw(true,  50, 100, 200), btw(true, 100, 100, 200), btw(true, 150, 100, 200),
+       btw(true, 200, 100, 200), btw(true, 250, 100, 200) FROM src LIMIT 1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: file:/tmp/navis/hive_2011-12-07_19-47-10_338_9145648570229684610/-mr-10000
+POSTHOOK: query: SELECT btw(false,  50, 100, 200), btw(false, 100, 100, 200), btw(false, 150, 100, 200),
+       btw(false, 200, 100, 200), btw(false, 250, 100, 200),
+       btw(true,  50, 100, 200), btw(true, 100, 100, 200), btw(true, 150, 100, 200),
+       btw(true, 200, 100, 200), btw(true, 250, 100, 200) FROM src LIMIT 1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: file:/tmp/navis/hive_2011-12-07_19-47-10_338_9145648570229684610/-mr-10000
+false	true	true	true	false	true	false	false	false	true
+PREHOOK: query: SELECT btw(false, 'b', 'a', 'c') FROM src LIMIT 1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: file:/tmp/navis/hive_2011-12-07_19-47-13_272_8866934427895850497/-mr-10000
+POSTHOOK: query: SELECT btw(false, 'b', 'a', 'c') FROM src LIMIT 1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: file:/tmp/navis/hive_2011-12-07_19-47-13_272_8866934427895850497/-mr-10000
+true
+PREHOOK: query: SELECT btw(false, 2, 2, '3') FROM src LIMIT 1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: file:/tmp/navis/hive_2011-12-07_19-47-15_922_4263853469545515369/-mr-10000
+POSTHOOK: query: SELECT btw(false, 2, 2, '3') FROM src LIMIT 1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: file:/tmp/navis/hive_2011-12-07_19-47-15_922_4263853469545515369/-mr-10000
+true
+PREHOOK: query: SELECT * FROM src where 100 between (50 + 30) AND 200 LIMIT 1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: file:/tmp/navis/hive_2011-12-07_19-47-18_577_5442315562692770311/-mr-10000
+POSTHOOK: query: SELECT * FROM src where 100 between (50 + 30) AND 200 LIMIT 1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: file:/tmp/navis/hive_2011-12-07_19-47-18_577_5442315562692770311/-mr-10000
+238	val_238
+PREHOOK: query: SELECT * FROM src where 100 not between -50 AND 200 LIMIT 1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: file:/tmp/navis/hive_2011-12-07_19-47-21_178_4187854868706121157/-mr-10000
+POSTHOOK: query: SELECT * FROM src where 100 not between -50 AND 200 LIMIT 1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: file:/tmp/navis/hive_2011-12-07_19-47-21_178_4187854868706121157/-mr-10000
