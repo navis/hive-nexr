@@ -78,6 +78,8 @@ public class MapredLocalTask extends Task<MapredLocalWork> implements Serializab
   // will pass this context throught
   private final ExecMapperContext execContext = new ExecMapperContext();
 
+  private Process executor;
+
   public MapredLocalTask() {
     super();
   }
@@ -157,7 +159,6 @@ public class MapredLocalTask extends Task<MapredLocalWork> implements Serializab
       }
 
       LOG.info("Executing: " + cmdLine);
-      Process executor = null;
 
       // Inherit Java system variables
       String hadoopOpts;
@@ -481,4 +482,12 @@ public class MapredLocalTask extends Task<MapredLocalWork> implements Serializab
     return StageType.MAPREDLOCAL;
   }
 
+  @Override
+  public void shutdown() {
+    super.shutdown();
+    if (executor != null) {
+      executor.destroy();
+      executor = null;
+    }
+  }
 }
