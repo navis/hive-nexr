@@ -68,6 +68,8 @@ public class MapRedTask extends ExecDriver implements Serializable {
   private transient long totalInputFileSize;
   private transient long totalInputNumFiles;
 
+  private Process executor;
+
   public MapRedTask() {
     super();
   }
@@ -209,7 +211,6 @@ public class MapRedTask extends ExecDriver implements Serializable {
       }
 
       LOG.info("Executing: " + cmdLine);
-      Process executor = null;
 
       // Inherit Java system variables
       String hadoopOpts;
@@ -543,5 +544,14 @@ public class MapRedTask extends ExecDriver implements Serializable {
   @Override
   public Operator<? extends Serializable> getReducer() {
     return getWork().getReducer();
+  }
+
+  @Override
+  public void shutdown() {
+    super.shutdown();
+    if (executor != null) {
+      executor.destroy();
+      executor = null;
+    }
   }
 }
