@@ -23,15 +23,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.commons.lang.StringUtils;
@@ -107,6 +99,7 @@ import org.apache.hadoop.mapred.ClusterStatus;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.log4j.lf5.util.Resource;
 
 public class Driver implements CommandProcessor {
 
@@ -1156,7 +1149,7 @@ public class Driver implements CommandProcessor {
         if (exitVal != 0) {
           if (tsk.ifRetryCmdWhenFail()) {
             if (running.size() != 0) {
-              taskCleanup();
+              taskCleanup(running);
             }
             // in case we decided to run everything in local mode, restore the
             // the jobtracker setting to its initial value
@@ -1195,7 +1188,7 @@ public class Driver implements CommandProcessor {
             SQLState = "08S01";
             console.printError(errorMessage);
             if (running.size() != 0) {
-              taskCleanup();
+              taskCleanup(running);
             }
             // in case we decided to run everything in local mode, restore the
             // the jobtracker setting to its initial value
@@ -1362,11 +1355,17 @@ public class Driver implements CommandProcessor {
    * Cleans up remaining tasks in case of failure
    */
 
-  public void taskCleanup() {
+  public void taskCleanup(Map<TaskResult, TaskRunner> running) {
+    for (Map.Entry<TaskResult, TaskRunner> entry : running.entrySet()) {
+      if (entry.getKey().isRunning()) {
+        entry.getValue().getTask().shutdown();
+      }
+    }
+    running.clear();
     // The currently existing Shutdown hooks will be automatically called,
     // killing the map-reduce processes.
     // The non MR processes will be killed as well.
-    System.exit(9);
+//    System.exit(9);
   }
 
   /**
