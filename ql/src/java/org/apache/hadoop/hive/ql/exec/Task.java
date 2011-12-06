@@ -539,4 +539,7 @@ public abstract class Task<T extends Serializable> implements Serializable, Node
   public List<FieldSchema> getResultSchema() {
     return null;
   }
+
+  public void shutdown() {
+  }
 }
