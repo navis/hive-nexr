@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hive.ql.parse;
 
+import static org.apache.hadoop.hive.ql.parse.HiveParser.KW_MARK;
 import static org.apache.hadoop.hive.ql.parse.HiveParser.TOK_IFEXISTS;
 
 import org.apache.commons.logging.Log;
@@ -57,13 +58,15 @@ public class FunctionSemanticAnalyzer extends BaseSemanticAnalyzer {
   private void analyzeCreateFunction(ASTNode ast) throws SemanticException {
     String functionName = ast.getChild(0).getText();
     String className = unescapeSQLString(ast.getChild(1).getText());
-    CreateFunctionDesc desc = new CreateFunctionDesc(functionName, className);
+    boolean temporary = ast.getFirstChildWithType(KW_MARK) == null;
+    CreateFunctionDesc desc = new CreateFunctionDesc(functionName, className, temporary);
     rootTasks.add(TaskFactory.get(new FunctionWork(desc), conf));
   }
 
   private void analyzeDropFunction(ASTNode ast) throws SemanticException {
     String functionName = ast.getChild(0).getText();
     boolean ifExists = (ast.getFirstChildWithType(TOK_IFEXISTS) != null);
+    boolean temporary = ast.getFirstChildWithType(KW_MARK) == null;
     // we want to signal an error if the function doesn't exist and we're
     // configured not to ignore this
     boolean throwException =
@@ -72,7 +75,7 @@ public class FunctionSemanticAnalyzer extends BaseSemanticAnalyzer {
       throw new SemanticException(ErrorMsg.INVALID_FUNCTION.getMsg(functionName));
     }
 
-    DropFunctionDesc desc = new DropFunctionDesc(functionName);
+    DropFunctionDesc desc = new DropFunctionDesc(functionName, temporary);
     rootTasks.add(TaskFactory.get(new FunctionWork(desc), conf));
   }
 }

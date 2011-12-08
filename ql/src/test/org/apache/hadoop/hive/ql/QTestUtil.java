@@ -387,8 +387,11 @@ public class QTestUtil {
       fs.delete(ls[i].getPath(), true);
     }
 
-    FunctionRegistry.unregisterTemporaryUDF("test_udaf");
-    FunctionRegistry.unregisterTemporaryUDF("test_error");
+    FunctionRegistry.Registry registry = SessionState.getRegistry();
+    if (registry != null) {
+      registry.unregisterUDF("test_udaf");
+      registry.unregisterUDF("test_error");
+    }
   }
 
   private void runLoadCmd(String loadCmd) throws Exception {
