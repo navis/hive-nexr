@@ -119,6 +119,7 @@ public class SessionState {
    * Lineage state.
    */
   LineageState ls;
+  FunctionRegistry.Registry registry = new FunctionRegistry.Registry();
 
   /**
    * Get the lineage state stored in this session.
@@ -184,7 +185,7 @@ public class SessionState {
         .getLocation();
       add_builtin_resource(
         ResourceType.JAR, jarLocation.toString());
-      FunctionRegistry.registerFunctionsFromPluginJar(
+      registry.registerFunctionsFromPluginJar(
         jarLocation, pluginClass.getClassLoader());
     } catch (Exception ex) {
       throw new RuntimeException("Failed to load Hive builtin functions", ex);
@@ -285,6 +286,14 @@ public class SessionState {
    */
   public static SessionState get() {
     return tss.get();
+  }
+
+  public static FunctionRegistry.Registry getRegistry() {
+    SessionState session = get();
+    if (session != null) {
+      return session.registry;
+    }
+    return null;
   }
 
   /**
