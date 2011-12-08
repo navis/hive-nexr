@@ -57,7 +57,7 @@ public class FunctionSemanticAnalyzer extends BaseSemanticAnalyzer {
   private void analyzeCreateFunction(ASTNode ast) throws SemanticException {
     String functionName = ast.getChild(0).getText();
     String className = unescapeSQLString(ast.getChild(1).getText());
-    CreateFunctionDesc desc = new CreateFunctionDesc(functionName, className);
+    CreateFunctionDesc desc = new CreateFunctionDesc(functionName, className, ast.getChildCount() == 2);
     rootTasks.add(TaskFactory.get(new FunctionWork(desc), conf));
   }
 
@@ -72,7 +72,7 @@ public class FunctionSemanticAnalyzer extends BaseSemanticAnalyzer {
       throw new SemanticException(ErrorMsg.INVALID_FUNCTION.getMsg(functionName));
     }
 
-    DropFunctionDesc desc = new DropFunctionDesc(functionName);
+    DropFunctionDesc desc = new DropFunctionDesc(functionName, ast.getChildCount() == 1);
     rootTasks.add(TaskFactory.get(new FunctionWork(desc), conf));
   }
 }

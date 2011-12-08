@@ -39,6 +39,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.MapRedStats;
+import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.history.HiveHistory;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
@@ -117,6 +118,7 @@ public class SessionState {
    * Lineage state.
    */
   LineageState ls;
+  FunctionRegistry.Registry registry = new FunctionRegistry.Registry();
 
   /**
    * Get the lineage state stored in this session.
@@ -270,6 +272,14 @@ public class SessionState {
    */
   public static SessionState get() {
     return tss.get();
+  }
+
+  public static FunctionRegistry.Registry getRegistry() {
+    SessionState session = get();
+    if (session != null) {
+      return session.registry;
+    }
+    return null;
   }
 
   /**
