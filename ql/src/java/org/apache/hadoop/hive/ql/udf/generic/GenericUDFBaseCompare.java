@@ -29,6 +29,8 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorConverters.Converter;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.BooleanObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.ByteObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.DoubleObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.FloatObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.IntObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.LongObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
@@ -48,7 +50,7 @@ public abstract class GenericUDFBaseCompare extends GenericUDF {
     // treated as special cases.
     // For other types, we reuse ObjectInspectorUtils.compare()
     COMPARE_STRING, COMPARE_TEXT, COMPARE_INT, COMPARE_LONG, COMPARE_BYTE,
-    COMPARE_BOOL, SAME_TYPE, NEED_CONVERT
+    COMPARE_BOOL, COMPARE_FLOAT, COMPARE_DOUBLE, SAME_TYPE, NEED_CONVERT
   }
 
   protected String opName;
@@ -65,6 +67,8 @@ public abstract class GenericUDFBaseCompare extends GenericUDF {
   protected LongObjectInspector loi0, loi1;
   protected ByteObjectInspector byoi0, byoi1;
   protected BooleanObjectInspector boi0,boi1;
+  protected FloatObjectInspector foi0, foi1;
+  protected DoubleObjectInspector doi0, doi1;
   protected final BooleanWritable result = new BooleanWritable();
 
   @Override
@@ -127,7 +131,21 @@ public abstract class GenericUDFBaseCompare extends GenericUDF {
       compareType = CompareType.COMPARE_BOOL;
       boi0 = (BooleanObjectInspector) arguments[0];
       boi1 = (BooleanObjectInspector) arguments[1];
-     } else {
+    } else if (TypeInfoUtils.getTypeInfoFromObjectInspector(arguments[0]).equals(
+        TypeInfoFactory.floatTypeInfo) &&
+        TypeInfoUtils.getTypeInfoFromObjectInspector(arguments[1]).equals(
+          TypeInfoFactory.floatTypeInfo)) {
+      compareType = CompareType.COMPARE_FLOAT;
+      foi0 = (FloatObjectInspector) arguments[0];
+      foi1 = (FloatObjectInspector) arguments[1];
+    } else if (TypeInfoUtils.getTypeInfoFromObjectInspector(arguments[0]).equals(
+        TypeInfoFactory.doubleTypeInfo) &&
+        TypeInfoUtils.getTypeInfoFromObjectInspector(arguments[1]).equals(
+          TypeInfoFactory.doubleTypeInfo)) {
+      compareType = CompareType.COMPARE_DOUBLE;
+      doi0 = (DoubleObjectInspector) arguments[0];
+      doi1 = (DoubleObjectInspector) arguments[1];
+    } else {
       TypeInfo oiTypeInfo0 = TypeInfoUtils.getTypeInfoFromObjectInspector(arguments[0]);
       TypeInfo oiTypeInfo1 = TypeInfoUtils.getTypeInfoFromObjectInspector(arguments[1]);
 

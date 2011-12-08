@@ -1848,6 +1848,8 @@ constant
     | StringLiteral
     | charSetStringLiteral
     | booleanValue
+    | Float
+    | Double
     ;
 
 charSetStringLiteral
@@ -2399,6 +2401,16 @@ CharSetLiteral
     :
     StringLiteral
     | '0' 'X' (HexDigit|Digit)+
+    ;
+
+Float
+    :
+    Number 'F' | Number 'f'
+    ;
+
+Double
+    :
+    Number 'D' | Number 'd'
     ;
 
 Number

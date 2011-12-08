@@ -1,0 +1,51 @@
+PREHOOK: query: create table test (id int, val_f float, val_d double) row format delimited fields terminated by ' ' lines terminated by '\n' stored as textfile
+PREHOOK: type: CREATETABLE
+POSTHOOK: query: create table test (id int, val_f float, val_d double) row format delimited fields terminated by ' ' lines terminated by '\n' stored as textfile
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: default@test
+PREHOOK: query: load data local inpath '../data/files/floatdouble.txt' INTO TABLE test
+PREHOOK: type: LOAD
+PREHOOK: Output: default@test
+POSTHOOK: query: load data local inpath '../data/files/floatdouble.txt' INTO TABLE test
+POSTHOOK: type: LOAD
+POSTHOOK: Output: default@test
+PREHOOK: query: select val_f=-1.74f, val_f=3.14f, val_f=0f,
+       val_f=-1.74d, val_f=3.14d, val_f=0d,
+       val_f=-1.74, val_f=3.14, val_f=0 from test
+PREHOOK: type: QUERY
+PREHOOK: Input: default@test
+PREHOOK: Output: file:/tmp/navis/hive_2011-12-08_16-53-26_964_6293463340985099995/-mr-10000
+POSTHOOK: query: select val_f=-1.74f, val_f=3.14f, val_f=0f,
+       val_f=-1.74d, val_f=3.14d, val_f=0d,
+       val_f=-1.74, val_f=3.14, val_f=0 from test
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@test
+POSTHOOK: Output: file:/tmp/navis/hive_2011-12-08_16-53-26_964_6293463340985099995/-mr-10000
+false	true	false	false	false	false	false	false	false
+false	false	false	false	false	false	false	false	false
+true	false	false	false	false	false	false	false	false
+false	false	true	false	false	true	false	false	true
+PREHOOK: query: select val_d=123.234f, val_d=-980345.12323f, val_d=0f,
+       val_d=123.234d, val_d=-980345.12323d, val_d=0d,
+       val_d=123.234, val_d=-980345.12323, val_d=0 from test
+PREHOOK: type: QUERY
+PREHOOK: Input: default@test
+PREHOOK: Output: file:/tmp/navis/hive_2011-12-08_16-53-29_931_2996609112884374452/-mr-10000
+POSTHOOK: query: select val_d=123.234f, val_d=-980345.12323f, val_d=0f,
+       val_d=123.234d, val_d=-980345.12323d, val_d=0d,
+       val_d=123.234, val_d=-980345.12323, val_d=0 from test
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@test
+POSTHOOK: Output: file:/tmp/navis/hive_2011-12-08_16-53-29_931_2996609112884374452/-mr-10000
+false	false	false	true	false	false	true	false	false
+false	false	false	false	false	false	false	false	false
+false	false	false	false	true	false	false	true	false
+false	false	false	false	false	true	false	false	false
+PREHOOK: query: drop table test
+PREHOOK: type: DROPTABLE
+PREHOOK: Input: default@test
+PREHOOK: Output: default@test
+POSTHOOK: query: drop table test
+POSTHOOK: type: DROPTABLE
+POSTHOOK: Input: default@test
+POSTHOOK: Output: default@test
