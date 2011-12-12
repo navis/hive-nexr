@@ -26,12 +26,13 @@ import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.Pr
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorUtils.PrimitiveTypeEntry;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.BooleanWritable;
-import org.apache.hadoop.io.ByteWritable;
+import org.apache.hadoop.hive.serde2.io.ByteWritable;
 import org.apache.hadoop.hive.serde2.io.ShortWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.hive.serde2.io.DoubleWritable;
+import org.apache.hadoop.hive.serde2.io.TimestampWritable;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -65,6 +66,8 @@ public final class PrimitiveObjectInspectorFactory {
       new JavaVoidObjectInspector();
   public static final JavaTimestampObjectInspector javaTimestampObjectInspector =
       new JavaTimestampObjectInspector();
+  public static final JavaBinaryObjectInspector javaByteArrayObjectInspector =
+      new JavaBinaryObjectInspector();
 
   public static final WritableBooleanObjectInspector writableBooleanObjectInspector =
       new WritableBooleanObjectInspector();
@@ -86,6 +89,8 @@ public final class PrimitiveObjectInspectorFactory {
       new WritableVoidObjectInspector();
   public static final WritableTimestampObjectInspector writableTimestampObjectInspector =
       new WritableTimestampObjectInspector();
+  public static final WritableBinaryObjectInspector writableBinaryObjectInspector =
+      new WritableBinaryObjectInspector();
 
   private static HashMap<PrimitiveCategory, AbstractPrimitiveWritableObjectInspector> cachedPrimitiveWritableInspectorCache =
       new HashMap<PrimitiveCategory, AbstractPrimitiveWritableObjectInspector>();
@@ -110,6 +115,8 @@ public final class PrimitiveObjectInspectorFactory {
         writableVoidObjectInspector);
     cachedPrimitiveWritableInspectorCache.put(PrimitiveCategory.TIMESTAMP,
         writableTimestampObjectInspector);
+    cachedPrimitiveWritableInspectorCache.put(PrimitiveCategory.BINARY,
+        writableBinaryObjectInspector);
   }
 
   private static HashMap<PrimitiveCategory, AbstractPrimitiveJavaObjectInspector> cachedPrimitiveJavaInspectorCache =
@@ -135,6 +142,8 @@ public final class PrimitiveObjectInspectorFactory {
         javaVoidObjectInspector);
     cachedPrimitiveJavaInspectorCache.put(PrimitiveCategory.TIMESTAMP,
         javaTimestampObjectInspector);
+    cachedPrimitiveJavaInspectorCache.put(PrimitiveCategory.BINARY,
+        javaByteArrayObjectInspector);
   }
 
   /**
@@ -179,8 +188,10 @@ public final class PrimitiveObjectInspectorFactory {
       return new WritableConstantDoubleObjectInspector((DoubleWritable)value);
     case STRING:
       return new WritableConstantStringObjectInspector((Text)value);
+    case TIMESTAMP:
+      return new WritableConstantTimestampObjectInspector((TimestampWritable)value);
     case VOID:
-      return new WritableConstantVoidObjectInspector();
+      return new WritableVoidObjectInspector();
     default:
       throw new RuntimeException("Internal error: Cannot find "
         + "ConstantObjectInspector for " + primitiveCategory);

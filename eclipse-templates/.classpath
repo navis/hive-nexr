@@ -18,7 +18,7 @@
   <classpathentry kind="lib" path="build/ivy/lib/default/hbase-@hbase.version@.jar"/>
   <classpathentry kind="lib" path="build/ivy/lib/default/hbase-@hbase-test.version@-tests.jar"/>
   <classpathentry kind="lib" path="build/ivy/lib/default/libfb303-@libfb303.version@.jar"/>
-  <classpathentry kind="lib" path="build/ivy/lib/default/libthrift-@libthrift.version@.jar"/>
+  <classpathentry kind="lib" path="build/hadoopcore/libthrift-@libthrift.version@.jar"/>
   <classpathentry kind="lib" path="build/ivy/lib/default/zookeeper-@zookeeper.version@.jar"/>
   <classpathentry kind="lib" path="build/ivy/lib/default/log4j-@log4j.version@.jar"/>
   <classpathentry kind="lib" path="build/ivy/lib/default/antlr-@antlr.version@.jar"/>
@@ -43,6 +43,7 @@
   <classpathentry kind="src" path="build/ql/gen/antlr/gen-java"/>
   <classpathentry kind="src" path="cli/src/java"/>
   <classpathentry kind="src" path="common/src/java"/>
+  <classpathentry kind="src" path="common/src/test"/>
   <classpathentry kind="src" path="contrib/src/java"/>
   <classpathentry kind="src" path="contrib/src/test"/>
   <classpathentry kind="src" path="metastore/src/gen/thrift/gen-javabean"/>
@@ -69,6 +70,7 @@
   <classpathentry excluding="queries/|results/|templates/" kind="src" path="hbase-handler/src/test"/>
   <classpathentry kind="src" path="pdk/src/java"/>
   <classpathentry kind="src" path="pdk/test-plugin/src"/>
+  <classpathentry kind="src" path="builtins/src"/>
   <classpathentry kind="src" path="cli/src/test"/>
   <classpathentry kind="output" path="build/eclipse-classes"/>
 </classpath>

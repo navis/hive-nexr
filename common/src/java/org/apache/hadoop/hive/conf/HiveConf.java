@@ -18,6 +18,8 @@
 
 package org.apache.hadoop.hive.conf;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
@@ -44,6 +46,30 @@ public class HiveConf extends Configuration {
   protected Properties origProp;
   protected String auxJars;
   private static final Log l4j = LogFactory.getLog(HiveConf.class);
+  private static URL hiveSiteURL = null;
+  private static URL confVarURL = null;
+
+  static {
+    ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+    if (classLoader == null) {
+      classLoader = HiveConf.class.getClassLoader();
+    }
+
+    // Log a warning if hive-default.xml is found on the classpath
+    URL hiveDefaultURL = classLoader.getResource("hive-default.xml");
+    if (hiveDefaultURL != null) {
+      l4j.warn("DEPRECATED: Ignoring hive-default.xml found on the CLASSPATH at " +
+               hiveDefaultURL.getPath());
+    }
+
+    // Look for hive-site.xml on the CLASSPATH and log its location if found.
+    hiveSiteURL = classLoader.getResource("hive-site.xml");
+    if (hiveSiteURL == null) {
+      l4j.warn("hive-site.xml not found on CLASSPATH");
+    } else {
+      l4j.debug("Using hive-site.xml found on CLASSPATH at " + hiveSiteURL.getPath());
+    }
+  }
 
   /**
    * Metastore related options that the db is initialized against. When a conf
@@ -54,6 +80,7 @@ public class HiveConf extends Configuration {
       HiveConf.ConfVars.METASTOREDIRECTORY,
       HiveConf.ConfVars.METASTOREWAREHOUSE,
       HiveConf.ConfVars.METASTOREURIS,
+      HiveConf.ConfVars.METASTORE_MODE,
       HiveConf.ConfVars.METASTORETHRIFTRETRIES,
       HiveConf.ConfVars.METASTORE_CLIENT_CONNECT_RETRY_DELAY,
       HiveConf.ConfVars.METASTORE_CLIENT_SOCKET_TIMEOUT,
@@ -86,6 +113,12 @@ public class HiveConf extends Configuration {
       HiveConf.ConfVars.METASTORE_IDENTIFIER_FACTORY,
       HiveConf.ConfVars.METASTORE_PLUGIN_REGISTRY_BUNDLE_CHECK,
       HiveConf.ConfVars.METASTORE_AUTHORIZATION_STORAGE_AUTH_CHECKS,
+      HiveConf.ConfVars.METASTORE_BATCH_RETRIEVE_MAX,
+      HiveConf.ConfVars.METASTORE_EVENT_LISTENERS,
+      HiveConf.ConfVars.METASTORE_EVENT_CLEAN_FREQ,
+      HiveConf.ConfVars.METASTORE_EVENT_EXPIRY_DURATION,
+      HiveConf.ConfVars.METASTORE_RAW_STORE_IMPL,
+      HiveConf.ConfVars.METASTORE_END_FUNCTION_LISTENERS,
       };
 
   /**
@@ -108,9 +141,9 @@ public class HiveConf extends Configuration {
    */
   public static enum ConfVars {
     // QL execution stuff
-    SCRIPTWRAPPER("hive.exec.script.wrapper", null),
-    PLAN("hive.exec.plan", null),
-    SCRATCHDIR("hive.exec.scratchdir", "/tmp/" + System.getProperty("user.name") + "/hive"),
+    SCRIPTWRAPPER("hive.exec.script.wrapper", ""),
+    PLAN("hive.exec.plan", ""),
+    SCRATCHDIR("hive.exec.scratchdir", "/tmp/hive-" + System.getProperty("user.name")),
     SUBMITVIACHILD("hive.exec.submitviachild", false),
     SCRIPTERRORLIMIT("hive.exec.script.maxerrsize", 100000),
     ALLOWPARTIALCONSUMP("hive.exec.script.allow.partial.consumption", false),
@@ -123,6 +156,7 @@ public class HiveConf extends Configuration {
     PREEXECHOOKS("hive.exec.pre.hooks", ""),
     POSTEXECHOOKS("hive.exec.post.hooks", ""),
     ONFAILUREHOOKS("hive.exec.failure.hooks", ""),
+    CLIENTSTATSPUBLISHERS("hive.client.stats.publishers", ""),
     EXECPARALLEL("hive.exec.parallel", false), // parallel query launching
     EXECPARALLETHREADNUMBER("hive.exec.parallel.thread.number", 8),
     HIVESPECULATIVEEXECREDUCERS("hive.mapred.reduce.tasks.speculative.execution", true),
@@ -139,6 +173,7 @@ public class HiveConf extends Configuration {
     SHOW_JOB_FAIL_DEBUG_INFO("hive.exec.show.job.failure.debug.info", true),
     JOB_DEBUG_TIMEOUT("hive.exec.job.debug.timeout", 30000),
     TASKLOG_DEBUG_TIMEOUT("hive.exec.tasklog.debug.timeout", 20000),
+    OUTPUT_FILE_EXTENSION("hive.output.file.extension", ""),
 
     // should hive determine whether to run in local mode automatically ?
     LOCALMODEAUTO("hive.exec.mode.local.auto", false),
@@ -156,18 +191,18 @@ public class HiveConf extends Configuration {
     HADOOPBIN("hadoop.bin.path", System.getenv("HADOOP_HOME") + "/bin/hadoop"),
     HADOOPCONF("hadoop.config.dir", System.getenv("HADOOP_HOME") + "/conf"),
     HADOOPFS("fs.default.name", "file:///"),
-    HADOOPMAPFILENAME("map.input.file", null),
-    HADOOPMAPREDINPUTDIR("mapred.input.dir", null),
+    HADOOPMAPFILENAME("map.input.file", ""),
+    HADOOPMAPREDINPUTDIR("mapred.input.dir", ""),
     HADOOPMAPREDINPUTDIRRECURSIVE("mapred.input.dir.recursive", false),
     HADOOPJT("mapred.job.tracker", "local"),
-    HADOOPNUMREDUCERS("mapred.reduce.tasks", 1),
-    HADOOPJOBNAME("mapred.job.name", null),
+    HADOOPNUMREDUCERS("mapred.reduce.tasks", -1),
+    HADOOPJOBNAME("mapred.job.name", ""),
     HADOOPSPECULATIVEEXECREDUCERS("mapred.reduce.tasks.speculative.execution", false),
 
     // Metastore stuff. Be sure to update HiveConf.metaVars when you add
     // something here!
     METASTOREDIRECTORY("hive.metastore.metadb.dir", ""),
-    METASTOREWAREHOUSE("hive.metastore.warehouse.dir", ""),
+    METASTOREWAREHOUSE("hive.metastore.warehouse.dir", "/user/hive/warehouse"),
     METASTOREURIS("hive.metastore.uris", ""),
     // Number of times to retry a connection to a Thrift metastore server
     METASTORETHRIFTRETRIES("hive.metastore.connect.retries", 5),
@@ -175,12 +210,13 @@ public class HiveConf extends Configuration {
     METASTORE_CLIENT_CONNECT_RETRY_DELAY("hive.metastore.client.connect.retry.delay", 1),
     // Socket timeout for the client connection (in seconds)
     METASTORE_CLIENT_SOCKET_TIMEOUT("hive.metastore.client.socket.timeout", 20),
-    METASTOREPWD("javax.jdo.option.ConnectionPassword", ""),
+    METASTOREPWD("javax.jdo.option.ConnectionPassword", "mine"),
     // Class name of JDO connection url hook
     METASTORECONNECTURLHOOK("hive.metastore.ds.connection.url.hook", ""),
-    METASTOREMULTITHREADED("javax.jdo.option.Multithreaded", "true"),
+    METASTOREMULTITHREADED("javax.jdo.option.Multithreaded", true),
     // Name of the connection url in the configuration
-    METASTORECONNECTURLKEY("javax.jdo.option.ConnectionURL", ""),
+    METASTORECONNECTURLKEY("javax.jdo.option.ConnectionURL",
+        "jdbc:derby:;databaseName=metastore_db;create=true"),
     // Number of attempts to retry connecting after there is a JDO datastore err
     METASTOREATTEMPTS("hive.metastore.ds.retry.attempts", 1),
     // Number of miliseconds to wait between attepting
@@ -191,7 +227,7 @@ public class HiveConf extends Configuration {
     // testing only.
     METASTOREFORCERELOADCONF("hive.metastore.force.reload.conf", false),
     METASTORESERVERMINTHREADS("hive.metastore.server.min.threads", 200),
-    METASTORESERVERMAXTHREADS("hive.metastore.server.max.threads", Integer.MAX_VALUE),
+    METASTORESERVERMAXTHREADS("hive.metastore.server.max.threads", 100000),
     METASTORE_TCP_KEEP_ALIVE("hive.metastore.server.tcp.keepalive", true),
     // Intermediate dir suffixes used for archiving. Not important what they
     // are, as long as collisions are avoided
@@ -202,7 +238,8 @@ public class HiveConf extends Configuration {
     METASTORE_INT_EXTRACTED("hive.metastore.archive.intermediate.extracted",
         "_INTERMEDIATE_EXTRACTED"),
     METASTORE_KERBEROS_KEYTAB_FILE("hive.metastore.kerberos.keytab.file", ""),
-    METASTORE_KERBEROS_PRINCIPAL("hive.metastore.kerberos.principal", ""),
+    METASTORE_KERBEROS_PRINCIPAL("hive.metastore.kerberos.principal",
+        "hive-metastore/_HOST@EXAMPLE.COM"),
     METASTORE_USE_THRIFT_SASL("hive.metastore.sasl.enabled", false),
     METASTORE_CACHE_PINOBJTYPES("hive.metastore.cache.pinobjtypes", "Table,StorageDescriptor,SerDeInfo,Partition,Database,Type,FieldSchema,Order"),
     METASTORE_CONNECTION_POOLING_TYPE("datanucleus.connectionPoolingType", "DBCP"),
@@ -223,11 +260,23 @@ public class HiveConf extends Configuration {
     METASTORE_AUTHORIZATION_STORAGE_AUTH_CHECKS("hive.metastore.authorization.storage.checks", false),
     METASTORE_EVENT_CLEAN_FREQ("hive.metastore.event.clean.freq",0L),
     METASTORE_EVENT_EXPIRY_DURATION("hive.metastore.event.expiry.duration",0L),
+    METASTORE_MODE("hive.metastore.local",true),
     // Default parameters for creating tables
-    NEWTABLEDEFAULTPARA("hive.table.parameters.default",""),
+    NEWTABLEDEFAULTPARA("hive.table.parameters.default", ""),
+    METASTORE_RAW_STORE_IMPL("hive.metastore.rawstore.impl",
+        "org.apache.hadoop.hive.metastore.ObjectStore"),
+    METASTORE_CONNECTION_DRIVER("javax.jdo.option.ConnectionDriverName",
+        "org.apache.derby.jdbc.EmbeddedDriver"),
+    METASTORE_MANAGER_FACTORY_CLASS("javax.jdo.PersistenceManagerFactoryClass",
+        "org.datanucleus.jdo.JDOPersistenceManagerFactory"),
+    METASTORE_DETACH_ALL_ON_COMMIT("javax.jdo.option.DetachAllOnCommit", true),
+    METASTORE_NON_TRANSACTIONAL_READ("javax.jdo.option.NonTransactionalRead", true),
+    METASTORE_CONNECTION_USER_NAME("javax.jdo.option.ConnectionUserName", "APP"),
+    METASTORE_END_FUNCTION_LISTENERS("hive.metastore.end.function.listeners", ""),
 
     // CLI
     CLIIGNOREERRORS("hive.cli.errors.ignore", false),
+    CLIPRINTCURRENTDB("hive.cli.print.current.db", false),
 
     HIVE_METASTORE_FS_HANDLER_CLS("hive.metastore.fs.handler.class", "org.apache.hadoop.hive.metastore.HiveMetaStoreFsImpl"),
 
@@ -302,13 +351,15 @@ public class HiveConf extends Configuration {
     // HWI
     HIVEHWILISTENHOST("hive.hwi.listen.host", "0.0.0.0"),
     HIVEHWILISTENPORT("hive.hwi.listen.port", "9999"),
-    HIVEHWIWARFILE("hive.hwi.war.file", System.getenv("HWI_WAR_FILE")),
+    HIVEHWIWARFILE("hive.hwi.war.file",
+        (System.getenv("HWI_WAR_FILE") != null) ?
+            System.getenv("HWI_WAR_FILE") : ""),
 
     // mapper/reducer memory in local mode
     HIVEHADOOPMAXMEM("hive.mapred.local.mem", 0),
 
     //small table file size
-    HIVESMALLTABLESFILESIZE("hive.smalltable.filesize",25000000L), //25M
+    HIVESMALLTABLESFILESIZE("hive.mapjoin.smalltable.filesize",25000000L), //25M
 
     // random number for split sampling
     HIVESAMPLERANDOMNUM("hive.sample.seednumber", 0),
@@ -331,7 +382,7 @@ public class HiveConf extends Configuration {
 
     HIVESKEWJOIN("hive.optimize.skewjoin", false),
     HIVECONVERTJOIN("hive.auto.convert.join", false),
-    HIVESKEWJOINKEY("hive.skewjoin.key", 1000000),
+    HIVESKEWJOINKEY("hive.skewjoin.key", 100000),
     HIVESKEWJOINMAPJOINNUMMAPTASK("hive.skewjoin.mapjoin.map.tasks", 10000),
     HIVESKEWJOINMAPJOINMINSPLIT("hive.skewjoin.mapjoin.min.split", 33554432L), //32M
     MAPREDMAXSPLITSIZE("mapred.max.split.size", 256000000L),
@@ -341,7 +392,6 @@ public class HiveConf extends Configuration {
     HIVEMERGEMAPONLY("hive.mergejob.maponly", true),
 
     HIVESENDHEARTBEAT("hive.heartbeat.interval", 1000),
-    HIVEMAXMAPJOINSIZE("hive.mapjoin.maxsize", 100000),
     HIVELIMITMAXROWSIZE("hive.limit.row.max.size", 100000L),
     HIVELIMITOPTLIMITFILE("hive.limit.optimize.limit.file", 10),
     HIVELIMITOPTENABLE("hive.limit.optimize.enable", false),
@@ -372,7 +422,9 @@ public class HiveConf extends Configuration {
     HIVEOPTINDEXFILTER("hive.optimize.index.filter", false), // automatically use indexes
     HIVEINDEXAUTOUPDATE("hive.optimize.index.autoupdate", false), //automatically update stale indexes
     HIVEOPTPPD("hive.optimize.ppd", true), // predicate pushdown
+    HIVEPPDRECOGNIZETRANSITIVITY("hive.ppd.recognizetransivity", true), // predicate pushdown
     HIVEPPDREMOVEDUPLICATEFILTERS("hive.ppd.remove.duplicatefilters", true),
+    HIVEMETADATAONLYQUERIES("hive.optimize.metadataonly", true),
     // push predicates down to storage handlers
     HIVEOPTPPD_STORAGE("hive.optimize.ppd.storage", true),
     HIVEOPTGROUPBY("hive.optimize.groupby", true), // optimize group by
@@ -385,6 +437,7 @@ public class HiveConf extends Configuration {
     HIVEOPTINDEXFILTER_COMPACT_MAXSIZE("hive.optimize.index.filter.compact.maxsize", (long) -1), // infinity
     HIVE_INDEX_COMPACT_QUERY_MAX_ENTRIES("hive.index.compact.query.max.entries", (long) 10000000), // 10M
     HIVE_INDEX_COMPACT_QUERY_MAX_SIZE("hive.index.compact.query.max.size", (long) 10 * 1024 * 1024 * 1024), // 10G
+    HIVE_INDEX_COMPACT_BINARY_SEARCH("hive.index.compact.binary.search", true),
 
     // Statistics
     HIVESTATSAUTOGATHER("hive.stats.autogather", true),
@@ -408,17 +461,19 @@ public class HiveConf extends Configuration {
         3000),  // # milliseconds to wait before the next retry
     HIVE_STATS_COLLECT_RAWDATASIZE("hive.stats.collect.rawdatasize", true),
     // should the raw data size be collected when analayzing tables
-
+    CLIENT_STATS_COUNTERS("hive.client.stats.counters", ""),
+    //Subset of counters that should be of interest for hive.client.stats.publishers (when one wants to limit their publishing). Non-display names should be used".
 
     // Concurrency
     HIVE_SUPPORT_CONCURRENCY("hive.support.concurrency", false),
     HIVE_LOCK_MANAGER("hive.lock.manager", "org.apache.hadoop.hive.ql.lockmgr.zookeeper.ZooKeeperHiveLockManager"),
     HIVE_LOCK_NUMRETRIES("hive.lock.numretries", 100),
+    HIVE_UNLOCK_NUMRETRIES("hive.unlock.numretries", 10),
     HIVE_LOCK_SLEEP_BETWEEN_RETRIES("hive.lock.sleep.between.retries", 60),
     HIVE_LOCK_MAPRED_ONLY("hive.lock.mapred.only.operation", false),
 
     HIVE_ZOOKEEPER_QUORUM("hive.zookeeper.quorum", ""),
-    HIVE_ZOOKEEPER_CLIENT_PORT("hive.zookeeper.client.port", ""),
+    HIVE_ZOOKEEPER_CLIENT_PORT("hive.zookeeper.client.port", "2181"),
     HIVE_ZOOKEEPER_SESSION_TIMEOUT("hive.zookeeper.session.timeout", 600*1000),
     HIVE_ZOOKEEPER_NAMESPACE("hive.zookeeper.namespace", "hive_zookeeper_namespace"),
     HIVE_ZOOKEEPER_CLEAN_EXTRA_NODES("hive.zookeeper.clean.extra.nodes", false),
@@ -429,6 +484,10 @@ public class HiveConf extends Configuration {
     // For har files
     HIVEARCHIVEENABLED("hive.archive.enabled", false),
     HIVEHARPARENTDIRSETTABLE("hive.archive.har.parentdir.settable", false),
+
+    //Enable/Disable gbToIdx rewrite rule
+    HIVEOPTGBYUSINGINDEX("hive.optimize.index.groupby", false),
+
     HIVEOUTERJOINSUPPORTSFILTERS("hive.outerjoin.supports.filters", true),
 
     // Serde for FetchTask
@@ -437,16 +496,20 @@ public class HiveConf extends Configuration {
     // Hive Variables
     HIVEVARIABLESUBSTITUTE("hive.variable.substitute", true),
 
-    SEMANTIC_ANALYZER_HOOK("hive.semantic.analyzer.hook",null),
+    SEMANTIC_ANALYZER_HOOK("hive.semantic.analyzer.hook", ""),
 
     HIVE_AUTHORIZATION_ENABLED("hive.security.authorization.enabled", false),
-    HIVE_AUTHORIZATION_MANAGER("hive.security.authorization.manager", null),
-    HIVE_AUTHENTICATOR_MANAGER("hive.security.authenticator.manager", null),
+    HIVE_AUTHORIZATION_MANAGER("hive.security.authorization.manager",
+        "org.apache.hadoop.hive.ql.security.authorization.DefaultHiveAuthorizationProvider"),
+    HIVE_AUTHENTICATOR_MANAGER("hive.security.authenticator.manager",
+        "org.apache.hadoop.hive.ql.security.HadoopDefaultAuthenticator"),
+    HIVE_AUTHORIZATION_TABLE_USER_GRANTS("hive.security.authorization.createtable.user.grants", ""),
+    HIVE_AUTHORIZATION_TABLE_GROUP_GRANTS("hive.security.authorization.createtable.group.grants",
+        ""),
+    HIVE_AUTHORIZATION_TABLE_ROLE_GRANTS("hive.security.authorization.createtable.role.grants", ""),
+    HIVE_AUTHORIZATION_TABLE_OWNER_GRANTS("hive.security.authorization.createtable.owner.grants",
+        ""),
 
-    HIVE_AUTHORIZATION_TABLE_USER_GRANTS("hive.security.authorization.createtable.user.grants", null),
-    HIVE_AUTHORIZATION_TABLE_GROUP_GRANTS("hive.security.authorization.createtable.group.grants", null),
-    HIVE_AUTHORIZATION_TABLE_ROLE_GRANTS("hive.security.authorization.createtable.role.grants", null),
-    HIVE_AUTHORIZATION_TABLE_OWNER_GRANTS("hive.security.authorization.createtable.owner.grants", null),
     // Print column names in output
     HIVE_CLI_PRINT_HEADER("hive.cli.print.header", false),
 
@@ -461,6 +524,7 @@ public class HiveConf extends Configuration {
     HIVE_MAPPER_CANNOT_SPAN_MULTIPLE_PARTITIONS("hive.mapper.cannot.span.multiple.partitions", false),
     HIVE_REWORK_MAPREDWORK("hive.rework.mapredwork", false),
     HIVE_CONCATENATE_CHECK_INDEX ("hive.exec.concatenate.check.index", true),
+    HIVE_IO_EXCEPTION_HANDLERS("hive.io.exception.handlers", ""),
 
     //prefix used to auto generated column aliases
     HIVE_AUTOGEN_COLUMNALIAS_PREFIX_LABEL("hive.autogen.columnalias.prefix.label", "_c"),
@@ -470,6 +534,10 @@ public class HiveConf extends Configuration {
     // The class responsible for logging client side performance metrics
     // Must be a subclass of org.apache.hadoop.hive.ql.log.PerfLogger
     HIVE_PERF_LOGGER("hive.exec.perf.logger", "org.apache.hadoop.hive.ql.log.PerfLogger"),
+    HIVE_FS_HAR_IMPL("fs.har.impl", "org.apache.hadoop.hive.shims.HiveHarFileSystem"),
+    // Whether to delete the scratchdir while startup
+    HIVE_START_CLEANUP_SCRATCHDIR("hive.start.cleanup.scratchdir", false),
+    HIVE_INSERT_INTO_MULTILEVEL_DIRS("hive.insert.into.multilevel.dirs", false),
     ;
 
     public final String varname;
@@ -534,6 +602,33 @@ public class HiveConf extends Configuration {
     public String toString() {
       return varname;
     }
+  }
+
+  /**
+   * Writes the default ConfVars out to a temporary File and returns
+   * a URL pointing to the temporary file.
+   * We need this in order to initialize the ConfVar properties
+   * in the underling Configuration object using the addResource()
+   * method.
+   */
+  private static synchronized URL getConfVarURL() {
+    if (confVarURL == null) {
+      try {
+        File confVarFile = File.createTempFile("hive-default-", ".xml");
+        Configuration conf = new Configuration(false);
+
+        applyDefaultConfVars(conf);
+
+        FileOutputStream fout = new FileOutputStream(confVarFile);
+        conf.writeXml(fout);
+        fout.close();
+        confVarURL = confVarFile.toURI().toURL();
+      } catch (Exception e) {
+        // We're pretty screwed if we can't load the default conf vars
+        throw new RuntimeException(e);
+      }
+    }
+    return confVarURL;
   }
 
   public static int getIntVar(Configuration conf, ConfVars var) {
@@ -634,6 +729,7 @@ public class HiveConf extends Configuration {
 
   public HiveConf() {
     super();
+    initialize(this.getClass());
   }
 
   public HiveConf(Class<?> cls) {
@@ -656,8 +752,12 @@ public class HiveConf extends Configuration {
     origProp = (Properties)other.origProp.clone();
   }
 
-  private Properties getUnderlyingProps() {
-    Iterator<Map.Entry<String, String>> iter = this.iterator();
+  public Properties getAllProperties() {
+    return getProperties(this);
+  }
+
+  private static Properties getProperties(Configuration conf) {
+    Iterator<Map.Entry<String, String>> iter = conf.iterator();
     Properties p = new Properties();
     while (iter.hasNext()) {
       Map.Entry<String, String> e = iter.next();
@@ -670,33 +770,25 @@ public class HiveConf extends Configuration {
     hiveJar = (new JobConf(cls)).getJar();
 
     // preserve the original configuration
-    origProp = getUnderlyingProps();
+    origProp = getAllProperties();
 
-    // let's add the hive configuration
-    URL hconfurl = getClassLoader().getResource("hive-default.xml");
-    if (hconfurl == null) {
-      l4j.debug("hive-default.xml not found.");
-    } else {
-      addResource(hconfurl);
-    }
-    URL hsiteurl = getClassLoader().getResource("hive-site.xml");
-    if (hsiteurl == null) {
-      l4j.debug("hive-site.xml not found.");
-    } else {
-      addResource(hsiteurl);
+    // Overlay the default ConfVars
+    addResource(getConfVarURL());
+
+    // Overlay hive-site.xml if it exists
+    if (hiveSiteURL != null) {
+      addResource(hiveSiteURL);
     }
 
     // if hadoop configuration files are already in our path - then define
     // the containing directory as the configuration directory
-    URL hadoopconfurl = getClassLoader().getResource("hadoop-default.xml");
-    if (hadoopconfurl == null) {
-      hadoopconfurl = getClassLoader().getResource("hadoop-site.xml");
-    }
+    URL hadoopconfurl = getClassLoader().getResource("core-site.xml");
     if (hadoopconfurl != null) {
       String conffile = hadoopconfurl.getPath();
       this.setVar(ConfVars.HADOOPCONF, conffile.substring(0, conffile.lastIndexOf('/')));
     }
 
+    // Overlay system properties
     applySystemProperties();
 
     // if the running class was loaded directly (through eclipse) rather than through a
@@ -708,10 +800,9 @@ public class HiveConf extends Configuration {
     if (auxJars == null) {
       auxJars = this.get(ConfVars.HIVEAUXJARS.varname);
     }
-
   }
 
-  public void applySystemProperties() {
+  private void applySystemProperties() {
     for (ConfVars oneVar : ConfVars.values()) {
       if (System.getProperty(oneVar.varname) != null) {
         if (System.getProperty(oneVar.varname).length() > 0) {
@@ -721,9 +812,27 @@ public class HiveConf extends Configuration {
     }
   }
 
+  private static void applyDefaultConfVars(Configuration conf) {
+    for (ConfVars var : ConfVars.values()) {
+      if (String.class.equals(var.valClass)) {
+        conf.set(var.varname, var.defaultVal);
+      } else if (Integer.class.equals(var.valClass)) {
+        conf.setInt(var.varname, var.defaultIntVal);
+      } else if (Long.class.equals(var.valClass)) {
+        conf.setLong(var.varname, var.defaultLongVal);
+      } else if (Float.class.equals(var.valClass)) {
+        conf.setFloat(var.varname, var.defaultFloatVal);
+      } else if (Boolean.class.equals(var.valClass)) {
+        conf.setBoolean(var.varname, var.defaultBoolVal);
+      } else {
+        l4j.warn("Unable to set default configuration value for " + var.varname);
+      }
+    }
+  }
+
   public Properties getChangedProperties() {
     Properties ret = new Properties();
-    Properties newProp = getUnderlyingProps();
+    Properties newProp = getAllProperties();
 
     for (Object one : newProp.keySet()) {
       String oneProp = (String) one;
@@ -735,8 +844,8 @@ public class HiveConf extends Configuration {
     return (ret);
   }
 
-  public Properties getAllProperties() {
-    return getUnderlyingProps();
+  public String getHiveSitePath() {
+    return hiveSiteURL.getPath();
   }
 
   public String getJar() {
@@ -784,5 +893,4 @@ public class HiveConf extends Configuration {
       return -1;
     }
   }
-
 }

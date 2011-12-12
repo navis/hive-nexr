@@ -29,6 +29,7 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -115,7 +116,7 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
     return true;
   }
 
-  protected static String getResourceFiles(Configuration conf, SessionState.ResourceType t) {
+  public static String getResourceFiles(Configuration conf, SessionState.ResourceType t) {
     // fill in local files to be added to the task environment
     SessionState ss = SessionState.get();
     Set<String> files = (ss == null) ? null : ss.list_resource(t, null);
@@ -526,6 +527,9 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
       conf.set("hive.index.compact.file", work.getIndexIntermediateFile());
       conf.set("hive.index.blockfilter.file", work.getIndexIntermediateFile());
     }
+
+    // Intentionally overwrites anything the user may have put here
+    conf.setBoolean("hive.input.format.sorted", work.isInputFormatSorted());
   }
 
   public boolean mapStarted() {
@@ -769,6 +773,11 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
     return true;
   }
 
+  @Override
+  public Collection<Operator<? extends Serializable>> getTopOperators() {
+    return getWork().getAliasToWork().values();
+  }
+  
   @Override
   public boolean hasReduce() {
     MapredWork w = getWork();

@@ -55,6 +55,7 @@ import org.apache.hadoop.hive.ql.exec.HadoopJobExecHelper;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.exec.Utilities.StreamPrinter;
 import org.apache.hadoop.hive.ql.parse.ParseDriver;
+import org.apache.hadoop.hive.ql.parse.VariableSubstitution;
 import org.apache.hadoop.hive.ql.processors.CommandProcessor;
 import org.apache.hadoop.hive.ql.processors.CommandProcessorFactory;
 import org.apache.hadoop.hive.ql.session.SessionState;
@@ -124,6 +125,7 @@ public class CliDriver {
     } else if (cmd_trimmed.startsWith("!")) {
 
       String shell_cmd = cmd_trimmed.substring(1);
+      shell_cmd = new VariableSubstitution().substitute(ss.getConf(), shell_cmd);
 
       // shell_cmd = "/bin/bash -c \'" + shell_cmd + "\'";
       try {
@@ -656,7 +658,10 @@ public class CliDriver {
     int ret = 0;
 
     String prefix = "";
-    String curPrompt = prompt;
+    String curDB = getFormattedDb(conf, ss);
+    String curPrompt = prompt + curDB;
+    String dbSpaces = spacesForString(curDB);
+
     while ((line = reader.readLine(curPrompt + "> ")) != null) {
       if (!prefix.equals("")) {
         prefix += '\n';
@@ -665,10 +670,12 @@ public class CliDriver {
         line = prefix + line;
         ret = cli.processLine(line, true);
         prefix = "";
-        curPrompt = prompt;
+        curDB = getFormattedDb(conf, ss);
+        curPrompt = prompt + curDB;
+        dbSpaces = dbSpaces.length() == curDB.length() ? dbSpaces : spacesForString(curDB);
       } else {
         prefix = prefix + line;
-        curPrompt = prompt2;
+        curPrompt = prompt2 + dbSpaces;
         continue;
       }
     }
@@ -676,6 +683,39 @@ public class CliDriver {
     ss.close();
 
     return ret;
+  }
+
+  /**
+   * Retrieve the current database name string to display, based on the
+   * configuration value.
+   * @param conf storing whether or not to show current db
+   * @param ss CliSessionState to query for db name
+   * @return String to show user for current db value
+   */
+  private static String getFormattedDb(HiveConf conf, CliSessionState ss) {
+    if (!HiveConf.getBoolVar(conf, HiveConf.ConfVars.CLIPRINTCURRENTDB)) {
+      return "";
+    }
+    String currDb = ss.getCurrentDbName();
+
+    if (currDb == null) {
+      return "";
+    }
+
+    return " (" + currDb + ")";
+  }
+
+  /**
+   * Generate a string of whitespace the same length as the parameter
+   *
+   * @param s String for which to generate equivalent whitespace
+   * @return  Whitespace
+   */
+  private static String spacesForString(String s) {
+    if (s == null || s.length() == 0) {
+      return "";
+    }
+    return String.format("%1$-" + s.length() +"s", "");
   }
 
   public void setHiveVariables(Map<String, String> hiveVariables) {

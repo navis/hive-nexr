@@ -35,19 +35,21 @@ import javax.security.sasl.SaslException;
 import javax.security.sasl.SaslServer;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.SaslRpcServer;
+import org.apache.hadoop.security.SaslRpcServer.AuthMethod;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.SaslRpcServer.AuthMethod;
 import org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod;
 import org.apache.hadoop.security.authorize.AuthorizationException;
 import org.apache.hadoop.security.authorize.ProxyUsers;
+import org.apache.hadoop.security.token.SecretManager.InvalidToken;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
-import org.apache.hadoop.security.token.SecretManager.InvalidToken;
+import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TProtocol;
@@ -330,6 +332,14 @@ import org.apache.thrift.transport.TTransportFactory;
        "hive.cluster.delegation.token.max-lifetime";
      public static final long    DELEGATION_TOKEN_MAX_LIFETIME_DEFAULT =
        7*24*60*60*1000; // 7 days
+     public static final String DELEGATION_TOKEN_STORE_CLS =
+       "hive.cluster.delegation.token.store.class";
+     public static final String DELEGATION_TOKEN_STORE_ZK_CONNECT_STR =
+         "hive.cluster.delegation.token.store.zookeeper.connectString";
+     public static final String DELEGATION_TOKEN_STORE_ZK_ROOT_NODE =
+         "hive.cluster.delegation.token.store.zookeeper.rootNode";
+     public static final String DELEGATION_TOKEN_STORE_ZK_ROOT_NODE_DEFAULT =
+         "/hive/cluster/delegation";
 
      public Server() throws TTransportException {
        try {
@@ -404,6 +414,23 @@ import org.apache.thrift.transport.TTransportFactory;
       return new TUGIAssumingProcessor(processor, secretManager);
      }
 
+    protected TokenStoreDelegationTokenSecretManager.TokenStore getTokenStore(Configuration conf)
+        throws IOException {
+       String tokenStoreClassName = conf.get(DELEGATION_TOKEN_STORE_CLS, "");
+       if (StringUtils.isBlank(tokenStoreClassName)) {
+         return new MemoryTokenStore();
+       }
+       try {
+        Class<? extends TokenStoreDelegationTokenSecretManager.TokenStore> storeClass = Class
+            .forName(tokenStoreClassName).asSubclass(
+                TokenStoreDelegationTokenSecretManager.TokenStore.class);
+        return ReflectionUtils.newInstance(storeClass, conf);
+       } catch (ClassNotFoundException e) {
+        throw new IOException("Error initializing delegation token store: " + tokenStoreClassName,
+            e);
+       }
+     }
+
      @Override
      public void startDelegationTokenSecretManager(Configuration conf)
      throws IOException{
@@ -416,16 +443,16 @@ import org.apache.thrift.transport.TTransportFactory;
        long tokenRenewInterval =
            conf.getLong(DELEGATION_TOKEN_RENEW_INTERVAL_KEY,
                         DELEGATION_TOKEN_RENEW_INTERVAL_DEFAULT);
-       secretManager =
-           new DelegationTokenSecretManager(secretKeyInterval,
-                                            tokenMaxLifetime,
-                                            tokenRenewInterval,
-                                            DELEGATION_TOKEN_GC_INTERVAL);
+
+       secretManager = new TokenStoreDelegationTokenSecretManager(secretKeyInterval,
+             tokenMaxLifetime,
+             tokenRenewInterval,
+             DELEGATION_TOKEN_GC_INTERVAL, getTokenStore(conf));
        secretManager.startThreads();
      }
 
      @Override
-     public String getDelegationToken(final String owner, final String renewer) 
+     public String getDelegationToken(final String owner, final String renewer)
      throws IOException, InterruptedException {
        if (!authenticationMethod.get().equals(AuthenticationMethod.KERBEROS)) {
          throw new AuthorizationException(
@@ -439,26 +466,19 @@ import org.apache.thrift.transport.TTransportFactory;
        UserGroupInformation currUser = UserGroupInformation.getCurrentUser();
        UserGroupInformation ownerUgi = UserGroupInformation.createRemoteUser(owner);
        if (!ownerUgi.getShortUserName().equals(currUser.getShortUserName())) {
-         //in the case of proxy users, the getCurrentUser will return the 
-         //real user (for e.g. oozie) due to the doAs that happened just before the 
+         //in the case of proxy users, the getCurrentUser will return the
+         //real user (for e.g. oozie) due to the doAs that happened just before the
          //server started executing the method getDelegationToken in the MetaStore
          ownerUgi = UserGroupInformation.createProxyUser(owner,
            UserGroupInformation.getCurrentUser());
          InetAddress remoteAddr = getRemoteAddress();
-         //A hack (127.0.1.1 is used as the remote address in case remoteAddr is null)
-         //to make a testcase TestHadoop20SAuthBridge.testMetastoreProxyUser
-         //pass. Once we have updated hive to have a thrift release with
-         //THIFT-1053 in, we can remove the check for remoteAddr being null, and this
-         //hack
-         ProxyUsers.authorize(ownerUgi, 
-              remoteAddr != null ? remoteAddr.getHostAddress() : "127.0.1.1", 
-              null);
+         ProxyUsers.authorize(ownerUgi,remoteAddr.getHostAddress(), null);
        }
        return ownerUgi.doAs(new PrivilegedExceptionAction<String>() {
          public String run() throws IOException {
            return secretManager.getDelegationToken(renewer);
          }
-       }); 
+       });
      }
 
      @Override
@@ -475,28 +495,27 @@ import org.apache.thrift.transport.TTransportFactory;
        secretManager.cancelDelegationToken(tokenStrForm);
      }
 
-     private final static ThreadLocal<InetAddress> remoteAddress =
+     final static ThreadLocal<InetAddress> remoteAddress =
        new ThreadLocal<InetAddress>() {
        @Override
        protected synchronized InetAddress initialValue() {
          return null;
        }
      };
-     
+
      @Override
      public InetAddress getRemoteAddress() {
        return remoteAddress.get();
      }
-     
-     //declare the field public so that testcases can set it to an explicit value
-     public final static ThreadLocal<AuthenticationMethod> authenticationMethod =
+
+     final static ThreadLocal<AuthenticationMethod> authenticationMethod =
        new ThreadLocal<AuthenticationMethod>() {
        @Override
        protected synchronized AuthenticationMethod initialValue() {
          return AuthenticationMethod.TOKEN;
        }
      };
-     
+
     /** CallbackHandler for SASL DIGEST-MD5 mechanism */
     // This code is pretty much completely based on Hadoop's
     // SaslRpcServer.SaslDigestCallbackHandler - the only reason we could not
@@ -608,10 +627,8 @@ import org.apache.thrift.transport.TTransportFactory;
              throw new TException(e.getMessage());
            }
          }
-         if (TSocket.class.isAssignableFrom(inProt.getTransport().getClass())) {
-           Socket socket = ((TSocket)inProt.getTransport()).getSocket();
-           remoteAddress.set(socket.getInetAddress());
-         }
+         Socket socket = ((TSocket)(saslTrans.getUnderlyingTransport())).getSocket();
+         remoteAddress.set(socket.getInetAddress());
          try {
            UserGroupInformation clientUgi = UserGroupInformation.createProxyUser(
               endUser, UserGroupInformation.getLoginUser());

@@ -31,8 +31,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.serde.Constants;
 import org.apache.hadoop.hive.serde2.io.TimestampWritable;
+import org.apache.hadoop.hive.serde2.objectinspector.ConstantObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory.ObjectInspectorOptions;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.AbstractPrimitiveWritableObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.BinaryObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.BooleanObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.ByteObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.DoubleObjectInspector;
@@ -45,6 +48,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.StringObjectInspe
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.TimestampObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.hive.shims.ShimLoader;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.util.StringUtils;
 
@@ -69,6 +73,21 @@ public final class ObjectInspectorUtils {
    */
   public enum ObjectInspectorCopyOption {
     DEFAULT, JAVA, WRITABLE
+  }
+
+  /**
+   * Ensures that an ObjectInspector is Writable.
+   */
+  public static ObjectInspector getWritableObjectInspector(ObjectInspector oi) {
+    // All non-primitive OIs are writable so we need only check this case.
+    if (oi.getCategory() == Category.PRIMITIVE) {
+      PrimitiveObjectInspector poi = (PrimitiveObjectInspector) oi;
+      if (!(poi instanceof AbstractPrimitiveWritableObjectInspector)) {
+        return PrimitiveObjectInspectorFactory
+            .getPrimitiveWritableObjectInspector(poi.getPrimitiveCategory());
+      }
+    }
+    return oi;
   }
 
   /**
@@ -189,6 +208,9 @@ public final class ObjectInspectorUtils {
     return copyToStandardObject(o, oi, ObjectInspectorCopyOption.DEFAULT);
   }
 
+  public static Object copyToStandardJavaObject(Object o, ObjectInspector oi) {
+    return copyToStandardObject(o, oi, ObjectInspectorCopyOption.JAVA);
+  }
 
   public static Object copyToStandardObject(Object o, ObjectInspector oi,
       ObjectInspectorCopyOption objectInspectorOption) {
@@ -442,6 +464,9 @@ public final class ObjectInspectorUtils {
         }
         return r;
       }
+      case BINARY:
+        return ((BinaryObjectInspector) poi).getPrimitiveWritableObject(o).hashCode();
+
       case TIMESTAMP:
         TimestampWritable t = ((TimestampObjectInspector) poi)
             .getPrimitiveWritableObject(o);
@@ -452,9 +477,28 @@ public final class ObjectInspectorUtils {
       }
       }
     }
+    case LIST: {
+      int r = 0;
+      ListObjectInspector listOI = (ListObjectInspector)objIns;
+      ObjectInspector elemOI = listOI.getListElementObjectInspector();
+      for (int ii = 0; ii < listOI.getListLength(o); ++ii) {
+        r = 31 * r + hashCode(listOI.getListElement(o, ii), elemOI);
+      }
+      return r;
+    }
+    case MAP: {
+      int r = 0;
+      MapObjectInspector mapOI = (MapObjectInspector)objIns;
+      ObjectInspector keyOI = mapOI.getMapKeyObjectInspector();
+      ObjectInspector valueOI = mapOI.getMapValueObjectInspector();
+      Map<?, ?> map = mapOI.getMap(o);
+      for (Map.Entry entry : map.entrySet()) {
+        r += hashCode(entry.getKey(), keyOI) ^
+             hashCode(entry.getValue(), valueOI);
+      }
+      return r;
+    }
     case STRUCT:
-    case LIST:
-    case MAP:
     case UNION:
     default:
       throw new RuntimeException(
@@ -521,9 +565,9 @@ public final class ObjectInspectorUtils {
    */
   public static int compare(Object o1, ObjectInspector oi1, Object o2,
       ObjectInspector oi2) {
-    return compare(o1, oi1, o2, oi2, null);
+    return compare(o1, oi1, o2, oi2, new FullMapEqualComparer());
   }
-  
+
   /**
    * Compare two objects with their respective ObjectInspectors.
    */
@@ -598,6 +642,12 @@ public final class ObjectInspectorUtils {
               .compareTo(s2));
         }
       }
+      case BINARY: {
+        BytesWritable bw1 = ((BinaryObjectInspector) poi1).getPrimitiveWritableObject(o1);
+        BytesWritable bw2 = ((BinaryObjectInspector) poi2).getPrimitiveWritableObject(o2);
+        return bw1.compareTo(bw2);
+      }
+
       case TIMESTAMP: {
         TimestampWritable t1 = ((TimestampObjectInspector) poi1)
             .getPrimitiveWritableObject(o1);
@@ -620,7 +670,7 @@ public final class ObjectInspectorUtils {
       for (int i = 0; i < minimum; i++) {
         int r = compare(soi1.getStructFieldData(o1, fields1.get(i)), fields1
             .get(i).getFieldObjectInspector(), soi2.getStructFieldData(o2,
-            fields2.get(i)), fields2.get(i).getFieldObjectInspector(), 
+            fields2.get(i)), fields2.get(i).getFieldObjectInspector(),
             mapEqualComparer);
         if (r != 0) {
           return r;
@@ -839,6 +889,59 @@ public final class ObjectInspectorUtils {
     throw new RuntimeException("Unknown category encountered: " + c1);
   }
 
+  public static ConstantObjectInspector getConstantObjectInspector(ObjectInspector oi, Object value) {
+    ObjectInspector writableOI = getStandardObjectInspector(oi, ObjectInspectorCopyOption.WRITABLE);
+    Object writableValue =
+      ObjectInspectorConverters.getConverter(oi, writableOI).convert(value);
+    switch (writableOI.getCategory()) {
+      case PRIMITIVE:
+        PrimitiveObjectInspector poi = (PrimitiveObjectInspector) oi;
+        return PrimitiveObjectInspectorFactory.getPrimitiveWritableConstantObjectInspector(
+            poi.getPrimitiveCategory(), writableValue);
+      case LIST:
+        ListObjectInspector loi = (ListObjectInspector) oi;
+        return ObjectInspectorFactory.getStandardConstantListObjectInspector(
+            getStandardObjectInspector(
+              loi.getListElementObjectInspector(),
+              ObjectInspectorCopyOption.WRITABLE
+            ),
+            (List<?>)writableValue);
+      case MAP:
+        MapObjectInspector moi = (MapObjectInspector) oi;
+        return ObjectInspectorFactory.getStandardConstantMapObjectInspector(
+            getStandardObjectInspector(
+              moi.getMapKeyObjectInspector(),
+              ObjectInspectorCopyOption.WRITABLE
+            ),
+            getStandardObjectInspector(
+              moi.getMapValueObjectInspector(),
+              ObjectInspectorCopyOption.WRITABLE
+            ),
+            (Map<?, ?>)writableValue);
+      default:
+       throw new IllegalArgumentException(
+           writableOI.getCategory() + " not yet supported for constant OI");
+    }
+  }
+
+  public static Object getWritableConstantValue(ObjectInspector oi) {
+    return ((ConstantObjectInspector)oi).getWritableConstantValue();
+  }
+
+  public static boolean supportsConstantObjectInspector(ObjectInspector oi) {
+    switch (oi.getCategory()) {
+      case PRIMITIVE:
+      case LIST:
+      case MAP:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  public static boolean isConstantObjectInspector(ObjectInspector oi) {
+    return (oi instanceof ConstantObjectInspector);
+  }
 
   private ObjectInspectorUtils() {
     // prevent instantiation

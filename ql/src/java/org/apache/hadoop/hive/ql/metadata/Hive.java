@@ -36,6 +36,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.HashSet;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -61,6 +63,7 @@ import org.apache.hadoop.hive.metastore.api.HiveObjectPrivilege;
 import org.apache.hadoop.hive.metastore.api.HiveObjectRef;
 import org.apache.hadoop.hive.metastore.api.HiveObjectType;
 import org.apache.hadoop.hive.metastore.api.Index;
+import org.apache.hadoop.hive.metastore.api.InvalidObjectException;
 import org.apache.hadoop.hive.metastore.api.InvalidOperationException;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
@@ -154,8 +157,12 @@ public class Hive {
     if (db == null || needsRefresh) {
       closeCurrent();
       c.set("fs.scheme.class", "dfs");
-      db = new Hive(c);
-      hiveDB.set(db);
+      Hive newdb = new Hive(c);
+      if (db != null && db.getCurrentDatabase() != null){
+        newdb.setCurrentDatabase(db.getCurrentDatabase());
+      }
+      hiveDB.set(newdb);
+      return newdb;
     }
     return db;
   }
@@ -191,6 +198,7 @@ public class Hive {
     LOG.info("Closing current thread's connection to Hive Metastore.");
     if (metaStoreClient != null) {
       metaStoreClient.close();
+      metaStoreClient = null;
     }
   }
 
@@ -425,6 +433,53 @@ public class Hive {
     }
   }
 
+  /**
+   * Rename a old partition to new partition
+   *
+   * @param tbl
+   *          existing table
+   * @param oldPartSpec
+   *          spec of old partition
+   * @param newPart
+   *          new partition
+   * @throws InvalidOperationException
+   *           if the changes in metadata is not acceptable
+   * @throws TException
+   */
+  public void renamePartition(Table tbl, Map<String, String> oldPartSpec, Partition newPart)
+      throws HiveException {
+    try {
+      Map<String, String> newPartSpec = newPart.getSpec();
+      if (oldPartSpec.keySet().size() != tbl.getPartCols().size()
+          || newPartSpec.keySet().size() != tbl.getPartCols().size()) {
+        throw new HiveException("Unable to rename partition to the same name: number of partition cols don't match. ");
+      }
+      if (!oldPartSpec.keySet().equals(newPartSpec.keySet())){
+        throw new HiveException("Unable to rename partition to the same name: old and new partition cols don't match. ");
+      }
+      List<String> pvals = new ArrayList<String>();
+      
+      for (FieldSchema field : tbl.getPartCols()) {
+        String val = oldPartSpec.get(field.getName());
+        if (val == null || val.length() == 0) {
+          throw new HiveException("get partition: Value for key "
+              + field.getName() + " is null or empty");
+        } else if (val != null){
+          pvals.add(val);
+        }
+      }
+      getMSC().renamePartition(tbl.getDbName(), tbl.getTableName(), pvals,
+          newPart.getTPartition());
+
+    } catch (InvalidOperationException e){
+      throw new HiveException("Unable to rename partition.", e);
+    } catch (MetaException e) {
+      throw new HiveException("Unable to rename partition.", e);
+    } catch (TException e) {
+      throw new HiveException("Unable to rename partition.", e);
+    }
+  }
+
   public void alterDatabase(String dbName, Database db)
       throws HiveException {
     try {
@@ -656,12 +711,13 @@ public class Hive {
       Index indexDesc = new Index(indexName, indexHandlerClass, dbName, tableName, time, time, indexTblName,
           storageDescriptor, params, deferredRebuild);
       indexDesc.getParameters().put("comment", indexComment);
-      indexHandler.analyzeIndexDefinition(baseTbl, indexDesc, tt);
 
       if (idxProps != null)
       {
         indexDesc.getParameters().putAll(idxProps);
       }
+
+      indexHandler.analyzeIndexDefinition(baseTbl, indexDesc, tt);
 
       this.getMSC().createIndex(indexDesc, tt);
 
@@ -702,7 +758,7 @@ public class Hive {
     } catch (NoSuchObjectException e) {
       throw new HiveException("Partition or table doesn't exist.", e);
     } catch (Exception e) {
-      throw new HiveException("Unknow error. Please check logs.", e);
+      throw new HiveException("Unknown error. Please check logs.", e);
     }
   }
 
@@ -1149,41 +1205,53 @@ public class Hive {
       int numDP, boolean holdDDLTime)
       throws HiveException {
 
+    Set<Path> validPartitions = new HashSet<Path>();
     try {
       ArrayList<LinkedHashMap<String, String>> fullPartSpecs =
         new ArrayList<LinkedHashMap<String, String>>();
 
       FileSystem fs = loadPath.getFileSystem(conf);
-      FileStatus[] status = Utilities.getFileStatusRecurse(loadPath, numDP, fs);
-      if (status.length == 0) {
+      FileStatus[] leafStatus = Utilities.getFileStatusRecurse(loadPath, numDP+1, fs);
+      // Check for empty partitions
+      for (FileStatus s : leafStatus) {
+        if (s.isDir()) {
+          // No leaves in this directory
+          LOG.info("NOT moving empty directory: " + s.getPath());
+        } else {
+          validPartitions.add(s.getPath().getParent());
+        }
+      }
+      
+      if (validPartitions.size() == 0) {
         LOG.warn("No partition is genereated by dynamic partitioning");
       }
 
-      if (status.length > conf.getIntVar(HiveConf.ConfVars.DYNAMICPARTITIONMAXPARTS)) {
-        throw new HiveException("Number of dynamic partitions created is " + status.length
+      if (validPartitions.size() > conf.getIntVar(HiveConf.ConfVars.DYNAMICPARTITIONMAXPARTS)) {
+        throw new HiveException("Number of dynamic partitions created is " + validPartitions.size()
             + ", which is more than "
             + conf.getIntVar(HiveConf.ConfVars.DYNAMICPARTITIONMAXPARTS)
             +". To solve this try to set " + HiveConf.ConfVars.DYNAMICPARTITIONMAXPARTS.varname
-            + " to at least " + status.length + '.');
+            + " to at least " + validPartitions.size() + '.');
       }
 
       // for each dynamically created DP directory, construct a full partition spec
       // and load the partition based on that
-      for (int i= 0; i < status.length; ++i) {
+      Iterator<Path> iter = validPartitions.iterator();
+      while (iter.hasNext()) {
         // get the dynamically created directory
-        Path partPath = status[i].getPath();
+        Path partPath = iter.next();
         assert fs.getFileStatus(partPath).isDir():
           "partitions " + partPath + " is not a directory !";
-
+        
         // generate a full partition specification
         LinkedHashMap<String, String> fullPartSpec = new LinkedHashMap<String, String>(partSpec);
         Warehouse.makeSpecFromName(fullPartSpec, partPath);
-      	fullPartSpecs.add(fullPartSpec);
+        fullPartSpecs.add(fullPartSpec);
 
         // finally load the partition -- move the file to the final table address
-      	loadPartition(partPath, tableName, fullPartSpec, replace, holdDDLTime, true);
-      	LOG.info("New loading path = " + partPath + " with partSpec " + fullPartSpec);
-    	}
+        loadPartition(partPath, tableName, fullPartSpec, replace, holdDDLTime, true);
+        LOG.info("New loading path = " + partPath + " with partSpec " + fullPartSpec);
+      }
       return fullPartSpecs;
     } catch (IOException e) {
       throw new HiveException(e);
@@ -1418,7 +1486,7 @@ public class Hive {
     } catch (NoSuchObjectException e) {
       throw new HiveException("Partition or table doesn't exist.", e);
     } catch (Exception e) {
-      throw new HiveException("Unknow error. Please check logs.", e);
+      throw new HiveException("Unknown error. Please check logs.", e);
     }
   }
 
@@ -1506,14 +1574,16 @@ public class Hive {
    *
    * @param tbl
    *          object for which partition is needed. Must be partitioned.
+   * @param limit number of partitions to return
    * @return list of partition objects
    * @throws HiveException
    */
-  public List<Partition> getPartitions(Table tbl, Map<String, String> partialPartSpec)
+  public List<Partition> getPartitions(Table tbl, Map<String, String> partialPartSpec,
+      short limit)
   throws HiveException {
     if (!tbl.isPartitioned()) {
       throw new HiveException("Partition spec should only be supplied for a " +
-      		"partitioned table");
+          "partitioned table");
     }
 
     List<String> partialPvals = getPvals(tbl.getPartCols(), partialPartSpec);
@@ -1521,7 +1591,7 @@ public class Hive {
     List<org.apache.hadoop.hive.metastore.api.Partition> partitions = null;
     try {
       partitions = getMSC().listPartitionsWithAuthInfo(tbl.getDbName(), tbl.getTableName(),
-          partialPvals, (short) -1, getUserName(), getGroupNames());
+          partialPvals, limit, getUserName(), getGroupNames());
     } catch (Exception e) {
       throw new HiveException(e);
     }
@@ -1532,6 +1602,21 @@ public class Hive {
     }
 
     return qlPartitions;
+  }
+
+  /**
+   * get all the partitions of the table that matches the given partial
+   * specification. partition columns whose value is can be anything should be
+   * an empty string.
+   *
+   * @param tbl
+   *          object for which partition is needed. Must be partitioned.
+   * @return list of partition objects
+   * @throws HiveException
+   */
+  public List<Partition> getPartitions(Table tbl, Map<String, String> partialPartSpec)
+  throws HiveException {
+    return getPartitions(tbl, partialPartSpec, (short)-1);
   }
 
   /**
@@ -1816,7 +1901,7 @@ public class Hive {
             // Note: there are race conditions here, but I don't believe
             // they're worse than what was already present.
             int counter = 1;
-            
+
             // Strip off the file type, if any so we don't make:
             // 000000_0.gz -> 000000_0.gz_copy_1
             String name = itemStaging.getName();
@@ -1828,10 +1913,10 @@ public class Hive {
             } else {
               filetype = "";
             }
-            
+
             Path itemDest = new Path(destf, itemStaging.getName());
             Path itemStagingBase = new Path(itemStaging.getParent(), name);
-            
+
             while (fs.exists(itemDest)) {
               Path proposedStaging = itemStagingBase
                   .suffix("_copy_" + counter++).suffix(filetype);
@@ -2097,6 +2182,4 @@ public class Hive {
   private static String[] getQualifiedNames(String qualifiedName) {
     return qualifiedName.split("\\.");
   }
-
-
 };

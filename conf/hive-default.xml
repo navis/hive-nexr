@@ -19,12 +19,11 @@
 
 <configuration>
 
-<!-- Hive Configuration can either be stored in this file or in the hadoop configuration files  -->
-<!-- that are implied by Hadoop setup variables.                                                -->
-<!-- Aside from Hadoop setup variables - this file is provided as a convenience so that Hive    -->
-<!-- users do not have to edit hadoop configuration files (that may be managed as a centralized -->
-<!-- resource).                                                                                 -->
+<!-- WARNING!!! This file is provided for documentation purposes ONLY!     -->
+<!-- WARNING!!! Any changes you make to this file will be ignored by Hive. -->
+<!-- WARNING!!! You must make your changes in hive-site.xml instead.       -->
 
+  
 <!-- Hive Execution Parameters -->
 <property>
   <name>mapred.reduce.tasks</name>
@@ -55,6 +54,12 @@
   <name>hive.cli.print.header</name>
   <value>false</value>
   <description>Whether to print the names of the columns in query output.</description>
+</property>
+
+<property>
+  <name>hive.cli.print.current.db</name>
+  <value>false</value>
+  <description>Whether to include the current database in the hive prompt.</description>
 </property>
 
 <property>
@@ -233,14 +238,20 @@
 </property>
 
 <property>
+  <name>hive.metastore.end.function.listeners</name>
+  <value></value>
+  <description>list of comma separated listeners for the end of metastore functions.</description>
+</property>
+
+<property>
   <name>hive.metastore.event.expiry.duration</name>
-  <value>0L</value>
+  <value>0</value>
   <description>Duration after which events expire from events table (in seconds)</description>
 </property>
 
 <property>
   <name>hive.metastore.event.clean.freq</name>
-  <value>0L</value>
+  <value>0</value>
   <description>Frequency at which timer task runs to purge expired events in metastore(in seconds).</description>
 </property>
 
@@ -349,6 +360,12 @@
 </property>
 
 <property>
+  <name>hive.optimize.index.groupby</name>
+  <value>false</value>
+  <description>Whether to enable optimization of group-by queries using Aggregate indexes.</description>
+</property>
+
+<property>
   <name>hive.optimize.ppd</name>
   <value>true</value>
   <description>Whether to enable predicate pushdown</description>
@@ -361,10 +378,9 @@
 </property>
 
 <property>
-  <name>hive.optimize.pruner</name>
+  <name>hive.ppd.recognizetransivity</name>
   <value>true</value>
-  <description>Whether to enable the new partition pruner which depends on predicate pushdown. If this is disabled,
-  the old partition pruner which is based on AST will be enabled.</description>
+  <description>Whether to transitively replicate predicate filters over equijoin conditions.</description>
 </property>
 
 <property>
@@ -396,12 +412,6 @@
   <name>hive.mapjoin.bucket.cache.size</name>
   <value>100</value>
   <description>How many values in each keys in the map-joined table should be cached in memory. </description>
-</property>
-
-<property>
-  <name>hive.mapjoin.maxsize</name>
-  <value>100000</value>
-  <description>Maximum # of rows of the small table that can be handled by map-side join. If the size is reached and hive.task.progress is set, a fatal error counter is set and the job will be killed.</description>
 </property>
 
 <property>
@@ -539,6 +549,18 @@
 </property>
 
 <property>
+  <name>hive.client.stats.publishers</name>
+  <value></value>
+  <description>Comma-separated list of statistics publishers to be invoked on counters on each job.  A client stats publisher is specified as the name of a Java class which implements the org.apache.hadoop.hive.ql.stats.ClientStatsPublisher interface.</description>
+</property>
+
+<property>
+  <name>hive.client.stats.counters</name>
+  <value></value>
+  <description>Subset of counters that should be of interest for hive.client.stats.publishers (when one wants to limit their publishing). Non-display names should be used</description>
+</property>
+
+<property>
   <name>hive.merge.mapfiles</name>
   <value>true</value>
   <description>Merge small files at the end of a map-only job</description>
@@ -572,19 +594,6 @@
   <name>hive.merge.smallfiles.avgsize</name>
   <value>16000000</value>
   <description>When the average output file size of a job is less than this number, Hive will start an additional map-reduce job to merge the output files into bigger files.  This is only done for map-only jobs if hive.merge.mapfiles is true, and for map-reduce jobs if hive.merge.mapredfiles is true.</description>
-</property>
-
-
-<property>
-  <name>hive.mapjoin.hashtable.initialCapacity</name>
-  <value>100000</value>
-  <description>In the process of Mapjoin, the key/value will be hold in the hashtable. This value means the initialCapacity of the in-memory hashtable</description>
-</property>
-
-<property>
-  <name>hive.mapjoin.hashtable.loadfactor</name>
-  <value>0.75</value>
-  <description>In the process of Mapjoin, the key/value will be hold in the hashtable. This value means the load factor for the in-memory hashtable</description>
 </property>
 
 <property>
@@ -823,12 +832,6 @@
 </property>
 
 <property>
-  <name>hive.stats.jdbc.atomic</name>
-  <value>false</value>
-  <description>If this is set to true then the metastore stats will be updated only if all types of stats (# of rows, # of files, # of bytes etc.) are available. Otherwise metastore stats are updated in a best effort fashion with whatever are available.</description>
-</property>
-
-<property>
   <name>hive.stats.retries.max</name>
   <value>0</value>
   <description>Maximum number of retries when stats publisher/aggregator got an exception updating intermediate database. Default is no tries on failures.</description>
@@ -847,15 +850,15 @@
 </property>
 
 <property>
-  <name>hive.concurrency.manager</name>
-  <value>org.apache.hadoop.hive.ql.lockmgr.ZooKeeperLockMgr</value>
-  <description>The concurrency manager for hive.</description>
-</property>
-
-<property>
   <name>hive.lock.numretries</name>
   <value>100</value>
   <description>The number of times you want to try to get all the locks</description>
+</property>
+
+<property>
+  <name>hive.unlock.numretries</name>
+  <value>10</value>
+  <description>The number of times you want to retry to do one unlock</description>
 </property>
 
 <property>
@@ -1073,6 +1076,12 @@
 </property>
 
 <property>
+  <name>hive.index.compact.binary.search</name>
+  <value>true</value>
+  <description>Whether or not to use a binary search to find the entries in an index table that match the filter, where possible</description>
+</property>
+
+<property>
   <name>hive.exim.uri.scheme.whitelist</name>
   <value>hdfs,pfile</value>
   <description>A comma separated list of acceptable URI schemes for import and export.</description>
@@ -1161,6 +1170,25 @@
   <name>hive.exec.perf.logger</name>
   <value>org.apache.hadoop.hive.ql.log.PerfLogger</value>
   <description>The class responsible logging client side performance metrics.  Must be a subclass of org.apache.hadoop.hive.ql.log.PerfLogger</description>
+</property>
+
+<property>
+  <name>hive.start.cleanup.scratchdir</name>
+  <value>false</value>
+  <description>To cleanup the hive scratchdir while starting the hive server</description>
+</property>
+
+<property>
+  <name>hive.output.file.extension</name>
+  <value></value>
+  <description>String used as a file extension for output files. If not set, defaults to the codec extension for text files (e.g. ".gz"), or no extension otherwise.</description>
+</property>
+
+<property>
+  <name>hive.insert.into.multilevel.dirs</name>
+  <value>false</value>
+  <description>Where to insert into multilevel directories like 
+  "insert directory '/HIVEFT25686/chinna/' from table"</description>
 </property>
 
 </configuration>

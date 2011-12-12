@@ -24,9 +24,12 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDFBaseCompare;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFCase;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFWhen;
+import org.apache.hadoop.hive.serde2.objectinspector.ConstantObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
 
 /**
  * ExprNodeGenericFuncEvaluator.
@@ -41,6 +44,7 @@ public class ExprNodeGenericFuncEvaluator extends ExprNodeEvaluator {
 
   transient GenericUDF genericUDF;
   transient Object rowObject;
+  transient ObjectInspector outputOI;
   transient ExprNodeEvaluator[] children;
   transient GenericUDF.DeferredObject[] deferredChildren;
   transient boolean isEager;
@@ -78,12 +82,12 @@ public class ExprNodeGenericFuncEvaluator extends ExprNodeEvaluator {
     void evaluate() throws HiveException {
       obj = eval.evaluate(rowObject);
     }
-    
+
     public Object get() throws HiveException {
       return obj;
     }
   }
-  
+
   public ExprNodeGenericFuncEvaluator(ExprNodeGenericFuncDesc expr) {
     this.expr = expr;
     children = new ExprNodeEvaluator[expr.getChildExprs().size()];
@@ -130,12 +134,27 @@ public class ExprNodeGenericFuncEvaluator extends ExprNodeEvaluator {
       throw new HiveException(
         "Stateful expressions cannot be used inside of CASE");
     }
-    return genericUDF.initialize(childrenOIs);
+    this.outputOI = genericUDF.initializeAndFoldConstants(childrenOIs);
+    return this.outputOI;
+  }
+
+  @Override
+  public boolean isDeterministic() {
+    boolean result = FunctionRegistry.isDeterministic(genericUDF);
+    for (ExprNodeEvaluator child : children) {
+      result = result && child.isDeterministic();
+    }
+    return result;
   }
 
   @Override
   public Object evaluate(Object row) throws HiveException {
     rowObject = row;
+    if (ObjectInspectorUtils.isConstantObjectInspector(outputOI) &&
+        isDeterministic()) {
+      // The output of this UDF is constant, so don't even bother evaluating.
+      return ((ConstantObjectInspector)outputOI).getWritableConstantValue();
+    }
     if (isEager) {
       for (int i = 0; i < deferredChildren.length; i++) {
         ((EagerExprObject) deferredChildren[i]).evaluate();
@@ -144,4 +163,35 @@ public class ExprNodeGenericFuncEvaluator extends ExprNodeEvaluator {
     return genericUDF.evaluate(deferredChildren);
   }
 
+  /**
+   * If the genericUDF is a base comparison, it returns an integer based on the result of comparing
+   * the two sides of the UDF, like the compareTo method in Comparable.
+   *
+   * If the genericUDF is not a base comparison, or there is an error executing the comparison, it
+   * returns null.
+   * @param row
+   * @return
+   * @throws HiveException
+   */
+  public Integer compare(Object row) throws HiveException {
+    if (!expr.isSortedExpr() || !(genericUDF instanceof GenericUDFBaseCompare)) {
+      for (ExprNodeEvaluator evaluator: children) {
+        if (evaluator instanceof ExprNodeGenericFuncEvaluator) {
+          Integer comparison = ((ExprNodeGenericFuncEvaluator) evaluator).compare(row);
+          if (comparison != null) {
+            return comparison;
+          }
+        }
+      }
+      return null;
+    }
+
+    rowObject = row;
+    if (isEager) {
+      for (int i = 0; i < deferredChildren.length; i++) {
+        ((EagerExprObject) deferredChildren[i]).evaluate();
+      }
+    }
+    return ((GenericUDFBaseCompare)genericUDF).compare(deferredChildren);
+  }
 }

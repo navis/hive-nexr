@@ -21,15 +21,19 @@ package org.apache.hadoop.hive.ql.exec;
 import java.io.IOException;
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Enumeration;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.hive.common.JavaUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.MapRedStats;
 import org.apache.hadoop.hive.ql.exec.Operator.ProgressCounter;
@@ -38,21 +42,22 @@ import org.apache.hadoop.hive.ql.exec.errors.TaskLogProcessor;
 import org.apache.hadoop.hive.ql.history.HiveHistory.Keys;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.ql.session.SessionState.LogHelper;
+import org.apache.hadoop.hive.ql.stats.ClientStatsPublisher;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.mapred.Counters;
+import org.apache.hadoop.mapred.Counters.Counter;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.TaskCompletionEvent;
 import org.apache.hadoop.mapred.TaskReport;
-import org.apache.hadoop.mapred.Counters.Counter;
 import org.apache.log4j.Appender;
-import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.LogManager;
-import org.apache.log4j.PropertyConfigurator;
 
 public class HadoopJobExecHelper {
+
+  static final private Log LOG = LogFactory.getLog(HadoopJobExecHelper.class.getName());
 
   protected transient JobConf job;
   protected Task<? extends Serializable> task;
@@ -225,6 +230,7 @@ public class HadoopJobExecHelper {
     long cpuMsec = -1;
     int numMap = -1;
     int numReduce = -1;
+    List<ClientStatsPublisher> clientStatPublishers = getClientStatPublishers();
 
     while (!rj.isComplete()) {
       try {
@@ -282,7 +288,7 @@ public class HadoopJobExecHelper {
         // of finished jobs (because it has purged them from memory). From
         // hive's perspective - it's equivalent to the job having failed.
         // So raise a meaningful exception
-        throw new IOException("Could not find status of job: + rj.getJobID()");
+        throw new IOException("Could not find status of job:" + rj.getJobID());
       } else {
         th.setRunningJob(newRj);
         rj = newRj;
@@ -305,6 +311,20 @@ public class HadoopJobExecHelper {
 
       updateCounters(ctrs, rj);
 
+      // Prepare data for Client Stat Publishers (if any present) and execute them
+      if (clientStatPublishers.size() > 0 && ctrs != null) {
+        Map<String, Double> exctractedCounters = extractAllCounterValues(ctrs);
+        for (ClientStatsPublisher clientStatPublisher : clientStatPublishers) {
+          try {
+            clientStatPublisher.run(exctractedCounters, rj.getID().toString());
+          } catch (RuntimeException runtimeException) {
+            LOG.error("Exception " + runtimeException.getClass().getCanonicalName()
+                + " thrown when running clientStatsPublishers. The stack trace is: ",
+                runtimeException);
+          }
+        }
+      }
+
       String report = " " + getId() + " map = " + mapProgress + "%,  reduce = " + reduceProgress
           + "%";
 
@@ -314,14 +334,16 @@ public class HadoopJobExecHelper {
         // find out CPU msecs
         // In the case that we can't find out this number, we just skip the step to print
         // it out.
-        Counter counterCpuMsec = ctrs.findCounter("org.apache.hadoop.mapred.Task$Counter",
-            "CPU_MILLISECONDS");
-        if (counterCpuMsec != null) {
-          long newCpuMSec = counterCpuMsec.getValue();
-          if (newCpuMSec > 0) {
-            cpuMsec = newCpuMSec;
-            report += ", Cumulative CPU "
-              + (cpuMsec / 1000D) + " sec";
+        if (ctrs != null) {
+          Counter counterCpuMsec = ctrs.findCounter("org.apache.hadoop.mapred.Task$Counter",
+              "CPU_MILLISECONDS");
+          if (counterCpuMsec != null) {
+            long newCpuMSec = counterCpuMsec.getValue();
+            if (newCpuMSec > 0) {
+              cpuMsec = newCpuMSec;
+              report += ", Cumulative CPU "
+                + (cpuMsec / 1000D) + " sec";
+            }
           }
         }
 
@@ -363,60 +385,19 @@ public class HadoopJobExecHelper {
       }
     }
 
-    Counter counterCpuMsec = ctrs.findCounter("org.apache.hadoop.mapred.Task$Counter",
-        "CPU_MILLISECONDS");
-    if (counterCpuMsec != null) {
-      long newCpuMSec = counterCpuMsec.getValue();
-      if (newCpuMSec > cpuMsec) {
-        cpuMsec = newCpuMSec;
+    if (ctrs != null) {
+      Counter counterCpuMsec = ctrs.findCounter("org.apache.hadoop.mapred.Task$Counter",
+          "CPU_MILLISECONDS");
+      if (counterCpuMsec != null) {
+        long newCpuMSec = counterCpuMsec.getValue();
+        if (newCpuMSec > cpuMsec) {
+          cpuMsec = newCpuMSec;
+        }
       }
     }
 
-    MapRedStats mapRedStats = new MapRedStats(numMap, numReduce, cpuMsec, success);
-
-    Counter ctr;
-
-    ctr = ctrs.findCounter("org.apache.hadoop.mapred.Task$Counter",
-        "REDUCE_SHUFFLE_BYTES");
-    if (ctr != null) {
-      mapRedStats.setReduceShuffleBytes(ctr.getValue());
-    }
-
-    ctr = ctrs.findCounter("org.apache.hadoop.mapred.Task$Counter",
-        "MAP_INPUT_RECORDS");
-    if (ctr != null) {
-      mapRedStats.setMapInputRecords(ctr.getValue());
-    }
-
-    ctr = ctrs.findCounter("org.apache.hadoop.mapred.Task$Counter",
-        "MAP_OUTPUT_RECORDS");
-    if (ctr != null) {
-      mapRedStats.setMapOutputRecords(ctr.getValue());
-    }
-
-    ctr = ctrs.findCounter("org.apache.hadoop.mapred.Task$Counter",
-        "REDUCE_INPUT_RECORDS");
-    if (ctr != null) {
-      mapRedStats.setReduceInputRecords(ctr.getValue());
-    }
-
-    ctr = ctrs.findCounter("org.apache.hadoop.mapred.Task$Counter",
-        "REDUCE_OUTPUT_RECORDS");
-    if (ctr != null) {
-      mapRedStats.setReduceOutputRecords(ctr.getValue());
-    }
-
-    ctr = ctrs.findCounter("FileSystemCounters",
-        "HDFS_BYTES_READ");
-    if (ctr != null) {
-      mapRedStats.setHdfsRead(ctr.getValue());
-    }
-
-    ctr = ctrs.findCounter("FileSystemCounters",
-        "HDFS_BYTES_WRITTEN");
-    if (ctr != null) {
-      mapRedStats.setHdfsWrite(ctr.getValue());
-    }
+    MapRedStats mapRedStats = new MapRedStats(numMap, numReduce, cpuMsec, success, rj.getID().toString());
+    mapRedStats.setCounters(ctrs);
 
     this.task.setDone();
     // update based on the final value of the counters
@@ -529,6 +510,7 @@ public class HadoopJobExecHelper {
       }
 
       boolean more = true;
+      boolean firstError = true;
       for (TaskCompletionEvent t : taskCompletions) {
         // getTaskJobIDs returns Strings for compatibility with Hadoop versions
         // without TaskID or TaskAttemptID
@@ -544,7 +526,10 @@ public class HadoopJobExecHelper {
         // and the logs
         String taskId = taskJobIds[0];
         String jobId = taskJobIds[1];
-        console.printError("Examining task ID: " + taskId + " from job " + jobId);
+        if (firstError) {
+          console.printError("Examining task ID: " + taskId + " (and more) from job " + jobId);
+          firstError = false;
+        }
 
         TaskInfo ti = taskIdToInfo.get(taskId);
         if (ti == null) {
@@ -704,6 +689,7 @@ public class HadoopJobExecHelper {
     if (SessionState.get() != null) {
       SessionState.get().getLastMapRedStatsList().add(mapRedStats);
     }
+
     boolean success = mapRedStats.isSuccess();
 
     String statusMesg = getJobEndMsg(rj.getJobID());
@@ -727,5 +713,39 @@ public class HadoopJobExecHelper {
     }
 
     return returnVal;
+  }
+
+  private Map<String, Double> extractAllCounterValues(Counters counters) {
+    Map<String, Double> exctractedCounters = new HashMap<String, Double>();
+    for (Counters.Group cg : counters) {
+      for (Counter c : cg) {
+        exctractedCounters.put(cg.getName() + "::" + c.getName(), new Double(c.getCounter()));
+      }
+    }
+    return exctractedCounters;
+  }
+
+  private List<ClientStatsPublisher> getClientStatPublishers() {
+    List<ClientStatsPublisher> clientStatsPublishers = new ArrayList<ClientStatsPublisher>();
+    String confString = HiveConf.getVar(job, HiveConf.ConfVars.CLIENTSTATSPUBLISHERS);
+    confString = confString.trim();
+    if (confString.equals("")) {
+      return clientStatsPublishers;
+    }
+
+    String[] clientStatsPublisherClasses = confString.split(",");
+
+    for (String clientStatsPublisherClass : clientStatsPublisherClasses) {
+      try {
+        clientStatsPublishers.add((ClientStatsPublisher) Class.forName(
+            clientStatsPublisherClass.trim(), true, JavaUtils.getClassLoader()).newInstance());
+      } catch (Exception e) {
+        LOG.warn(e.getClass().getName() + " occured when trying to create class: "
+            + clientStatsPublisherClass.trim() + " implementing ClientStatsPublisher interface");
+        LOG.warn("The exception message is: " + e.getMessage());
+        LOG.warn("Program will continue, but without this ClientStatsPublisher working");
+      }
+    }
+    return clientStatsPublishers;
   }
 }

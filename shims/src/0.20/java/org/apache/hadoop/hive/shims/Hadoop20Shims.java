@@ -35,6 +35,7 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hive.io.HiveIOExceptionHandlerChain;
 import org.apache.hadoop.hive.io.HiveIOExceptionHandlerUtil;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.ClusterStatus;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
@@ -51,9 +52,12 @@ import org.apache.hadoop.mapred.TaskID;
 import org.apache.hadoop.mapred.lib.CombineFileInputFormat;
 import org.apache.hadoop.mapred.lib.CombineFileSplit;
 import org.apache.hadoop.mapred.lib.NullOutputFormat;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.security.UnixUserGroupInformation;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.tools.HadoopArchives;
+import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.util.ToolRunner;
 
 /**
@@ -211,7 +215,7 @@ public class Hadoop20Shims implements HadoopShims {
     protected RecordReader<K, V> curReader;
     protected boolean isShrinked;
     protected long shrinkedLength;
-    
+
     public boolean next(K key, V value) throws IOException {
 
       while ((curReader == null)
@@ -287,9 +291,9 @@ public class Hadoop20Shims implements HadoopShims {
       }
       initNextRecordReader(null);
     }
-    
+
     /**
-     * do next and handle exception inside it. 
+     * do next and handle exception inside it.
      * @param key
      * @param value
      * @return
@@ -503,5 +507,34 @@ public class Hadoop20Shims implements HadoopShims {
   @Override
   public String getTokenStrForm(String tokenSignature) throws IOException {
     throw new UnsupportedOperationException("Tokens are not supported in current hadoop version");
+  }
+
+  @Override
+  public JobTrackerState getJobTrackerState(ClusterStatus clusterStatus) throws Exception {
+    JobTrackerState state;
+    switch (clusterStatus.getJobTrackerState()) {
+    case INITIALIZING:
+      return JobTrackerState.INITIALIZING;
+    case RUNNING:
+      return JobTrackerState.RUNNING;
+    default:
+      String errorMsg = "Unrecognized JobTracker state: " + clusterStatus.getJobTrackerState();
+      throw new Exception(errorMsg);
+    }
+  }
+
+  @Override
+  public org.apache.hadoop.mapreduce.TaskAttemptContext newTaskAttemptContext(Configuration conf, final Progressable progressable) {
+    return new org.apache.hadoop.mapreduce.TaskAttemptContext(conf, new TaskAttemptID()) {
+      @Override
+      public void progress() {
+        progressable.progress();
+      }
+    };
+  }
+
+  @Override
+  public org.apache.hadoop.mapreduce.JobContext newJobContext(Job job) {
+    return new org.apache.hadoop.mapreduce.JobContext(job.getConfiguration(), job.getJobID());
   }
 }

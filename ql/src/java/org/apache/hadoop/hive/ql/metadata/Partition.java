@@ -151,7 +151,7 @@ public class Partition implements Serializable {
       sd.read(prot);
     } catch (TException e) {
       LOG.error("Could not create a copy of StorageDescription");
-      throw new HiveException("Could not create a copy of StorageDescription");
+      throw new HiveException("Could not create a copy of StorageDescription",e);
     }
 
     tpart.setSd(sd);
@@ -518,6 +518,28 @@ public class Partition implements Serializable {
   }
 
   /**
+   * Set Partition's values
+   *
+   * @param partSpec
+   *          Partition specifications.
+   * @throws HiveException
+   *           Thrown if we could not create the partition.
+   */
+  public void setValues(Map<String, String> partSpec)
+      throws HiveException {
+    List<String> pvals = new ArrayList<String>();
+    for (FieldSchema field : table.getPartCols()) {
+      String val = partSpec.get(field.getName());
+      if (val == null) {
+        throw new HiveException(
+            "partition spec is invalid. field.getName() does not exist in input.");
+      }
+      pvals.add(val);
+    }
+    tPartition.setValues(pvals);
+  }
+
+  /**
    * @param protectMode
    */
   public void setProtectMode(ProtectMode protectMode){
@@ -562,7 +584,8 @@ public class Partition implements Serializable {
    */
   public boolean canDrop() {
     ProtectMode mode = getProtectMode();
-    return (!mode.noDrop && !mode.offline && !mode.readOnly);
+    ProtectMode parentMode = table.getProtectMode();
+    return (!mode.noDrop && !mode.offline && !mode.readOnly && !parentMode.noDropCascade);
   }
 
   /**

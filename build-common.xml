@@ -45,11 +45,13 @@
   <!-- configuration needed for tests -->
   <property name="test.src.dir" value="${basedir}/src/test"/>
   <property name="test.src.data.dir" value="${hive.root}/data"/>
+  <property name="test.resources.dir" value="${basedir}/src/test/resources"/>
   <property name="test.build.dir" value="${build.dir}/test"/>
   <property name="test.log.dir" value="${test.build.dir}/logs"/>
   <property name="test.data.dir" value="${test.build.dir}/data"/>
   <property name="test.build.src" value="${test.build.dir}/src"/>
   <property name="test.build.classes" value="${test.build.dir}/classes"/>
+  <property name="test.build.resources" value="${test.build.dir}/resources"/>
   <property name="test.include" value="Test*"/>
   <property name="test.classpath.id" value="test.classpath"/>
   <property name="test.output" value="true"/>
@@ -64,11 +66,18 @@
 
   <path id="test.classpath">
     <pathelement location="${test.build.classes}" />
+    <pathelement location="${test.build.resources}" />
     <pathelement location="" />
     <pathelement location="${test.src.data.dir}/conf"/>
     <pathelement location="${hive.conf.dir}"/>
     <fileset dir="${hive.root}" includes="testlibs/*.jar"/>
     <path refid="classpath"/>
+    <fileset dir="${hadoop.root}">
+      <!-- below is for 0.23 onwards -->
+      <include name="share/hadoop/common/lib/*.jar" />
+      <exclude name="share/hadoop/common/lib/hadoop-mapreduce-*.jar" />
+      <exclude name="share/hadoop/common/lib/hadoop-yarn-*.jar" />
+    </fileset>
   </path>
 
 
@@ -77,15 +86,7 @@
   <condition property="offline">
     <istrue value="${is-offline}"/>
   </condition>
-  <condition property="ivy.cache.name" value="offline" else="online">
-    <isset property="offline"/>
-  </condition>
-  <condition property="ivy.skip">
-    <and>
-      <isset property="offline"/>
-      <available file="${build.dir.hadoop}/hadoop-${hadoop.version.ant-internal}.installed"/>
-    </and>
-  </condition>
+  <import file="build-offline.xml"/>
 
   <!--this is the naming policy for artifacts we want pulled down-->
   <property name="ivy.artifact.retrieve.pattern" value="[conf]/[artifact]-[revision](-[classifier]).[ext]"/>
@@ -155,6 +156,10 @@
     <pathelement location="${hadoop.oldstyle-name.tools.jar}"/>
     <pathelement location="${hadoop.newstyle-name.jar}"/>
     <pathelement location="${hadoop.newstyle-name.tools.jar}"/>
+    <pathelement location="${hadoop.common.jar}"/>
+    <pathelement location="${hadoop.hdfs.jar}"/>
+    <pathelement location="${hadoop.mapreduce.jar}"/>
+    <pathelement location="${hadoop.mapreduce.tools.jar}"/>
     <pathelement location="${build.dir.hive}/classes"/>
     <fileset dir="${build.dir.hive}" includes="*/*.jar"/>
     <fileset dir="${hive.root}/lib" includes="*.jar"/>
@@ -171,7 +176,7 @@
     <pathelement location="${build.dir.hive}/cli/classes"/>
     <pathelement location="${build.dir.hive}/shims/classes"/>
     <pathelement location="${build.dir.hive}/hwi/classes"/>
-    <fileset erroronmissingdir="false" dir="${hadoop.root}"
+    <fileset erroronmissingdir="false" dir="${build.dir.hadoop}/hadoop-${hadoop.security.version}"
              includes="lib/commons-codec-*.jar"/>
     <path refid="common-classpath"/>
     <fileset dir="${basedir}" includes="lib/*.jar"/>
@@ -187,6 +192,10 @@
     <mkdir dir="${test.build.dir}"/>
     <mkdir dir="${test.build.src}"/>
     <mkdir dir="${test.build.classes}"/>
+    <mkdir dir="${test.build.resources}"/>
+    <copy todir="${test.build.resources}" failonerror="false">
+      <fileset dir="${test.resources.dir}"/>
+    </copy>
   </target>
 
   <target name="init" depends="create-dirs">
@@ -352,7 +361,7 @@
            errorProperty="tests.failed" failureProperty="tests.failed" filtertrace="off">
      
       <env key="HADOOP_HOME" value="${hadoop.root}"/>
-      <env key="HADOOP_CLASSPATH" value="${test.src.data.dir}/conf:${build.dir.hive}/dist/lib/derby-${derby.version}.jar:${build.dir.hive}/dist/lib/javaewah-${javaewah.version}.jar"/>
+      <env key="HADOOP_CLASSPATH" value="${test.src.data.dir}/conf:${build.dir.hive}/dist/lib/derby-${derby.version}.jar:${build.dir.hive}/dist/lib/javaewah-${javaewah.version}.jar:${hadoop.root}/modules/*"/> <!-- Modules needed for Hadoop 0.23 -->
       <env key="TZ" value="US/Pacific"/>
       <sysproperty key="test.output.overwrite" value="${overwrite}"/>
       <sysproperty key="test.service.standalone.server" value="${standalone}"/>
@@ -367,6 +376,7 @@
       <sysproperty key="test.tmp.dir" value="${build.dir}/tmp"/>
       <sysproperty key="test.src.data.dir" value="${test.src.data.dir}"/>
       <sysproperty key="test.warehouse.dir" value="${test.warehouse.dir}"/>
+      <sysproperty key="test.build.resources" value="${test.build.resources}"/>
       <sysproperty key="mapred.job.tracker" value="${mapred.job.tracker}"/>
       <sysproperty key="fs.default.name" value="${fs.default.name}"/>
       <sysproperty key="build.dir" value="${build.dir}"/>

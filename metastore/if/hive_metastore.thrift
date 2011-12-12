@@ -369,7 +369,13 @@ service ThriftHiveMetastore extends fb303.FacebookService
   // in the new_part
   // * See notes on DDL_TIME
   void alter_partition(1:string db_name, 2:string tbl_name, 3:Partition new_part)
-                       throws(1:InvalidOperationException o1, 2:MetaException o2)
+                       throws (1:InvalidOperationException o1, 2:MetaException o2)
+
+  // rename the old partition to the new partition object by changing old part values to the part values
+  // in the new_part. old partition is identified from part_vals.
+  // partition keys in new_part should be the same as those in old partition.
+  void rename_partition(1:string db_name, 2:string tbl_name, 3:list<string> part_vals, 4:Partition new_part)
+                       throws (1:InvalidOperationException o1, 2:MetaException o2)
 
   // gets the value of the configuration key in the metastore server. returns
   // defaultValue if the key does not exist. if the configuration key does not

@@ -118,6 +118,7 @@ public enum ErrorMsg {
       + "table"),
   CTAS_MULTI_LOADFILE("CREATE-TABLE-AS-SELECT results in multiple file load"),
   CTAS_EXTTBL_COEXISTENCE("CREATE-TABLE-AS-SELECT cannot create external table"),
+  DATABASE_NOT_EXISTS("Database does not exist:"),
   TABLE_ALREADY_EXISTS("Table already exists:", "42S02"),
   COLUMN_ALIAS_ALREADY_EXISTS("Column alias already exists:", "42S02"),
   UDTF_MULTIPLE_EXPR("Only a single expression in the SELECT clause is supported with UDTF's"),
@@ -180,6 +181,15 @@ public enum ErrorMsg {
   INCOMPATIBLE_SCHEMA("The existing table is not compatible with the import spec. "),
   EXIM_FOR_NON_NATIVE("Export/Import cannot be done for a non-native table. "),
   INSERT_INTO_BUCKETIZED_TABLE("Bucketized tables do not support INSERT INTO:"),
+  NO_COMPARE_BIGINT_STRING("In strict mode, comparing bigints and strings is not allowed, "
+      + "it may result in a loss of precision. "
+      + "If you really want to perform the operation, set hive.mapred.mode=nonstrict"),
+  NO_COMPARE_BIGINT_DOUBLE("In strict mode, comparing bigints and doubles is not allowed, "
+      + "it may result in a loss of precision. "
+      + "If you really want to perform the operation, set hive.mapred.mode=nonstrict"),
+  PARTSPEC_DIFFER_FROM_SCHEMA("Partition columns in partition specification are not the same as "
+      + "that defined in the table schema. The names and orders have to be exactly the same."),
+  PARTITION_COLUMN_NON_PRIMITIVE("Partition column must be of primitive type."),
       ;
 
   private String mesg;

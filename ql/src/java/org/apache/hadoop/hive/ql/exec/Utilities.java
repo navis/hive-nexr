@@ -96,6 +96,7 @@ import org.apache.hadoop.hive.ql.QueryPlan;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator.RecordWriter;
 import org.apache.hadoop.hive.ql.io.ContentSummaryInputFormat;
 import org.apache.hadoop.hive.ql.io.HiveFileFormatUtils;
+import org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat;
 import org.apache.hadoop.hive.ql.io.HiveInputFormat;
 import org.apache.hadoop.hive.ql.io.HiveOutputFormat;
 import org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat;
@@ -117,8 +118,8 @@ import org.apache.hadoop.hive.ql.plan.MapredLocalWork;
 import org.apache.hadoop.hive.ql.plan.MapredWork;
 import org.apache.hadoop.hive.ql.plan.PartitionDesc;
 import org.apache.hadoop.hive.ql.plan.PlanUtils;
-import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.plan.PlanUtils.ExpressionTypes;
+import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.stats.StatsFactory;
 import org.apache.hadoop.hive.ql.stats.StatsPublisher;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
@@ -133,8 +134,8 @@ import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.SequenceFile.CompressionType;
+import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.mapred.FileOutputFormat;
@@ -876,16 +877,43 @@ public final class Utilities {
    * @param isCompressed
    *          Whether the output file is compressed or not
    * @return the required file extension (example: .gz)
+   * @deprecated Use {@link #getFileExtension(JobConf, boolean, HiveOutputFormat)}
    */
+  @Deprecated
   public static String getFileExtension(JobConf jc, boolean isCompressed) {
-    if (!isCompressed) {
-      return "";
-    } else {
+    return getFileExtension(jc, isCompressed, new HiveIgnoreKeyTextOutputFormat());
+  }
+
+  /**
+   * Based on compression option, output format, and configured output codec -
+   * get extension for output file. Text files require an extension, whereas
+   * others, like sequence files, do not.
+   * <p>
+   * The property <code>hive.output.file.extension</code> is used to determine
+   * the extension - if set, it will override other logic for choosing an
+   * extension.
+   *
+   * @param jc
+   *          Job Configuration
+   * @param isCompressed
+   *          Whether the output file is compressed or not
+   * @param hiveOutputFormat
+   *          The output format, used to detect if the format is text
+   * @return the required file extension (example: .gz)
+   */
+  public static String getFileExtension(JobConf jc, boolean isCompressed,
+      HiveOutputFormat<?, ?> hiveOutputFormat) {
+    String extension = HiveConf.getVar(jc, HiveConf.ConfVars.OUTPUT_FILE_EXTENSION);
+    if (!StringUtils.isEmpty(extension)) {
+      return extension;
+    }
+    if ((hiveOutputFormat instanceof HiveIgnoreKeyTextOutputFormat) && isCompressed) {
       Class<? extends CompressionCodec> codecClass = FileOutputFormat.getOutputCompressorClass(jc,
           DefaultCodec.class);
       CompressionCodec codec = (CompressionCodec) ReflectionUtils.newInstance(codecClass, jc);
       return codec.getDefaultExtension();
     }
+    return "";
   }
 
   /**
@@ -1881,9 +1909,10 @@ public final class Utilities {
 
   public static String suffix = ".hashtable";
 
-  public static String generatePath(String baseURI, Byte tag, String bigBucketFileName) {
-    String path = new String(baseURI + Path.SEPARATOR + "MapJoin-" + tag + "-" + bigBucketFileName
-        + suffix);
+  public static String generatePath(String baseURI, String dumpFilePrefix,
+      Byte tag, String bigBucketFileName) {
+    String path = new String(baseURI + Path.SEPARATOR + "MapJoin-" + dumpFilePrefix + tag +
+    	"-" + bigBucketFileName + suffix);
     return path;
   }
 
@@ -1926,22 +1955,6 @@ public final class Utilities {
   public static double showTime(long time) {
     double result = (double) time / (double) 1000;
     return result;
-  }
-
-  /**
-   * Determines whether a partition has been archived
-   *
-   * @param p
-   * @return
-   */
-  public static boolean isArchived(Partition p) {
-    Map<String, String> params = p.getParameters();
-    if ("true".equalsIgnoreCase(params.get(
-        org.apache.hadoop.hive.metastore.api.Constants.IS_ARCHIVED))) {
-      return true;
-    } else {
-      return false;
-    }
   }
 
   /**
@@ -2261,5 +2274,9 @@ public final class Utilities {
     sb.append(ms + " msec");
 
     return sb.toString();
+  }
+
+  public static Class getBuiltinUtilsClass() throws ClassNotFoundException {
+    return Class.forName("org.apache.hive.builtins.BuiltinUtils");
   }
 }

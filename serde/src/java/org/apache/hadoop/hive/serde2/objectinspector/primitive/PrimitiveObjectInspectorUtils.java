@@ -30,11 +30,15 @@ import org.apache.hadoop.hive.serde2.io.ByteWritable;
 import org.apache.hadoop.hive.serde2.io.DoubleWritable;
 import org.apache.hadoop.hive.serde2.io.ShortWritable;
 import org.apache.hadoop.hive.serde2.io.TimestampWritable;
+import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazy.LazyInteger;
 import org.apache.hadoop.hive.serde2.lazy.LazyLong;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.PrimitiveCategory;
 import org.apache.hadoop.io.BooleanWritable;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -140,6 +144,9 @@ public final class PrimitiveObjectInspectorUtils {
     }
   }
 
+  public static final PrimitiveTypeEntry binaryTypeEntry = new PrimitiveTypeEntry(
+      PrimitiveCategory.BINARY, Constants.BINARY_TYPE_NAME, byte[].class,
+      ByteArrayRef.class, BytesWritable.class);
   public static final PrimitiveTypeEntry stringTypeEntry = new PrimitiveTypeEntry(
       PrimitiveCategory.STRING, Constants.STRING_TYPE_NAME, null, String.class,
       Text.class);
@@ -178,6 +185,7 @@ public final class PrimitiveObjectInspectorUtils {
       PrimitiveCategory.UNKNOWN, "unknown", null, Object.class, null);
 
   static {
+    registerType(binaryTypeEntry);
     registerType(stringTypeEntry);
     registerType(booleanTypeEntry);
     registerType(intTypeEntry);
@@ -350,6 +358,10 @@ public final class PrimitiveObjectInspectorUtils {
     case TIMESTAMP: {
       return ((TimestampObjectInspector) oi1).getPrimitiveWritableObject(o1)
           .equals(((TimestampObjectInspector) oi2).getPrimitiveWritableObject(o2));
+    }
+    case BINARY:{
+      return ((BinaryObjectInspector) oi1).getPrimitiveWritableObject(o1).
+          equals(((BinaryObjectInspector) oi2).getPrimitiveWritableObject(o2));
     }
     default:
       return false;
@@ -702,6 +714,32 @@ public final class PrimitiveObjectInspectorUtils {
     return result;
   }
 
+  public static BytesWritable getBinary(Object o, PrimitiveObjectInspector oi){
+
+    if(null == o){
+      return null;
+    }
+
+    switch (oi.getPrimitiveCategory()){
+
+    case VOID:
+      return null;
+
+    case STRING:
+      Text text = ((StringObjectInspector) oi).getPrimitiveWritableObject(o);
+      BytesWritable bw = new BytesWritable();
+      bw.set(text.getBytes(), 0, text.getLength());
+      return bw;
+
+    case BINARY:
+      return ((BinaryObjectInspector) oi).getPrimitiveWritableObject(o);
+
+    default:
+      throw new RuntimeException("Cannot convert to Binary from: "
+          + oi.getTypeName());
+    }
+  }
+
   public static Timestamp getTimestamp(Object o, PrimitiveObjectInspector oi) {
     if (o == null) {
       return null;
@@ -758,6 +796,16 @@ public final class PrimitiveObjectInspectorUtils {
           + oi.getTypeName());
     }
     return result;
+  }
+
+  public static Class<?> getJavaPrimitiveClassFromObjectInspector(ObjectInspector oi) {
+    if (oi.getCategory() != Category.PRIMITIVE) {
+      return null;
+    }
+    PrimitiveObjectInspector poi = (PrimitiveObjectInspector)oi;
+    PrimitiveTypeEntry t =
+        getTypeEntryFromPrimitiveCategory(poi.getPrimitiveCategory());
+    return t == null ? null : t.primitiveJavaClass;
   }
 
   private PrimitiveObjectInspectorUtils() {

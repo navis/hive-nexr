@@ -102,6 +102,7 @@ TOK_DATE;
 TOK_DATETIME;
 TOK_TIMESTAMP;
 TOK_STRING;
+TOK_BINARY;
 TOK_LIST;
 TOK_STRUCT;
 TOK_MAP;
@@ -120,6 +121,7 @@ TOK_ALTERTABLE_PARTITION;
 TOK_ALTERTABLE_RENAME;
 TOK_ALTERTABLE_ADDCOLS;
 TOK_ALTERTABLE_RENAMECOL;
+TOK_ALTERTABLE_RENAMEPART;
 TOK_ALTERTABLE_REPLACECOLS;
 TOK_ALTERTABLE_ADDPARTS;
 TOK_ALTERTABLE_DROPPARTS;
@@ -179,6 +181,7 @@ TOK_TABLESPLITSAMPLE;
 TOK_TMP_FILE;
 TOK_TABSORTCOLNAMEASC;
 TOK_TABSORTCOLNAMEDESC;
+TOK_STRINGLITERALSEQUENCE;
 TOK_CHARSETLITERAL;
 TOK_CREATEFUNCTION;
 TOK_DROPFUNCTION;
@@ -283,7 +286,8 @@ statement
 explainStatement
 @init { msgs.push("explain statement"); }
 @after { msgs.pop(); }
-	: KW_EXPLAIN (isExtended=KW_EXTENDED)? execStatement -> ^(TOK_EXPLAIN execStatement $isExtended?)
+	: KW_EXPLAIN (explainOptions=KW_EXTENDED|explainOptions=KW_FORMATTED)? execStatement
+      -> ^(TOK_EXPLAIN execStatement $explainOptions?)
 	;
 
 execStatement
@@ -412,7 +416,7 @@ dbPropertiesList
       keyValueProperty (COMMA keyValueProperty)* -> ^(TOK_DBPROPLIST keyValueProperty+)
     ;
 
- 
+
 switchDatabaseStatement
 @init { msgs.push("switch database statement"); }
 @after { msgs.pop(); }
@@ -478,7 +482,7 @@ createIndexStatement
       tableLocation?
       tablePropertiesPrefixed?
       indexComment?
-    ->^(TOK_CREATEINDEX $indexName $typeName $tab $indexedCols 
+    ->^(TOK_CREATEINDEX $indexName $typeName $tab $indexedCols
         autoRebuild?
         indexPropertiesPrefixed?
         indexTblName?
@@ -571,7 +575,6 @@ alterTableStatementSuffix
     | alterStatementSuffixArchive
     | alterStatementSuffixUnArchive
     | alterStatementSuffixProperties
-    | alterStatementSuffixSerdeProperties
     | alterTblPartitionStatement
     | alterStatementSuffixClusterbySortby
     ;
@@ -704,10 +707,10 @@ alterViewSuffixProperties
 alterStatementSuffixSerdeProperties
 @init { msgs.push("alter serdes statement"); }
 @after { msgs.pop(); }
-    : name=Identifier KW_SET KW_SERDE serdeName=StringLiteral (KW_WITH KW_SERDEPROPERTIES tableProperties)?
-    -> ^(TOK_ALTERTABLE_SERIALIZER $name $serdeName tableProperties?)
-    | name=Identifier KW_SET KW_SERDEPROPERTIES tableProperties
-    -> ^(TOK_ALTERTABLE_SERDEPROPERTIES $name tableProperties)
+    : KW_SET KW_SERDE serdeName=StringLiteral (KW_WITH KW_SERDEPROPERTIES tableProperties)?
+    -> ^(TOK_ALTERTABLE_SERIALIZER $serdeName tableProperties?)
+    | KW_SET KW_SERDEPROPERTIES tableProperties
+    -> ^(TOK_ALTERTABLE_SERDEPROPERTIES tableProperties)
     ;
 
 tablePartitionPrefix
@@ -731,6 +734,8 @@ alterTblPartitionStatementSuffix
   | alterStatementSuffixLocation
   | alterStatementSuffixProtectMode
   | alterStatementSuffixMergeFiles
+  | alterStatementSuffixSerdeProperties
+  | alterStatementSuffixRenamePart
   ;
 
 alterStatementSuffixFileFormat
@@ -754,6 +759,13 @@ alterStatementSuffixProtectMode
     -> ^(TOK_ALTERTABLE_ALTERPARTS_PROTECTMODE alterProtectMode)
     ;
 
+alterStatementSuffixRenamePart
+@init { msgs.push("alter table rename partition statement"); }
+@after { msgs.pop(); }
+    : KW_RENAME KW_TO partitionSpec
+    ->^(TOK_ALTERTABLE_RENAMEPART partitionSpec)
+    ;
+
 alterStatementSuffixMergeFiles
 @init { msgs.push(""); }
 @after { msgs.pop(); }
@@ -772,7 +784,7 @@ alterProtectModeMode
 @init { msgs.push("protect mode specification enable"); }
 @after { msgs.pop(); }
     : KW_OFFLINE  -> ^(TOK_OFFLINE)
-    | KW_NO_DROP  -> ^(TOK_NO_DROP)
+    | KW_NO_DROP KW_CASCADE? -> ^(TOK_NO_DROP KW_CASCADE?)
     | KW_READONLY  -> ^(TOK_READONLY)
     ;
 
@@ -836,7 +848,7 @@ showStatement
     -> ^(TOK_SHOW_TABLESTATUS showStmtIdentifier $db_name? partitionSpec?)
     | KW_SHOW KW_LOCKS (parttype=partTypeExpr)? (isExtended=KW_EXTENDED)? -> ^(TOK_SHOWLOCKS $parttype? $isExtended?)
     | KW_SHOW (showOptions=KW_FORMATTED)? (KW_INDEX|KW_INDEXES) KW_ON showStmtIdentifier ((KW_FROM|KW_IN) db_name=Identifier)?
-    -> ^(TOK_SHOWINDEXES showStmtIdentifier $showOptions? $db_name?)  
+    -> ^(TOK_SHOWINDEXES showStmtIdentifier $showOptions? $db_name?)
     ;
 
 lockStatement
@@ -874,7 +886,7 @@ dropRoleStatement
 grantPrivileges
 @init {msgs.push("grant privileges");}
 @after {msgs.pop();}
-    : KW_GRANT privList=privilegeList 
+    : KW_GRANT privList=privilegeList
       privilegeObject?
       KW_TO principalSpecification
       (KW_WITH withOption)?
@@ -933,7 +945,7 @@ privilegeObject
 privilegeList
 @init {msgs.push("grant privilege list");}
 @after {msgs.pop();}
-    : privlegeDef (COMMA privlegeDef)* 
+    : privlegeDef (COMMA privlegeDef)*
     -> ^(TOK_PRIVILEGE_LIST privlegeDef+)
     ;
 
@@ -943,7 +955,7 @@ privlegeDef
     : privilegeType (LPAREN cols=columnNameList RPAREN)?
     -> ^(TOK_PRIVILEGE privilegeType $cols?)
     ;
-    
+
 privilegeType
 @init {msgs.push("privilege type");}
 @after {msgs.pop();}
@@ -1301,6 +1313,7 @@ primitiveType
     | KW_DATETIME      ->    TOK_DATETIME
     | KW_TIMESTAMP     ->    TOK_TIMESTAMP
     | KW_STRING        ->    TOK_STRING
+    | KW_BINARY        ->    TOK_BINARY
     ;
 
 listType
@@ -1415,7 +1428,7 @@ insertClause
 @after { msgs.pop(); }
    :
      KW_INSERT KW_OVERWRITE destination -> ^(TOK_DESTINATION destination)
-   | KW_INSERT KW_INTO KW_TABLE tableOrPartition 
+   | KW_INSERT KW_INTO KW_TABLE tableOrPartition
        -> ^(TOK_INSERT_INTO ^(tableOrPartition))
    ;
 
@@ -1618,7 +1631,7 @@ joinToken
 @after { msgs.pop(); }
     :
       KW_JOIN                     -> TOK_JOIN
-    | KW_INNER KW_JOIN            -> TOK_JOIN
+    | kwInner  KW_JOIN            -> TOK_JOIN
     | KW_LEFT  KW_OUTER KW_JOIN   -> TOK_LEFTOUTERJOIN
     | KW_RIGHT KW_OUTER KW_JOIN   -> TOK_RIGHTOUTERJOIN
     | KW_FULL  KW_OUTER KW_JOIN   -> TOK_FULLOUTERJOIN
@@ -1659,14 +1672,14 @@ splitSample
     :
     KW_TABLESAMPLE LPAREN  (numerator=Number) KW_PERCENT RPAREN -> ^(TOK_TABLESPLITSAMPLE $numerator)
     ;
-    
+
 tableSample
 @init { msgs.push("table sample specification"); }
 @after { msgs.pop(); }
     :
     tableBucketSample |
     splitSample
-    ;    
+    ;
 
 tableSource
 @init { msgs.push("table source"); }
@@ -1844,8 +1857,17 @@ constant
     :
     Number
     | StringLiteral
+    | stringLiteralSequence
+    | BigintLiteral
+    | SmallintLiteral
+    | TinyintLiteral
     | charSetStringLiteral
     | booleanValue
+    ;
+
+stringLiteralSequence
+    :
+    StringLiteral StringLiteral+ -> ^(TOK_STRINGLITERALSEQUENCE StringLiteral StringLiteral+)
     ;
 
 charSetStringLiteral
@@ -2060,6 +2082,7 @@ sysFuncNames
     | KW_DOUBLE
     | KW_BOOLEAN
     | KW_STRING
+    | KW_BINARY
     | KW_ARRAY
     | KW_MAP
     | KW_STRUCT
@@ -2094,13 +2117,17 @@ descFuncNames
 
 // Keywords
 
-kwUser 
-: 
+kwUser
+:
 {input.LT(1).getText().equalsIgnoreCase("user")}? Identifier;
 
-kwRole 
-: 
+kwRole
+:
 {input.LT(1).getText().equalsIgnoreCase("role")}? Identifier;
+
+kwInner
+:
+{input.LT(1).getText().equalsIgnoreCase("inner")}? Identifier;
 
 KW_TRUE : 'TRUE';
 KW_FALSE : 'FALSE';
@@ -2130,7 +2157,6 @@ KW_OUTER : 'OUTER';
 KW_UNIQUEJOIN : 'UNIQUEJOIN';
 KW_PRESERVE : 'PRESERVE';
 KW_JOIN : 'JOIN';
-KW_INNER : 'INNER';
 KW_LEFT : 'LEFT';
 KW_RIGHT : 'RIGHT';
 KW_FULL : 'FULL';
@@ -2370,7 +2396,7 @@ Digit
 fragment
 Exponent
     :
-    'e' ( PLUS|MINUS )? (Digit)+
+    ('e' | 'E') ( PLUS|MINUS )? (Digit)+
     ;
 
 fragment
@@ -2392,6 +2418,21 @@ CharSetLiteral
     :
     StringLiteral
     | '0' 'X' (HexDigit|Digit)+
+    ;
+
+BigintLiteral
+    :
+    (Digit)+ 'L'
+    ;
+
+SmallintLiteral
+    :
+    (Digit)+ 'S'
+    ;
+
+TinyintLiteral
+    :
+    (Digit)+ 'Y'
     ;
 
 Number

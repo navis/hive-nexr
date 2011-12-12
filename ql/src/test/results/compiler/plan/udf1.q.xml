@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?> 
-<java version="1.6.0_01" class="java.beans.XMLDecoder"> 
+<java version="1.6.0_13" class="java.beans.XMLDecoder"> 
  <object class="org.apache.hadoop.hive.ql.exec.MapRedTask"> 
   <void property="id"> 
    <string>Stage-3</string> 
@@ -62,11 +62,11 @@
          </void> 
          <void method="put"> 
           <string>location</string> 
-          <string>pfile:/home/amarsri/workspace/hive/build/ql/test/data/warehouse/src</string> 
+          <string>pfile:/home/opensrc/13thsep/workspace/build/ql/test/data/warehouse/src</string> 
          </void> 
          <void method="put"> 
           <string>transient_lastDdlTime</string> 
-          <string>1310382399</string> 
+          <string>1315938944</string> 
          </void> 
         </object> 
        </void> 
@@ -124,11 +124,11 @@
            </void> 
            <void method="put"> 
             <string>location</string> 
-            <string>pfile:/home/amarsri/workspace/hive/build/ql/test/data/warehouse/src</string> 
+            <string>pfile:/home/opensrc/13thsep/workspace/build/ql/test/data/warehouse/src</string> 
            </void> 
            <void method="put"> 
             <string>transient_lastDdlTime</string> 
-            <string>1310382399</string> 
+            <string>1315938944</string> 
            </void> 
           </object> 
          </void> 
@@ -160,13 +160,13 @@
                     <void property="conf"> 
                      <object class="org.apache.hadoop.hive.ql.plan.FileSinkDesc"> 
                       <void property="dirName"> 
-                       <string>file:/tmp/amarsri/hive_2011-07-11_04-06-40_095_2249714112585544624/-ext-10001</string> 
+                       <string>file:/tmp/root/hive_2011-09-13_11-35-46_026_797963638603699225/-ext-10001</string> 
                       </void> 
                       <void property="numFiles"> 
                        <int>1</int> 
                       </void> 
                       <void property="statsAggPrefix"> 
-                       <string>file:/tmp/amarsri/hive_2011-07-11_04-06-40_095_2249714112585544624/-ext-10001/</string> 
+                       <string>file:/tmp/root/hive_2011-09-13_11-35-46_026_797963638603699225/-ext-10001/</string> 
                       </void> 
                       <void property="tableInfo"> 
                        <object class="org.apache.hadoop.hive.ql.plan.TableDesc"> 
@@ -192,6 +192,10 @@
                           <void method="put"> 
                            <string>columns.types</string> 
                            <string>boolean:boolean:boolean:boolean:boolean:boolean:boolean:boolean:boolean:boolean:boolean:boolean:boolean:string:string:string:string</string> 
+                          </void> 
+                          <void method="put"> 
+                           <string>escape.delim</string> 
+                           <string>\</string> 
                           </void> 
                          </object> 
                         </void> 
@@ -506,6 +510,9 @@
                       <void property="udfClass"> 
                        <class>org.apache.hadoop.hive.ql.udf.UDFRegExp</class> 
                       </void> 
+                      <void property="udfClassName"> 
+                       <string>org.apache.hadoop.hive.ql.udf.UDFRegExp</string> 
+                      </void> 
                       <void property="udfName"> 
                        <string>rlike</string> 
                       </void> 
@@ -550,6 +557,9 @@
                       </void> 
                       <void property="udfClass"> 
                        <class>org.apache.hadoop.hive.ql.udf.UDFLike</class> 
+                      </void> 
+                      <void property="udfClassName"> 
+                       <string>org.apache.hadoop.hive.ql.udf.UDFLike</string> 
                       </void> 
                       <void property="udfName"> 
                        <string>like</string> 
@@ -596,6 +606,9 @@
                       <void property="udfClass"> 
                        <class>org.apache.hadoop.hive.ql.udf.UDFLike</class> 
                       </void> 
+                      <void property="udfClassName"> 
+                       <string>org.apache.hadoop.hive.ql.udf.UDFLike</string> 
+                      </void> 
                       <void property="udfName"> 
                        <string>like</string> 
                       </void> 
@@ -640,6 +653,9 @@
                       </void> 
                       <void property="udfClass"> 
                        <class>org.apache.hadoop.hive.ql.udf.UDFLike</class> 
+                      </void> 
+                      <void property="udfClassName"> 
+                       <string>org.apache.hadoop.hive.ql.udf.UDFLike</string> 
                       </void> 
                       <void property="udfName"> 
                        <string>like</string> 
@@ -686,6 +702,9 @@
                       <void property="udfClass"> 
                        <class>org.apache.hadoop.hive.ql.udf.UDFLike</class> 
                       </void> 
+                      <void property="udfClassName"> 
+                       <string>org.apache.hadoop.hive.ql.udf.UDFLike</string> 
+                      </void> 
                       <void property="udfName"> 
                        <string>like</string> 
                       </void> 
@@ -730,6 +749,9 @@
                       </void> 
                       <void property="udfClass"> 
                        <class>org.apache.hadoop.hive.ql.udf.UDFLike</class> 
+                      </void> 
+                      <void property="udfClassName"> 
+                       <string>org.apache.hadoop.hive.ql.udf.UDFLike</string> 
                       </void> 
                       <void property="udfName"> 
                        <string>like</string> 
@@ -776,6 +798,9 @@
                       <void property="udfClass"> 
                        <class>org.apache.hadoop.hive.ql.udf.UDFLike</class> 
                       </void> 
+                      <void property="udfClassName"> 
+                       <string>org.apache.hadoop.hive.ql.udf.UDFLike</string> 
+                      </void> 
                       <void property="udfName"> 
                        <string>like</string> 
                       </void> 
@@ -821,6 +846,9 @@
                       <void property="udfClass"> 
                        <class>org.apache.hadoop.hive.ql.udf.UDFLike</class> 
                       </void> 
+                      <void property="udfClassName"> 
+                       <string>org.apache.hadoop.hive.ql.udf.UDFLike</string> 
+                      </void> 
                       <void property="udfName"> 
                        <string>like</string> 
                       </void> 
@@ -865,6 +893,9 @@
                       </void> 
                       <void property="udfClass"> 
                        <class>org.apache.hadoop.hive.ql.udf.UDFRegExp</class> 
+                      </void> 
+                      <void property="udfClassName"> 
+                       <string>org.apache.hadoop.hive.ql.udf.UDFRegExp</string> 
                       </void> 
                       <void property="udfName"> 
                        <string>rlike</string> 
@@ -918,6 +949,9 @@
                       <void property="udfClass"> 
                        <class>org.apache.hadoop.hive.ql.udf.UDFRegExpReplace</class> 
                       </void> 
+                      <void property="udfClassName"> 
+                       <string>org.apache.hadoop.hive.ql.udf.UDFRegExpReplace</string> 
+                      </void> 
                       <void property="udfName"> 
                        <string>regexp_replace</string> 
                       </void> 
@@ -962,6 +996,9 @@
                       </void> 
                       <void property="udfClass"> 
                        <class>org.apache.hadoop.hive.ql.udf.UDFRegExp</class> 
+                      </void> 
+                      <void property="udfClassName"> 
+                       <string>org.apache.hadoop.hive.ql.udf.UDFRegExp</string> 
                       </void> 
                       <void property="udfName"> 
                        <string>rlike</string> 
@@ -1008,6 +1045,9 @@
                       <void property="udfClass"> 
                        <class>org.apache.hadoop.hive.ql.udf.UDFRegExp</class> 
                       </void> 
+                      <void property="udfClassName"> 
+                       <string>org.apache.hadoop.hive.ql.udf.UDFRegExp</string> 
+                      </void> 
                       <void property="udfName"> 
                        <string>rlike</string> 
                       </void> 
@@ -1052,6 +1092,9 @@
                       </void> 
                       <void property="udfClass"> 
                        <class>org.apache.hadoop.hive.ql.udf.UDFRegExp</class> 
+                      </void> 
+                      <void property="udfClassName"> 
+                       <string>org.apache.hadoop.hive.ql.udf.UDFRegExp</string> 
                       </void> 
                       <void property="udfName"> 
                        <string>rlike</string> 
@@ -1105,6 +1148,9 @@
                       <void property="udfClass"> 
                        <class>org.apache.hadoop.hive.ql.udf.UDFRegExpReplace</class> 
                       </void> 
+                      <void property="udfClassName"> 
+                       <string>org.apache.hadoop.hive.ql.udf.UDFRegExpReplace</string> 
+                      </void> 
                       <void property="udfName"> 
                        <string>regexp_replace</string> 
                       </void> 
@@ -1156,6 +1202,9 @@
                      <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDFBridge"> 
                       <void property="udfClass"> 
                        <class>org.apache.hadoop.hive.ql.udf.UDFRegExpReplace</class> 
+                      </void> 
+                      <void property="udfClassName"> 
+                       <string>org.apache.hadoop.hive.ql.udf.UDFRegExpReplace</string> 
                       </void> 
                       <void property="udfName"> 
                        <string>regexp_replace</string> 
@@ -1209,6 +1258,9 @@
                       <void property="udfClass"> 
                        <class>org.apache.hadoop.hive.ql.udf.UDFRegExpReplace</class> 
                       </void> 
+                      <void property="udfClassName"> 
+                       <string>org.apache.hadoop.hive.ql.udf.UDFRegExpReplace</string> 
+                      </void> 
                       <void property="udfName"> 
                        <string>regexp_replace</string> 
                       </void> 
@@ -1253,6 +1305,9 @@
                       </void> 
                       <void property="udfClass"> 
                        <class>org.apache.hadoop.hive.ql.udf.UDFLike</class> 
+                      </void> 
+                      <void property="udfClassName"> 
+                       <string>org.apache.hadoop.hive.ql.udf.UDFLike</string> 
                       </void> 
                       <void property="udfName"> 
                        <string>like</string> 
@@ -1837,7 +1892,7 @@
     <void property="pathToAliases"> 
      <object class="java.util.LinkedHashMap"> 
       <void method="put"> 
-       <string>pfile:/home/amarsri/workspace/hive/build/ql/test/data/warehouse/src</string> 
+       <string>pfile:/home/opensrc/13thsep/workspace/build/ql/test/data/warehouse/src</string> 
        <object class="java.util.ArrayList"> 
         <void method="add"> 
          <string>src</string> 
@@ -1849,7 +1904,7 @@
     <void property="pathToPartitionInfo"> 
      <object class="java.util.LinkedHashMap"> 
       <void method="put"> 
-       <string>pfile:/home/amarsri/workspace/hive/build/ql/test/data/warehouse/src</string> 
+       <string>pfile:/home/opensrc/13thsep/workspace/build/ql/test/data/warehouse/src</string> 
        <object class="org.apache.hadoop.hive.ql.plan.PartitionDesc"> 
         <void property="baseFileName"> 
          <string>src</string> 
@@ -1906,11 +1961,11 @@
           </void> 
           <void method="put"> 
            <string>location</string> 
-           <string>pfile:/home/amarsri/workspace/hive/build/ql/test/data/warehouse/src</string> 
+           <string>pfile:/home/opensrc/13thsep/workspace/build/ql/test/data/warehouse/src</string> 
           </void> 
           <void method="put"> 
            <string>transient_lastDdlTime</string> 
-           <string>1310382399</string> 
+           <string>1315938944</string> 
           </void> 
          </object> 
         </void> 
@@ -1968,11 +2023,11 @@
             </void> 
             <void method="put"> 
              <string>location</string> 
-             <string>pfile:/home/amarsri/workspace/hive/build/ql/test/data/warehouse/src</string> 
+             <string>pfile:/home/opensrc/13thsep/workspace/build/ql/test/data/warehouse/src</string> 
             </void> 
             <void method="put"> 
              <string>transient_lastDdlTime</string> 
-             <string>1310382399</string> 
+             <string>1315938944</string> 
             </void> 
            </object> 
           </void> 

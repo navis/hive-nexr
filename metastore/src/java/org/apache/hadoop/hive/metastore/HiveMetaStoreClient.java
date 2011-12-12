@@ -77,7 +77,6 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   private TTransport transport = null;
   private boolean isConnected = false;
   private URI metastoreUris[];
-  private final boolean standAloneClient = false;
   private final HiveMetaHookLoader hookLoader;
   private final HiveConf conf;
   private String tokenStrForm;
@@ -103,7 +102,7 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
     }
     this.conf = conf;
 
-    localMetaStore = conf.getBoolean("hive.metastore.local", false);
+    localMetaStore = conf.getBoolVar(ConfVars.METASTORE_MODE);
     if (localMetaStore) {
       // instantiate the metastore server handler directly instead of connecting
       // through the network
@@ -166,6 +165,22 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   public void alter_table(String dbname, String tbl_name, Table new_tbl)
       throws InvalidOperationException, MetaException, TException {
     client.alter_table(dbname, tbl_name, new_tbl);
+  }
+
+  /**
+   * @param dbname
+   * @param name
+   * @param part_vals
+   * @param newPart
+   * @throws InvalidOperationException
+   * @throws MetaException
+   * @throws TException
+   * @see org.apache.hadoop.hive.metastore.api.ThriftHiveMetastore.Iface#rename_partition(
+   *      java.lang.String, java.lang.String, java.util.List, org.apache.hadoop.hive.metastore.api.Partition)
+   */
+  public void renamePartition(final String dbname, final String name, final List<String> part_vals, final Partition newPart)
+      throws InvalidOperationException, MetaException, TException {
+    client.rename_partition(dbname, name, part_vals, newPart);
   }
 
   private void open() throws MetaException {
@@ -264,15 +279,15 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
     if ((transport != null) && transport.isOpen()) {
       transport.close();
     }
-    if (standAloneClient) {
-      try {
+    try {
+      if (null != client) {
         client.shutdown();
-      } catch (TException e) {
-        // TODO:pc cleanup the exceptions
-        LOG.error("Unable to shutdown local metastore client");
-        LOG.error(e.getStackTrace());
-        // throw new RuntimeException(e.getMessage());
       }
+    } catch (TException e) {
+      // TODO:pc cleanup the exceptions
+      LOG.error("Unable to shutdown local metastore client");
+      LOG.error(e.getStackTrace());
+      // throw new RuntimeException(e.getMessage());
     }
   }
 

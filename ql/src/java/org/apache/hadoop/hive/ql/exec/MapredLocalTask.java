@@ -26,6 +26,7 @@ import java.lang.management.MemoryMXBean;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -199,6 +200,11 @@ public class MapredLocalTask extends Task<MapredLocalWork> implements Serializab
       } else {
         variables.put(HADOOP_OPTS_KEY, hadoopOpts);
       }
+
+      if(variables.containsKey(MapRedTask.HIVE_DEBUG_RECURSIVE)) {
+        MapRedTask.configureDebugVariablesForChildJVM(variables);
+      }
+
       env = new String[variables.size()];
       int pos = 0;
       for (Map.Entry<String, String> entry : variables.entrySet()) {
@@ -402,7 +408,9 @@ public class MapredLocalTask extends Task<MapredLocalWork> implements Serializab
     if (bigBucketFileName == null || bigBucketFileName.length() == 0) {
       bigBucketFileName = "-";
     }
-    String tmpURIPath = Utilities.generatePath(tmpURI, tag, bigBucketFileName);
+    HashTableSinkOperator htso = (HashTableSinkOperator)childOp;
+    String tmpURIPath = Utilities.generatePath(tmpURI, htso.getConf().getDumpFilePrefix(),
+        tag, bigBucketFileName);
     console.printInfo(Utilities.now() + "\tDump the hashtable into file: " + tmpURIPath);
     Path path = new Path(tmpURIPath);
     FileSystem fs = path.getFileSystem(job);
@@ -449,6 +457,11 @@ public class MapredLocalTask extends Task<MapredLocalWork> implements Serializab
   @Override
   public boolean isMapRedLocalTask() {
     return true;
+  }
+
+  @Override
+  public Collection<Operator<? extends Serializable>> getTopOperators() {
+    return getWork().getAliasToWork().values();
   }
 
   @Override

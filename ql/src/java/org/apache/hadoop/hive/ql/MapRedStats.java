@@ -18,6 +18,9 @@
 
 package org.apache.hadoop.hive.ql;
 
+import org.apache.hadoop.mapred.Counters;
+import org.apache.hadoop.mapred.Counters.Counter;
+
 /**
  * MapRedStats.
  *
@@ -30,20 +33,17 @@ public class MapRedStats {
   int numMap;
   int numReduce;
   long cpuMSec;
-  long hdfsRead = -1;
-  long hdfsWrite = -1;
-  long mapInputRecords = -1;
-  long mapOutputRecords = -1;
-  long reduceInputRecords = -1;
-  long reduceOutputRecords = -1;
-  long reduceShuffleBytes = -1;
+  Counters counters = null;
   boolean success;
 
-  public MapRedStats(int numMap, int numReduce, long cpuMSec, boolean ifSuccess) {
+  String jobId;
+
+  public MapRedStats(int numMap, int numReduce, long cpuMSec, boolean ifSuccess, String jobId) {
     this.numMap = numMap;
     this.numReduce = numReduce;
     this.cpuMSec = cpuMSec;
     this.success = ifSuccess;
+    this.jobId = jobId;
   }
 
   public boolean isSuccess() {
@@ -70,60 +70,12 @@ public class MapRedStats {
     this.numReduce = numReduce;
   }
 
-  public long getHdfsRead() {
-    return hdfsRead;
+  public void setCounters(Counters taskCounters) {
+    this.counters = taskCounters;
   }
 
-  public void setHdfsRead(long hdfsRead) {
-    this.hdfsRead = hdfsRead;
-  }
-
-  public long getHdfsWrite() {
-    return hdfsWrite;
-  }
-
-  public void setHdfsWrite(long hdfsWrite) {
-    this.hdfsWrite = hdfsWrite;
-  }
-
-  public long getMapInputRecords() {
-    return mapInputRecords;
-  }
-
-  public void setMapInputRecords(long mapInputRecords) {
-    this.mapInputRecords = mapInputRecords;
-  }
-
-  public long getMapOutputRecords() {
-    return mapOutputRecords;
-  }
-
-  public void setMapOutputRecords(long mapOutputRecords) {
-    this.mapOutputRecords = mapOutputRecords;
-  }
-
-  public long getReduceInputRecords() {
-    return reduceInputRecords;
-  }
-
-  public void setReduceInputRecords(long reduceInputRecords) {
-    this.reduceInputRecords = reduceInputRecords;
-  }
-
-  public long getReduceOutputRecords() {
-    return reduceOutputRecords;
-  }
-
-  public void setReduceOutputRecords(long reduceOutputRecords) {
-    this.reduceOutputRecords = reduceOutputRecords;
-  }
-
-  public long getReduceShuffleBytes() {
-    return reduceShuffleBytes;
-  }
-
-  public void setReduceShuffleBytes(long reduceShuffleBytes) {
-    this.reduceShuffleBytes = reduceShuffleBytes;
+  public Counters getCounters() {
+    return this.counters;
   }
 
   public void setCpuMSec(long cpuMSec) {
@@ -132,6 +84,14 @@ public class MapRedStats {
 
   public void setSuccess(boolean success) {
     this.success = success;
+  }
+
+  public String getJobId() {
+    return jobId;
+  }
+
+  public void setJobId(String jobId) {
+    this.jobId = jobId;
   }
 
   @Override
@@ -149,12 +109,20 @@ public class MapRedStats {
       sb.append(" Accumulative CPU: " + (cpuMSec / 1000D) + " sec  ");
     }
 
-    if (hdfsRead >= 0) {
-      sb.append(" HDFS Read: " + hdfsRead);
-    }
+    if (counters != null) {
+      Counter hdfsReadCntr = counters.findCounter("FileSystemCounters",
+          "HDFS_BYTES_READ");
+      long hdfsRead;
+      if (hdfsReadCntr != null && (hdfsRead = hdfsReadCntr.getValue()) >= 0) {
+        sb.append(" HDFS Read: " + hdfsRead);
+      }
 
-    if (hdfsWrite >= 0) {
-      sb.append(" HDFS Write: " + hdfsWrite);
+      Counter hdfsWrittenCntr = counters.findCounter("FileSystemCounters",
+          "HDFS_BYTES_WRITTEN");
+      long hdfsWritten;
+      if (hdfsWrittenCntr != null && (hdfsWritten = hdfsWrittenCntr.getValue()) >= 0) {
+        sb.append(" HDFS Write: " + hdfsWritten);
+      }
     }
 
     sb.append(" " + (success ? "SUCESS" : "FAIL"));

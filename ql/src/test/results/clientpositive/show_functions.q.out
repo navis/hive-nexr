@@ -25,10 +25,12 @@ array
 array_contains
 ascii
 asin
+assert_true
 atan
 avg
 bigint
 bin
+binary
 boolean
 case
 ceil
@@ -74,6 +76,7 @@ histogram_numeric
 hour
 if
 in
+in_file
 index
 instr
 int
@@ -133,6 +136,7 @@ smallint
 space
 split
 sqrt
+stack
 std
 stddev
 stddev_pop
@@ -151,6 +155,7 @@ to_utc_timestamp
 trim
 ucase
 unhex
+union_map
 unix_timestamp
 upper
 var_pop
@@ -193,12 +198,14 @@ PREHOOK: query: SHOW FUNCTIONS '.*e$'
 PREHOOK: type: SHOWFUNCTIONS
 POSTHOOK: query: SHOW FUNCTIONS '.*e$'
 POSTHOOK: type: SHOWFUNCTIONS
+assert_true
 case
 coalesce
 double
 e
 explode
 from_unixtime
+in_file
 json_tuple
 lcase
 like

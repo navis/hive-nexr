@@ -20,13 +20,6 @@
 <project name="service" default="jar">
   <property name="src.dir" value="${basedir}/src"/>
 
-  <!--
-    Override properties defined in ../build-common.xml.
-  -->
-  <property name="test.junit.output.format" value="plain"/>
-  <property name="test.output" value="false"/>
-  <property name="test.junit.output.usefile" value="false"/>
-
   <import file="../build-common.xml"/>
 
   <path id="test.classpath">
@@ -38,6 +31,12 @@
     <fileset dir="${hive.root}" includes="testlibs/*.jar"/>
     <pathelement location="${build.dir.hive}/ql/test/classes"/>
     <path refid="classpath"/>
+    <fileset dir="${hadoop.root}">
+      <!-- below is for 0.23 onwards -->
+      <include name="share/hadoop/common/lib/*.jar" />
+      <exclude name="share/hadoop/common/lib/hadoop-mapreduce-*.jar" />
+      <exclude name="share/hadoop/common/lib/hadoop-yarn-*.jar" />
+    </fileset>
   </path>
 
   <target name="thriftif" depends="check-thrift-home">

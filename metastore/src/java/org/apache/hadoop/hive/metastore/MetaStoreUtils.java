@@ -360,6 +360,8 @@ public class MetaStoreUtils {
         org.apache.hadoop.hive.serde.Constants.MAP_TYPE_NAME, "map");
     typeToThriftTypeMap.put(
         org.apache.hadoop.hive.serde.Constants.STRING_TYPE_NAME, "string");
+    typeToThriftTypeMap.put(
+        org.apache.hadoop.hive.serde.Constants.BINARY_TYPE_NAME, "binary");
     // These 3 types are not supported yet.
     // We should define a complex type date in thrift that contains a single int
     // member, and DynamicSerDe
@@ -675,7 +677,10 @@ public class MetaStoreUtils {
 
     if (parameters != null) {
       for (Entry<String, String> e : parameters.entrySet()) {
-        schema.setProperty(e.getKey(), e.getValue());
+        // add non-null parameters to the schema
+        if ( e.getValue() != null) {
+          schema.setProperty(e.getKey(), e.getValue());
+        }
       }
     }
 
@@ -955,27 +960,28 @@ public class MetaStoreUtils {
 
   /**
    * create listener instances as per the configuration.
+   *
+   * @param clazz
    * @param conf
+   * @param listenerImplList
    * @return
    * @throws MetaException
    */
-  static List<MetaStoreEventListener> getMetaStoreListener (HiveConf conf)
-  throws MetaException {
+  static <T> List<T> getMetaStoreListeners(Class<T> clazz,
+      HiveConf conf, String listenerImplList) throws MetaException {
 
-    List<MetaStoreEventListener> listeners = new ArrayList<MetaStoreEventListener>();
-    String listenerImplList = conf.getVar(HiveConf.ConfVars.METASTORE_EVENT_LISTENERS);
+    List<T> listeners = new ArrayList<T>();
     listenerImplList = listenerImplList.trim();
     if (listenerImplList.equals("")) {
       return listeners;
-}
+    }
 
     String[] listenerImpls = listenerImplList.split(",");
     for (String listenerImpl : listenerImpls) {
       try {
-        MetaStoreEventListener listener = (MetaStoreEventListener) Class.forName(
+        T listener = (T) Class.forName(
             listenerImpl.trim(), true, JavaUtils.getClassLoader()).getConstructor(
                 Configuration.class).newInstance(conf);
-        listener.setConf(conf);
         listeners.add(listener);
       } catch (Exception e) {
         throw new MetaException("Failed to instantiate listener named: "+

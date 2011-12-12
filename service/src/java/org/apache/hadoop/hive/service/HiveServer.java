@@ -34,6 +34,7 @@ import java.util.Properties;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.hive.common.ServerUtils;
 import org.apache.hadoop.hive.common.LogUtils;
 import org.apache.hadoop.hive.common.LogUtils.LogInitializationException;
 import org.apache.hadoop.hive.common.cli.CommonCliOptions;
@@ -48,8 +49,8 @@ import org.apache.hadoop.hive.ql.processors.CommandProcessor;
 import org.apache.hadoop.hive.ql.processors.CommandProcessorFactory;
 import org.apache.hadoop.hive.ql.processors.CommandProcessorResponse;
 import org.apache.hadoop.hive.ql.session.SessionState;
+import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.mapred.ClusterStatus;
-import org.apache.hadoop.mapred.JobTracker;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TProcessorFactory;
@@ -60,7 +61,8 @@ import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportFactory;
-
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import com.facebook.fb303.fb_status;
 
 /**
@@ -96,6 +98,7 @@ public class HiveServer extends ThriftHive {
      * It is the instance of the last Hive query.
      */
     private Driver driver;
+    private CommandProcessorResponse response;
     /**
      * For processors other than Hive queries (Driver), they output to session.out (a temp file)
      * first and the fetchOne/fetchN/fetchAll functions get the output from pipeIn.
@@ -177,7 +180,6 @@ public class HiveServer extends ThriftHive {
 
       try {
         CommandProcessor proc = CommandProcessorFactory.get(tokens[0]);
-        CommandProcessorResponse response = null;
         if (proc != null) {
           if (proc instanceof Driver) {
             isHiveQuery = true;
@@ -239,21 +241,7 @@ public class HiveServer extends ThriftHive {
         drv.init();
 
         ClusterStatus cs = drv.getClusterStatus();
-        JobTracker.State jbs = cs.getJobTrackerState();
-
-        // Convert the ClusterStatus to its Thrift equivalent: HiveClusterStatus
-        JobTrackerState state;
-        switch (jbs) {
-        case INITIALIZING:
-          state = JobTrackerState.INITIALIZING;
-          break;
-        case RUNNING:
-          state = JobTrackerState.RUNNING;
-          break;
-        default:
-          String errorMsg = "Unrecognized JobTracker state: " + jbs.toString();
-          throw new Exception(errorMsg);
-        }
+        JobTrackerState state = JobTrackerState.valueOf(ShimLoader.getHadoopShims().getJobTrackerState(cs).name());
 
         hcs = new HiveClusterStatus(cs.getTaskTrackers(), cs.getMapTasks(), cs
             .getReduceTasks(), cs.getMaxMapTasks(), cs.getMaxReduceTasks(),
@@ -273,8 +261,14 @@ public class HiveServer extends ThriftHive {
      */
     public Schema getSchema() throws HiveServerException, TException {
       if (!isHiveQuery) {
-        // Return empty schema if the last command was not a Hive query
-        return new Schema();
+        Schema schema = response.getSchema();
+        if (schema == null) {
+          // Return empty schema if the last command was not a Hive query
+          return new Schema();
+        }
+        else {
+          return schema;
+        }
       }
 
       assert driver != null: "getSchema() is called on a Hive query and driver is NULL.";
@@ -660,9 +654,9 @@ public class HiveServer extends ThriftHive {
         HiveServerHandler.LOG.warn(e.getMessage());
       }
 
-      TServerTransport serverTransport = new TServerSocket(cli.port);
-
       HiveConf conf = new HiveConf(HiveServerHandler.class);
+      ServerUtils.cleanUpScratchDir(conf);
+      TServerTransport serverTransport = new TServerSocket(cli.port);
 
       // set all properties specified on the command line
       for (Map.Entry<Object, Object> item : hiveconf.entrySet()) {
@@ -678,7 +672,7 @@ public class HiveServer extends ThriftHive {
         .protocolFactory(new TBinaryProtocol.Factory())
         .minWorkerThreads(cli.minWorkerThreads)
         .maxWorkerThreads(cli.maxWorkerThreads);
-      
+
       TServer server = new TThreadPoolServer(sargs);
 
       String msg = "Starting hive server on port " + cli.port

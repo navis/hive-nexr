@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -68,8 +69,8 @@ import org.apache.hadoop.hive.ql.lockmgr.HiveLockManagerCtx;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockMode;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockObj;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockObject;
-import org.apache.hadoop.hive.ql.lockmgr.LockException;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockObject.HiveLockObjectData;
+import org.apache.hadoop.hive.ql.lockmgr.LockException;
 import org.apache.hadoop.hive.ql.log.PerfLogger;
 import org.apache.hadoop.hive.ql.metadata.AuthorizationException;
 import org.apache.hadoop.hive.ql.metadata.DummyPartition;
@@ -410,6 +411,7 @@ public class Driver implements CommandProcessor {
       command = new VariableSubstitution().substitute(conf,command);
       ctx = new Context(conf);
       ctx.setTryCount(getTryCount());
+      ctx.setCmd(command);
 
       ParseDriver pd = new ParseDriver();
       ASTNode tree = pd.parse(command, ctx);
@@ -706,7 +708,8 @@ public class Driver implements CommandProcessor {
     HiveLockObjectData lockData =
       new HiveLockObjectData(plan.getQueryId(),
                              String.valueOf(System.currentTimeMillis()),
-                             "IMPLICIT");
+                             "IMPLICIT",
+                             plan.getQueryStr());
 
     if (t != null) {
       locks.add(new HiveLockObj(new HiveLockObject(t, lockData), mode));
@@ -730,18 +733,22 @@ public class Driver implements CommandProcessor {
         name = p.getName().split("@")[2];
       }
 
-      String partName = name;
       String partialName = "";
       String[] partns = name.split("/");
       int len = p instanceof DummyPartition ? partns.length : partns.length - 1;
+      Map<String, String> partialSpec = new LinkedHashMap<String, String>();
       for (int idx = 0; idx < len; idx++) {
         String partn = partns[idx];
         partialName += partn;
+        String[] nameValue = partn.split("=");
+        assert(nameValue.length == 2);
+        partialSpec.put(nameValue[0], nameValue[1]);
         try {
           locks.add(new HiveLockObj(
                       new HiveLockObject(new DummyPartition(p.getTable(), p.getTable().getDbName()
                                                             + "/" + p.getTable().getTableName()
-                                                            + "/" + partialName), lockData), mode));
+                                                            + "/" + partialName,
+                                                              partialSpec), lockData), mode));
           partialName += "/";
         } catch (HiveException e) {
           throw new SemanticException(e.getMessage());
@@ -765,9 +772,6 @@ public class Driver implements CommandProcessor {
     perfLogger.PerfLogBegin(LOG, PerfLogger.ACQUIRE_READ_WRITE_LOCKS);
 
     try {
-      int sleepTime = conf.getIntVar(HiveConf.ConfVars.HIVE_LOCK_SLEEP_BETWEEN_RETRIES) * 1000;
-      int numRetries = conf.getIntVar(HiveConf.ConfVars.HIVE_LOCK_NUMRETRIES);
-
       boolean supportConcurrency = conf.getBoolVar(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY);
       if (!supportConcurrency) {
         return 0;
@@ -806,7 +810,8 @@ public class Driver implements CommandProcessor {
       HiveLockObjectData lockData =
         new HiveLockObjectData(plan.getQueryId(),
                                String.valueOf(System.currentTimeMillis()),
-                               "IMPLICIT");
+                               "IMPLICIT",
+                               plan.getQueryStr());
 
       // Lock the database also
       try {
@@ -818,24 +823,7 @@ public class Driver implements CommandProcessor {
         throw new SemanticException(e.getMessage());
       }
 
-      List<HiveLock> hiveLocks = null;
-
-      int tryNum = 1;
-      do {
-
-        ctx.getHiveLockMgr().prepareRetry();
-        hiveLocks = ctx.getHiveLockMgr().lock(lockObjects, false);
-
-        if (hiveLocks != null) {
-          break;
-        }
-
-        tryNum++;
-        try {
-          Thread.sleep(sleepTime);
-        } catch (InterruptedException e) {
-        }
-      } while (tryNum < numRetries);
+      List<HiveLock> hiveLocks = ctx.getHiveLockMgr().lock(lockObjects, false);
 
       if (hiveLocks == null) {
         throw new SemanticException(ErrorMsg.LOCK_CANNOT_BE_ACQUIRED.getMsg());
@@ -949,6 +937,7 @@ public class Driver implements CommandProcessor {
 
     //if needRequireLock is false, the release here will do nothing because there is no lock
     releaseLocks(ctx.getHiveLocks());
+    PerfLogger.getPerfLogger().close(LOG, plan);
     return new CommandProcessorResponse(ret);
   }
 
@@ -1079,18 +1068,18 @@ public class Driver implements CommandProcessor {
 
       for (Hook peh : getPreExecHooks()) {
         if (peh instanceof ExecuteWithHookContext) {
-          perfLogger.PerfLogBegin(LOG, PerfLogger.PRE_HOOK + peh.getClass().getSimpleName());
+          perfLogger.PerfLogBegin(LOG, PerfLogger.PRE_HOOK + peh.getClass().getName());
 
           ((ExecuteWithHookContext) peh).run(hookContext);
 
-          perfLogger.PerfLogEnd(LOG, PerfLogger.PRE_HOOK + peh.getClass().getSimpleName());
+          perfLogger.PerfLogEnd(LOG, PerfLogger.PRE_HOOK + peh.getClass().getName());
         } else if (peh instanceof PreExecute) {
-          perfLogger.PerfLogBegin(LOG, PerfLogger.PRE_HOOK + peh.getClass().getSimpleName());
+          perfLogger.PerfLogBegin(LOG, PerfLogger.PRE_HOOK + peh.getClass().getName());
 
           ((PreExecute) peh).run(SessionState.get(), plan.getInputs(), plan.getOutputs(),
               ShimLoader.getHadoopShims().getUGIForConf(conf));
 
-          perfLogger.PerfLogEnd(LOG, PerfLogger.PRE_HOOK + peh.getClass().getSimpleName());
+          perfLogger.PerfLogEnd(LOG, PerfLogger.PRE_HOOK + peh.getClass().getName());
         }
       }
 
@@ -1170,11 +1159,11 @@ public class Driver implements CommandProcessor {
             hookContext.setHookType(HookContext.HookType.ON_FAILURE_HOOK);
             // Get all the failure execution hooks and execute them.
             for (Hook ofh : getOnFailureHooks()) {
-              perfLogger.PerfLogBegin(LOG, PerfLogger.FAILURE_HOOK + ofh.getClass().getSimpleName());
+              perfLogger.PerfLogBegin(LOG, PerfLogger.FAILURE_HOOK + ofh.getClass().getName());
 
               ((ExecuteWithHookContext) ofh).run(hookContext);
 
-              perfLogger.PerfLogEnd(LOG, PerfLogger.FAILURE_HOOK + ofh.getClass().getSimpleName());
+              perfLogger.PerfLogEnd(LOG, PerfLogger.FAILURE_HOOK + ofh.getClass().getName());
             }
 
             // TODO: This error messaging is not very informative. Fix that.
@@ -1229,19 +1218,19 @@ public class Driver implements CommandProcessor {
       // Get all the post execution hooks and execute them.
       for (Hook peh : getPostExecHooks()) {
         if (peh instanceof ExecuteWithHookContext) {
-          perfLogger.PerfLogBegin(LOG, PerfLogger.POST_HOOK + peh.getClass().getSimpleName());
+          perfLogger.PerfLogBegin(LOG, PerfLogger.POST_HOOK + peh.getClass().getName());
 
           ((ExecuteWithHookContext) peh).run(hookContext);
 
-          perfLogger.PerfLogEnd(LOG, PerfLogger.POST_HOOK + peh.getClass().getSimpleName());
+          perfLogger.PerfLogEnd(LOG, PerfLogger.POST_HOOK + peh.getClass().getName());
         } else if (peh instanceof PostExecute) {
-          perfLogger.PerfLogBegin(LOG, PerfLogger.POST_HOOK + peh.getClass().getSimpleName());
+          perfLogger.PerfLogBegin(LOG, PerfLogger.POST_HOOK + peh.getClass().getName());
 
           ((PostExecute) peh).run(SessionState.get(), plan.getInputs(), plan.getOutputs(),
               (SessionState.get() != null ? SessionState.get().getLineageState().getLineageInfo()
                   : null), ShimLoader.getHadoopShims().getUGIForConf(conf));
 
-          perfLogger.PerfLogEnd(LOG, PerfLogger.POST_HOOK + peh.getClass().getSimpleName());
+          perfLogger.PerfLogEnd(LOG, PerfLogger.POST_HOOK + peh.getClass().getName());
         }
       }
 

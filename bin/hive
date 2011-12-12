@@ -42,6 +42,10 @@ while [ $# -gt 0 ]; do
       HELP=_help
       shift
       ;;
+    --debug*)
+      DEBUG=$1
+      shift
+      ;;
     *)
       break
       ;;
@@ -67,6 +71,11 @@ HIVE_LIB=${HIVE_HOME}/lib
 # needed for execution
 if [ ! -f ${HIVE_LIB}/hive-exec-*.jar ]; then
   echo "Missing Hive Execution Jar: ${HIVE_LIB}/hive-exec-*.jar"
+  exit 1;
+fi
+
+if [ ! -f ${HIVE_LIB}/hive-builtins-*.jar ]; then
+  echo "Missing Hive Builtins Jar: ${HIVE_LIB}/hive-builtins-*.jar"
   exit 1;
 fi
 
@@ -175,7 +184,7 @@ else
     exit 5
 fi
 
-if [ $hadoop_minor_ver -ne 20 -o $hadoop_patch_ver -eq 0 ]; then
+if [ "$hadoop_minor_ver$hadoop_patch_ver" -lt "201" ]; then
     echo "Hive requires Hadoop 0.20.x (x >= 1)."
     echo "'hadoop version' returned:"
     echo `$HADOOP version`
@@ -196,6 +205,16 @@ done
 for i in "$bin"/ext/util/*.sh ; do
   . $i
 done
+
+if [ "$DEBUG" ]; then
+  if [ "$HELP" ]; then
+    debug_help
+    exit 0
+  else
+    get_debug_params "$DEBUG"
+    export HADOOP_CLIENT_OPTS="$HADOOP_CLIENT_OPTS $HIVE_MAIN_CLIENT_DEBUG_OPTS"
+  fi
+fi
 
 TORUN=""
 for j in $SERVICE_LIST ; do
