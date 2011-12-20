@@ -67,6 +67,12 @@ public class GenericUDFOPEqualOrGreaterThan extends GenericUDFBaseCompare {
       boolean b1 = boi1.get(o1);
       result.set(b0 || !b1);
       break;
+    case COMPARE_FLOAT:
+      result.set(foi0.get(o0) >= foi1.get(o1));
+      break;
+    case COMPARE_DOUBLE:
+      result.set(doi0.get(o0) >= doi1.get(o1));
+      break;
     case COMPARE_STRING:
       String s0, s1;
       s0 = soi0.getPrimitiveJavaObject(o0);

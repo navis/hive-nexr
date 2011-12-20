@@ -1865,6 +1865,8 @@ constant
     | TinyintLiteral
     | charSetStringLiteral
     | booleanValue
+    | FloatLiteral
+    | DoubleLiteral
     ;
 
 stringLiteralSequence
@@ -2458,6 +2460,16 @@ SmallintLiteral
 TinyintLiteral
     :
     (Digit)+ 'Y'
+    ;
+
+FloatLiteral
+    :
+    Number 'F' | Number 'f'
+    ;
+
+DoubleLiteral
+    :
+    Number 'D' | Number 'd'
     ;
 
 Number
