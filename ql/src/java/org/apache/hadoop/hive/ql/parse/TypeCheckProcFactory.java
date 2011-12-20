@@ -134,6 +134,8 @@ public final class TypeCheckProcFactory {
     opRules.put(new RuleRegExp("R1", HiveParser.TOK_NULL + "%"),
         getNullExprProcessor());
     opRules.put(new RuleRegExp("R2", HiveParser.Number + "%|" +
+        HiveParser.FloatLiteral + "%|" +
+        HiveParser.DoubleLiteral + "%|" +
         HiveParser.TinyintLiteral + "%|" +
         HiveParser.SmallintLiteral + "%|" +
         HiveParser.BigintLiteral + "%"),
@@ -236,6 +238,16 @@ public final class TypeCheckProcFactory {
         } else if (expr.getText().endsWith("Y")) {
           // Literal tinyint.
           v = Byte.valueOf(expr.getText().substring(
+                0, expr.getText().length() - 1));
+        } else if (expr.getText().endsWith("F")
+            || expr.getText().endsWith("f")) {
+          // Literal float.
+          v = Float.valueOf(expr.getText().substring(
+                0, expr.getText().length() - 1));
+        } else if (expr.getText().endsWith("D")
+            || expr.getText().endsWith("d")) {
+          // Literal double.
+          v = Double.valueOf(expr.getText().substring(
                 0, expr.getText().length() - 1));
         } else {
           v = Double.valueOf(expr.getText());

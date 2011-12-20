@@ -61,6 +61,12 @@ public class GenericUDFOPNotEqual extends GenericUDFBaseCompare {
     case COMPARE_BOOL:
       result.set(boi0.get(o0) != boi1.get(o1));
       break;
+    case COMPARE_FLOAT:
+      result.set(foi0.get(o0) != foi1.get(o1));
+      break;
+    case COMPARE_DOUBLE:
+      result.set(doi0.get(o0) != doi1.get(o1));
+      break;
     case COMPARE_STRING:
       result.set(!soi0.getPrimitiveJavaObject(o0).equals(
           soi1.getPrimitiveJavaObject(o1)));
