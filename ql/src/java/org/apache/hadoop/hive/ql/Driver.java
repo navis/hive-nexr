@@ -883,6 +883,14 @@ public class Driver implements CommandProcessor {
   }
 
   public CommandProcessorResponse run(String command) throws CommandNeedRetryException {
+    CommandProcessorResponse ret = compileCommand(command);
+    if (ret.getResponseCode() == 0) {
+      return executePlan();
+    }
+    return ret;
+  }
+
+  public CommandProcessorResponse compileCommand(String command) {
     errorMessage = null;
     SQLState = null;
 
@@ -892,7 +900,7 @@ public class Driver implements CommandProcessor {
     try {
       driverRunHooks = getHooks(HiveConf.ConfVars.HIVE_DRIVER_RUN_HOOKS, HiveDriverRunHook.class);
       for (HiveDriverRunHook driverRunHook : driverRunHooks) {
-          driverRunHook.preDriverRun(hookContext);
+        driverRunHook.preDriverRun(hookContext);
       }
     } catch (Exception e) {
       errorMessage = "FAILED: Hive Internal Error: " + Utilities.getNameMessage(e);
@@ -911,7 +919,12 @@ public class Driver implements CommandProcessor {
       releaseLocks(ctx.getHiveLocks());
       return new CommandProcessorResponse(ret, errorMessage, SQLState);
     }
+    return new CommandProcessorResponse(ret);
+  }
 
+  public CommandProcessorResponse executePlan() throws CommandNeedRetryException {
+
+    int ret;
     boolean requireLock = false;
     boolean ckLock = checkLockManager();
 
@@ -958,13 +971,17 @@ public class Driver implements CommandProcessor {
     //if needRequireLock is false, the release here will do nothing because there is no lock
     releaseLocks(ctx.getHiveLocks());
 
+    PerfLogger perfLogger = PerfLogger.getPerfLogger();
     perfLogger.PerfLogEnd(LOG, PerfLogger.DRIVER_RUN);
     perfLogger.close(LOG, plan);
 
     // Take all the driver run hooks and post-execute them.
+    HiveDriverRunHookContext hookContext = new HiveDriverRunHookContextImpl(conf);
+    List<HiveDriverRunHook> driverRunHooks;
     try {
+      driverRunHooks = getHooks(HiveConf.ConfVars.HIVE_DRIVER_RUN_HOOKS, HiveDriverRunHook.class);
       for (HiveDriverRunHook driverRunHook : driverRunHooks) {
-          driverRunHook.postDriverRun(hookContext);
+        driverRunHook.postDriverRun(hookContext);
       }
     } catch (Exception e) {
       errorMessage = "FAILED: Hive Internal Error: " + Utilities.getNameMessage(e);
