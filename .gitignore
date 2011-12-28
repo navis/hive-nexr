@@ -8,3 +8,8 @@ build-eclipse
 *.launch
 *~
 metastore_db
+*patch.txt
+ant*.log
+*.iml
+*.ipr
+*.iws
