@@ -882,6 +882,14 @@ public class Driver implements CommandProcessor {
   }
 
   public CommandProcessorResponse run(String command) throws CommandNeedRetryException {
+    CommandProcessorResponse ret = compileCommand(command);
+    if (ret.getResponseCode() == 0) {
+      return executePlan();
+    }
+    return ret;
+  }
+
+  public CommandProcessorResponse compileCommand(String command) {
     errorMessage = null;
     SQLState = null;
     // Reset the perf logger
@@ -892,7 +900,11 @@ public class Driver implements CommandProcessor {
       releaseLocks(ctx.getHiveLocks());
       return new CommandProcessorResponse(ret, errorMessage, SQLState);
     }
+    return new CommandProcessorResponse(ret);
+  }
 
+  public CommandProcessorResponse executePlan() throws CommandNeedRetryException {
+    int ret;
     boolean requireLock = false;
     boolean ckLock = checkLockManager();
 
