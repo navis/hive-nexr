@@ -54,6 +54,8 @@ public class PluginTest extends TestCase {
     String output = runHive(
       "-i",
       "metadata/add-jar.sql",
+      "-i",
+      "metadata/class-registration.sql",
       "-e",
       unitTest.query());
     assertEquals(unitTest.result(), output);
@@ -177,10 +179,6 @@ public class PluginTest extends TestCase {
       String result = runHive(
         "-i",
         new File(testScriptDir, "cleanup.sql").toString(),
-        "-i",
-        "metadata/add-jar.sql",
-        "-i",
-        "metadata/class-registration.sql",
         "-f",
         new File(testScriptDir, "setup.sql").toString());
       if (result.length() > 0) {
