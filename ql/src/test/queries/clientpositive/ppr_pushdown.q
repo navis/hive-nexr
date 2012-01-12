@@ -9,14 +9,14 @@ alter table ppr_test add partition (ds = '12:4');
 alter table ppr_test add partition (ds = '12%4');
 alter table ppr_test add partition (ds = '12*4');
 
-insert overwrite table ppr_test partition(ds = '1234') select * from (select '1234' from src limit 1 union all select 'abcd' from src limit 1) s;
-insert overwrite table ppr_test partition(ds = '1224') select * from (select '1224' from src limit 1 union all select 'abcd' from src limit 1) s;
-insert overwrite table ppr_test partition(ds = '1214') select * from (select '1214' from src limit 1 union all select 'abcd' from src limit 1) s;
-insert overwrite table ppr_test partition(ds = '12+4') select * from (select '12+4' from src limit 1 union all select 'abcd' from src limit 1) s;
-insert overwrite table ppr_test partition(ds = '12.4') select * from (select '12.4' from src limit 1 union all select 'abcd' from src limit 1) s;
-insert overwrite table ppr_test partition(ds = '12:4') select * from (select '12:4' from src limit 1 union all select 'abcd' from src limit 1) s;
-insert overwrite table ppr_test partition(ds = '12%4') select * from (select '12%4' from src limit 1 union all select 'abcd' from src limit 1) s;
-insert overwrite table ppr_test partition(ds = '12*4') select * from (select '12*4' from src limit 1 union all select 'abcd' from src limit 1) s;
+insert overwrite table ppr_test partition(ds = '1234') select explode(array('abcd', '1234')) as col from src limit 2;
+insert overwrite table ppr_test partition(ds = '1224') select explode(array('abcd', '1224')) as col from src limit 2;
+insert overwrite table ppr_test partition(ds = '1214') select explode(array('abcd', '1214')) as col from src limit 2;
+insert overwrite table ppr_test partition(ds = '12+4') select explode(array('abcd', '12+4')) as col from src limit 2;
+insert overwrite table ppr_test partition(ds = '12.4') select explode(array('abcd', '12.4')) as col from src limit 2;
+insert overwrite table ppr_test partition(ds = '12:4') select explode(array('abcd', '12:4')) as col from src limit 2;
+insert overwrite table ppr_test partition(ds = '12%4') select explode(array('abcd', '12%4')) as col from src limit 2;
+insert overwrite table ppr_test partition(ds = '12*4') select explode(array('abcd', '12*4')) as col from src limit 2;
 
 
 select * from ppr_test where ds = '1234';
