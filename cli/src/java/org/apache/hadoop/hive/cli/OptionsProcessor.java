@@ -52,6 +52,13 @@ public class OptionsProcessor {
         .withDescription("SQL from command line")
         .create('e'));
 
+    // --dbname <db-name>
+    options.addOption(OptionBuilder
+        .withLongOpt("dbname").hasArg()
+        .withArgName("database-name")
+        .withDescription("Using database name")
+        .create());
+
     // -f <query-file>
     options.addOption(OptionBuilder
         .hasArg()
@@ -152,6 +159,8 @@ public class OptionsProcessor {
     }
 
     ss.setIsSilent(commandLine.hasOption('S'));
+
+    ss.dbName = commandLine.getOptionValue("dbname");
 
     ss.execString = commandLine.getOptionValue('e');
 
