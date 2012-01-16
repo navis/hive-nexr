@@ -633,6 +633,13 @@ public class CliDriver {
     }
 
     CliDriver cli = new CliDriver();
+
+    if (ss.dbName != null) {
+      if (cli.processLine("use " + ss.dbName) != 0) {
+        return 4;
+      }
+    }
+
     cli.setHiveVariables(oproc.getHiveVariables());
 
     // Execute -i init files (always in silent mode)
