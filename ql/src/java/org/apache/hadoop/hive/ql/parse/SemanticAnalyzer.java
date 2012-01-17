@@ -1524,7 +1524,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
   @SuppressWarnings("nls")
   private Integer genColListRegex(String colRegex, String tabAlias,
       ASTNode sel, ArrayList<ExprNodeDesc> col_list,
-      RowResolver input, Integer pos, RowResolver output, List<String> aliases)
+      RowResolver input, Integer pos, RowResolver output, List<String> aliases, boolean check)
       throws SemanticException {
 
     // The table alias should exist
@@ -1578,6 +1578,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
         ExprNodeColumnDesc expr = new ExprNodeColumnDesc(colInfo.getType(),
             name, colInfo.getTabAlias(), colInfo.getIsVirtualCol());
+        if (check && output.get(null, tmp[1]) != null) {
+          throw new SemanticException(ErrorMsg.AMBIGUOUS_COLUMN.getMsg(tmp[1]));
+        }
         col_list.add(expr);
         output.put(tmp[0], tmp[1],
             new ColumnInfo(getColumnInternalName(pos), colInfo.getType(),
@@ -2223,10 +2226,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
       }
 
+      boolean check = !StringUtils.isEmpty(alias);
       if (expr.getType() == HiveParser.TOK_ALLCOLREF) {
         pos = genColListRegex(".*", expr.getChildCount() == 0 ? null
             : getUnescapedName((ASTNode)expr.getChild(0)).toLowerCase(),
-            expr, col_list, inputRR, pos, out_rwsch, qb.getAliases());
+            expr, col_list, inputRR, pos, out_rwsch, qb.getAliases(), check);
         selectStar = true;
       } else if (expr.getType() == HiveParser.TOK_TABLE_OR_COL && !hasAsClause
           && !inputRR.getIsExprResolver()
@@ -2235,7 +2239,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         // This can only happen without AS clause
         // We don't allow this for ExprResolver - the Group By case
         pos = genColListRegex(unescapeIdentifier(expr.getChild(0).getText()),
-            null, expr, col_list, inputRR, pos, out_rwsch, qb.getAliases());
+            null, expr, col_list, inputRR, pos, out_rwsch, qb.getAliases(), check);
       } else if (expr.getType() == HiveParser.DOT
           && expr.getChild(0).getType() == HiveParser.TOK_TABLE_OR_COL
           && inputRR.hasTableAlias(unescapeIdentifier(expr.getChild(0)
@@ -2248,7 +2252,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         pos = genColListRegex(unescapeIdentifier(expr.getChild(1).getText()),
             unescapeIdentifier(expr.getChild(0).getChild(0).getText()
             .toLowerCase()), expr, col_list, inputRR, pos, out_rwsch,
-            qb.getAliases());
+            qb.getAliases(), check);
       } else {
         // Case when this is an expression
         TypeCheckCtx tcCtx = new TypeCheckCtx(inputRR);
