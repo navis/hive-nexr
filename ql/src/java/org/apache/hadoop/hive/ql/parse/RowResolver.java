@@ -25,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -41,10 +42,8 @@ public class RowResolver implements Serializable{
   private  HashMap<String, LinkedHashMap<String, ColumnInfo>> rslvMap;
 
   private  HashMap<String, String[]> invRslvMap;
-  private  Map<String, ASTNode> expressionMap;
 
   // TODO: Refactor this and do in a more object oriented manner
-  private boolean isExprResolver;
 
   @SuppressWarnings("unused")
   private static final Log LOG = LogFactory.getLog(RowResolver.class.getName());
@@ -53,42 +52,15 @@ public class RowResolver implements Serializable{
     rowSchema = new RowSchema();
     rslvMap = new HashMap<String, LinkedHashMap<String, ColumnInfo>>();
     invRslvMap = new HashMap<String, String[]>();
-    expressionMap = new HashMap<String, ASTNode>();
-    isExprResolver = false;
-  }
-
-  /**
-   * Puts a resolver entry corresponding to a source expression which is to be
-   * used for identical expression recognition (e.g. for matching expressions
-   * in the SELECT list with the GROUP BY clause).  The convention for such
-   * entries is an empty-string ("") as the table alias together with the
-   * string rendering of the ASTNode as the column alias.
-   */
-  public void putExpression(ASTNode node, ColumnInfo colInfo) {
-    String treeAsString = node.toStringTree();
-    expressionMap.put(treeAsString, node);
-    put("", treeAsString, colInfo);
-  }
-
-  /**
-   * Retrieves the ColumnInfo corresponding to a source expression which
-   * exactly matches the string rendering of the given ASTNode.
-   */
-  public ColumnInfo getExpression(ASTNode node) throws SemanticException {
-    return get("", node.toStringTree());
-  }
-
-  /**
-   * Retrieves the source expression matching a given ASTNode's
-   * string rendering exactly.
-   */
-  public ASTNode getExpressionSource(ASTNode node) {
-    return expressionMap.get(node.toStringTree());
   }
 
   public void put(String tab_alias, String col_alias, ColumnInfo colInfo) {
     if (tab_alias != null) {
       tab_alias = tab_alias.toLowerCase();
+      if (!tab_alias.equals(colInfo.getTabAlias().toLowerCase())) {
+        throw new RuntimeException("Table alias mismatch " + tab_alias +
+            " with " + colInfo.getTabAlias());
+      }
     }
     col_alias = col_alias.toLowerCase();
     if (rowSchema.getSignature() == null) {
@@ -217,12 +189,8 @@ public class RowResolver implements Serializable{
     return invRslvMap.get(internalName);
   }
 
-  public void setIsExprResolver(boolean isExprResolver) {
-    this.isExprResolver = isExprResolver;
-  }
-
   public boolean getIsExprResolver() {
-    return isExprResolver;
+    return false;
   }
 
   @Override
@@ -244,10 +212,10 @@ public class RowResolver implements Serializable{
     }
     return sb.toString();
   }
-
   public RowSchema getRowSchema() {
     return rowSchema;
   }
+
 
   public HashMap<String, LinkedHashMap<String, ColumnInfo>> getRslvMap() {
     return rslvMap;
@@ -256,15 +224,6 @@ public class RowResolver implements Serializable{
   public HashMap<String, String[]> getInvRslvMap() {
     return invRslvMap;
   }
-
-  public Map<String, ASTNode> getExpressionMap() {
-    return expressionMap;
-  }
-
-  public void setExprResolver(boolean isExprResolver) {
-    this.isExprResolver = isExprResolver;
-  }
-
 
   public void setRowSchema(RowSchema rowSchema) {
     this.rowSchema = rowSchema;
@@ -277,9 +236,4 @@ public class RowResolver implements Serializable{
   public void setInvRslvMap(HashMap<String, String[]> invRslvMap) {
     this.invRslvMap = invRslvMap;
   }
-
-  public void setExpressionMap(Map<String, ASTNode> expressionMap) {
-    this.expressionMap = expressionMap;
-  }
-
 }
