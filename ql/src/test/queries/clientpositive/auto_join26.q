@@ -1,3 +1,5 @@
+set hive.optimize.reducededuplication=false;
+
 CREATE TABLE dest_j1(key INT, cnt INT);
 set hive.auto.convert.join = true;
 EXPLAIN

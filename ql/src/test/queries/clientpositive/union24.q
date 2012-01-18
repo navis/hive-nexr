@@ -1,3 +1,5 @@
+set hive.optimize.reducededuplication=false;
+
 create table src2 as select key, count(1) as count from src group by key;
 create table src3 as select * from src2;
 create table src4 as select * from src2;

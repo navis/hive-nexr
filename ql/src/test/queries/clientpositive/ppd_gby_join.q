@@ -1,5 +1,6 @@
 set hive.optimize.ppd=true;
 set hive.ppd.remove.duplicatefilters=false;
+set hive.optimize.reducededuplication=false;
 
 EXPLAIN
 SELECT src1.c1, count(1) 

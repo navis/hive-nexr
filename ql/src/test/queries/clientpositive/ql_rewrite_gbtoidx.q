@@ -1,3 +1,4 @@
+set hive.optimize.reducededuplication=false;
 
 DROP TABLE lineitem;
 CREATE TABLE lineitem (L_ORDERKEY      INT,

@@ -1,3 +1,5 @@
+set hive.optimize.reducededuplication=false;
+
 create table json_t (key string, jstring string);
 
 insert overwrite table json_t
