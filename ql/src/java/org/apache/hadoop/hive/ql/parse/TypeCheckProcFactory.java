@@ -109,16 +109,19 @@ public final class TypeCheckProcFactory {
     ExprNodeDesc desc = null;
 
     // If the current subExpression is pre-calculated, as in Group-By etc.
-    ColumnInfo colInfo = input.getExpression(expr);
-    if (colInfo != null) {
-      desc = new ExprNodeColumnDesc(colInfo.getType(), colInfo
-          .getInternalName(), colInfo.getTabAlias(), colInfo
-          .getIsVirtualCol());
-      ASTNode source = input.getExpressionSource(expr);
-      if (source != null) {
-        ctx.getUnparseTranslator().addCopyTranslation(expr, source);
+    if (input.getIsExprResolver()) {
+      ExprRowResolver einput = (ExprRowResolver) input;
+      ColumnInfo colInfo = einput.getExpression(expr);
+      if (colInfo != null) {
+        desc = new ExprNodeColumnDesc(colInfo.getType(), colInfo
+            .getInternalName(), colInfo.getTabAlias(), colInfo
+            .getIsVirtualCol());
+        ASTNode source = einput.getExpressionSource(expr);
+        if (source != null) {
+          ctx.getUnparseTranslator().addCopyTranslation(expr, source);
+        }
+        return desc;
       }
-      return desc;
     }
     return desc;
   }
