@@ -27,12 +27,11 @@ ABSTRACT SYNTAX TREE:
 
 STAGE DEPENDENCIES:
   Stage-1 is a root stage
-  Stage-8 depends on stages: Stage-1 , consists of Stage-9, Stage-10, Stage-2
+  Stage-7 depends on stages: Stage-1 , consists of Stage-8, Stage-9, Stage-2
+  Stage-8 has a backup stage: Stage-2
+  Stage-5 depends on stages: Stage-8
   Stage-9 has a backup stage: Stage-2
   Stage-6 depends on stages: Stage-9
-  Stage-3 depends on stages: Stage-2, Stage-6, Stage-7
-  Stage-10 has a backup stage: Stage-2
-  Stage-7 depends on stages: Stage-10
   Stage-2
   Stage-0 is a root stage
 
@@ -96,10 +95,10 @@ STAGE PLANS:
                   input format: org.apache.hadoop.mapred.SequenceFileInputFormat
                   output format: org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat
 
-  Stage: Stage-8
+  Stage: Stage-7
     Conditional Operator
 
-  Stage: Stage-9
+  Stage: Stage-8
     Map Reduce Local Work
       Alias -> Map Local Tables:
         src3:src 
@@ -128,7 +127,7 @@ STAGE PLANS:
                     1 [Column[_col0]]
                   Position of Big Table: 0
 
-  Stage: Stage-6
+  Stage: Stage-5
     Map Reduce
       Alias -> Map Operator Tree:
 #### A masked pattern was here ####
@@ -150,14 +149,19 @@ STAGE PLANS:
                     aggregations:
                           expr: count(1)
                     bucketGroup: false
-                    mode: hash
+                    mode: complete
                     outputColumnNames: _col0
-                    File Output Operator
-                      compressed: false
-                      GlobalTableId: 0
-                      table:
-                          input format: org.apache.hadoop.mapred.SequenceFileInputFormat
-                          output format: org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat
+                    Select Operator
+                      expressions:
+                            expr: _col0
+                            type: bigint
+                      outputColumnNames: _col0
+                      File Output Operator
+                        compressed: false
+                        GlobalTableId: 0
+                        table:
+                            input format: org.apache.hadoop.mapred.TextInputFormat
+                            output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
         null-subquery1:src_12-subquery1:src 
           TableScan
             alias: src
@@ -185,47 +189,23 @@ STAGE PLANS:
                       aggregations:
                             expr: count(1)
                       bucketGroup: false
-                      mode: hash
+                      mode: complete
                       outputColumnNames: _col0
-                      File Output Operator
-                        compressed: false
-                        GlobalTableId: 0
-                        table:
-                            input format: org.apache.hadoop.mapred.SequenceFileInputFormat
-                            output format: org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat
+                      Select Operator
+                        expressions:
+                              expr: _col0
+                              type: bigint
+                        outputColumnNames: _col0
+                        File Output Operator
+                          compressed: false
+                          GlobalTableId: 0
+                          table:
+                              input format: org.apache.hadoop.mapred.TextInputFormat
+                              output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
       Local Work:
         Map Reduce Local Work
 
-  Stage: Stage-3
-    Map Reduce
-      Alias -> Map Operator Tree:
-#### A masked pattern was here ####
-            Reduce Output Operator
-              sort order: 
-              tag: -1
-              value expressions:
-                    expr: _col0
-                    type: bigint
-      Reduce Operator Tree:
-        Group By Operator
-          aggregations:
-                expr: count(VALUE._col0)
-          bucketGroup: false
-          mode: mergepartial
-          outputColumnNames: _col0
-          Select Operator
-            expressions:
-                  expr: _col0
-                  type: bigint
-            outputColumnNames: _col0
-            File Output Operator
-              compressed: false
-              GlobalTableId: 0
-              table:
-                  input format: org.apache.hadoop.mapred.TextInputFormat
-                  output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
-
-  Stage: Stage-10
+  Stage: Stage-9
     Map Reduce Local Work
       Alias -> Map Local Tables:
 #### A masked pattern was here ####
@@ -268,7 +248,7 @@ STAGE PLANS:
                     1 [Column[_col0]]
                   Position of Big Table: 1
 
-  Stage: Stage-7
+  Stage: Stage-6
     Map Reduce
       Alias -> Map Operator Tree:
         src3:src 
@@ -299,14 +279,19 @@ STAGE PLANS:
                       aggregations:
                             expr: count(1)
                       bucketGroup: false
-                      mode: hash
+                      mode: complete
                       outputColumnNames: _col0
-                      File Output Operator
-                        compressed: false
-                        GlobalTableId: 0
-                        table:
-                            input format: org.apache.hadoop.mapred.SequenceFileInputFormat
-                            output format: org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat
+                      Select Operator
+                        expressions:
+                              expr: _col0
+                              type: bigint
+                        outputColumnNames: _col0
+                        File Output Operator
+                          compressed: false
+                          GlobalTableId: 0
+                          table:
+                              input format: org.apache.hadoop.mapred.TextInputFormat
+                              output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
       Local Work:
         Map Reduce Local Work
 
@@ -379,14 +364,19 @@ STAGE PLANS:
               aggregations:
                     expr: count(1)
               bucketGroup: false
-              mode: hash
+              mode: complete
               outputColumnNames: _col0
-              File Output Operator
-                compressed: false
-                GlobalTableId: 0
-                table:
-                    input format: org.apache.hadoop.mapred.SequenceFileInputFormat
-                    output format: org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat
+              Select Operator
+                expressions:
+                      expr: _col0
+                      type: bigint
+                outputColumnNames: _col0
+                File Output Operator
+                  compressed: false
+                  GlobalTableId: 0
+                  table:
+                      input format: org.apache.hadoop.mapred.TextInputFormat
+                      output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
 
   Stage: Stage-0
     Fetch Operator

@@ -488,29 +488,25 @@ public final class ColumnPrunerProcFactory {
         if (nm == null) {
           outputCol = Utilities.ReduceField.VALUE.toString() + "." + outputCol;
           nm = oldRR.reverseLookup(outputCol);
+          newMap.put(outputCol, originalValueEval.get(i));
+        } else {
+          newMap.put(outputCol, oldMap.get(outputCol));
         }
-        newMap.put(outputCol, oldMap.get(outputCol));
         ColumnInfo colInfo = oldRR.get(nm[0], nm[1]);
         newRR.put(nm[0], nm[1], colInfo);
         sig.add(colInfo);
       }
     }
 
-    ArrayList<ExprNodeDesc> keyCols = reduceConf.getKeyCols();
-    List<String> keys = new ArrayList<String>();
-    RowResolver parResover = cppCtx.getOpToParseCtxMap().get(
-        reduce.getParentOperators().get(0)).getRowResolver();
-    for (int i = 0; i < keyCols.size(); i++) {
-      keys = Utilities.mergeUniqElems(keys, keyCols.get(i).getCols());
-    }
-    for (int i = 0; i < keys.size(); i++) {
-      String outputCol = keys.get(i);
-      String[] nm = parResover.reverseLookup(outputCol);
-      ColumnInfo colInfo = oldRR.get(nm[0], nm[1]);
-      if (colInfo != null) {
-        String internalName=colInfo.getInternalName();
-        newMap.put(internalName, oldMap.get(internalName));
-        newRR.put(nm[0], nm[1], colInfo);
+    for (ExprNodeDesc key : reduceConf.getKeyCols()) {
+      for (Map.Entry<String, ExprNodeDesc> entry : oldMap.entrySet()) {
+        if (entry.getValue().isSame(key)) {
+          String[] nm = oldRR.reverseLookup(entry.getKey());
+          ColumnInfo colInfo = oldRR.get(nm[0], nm[1]);
+          newMap.put(colInfo.getInternalName(), entry.getValue());
+          newRR.put(nm[0], nm[1], colInfo);
+          break;
+        }
       }
     }
 
