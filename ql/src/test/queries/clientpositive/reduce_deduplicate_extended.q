@@ -1,29 +1,36 @@
-create table t1 (int1 int, int2 int, str1 string, str2 string);
-create table t2 (int1 int, int2 int, str1 string, str2 string);
-
+set hive.optimize.reducededuplication=true;
 set hive.map.aggr=true;
 
-explain select Q1.int1, sum(Q1.int1) from (select * from t1 order by int1) Q1 group by Q1.int1;
-explain select (Q1.int1 + 1), sum(Q1.int1 + 1) from (select * from t1 order by (int1 + 1)) Q1 group by (Q1.int1 + 1);
-explain select (str1 + 'a') as X, str2, sum(int1), sum(int2) from t1 group by (str1 + 'a'), str2 order by X, str2;
-explain select t1.str1, sum(t1.int1) FROM t1 JOIN t2 ON t1.str1 = t2.str1 group by t1.str1;
+explain select key, sum(key) from (select * from src distribute by key sort by key, value) Q1 group by key;
+explain select key, sum(key), lower(value) from (select * from src order by key) Q1 group by key, lower(value);
+explain select key, sum(key), (1000 - x) from (select key, (1000 - key) as X from src order by key) Q1 group by key, (1000 - x);
+explain select key, sum(key) as value from src group by key order by key, value;
+explain select src.key, src.value FROM src JOIN src1 ON src.key = src1.key order by src.key;
+explain select src.key, sum(src.key) FROM src JOIN src1 ON src.key = src1.key group by src.key;
+explain from (select key, value from src group by key, value) s select s.key group by s.key;
 
-select Q1.int1, sum(Q1.int1) from (select * from t1 order by int1) Q1 group by Q1.int1;
-select (Q1.int1 + 1), sum(Q1.int1 + 1) from (select * from t1 order by (int1 + 1)) Q1 group by (Q1.int1 + 1);
-select (str1 + 'a') as X, str2, sum(int1), sum(int2) from t1 group by (str1 + 'a'), str2 order by X, str2;
-select t1.str1, sum(t1.int1) FROM t1 JOIN t2 ON t1.str1 = t2.str1 group by t1.str1;
+select key, sum(key) from (select * from src distribute by key sort by key, value) Q1 group by key;
+select key, sum(key), lower(value) from (select * from src order by key) Q1 group by key, lower(value);
+select key, sum(key), (1000 - x) from (select key, (1000 - key) as X from src order by key) Q1 group by key, (1000 - x);
+select key, sum(key) as value from src group by key order by key, value;
+select src.key, src.value FROM src JOIN src1 ON src.key = src1.key order by src.key;
+select src.key, sum(src.key) FROM src JOIN src1 ON src.key = src1.key group by src.key;
+from (select key, value from src group by key, value) s select s.key group by s.key;
 
 set hive.map.aggr=false;
 
-explain select Q1.int1, sum(Q1.int1) from (select * from t1 order by int1) Q1 group by Q1.int1;
-explain select (Q1.int1 + 1), sum(Q1.int1 + 1) from (select * from t1 order by (int1 + 1)) Q1 group by (Q1.int1 + 1);
-explain select (str1 + 'a') as X, str2, sum(int1), sum(int2) from t1 group by (str1 + 'a'), str2 order by X, str2;
-explain select t1.str1, sum(t1.int1) FROM t1 JOIN t2 ON t1.str1 = t2.str1 group by t1.str1;
+explain select key, sum(key) from (select * from src distribute by key sort by key, value) Q1 group by key;
+explain select key, sum(key), lower(value) from (select * from src order by key) Q1 group by key, lower(value);
+explain select key, sum(key), (1000 - x) from (select key, (1000 - key) as X from src order by key) Q1 group by key, (1000 - x);
+explain select key, sum(key) as value from src group by key order by key, value;
+explain select src.key, src.value FROM src JOIN src1 ON src.key = src1.key order by src.key;
+explain select src.key, sum(src.key) FROM src JOIN src1 ON src.key = src1.key group by src.key;
+explain from (select key, value from src group by key, value) s select s.key group by s.key;
 
-select Q1.int1, sum(Q1.int1) from (select * from t1 order by int1) Q1 group by Q1.int1;
-select (Q1.int1 + 1), sum(Q1.int1 + 1) from (select * from t1 order by (int1 + 1)) Q1 group by (Q1.int1 + 1);
-select (str1 + 'a') as X, str2, sum(int1), sum(int2) from t1 group by (str1 + 'a'), str2 order by X, str2;
-select t1.str1, sum(t1.int1) FROM t1 JOIN t2 ON t1.str1 = t2.str1 group by t1.str1;
-
-drop table t1;
-drop table t2;
+select key, sum(key) from (select * from src distribute by key sort by key, value) Q1 group by key;
+select key, sum(key), lower(value) from (select * from src order by key) Q1 group by key, lower(value);
+select key, sum(key), (1000 - x) from (select key, (1000 - key) as X from src order by key) Q1 group by key, (1000 - x);
+select key, sum(key) as value from src group by key order by key, value;
+select src.key, src.value FROM src JOIN src1 ON src.key = src1.key order by src.key;
+select src.key, sum(src.key) FROM src JOIN src1 ON src.key = src1.key group by src.key;
+from (select key, value from src group by key, value) s select s.key group by s.key;

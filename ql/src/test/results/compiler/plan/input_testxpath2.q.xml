@@ -70,7 +70,7 @@
          </void> 
          <void method="put"> 
           <string>transient_lastDdlTime</string> 
-          <string>1327106916</string> 
+          <string>1328253066</string> 
          </void> 
         </object> 
        </void> 
@@ -136,7 +136,7 @@
            </void> 
            <void method="put"> 
             <string>transient_lastDdlTime</string> 
-            <string>1327106916</string> 
+            <string>1328253066</string> 
            </void> 
           </object> 
          </void> 
@@ -168,13 +168,13 @@
                     <void property="conf"> 
                      <object class="org.apache.hadoop.hive.ql.plan.FileSinkDesc"> 
                       <void property="dirName"> 
-                       <string>file:/tmp/navis/hive_2012-01-20_16-48-36_336_8006481287329595111/-ext-10001</string> 
+                       <string>file:/tmp/navis/hive_2012-02-02_23-11-06_852_38831934907448157/-ext-10001</string> 
                       </void> 
                       <void property="numFiles"> 
                        <int>1</int> 
                       </void> 
                       <void property="statsAggPrefix"> 
-                       <string>file:/tmp/navis/hive_2012-01-20_16-48-36_336_8006481287329595111/-ext-10001/</string> 
+                       <string>file:/tmp/navis/hive_2012-02-02_23-11-06_852_38831934907448157/-ext-10001/</string> 
                       </void> 
                       <void property="tableInfo"> 
                        <object class="org.apache.hadoop.hive.ql.plan.TableDesc"> 
@@ -217,21 +217,21 @@
                     <void property="counterNames"> 
                      <object class="java.util.ArrayList"> 
                       <void method="add"> 
-                       <string>CNTR_NAME_FS_50_NUM_INPUT_ROWS</string> 
+                       <string>CNTR_NAME_FS_310_NUM_INPUT_ROWS</string> 
                       </void> 
                       <void method="add"> 
-                       <string>CNTR_NAME_FS_50_NUM_OUTPUT_ROWS</string> 
+                       <string>CNTR_NAME_FS_310_NUM_OUTPUT_ROWS</string> 
                       </void> 
                       <void method="add"> 
-                       <string>CNTR_NAME_FS_50_TIME_TAKEN</string> 
+                       <string>CNTR_NAME_FS_310_TIME_TAKEN</string> 
                       </void> 
                       <void method="add"> 
-                       <string>CNTR_NAME_FS_50_FATAL_ERROR</string> 
+                       <string>CNTR_NAME_FS_310_FATAL_ERROR</string> 
                       </void> 
                      </object> 
                     </void> 
                     <void property="operatorId"> 
-                     <string>FS_50</string> 
+                     <string>FS_310</string> 
                     </void> 
                     <void property="parentOperators"> 
                      <object class="java.util.ArrayList"> 
@@ -462,21 +462,21 @@
                 <void property="counterNames"> 
                  <object class="java.util.ArrayList"> 
                   <void method="add"> 
-                   <string>CNTR_NAME_SEL_49_NUM_INPUT_ROWS</string> 
+                   <string>CNTR_NAME_SEL_309_NUM_INPUT_ROWS</string> 
                   </void> 
                   <void method="add"> 
-                   <string>CNTR_NAME_SEL_49_NUM_OUTPUT_ROWS</string> 
+                   <string>CNTR_NAME_SEL_309_NUM_OUTPUT_ROWS</string> 
                   </void> 
                   <void method="add"> 
-                   <string>CNTR_NAME_SEL_49_TIME_TAKEN</string> 
+                   <string>CNTR_NAME_SEL_309_TIME_TAKEN</string> 
                   </void> 
                   <void method="add"> 
-                   <string>CNTR_NAME_SEL_49_FATAL_ERROR</string> 
+                   <string>CNTR_NAME_SEL_309_FATAL_ERROR</string> 
                   </void> 
                  </object> 
                 </void> 
                 <void property="operatorId"> 
-                 <string>SEL_49</string> 
+                 <string>SEL_309</string> 
                 </void> 
                 <void property="parentOperators"> 
                  <object class="java.util.ArrayList"> 
@@ -492,7 +492,7 @@
                     <void method="add"> 
                      <object class="org.apache.hadoop.hive.ql.exec.ColumnInfo"> 
                       <void property="alias"> 
-                       <string>_c0</string> 
+                       <string>lint</string> 
                       </void> 
                       <void property="internalName"> 
                        <string>_col0</string> 
@@ -505,7 +505,7 @@
                     <void method="add"> 
                      <object class="org.apache.hadoop.hive.ql.exec.ColumnInfo"> 
                       <void property="alias"> 
-                       <string>_c1</string> 
+                       <string>lintstring</string> 
                       </void> 
                       <void property="internalName"> 
                        <string>_col1</string> 
@@ -518,7 +518,7 @@
                     <void method="add"> 
                      <object class="org.apache.hadoop.hive.ql.exec.ColumnInfo"> 
                       <void property="alias"> 
-                       <string>_c2</string> 
+                       <string>mstringstring</string> 
                       </void> 
                       <void property="internalName"> 
                        <string>_col2</string> 
@@ -629,21 +629,21 @@
             <void property="counterNames"> 
              <object class="java.util.ArrayList"> 
               <void method="add"> 
-               <string>CNTR_NAME_FIL_51_NUM_INPUT_ROWS</string> 
+               <string>CNTR_NAME_FIL_311_NUM_INPUT_ROWS</string> 
               </void> 
               <void method="add"> 
-               <string>CNTR_NAME_FIL_51_NUM_OUTPUT_ROWS</string> 
+               <string>CNTR_NAME_FIL_311_NUM_OUTPUT_ROWS</string> 
               </void> 
               <void method="add"> 
-               <string>CNTR_NAME_FIL_51_TIME_TAKEN</string> 
+               <string>CNTR_NAME_FIL_311_TIME_TAKEN</string> 
               </void> 
               <void method="add"> 
-               <string>CNTR_NAME_FIL_51_FATAL_ERROR</string> 
+               <string>CNTR_NAME_FIL_311_FATAL_ERROR</string> 
               </void> 
              </object> 
             </void> 
             <void property="operatorId"> 
-             <string>FIL_51</string> 
+             <string>FIL_311</string> 
             </void> 
             <void property="parentOperators"> 
              <object class="java.util.ArrayList"> 
@@ -795,16 +795,16 @@
         <void property="counterNames"> 
          <object class="java.util.ArrayList"> 
           <void method="add"> 
-           <string>CNTR_NAME_TS_47_NUM_INPUT_ROWS</string> 
+           <string>CNTR_NAME_TS_307_NUM_INPUT_ROWS</string> 
           </void> 
           <void method="add"> 
-           <string>CNTR_NAME_TS_47_NUM_OUTPUT_ROWS</string> 
+           <string>CNTR_NAME_TS_307_NUM_OUTPUT_ROWS</string> 
           </void> 
           <void method="add"> 
-           <string>CNTR_NAME_TS_47_TIME_TAKEN</string> 
+           <string>CNTR_NAME_TS_307_TIME_TAKEN</string> 
           </void> 
           <void method="add"> 
-           <string>CNTR_NAME_TS_47_FATAL_ERROR</string> 
+           <string>CNTR_NAME_TS_307_FATAL_ERROR</string> 
           </void> 
          </object> 
         </void> 
@@ -822,7 +822,7 @@
          </object> 
         </void> 
         <void property="operatorId"> 
-         <string>TS_47</string> 
+         <string>TS_307</string> 
         </void> 
         <void property="schema"> 
          <object class="org.apache.hadoop.hive.ql.exec.RowSchema"> 
@@ -918,7 +918,7 @@
           </void> 
           <void method="put"> 
            <string>transient_lastDdlTime</string> 
-           <string>1327106916</string> 
+           <string>1328253066</string> 
           </void> 
          </object> 
         </void> 
@@ -984,7 +984,7 @@
             </void> 
             <void method="put"> 
              <string>transient_lastDdlTime</string> 
-             <string>1327106916</string> 
+             <string>1328253066</string> 
             </void> 
            </object> 
           </void> 
