@@ -18,17 +18,6 @@
 
 package org.apache.hadoop.hive.ql.optimizer;
 
-import java.io.Serializable;
-import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Stack;
-
-import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
 import org.apache.hadoop.hive.ql.exec.ExtractOperator;
 import org.apache.hadoop.hive.ql.exec.FilterOperator;
@@ -41,7 +30,6 @@ import org.apache.hadoop.hive.ql.exec.ReduceSinkOperator;
 import org.apache.hadoop.hive.ql.exec.RowSchema;
 import org.apache.hadoop.hive.ql.exec.ScriptOperator;
 import org.apache.hadoop.hive.ql.exec.SelectOperator;
-import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.lib.DefaultGraphWalker;
 import org.apache.hadoop.hive.ql.lib.DefaultRuleDispatcher;
 import org.apache.hadoop.hive.ql.lib.Dispatcher;
@@ -60,12 +48,33 @@ import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeFieldDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
+import org.apache.hadoop.hive.ql.plan.GroupByDesc;
+import org.apache.hadoop.hive.ql.plan.JoinCondDesc;
+import org.apache.hadoop.hive.ql.plan.JoinDesc;
 import org.apache.hadoop.hive.ql.plan.ReduceSinkDesc;
 import org.apache.hadoop.hive.ql.plan.SelectDesc;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+
+import java.io.Serializable;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
 
 import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVEGROUPBYSKEW;
 import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVESCRIPTOPERATORTRUST;
+import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVESKEWJOIN;
+import static org.apache.hadoop.hive.ql.plan.JoinDesc.FULL_OUTER_JOIN;
+import static org.apache.hadoop.hive.ql.plan.JoinDesc.INNER_JOIN;
+import static org.apache.hadoop.hive.ql.plan.JoinDesc.LEFT_SEMI_JOIN;
+import static org.apache.hadoop.hive.ql.plan.JoinDesc.RIGHT_OUTER_JOIN;
 
 /**
  * If two reducer sink operators share the same partition/sort columns, we
@@ -75,11 +84,11 @@ import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVESCRIPTOPERATORTR
 public class ReduceSinkDeDuplication implements Transform{
 
   protected ParseContext pGraphContext;
-  
+
   @Override
   public ParseContext transform(ParseContext pctx) throws SemanticException {
     pGraphContext = pctx;
-    
+
  // generate pruned column list for all relevant operators
     ReduceSinkDeduplicateProcCtx cppCtx = new ReduceSinkDeduplicateProcCtx(pGraphContext);
 
@@ -87,11 +96,17 @@ public class ReduceSinkDeDuplication implements Transform{
     opRules.put(new RuleRegExp("R1", "RS%.*RS%"), ReduceSinkDeduplicateProcFactory
         .getReducerReducerProc());
     opRules.put(new RuleRegExp("R2", "RS%.*RS%GBY%"), ReduceSinkDeduplicateProcFactory
-        .getReducerReducerGbyProc());
+        .getReducerGroupbyProc());
     opRules.put(new RuleRegExp("R3", "RS%GBY%.*RS%"), ReduceSinkDeduplicateProcFactory
-        .getReducerGbyReducerProc());
-    opRules.put(new RuleRegExp("R4", "JOIN%.*RS%GBY%"), ReduceSinkDeduplicateProcFactory
-        .getJoinGbyReducerProc());
+        .getGroupbyReducerProc());
+    opRules.put(new RuleRegExp("R3", "RS%GBY%.*RS%GBY%"), ReduceSinkDeduplicateProcFactory
+        .getGroupbyGroupbyProc());
+    opRules.put(new RuleRegExp("R4", "JOIN%.*RS%"), ReduceSinkDeduplicateProcFactory
+        .getJoinReducerProc());
+    opRules.put(new RuleRegExp("R5", "JOIN%.*RS%GBY%"), ReduceSinkDeduplicateProcFactory
+        .getJoinGroupbyProc());
+    opRules.put(new RuleRegExp("R6", "RS%.*RS%JOIN%"), ReduceSinkDeduplicateProcFactory
+        .getReducerJoinProc());
 
     // The dispatcher fires the processor corresponding to the closest matching
     // rule and passes the context along
@@ -105,23 +120,23 @@ public class ReduceSinkDeDuplication implements Transform{
     ogw.startWalking(topNodes, null);
     return pGraphContext;
   }
-  
+
   class ReduceSinkDeduplicateProcCtx implements NodeProcessorCtx{
     ParseContext pctx;
-    List<ReduceSinkOperator> rejectedRSList;
+    List<Operator<?>> removedOps;
 
     public ReduceSinkDeduplicateProcCtx(ParseContext pctx) {
-      rejectedRSList = new ArrayList<ReduceSinkOperator>();
+      removedOps = new ArrayList<Operator<?>>();
       this.pctx = pctx;
     }
-    
-    public boolean contains (ReduceSinkOperator rsOp) {
-      return rejectedRSList.contains(rsOp);
+
+    public boolean contains (Operator<?> rsOp) {
+      return removedOps.contains(rsOp);
     }
-    
-    public void addRejectedReduceSinkOperator(ReduceSinkOperator rsOp) {
-      if (!rejectedRSList.contains(rsOp)) {
-        rejectedRSList.add(rsOp);
+
+    public void addRemovedOperator(Operator<?> rsOp) {
+      if (!removedOps.contains(rsOp)) {
+        removedOps.add(rsOp);
       }
     }
 
@@ -133,24 +148,35 @@ public class ReduceSinkDeDuplication implements Transform{
       this.pctx = pctx;
     }
   }
-  
-  
+
   static class ReduceSinkDeduplicateProcFactory {
 
     public static NodeProcessor getReducerReducerProc() {
       return new ReducerReducerProc();
     }
 
-    public static NodeProcessor getReducerReducerGbyProc() {
+    public static NodeProcessor getReducerGroupbyProc() {
       return new ReducerGroupbyProc();
     }
 
-    public static NodeProcessor getReducerGbyReducerProc() {
+    public static NodeProcessor getGroupbyReducerProc() {
       return new GroupbyReducerProc();
     }
 
-    public static NodeProcessor getJoinGbyReducerProc() {
+    public static NodeProcessor getGroupbyGroupbyProc() {
+      return new GroupbyGroupbyProc();
+    }
+
+    public static NodeProcessor getJoinReducerProc() {
+      return new JoinReducerProc();
+    }
+
+    public static NodeProcessor getJoinGroupbyProc() {
       return new JoinGroupbyProc();
+    }
+
+    public static NodeProcessor getReducerJoinProc() {
+      return new ReducerJoinProc();
     }
 
     public static NodeProcessor getDefaultProc() {
@@ -168,380 +194,106 @@ public class ReduceSinkDeDuplication implements Transform{
         return null;
       }
     }
-    
-    static class ReducerReducerProc implements NodeProcessor {
-      @Override
-      public Object process(Node nd, Stack<Node> stack,
-          NodeProcessorCtx procCtx, Object... nodeOutputs)
-          throws SemanticException {
-        ReduceSinkDeduplicateProcCtx ctx = (ReduceSinkDeduplicateProcCtx) procCtx;
-        ReduceSinkOperator childReduceSink = (ReduceSinkOperator)nd;
-        
-        if(ctx.contains(childReduceSink)) {
-          return null;
-        }
-
-        List<Operator<? extends Serializable>> childOp = childReduceSink.getChildOperators();
-        if (childOp != null && childOp.size() == 1 && childOp.get(0) instanceof GroupByOperator) {
-          ctx.addRejectedReduceSinkOperator(childReduceSink);
-          return null;
-        }
-        
-        ParseContext pGraphContext = ctx.getPctx();
-        HashMap<String, String> childColumnMapping = getPartitionAndKeyColumnMapping(childReduceSink);
-        ReduceSinkOperator parentRS = null;
-        parentRS = findSingleParentReduceSink(childReduceSink, pGraphContext);
-        if (parentRS == null) {
-          ctx.addRejectedReduceSinkOperator(childReduceSink);
-          return null;
-        }
-        HashMap<String, String> parentColumnMapping = getPartitionAndKeyColumnMapping(parentRS);
-        Operator<? extends Serializable> stopBacktrackFlagOp = null;
-        if (parentRS.getParentOperators() == null
-            || parentRS.getParentOperators().size() == 0) {
-          stopBacktrackFlagOp =  parentRS;
-        } else if (parentRS.getParentOperators().size() != 1) {
-          return null;
-        } else {
-          stopBacktrackFlagOp = parentRS.getParentOperators().get(0);
-        }
-        
-        boolean succeed = backTrackColumnNames(childColumnMapping, childReduceSink, stopBacktrackFlagOp, pGraphContext);
-        if (!succeed) {
-          return null;
-        }
-        succeed = backTrackColumnNames(parentColumnMapping, parentRS, stopBacktrackFlagOp, pGraphContext);
-        if (!succeed) {
-          return null;
-        }
-        
-        boolean same = compareReduceSink(childReduceSink, parentRS, childColumnMapping, parentColumnMapping);
-        if (!same) {
-          return null;
-        }
-        replaceReduceSinkWithSelectOperator(childReduceSink, pGraphContext);
-        return null;
-      }
-
-      private void replaceReduceSinkWithSelectOperator(
-          ReduceSinkOperator childReduceSink, ParseContext pGraphContext) throws SemanticException {
-        List<Operator<? extends Serializable>> parentOp = childReduceSink.getParentOperators();
-        List<Operator<? extends Serializable>> childOp = childReduceSink.getChildOperators();
-        
-        Operator<? extends Serializable> oldParent = childReduceSink;
-        
-        if (childOp != null && childOp.size() == 1
-            && ((childOp.get(0)) instanceof ExtractOperator)) {
-          oldParent = childOp.get(0);
-          childOp = childOp.get(0).getChildOperators();
-        }
-        
-        Operator<? extends Serializable> input = parentOp.get(0);
-        input.getChildOperators().clear();
-        
-        RowResolver inputRR = pGraphContext.getOpParseCtx().get(input).getRowResolver();
-
-        ArrayList<ExprNodeDesc> exprs = new ArrayList<ExprNodeDesc>();
-        ArrayList<String> outputs = new ArrayList<String>();
-        List<String> outputCols = childReduceSink.getConf().getOutputValueColumnNames();
-        RowResolver outputRS = new RowResolver();
-
-        Map<String, ExprNodeDesc> colExprMap = new HashMap<String, ExprNodeDesc>();
-
-        for (int i = 0; i < outputCols.size(); i++) {
-          String internalName = outputCols.get(i);
-          String[] nm = inputRR.reverseLookup(internalName);
-          ColumnInfo valueInfo = inputRR.get(nm[0], nm[1]);
-          ExprNodeDesc colDesc = childReduceSink.getConf().getValueCols().get(i);
-          exprs.add(colDesc);
-          outputs.add(internalName);
-          outputRS.put(nm[0], nm[1], new ColumnInfo(internalName, valueInfo
-              .getType(), nm[0], valueInfo.getIsVirtualCol(), valueInfo.isHiddenVirtualCol()));
-          colExprMap.put(internalName, colDesc);
-        }
-
-        SelectDesc select = new SelectDesc(exprs, outputs, false);
-
-        SelectOperator sel = (SelectOperator) putOpInsertMap(
-            OperatorFactory.getAndMakeChild(select, new RowSchema(inputRR
-            .getColumnInfos()), input), inputRR, pGraphContext);
-
-        sel.setColumnExprMap(colExprMap);
-
-        // Insert the select operator in between.
-        sel.setChildOperators(childOp);
-        for (Operator<? extends Serializable> ch : childOp) {
-          ch.replaceParent(oldParent, sel);
-        }
-        
-      }
-      
-      private Operator<? extends Serializable> putOpInsertMap(
-          Operator<? extends Serializable> op, RowResolver rr, ParseContext pGraphContext) {
-        OpParseContext ctx = new OpParseContext(rr);
-        pGraphContext.getOpParseCtx().put(op, ctx);
-        return op;
-      }
-
-      private boolean compareReduceSink(ReduceSinkOperator childReduceSink,
-          ReduceSinkOperator parentRS,
-          HashMap<String, String> childColumnMapping,
-          HashMap<String, String> parentColumnMapping) {
-        
-        ArrayList<ExprNodeDesc> childPartitionCols = childReduceSink.getConf().getPartitionCols();
-        ArrayList<ExprNodeDesc> parentPartitionCols = parentRS.getConf().getPartitionCols();
-        
-        boolean ret = compareExprNodes(childColumnMapping, parentColumnMapping,
-            childPartitionCols, parentPartitionCols);
-        if (!ret) {
-          return false;
-        }
-        
-        ArrayList<ExprNodeDesc> childReduceKeyCols = childReduceSink.getConf().getKeyCols();
-        ArrayList<ExprNodeDesc> parentReduceKeyCols = parentRS.getConf().getKeyCols();
-        ret = compareExprNodes(childColumnMapping, parentColumnMapping,
-            childReduceKeyCols, parentReduceKeyCols);
-        if (!ret) {
-          return false;
-        }
-        
-        String childRSOrder = childReduceSink.getConf().getOrder();
-        String parentRSOrder = parentRS.getConf().getOrder();
-        boolean moveChildRSOrderToParent = false;
-        //move child reduce sink's order to the parent reduce sink operator.
-        if (childRSOrder != null && !(childRSOrder.trim().equals(""))) {
-          if (parentRSOrder == null
-              || !childRSOrder.trim().equals(parentRSOrder.trim())) {
-            return false;
-          }
-        } else {
-          if(parentRSOrder == null || parentRSOrder.trim().equals("")) {
-            moveChildRSOrderToParent = true;
-          }
-        }
-        
-        int childNumReducers = childReduceSink.getConf().getNumReducers();
-        int parentNumReducers = parentRS.getConf().getNumReducers();
-        boolean moveChildReducerNumToParent = false;
-        //move child reduce sink's number reducers to the parent reduce sink operator.
-        if (childNumReducers != parentNumReducers) {
-          if (childNumReducers == -1) {
-            //do nothing. 
-          } else if (parentNumReducers == -1) {
-            //set childNumReducers in the parent reduce sink operator.
-            moveChildReducerNumToParent = true;
-          } else {
-            return false;
-          }
-        }
-        
-        if(moveChildRSOrderToParent) {
-          parentRS.getConf().setOrder(childRSOrder);          
-        }
-        
-        if(moveChildReducerNumToParent) {
-          parentRS.getConf().setNumReducers(childNumReducers);
-        }
-        
-        return true;
-      }
-
-      private boolean compareExprNodes(HashMap<String, String> childColumnMapping,
-          HashMap<String, String> parentColumnMapping,
-          ArrayList<ExprNodeDesc> childColExprs,
-          ArrayList<ExprNodeDesc> parentColExprs) {
-        
-        boolean childEmpty = childColExprs == null || childColExprs.size() == 0;
-        boolean parentEmpty = parentColExprs == null || parentColExprs.size() == 0;
-        
-        if (childEmpty) { //both empty
-          return true;
-        }
-        
-        //child not empty here
-        if (parentEmpty) { // child not empty, but parent empty
-          return false;
-        }
-
-        if (childColExprs.size() != parentColExprs.size()) {
-          return false;
-        }
-        int i = 0;
-        while (i < childColExprs.size()) {
-          ExprNodeDesc childExpr = childColExprs.get(i);
-          ExprNodeDesc parentExpr = parentColExprs.get(i);
-
-          if ((childExpr instanceof ExprNodeColumnDesc)
-              && (parentExpr instanceof ExprNodeColumnDesc)) {
-            String childCol = childColumnMapping
-                .get(((ExprNodeColumnDesc) childExpr).getColumn());
-            String parentCol = parentColumnMapping
-                .get(((ExprNodeColumnDesc) childExpr).getColumn());
-
-            if (!childCol.equals(parentCol)) {
-              return false;
-            }
-          } else {
-            return false;
-          }
-          i++;
-        }
-        return true;
-      }
-
-      /*
-       * back track column names to find their corresponding original column
-       * names. Only allow simple operators like 'select column' or filter.
-       */
-      private boolean backTrackColumnNames(
-          HashMap<String, String> columnMapping,
-          ReduceSinkOperator reduceSink,
-          Operator<? extends Serializable> stopBacktrackFlagOp, ParseContext pGraphContext) {
-        Operator<? extends Serializable> startOperator = reduceSink;
-        while (startOperator != null && startOperator != stopBacktrackFlagOp) {
-          startOperator = startOperator.getParentOperators().get(0);
-          Map<String, ExprNodeDesc> colExprMap = startOperator.getColumnExprMap();
-          if(colExprMap == null || colExprMap.size()==0) {
-            continue;
-          }
-          Iterator<String> keyIter = columnMapping.keySet().iterator();
-          while (keyIter.hasNext()) {
-            String key = keyIter.next();
-            String oldCol = columnMapping.get(key);
-            ExprNodeDesc exprNode = colExprMap.get(oldCol);
-            if(exprNode instanceof ExprNodeColumnDesc) {
-              String col = ((ExprNodeColumnDesc)exprNode).getColumn();
-              columnMapping.put(key, col);
-            } else {
-              return false;
-            }
-          }
-        }
-        
-        return true;
-      }
-
-      private HashMap<String, String> getPartitionAndKeyColumnMapping(ReduceSinkOperator reduceSink) {
-        HashMap<String, String> columnMapping = new HashMap<String, String> ();
-        ReduceSinkDesc reduceSinkDesc = reduceSink.getConf();        
-        ArrayList<ExprNodeDesc> partitionCols = reduceSinkDesc.getPartitionCols();
-        ArrayList<ExprNodeDesc> reduceKeyCols = reduceSinkDesc.getKeyCols();
-        if(partitionCols != null) {
-          for (ExprNodeDesc desc : partitionCols) {
-            List<String> cols = desc.getCols();
-            for(String col : cols) {
-              columnMapping.put(col, col);
-            }
-          }
-        }
-        if(reduceKeyCols != null) {
-          for (ExprNodeDesc desc : reduceKeyCols) {
-            List<String> cols = desc.getCols();
-            for(String col : cols) {
-              columnMapping.put(col, col);
-            }
-          }
-        }
-        return columnMapping;
-      }
-
-      private ReduceSinkOperator findSingleParentReduceSink(ReduceSinkOperator childReduceSink, ParseContext pGraphContext) {
-        Operator<? extends Serializable> start = childReduceSink;
-        while(start != null) {
-          if (start.getParentOperators() == null
-              || start.getParentOperators().size() != 1) {
-            // this potentially is a join operator
-            return null;
-          }
-          
-          boolean allowed = false;
-          if ((start instanceof SelectOperator)
-              || (start instanceof FilterOperator)
-              || (start instanceof ExtractOperator)
-              || (start instanceof ForwardOperator)
-              || (start instanceof ScriptOperator)
-              || (start instanceof ReduceSinkOperator)) {
-            allowed = true;
-          }
-          
-          if (!allowed) {
-            return null;
-          }
-          
-          if ((start instanceof ScriptOperator)
-              && !HiveConf.getBoolVar(pGraphContext.getConf(),
-                  HiveConf.ConfVars.HIVESCRIPTOPERATORTRUST)) {
-            return null;
-          }
-          
-          start = start.getParentOperators().get(0);
-          if(start instanceof ReduceSinkOperator) {
-            return (ReduceSinkOperator)start;
-          }
-        }
-        return null;
-      }
-    }
 
     abstract static class AbsctractReducerReducerProc implements NodeProcessor {
 
-      protected boolean deduplicate(ReduceSinkOperator childRS, ReduceSinkOperator parentRS, boolean removeChild) {
-        return deduplicate(childRS, parentRS, removeChild, 0);
+      ReduceSinkDeduplicateProcCtx dedupCtx;
+
+      public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
+          Object... nodeOutputs) throws SemanticException {
+        dedupCtx = (ReduceSinkDeduplicateProcCtx) procCtx;
+        if (!dedupCtx.contains((Operator<?>) nd)) {
+          return process(nd, stack, dedupCtx.getPctx());
+        }
+        return false;
       }
 
-      protected boolean deduplicate(ReduceSinkOperator childRS, ReduceSinkOperator parentRS, boolean removeChild, int tag) {
-        int[] result = checkStatus(childRS, parentRS, tag);
+      protected abstract Object process(Node nd, Stack<Node> stack, ParseContext context)
+          throws SemanticException;
+      
+      protected boolean mergeToChild(ReduceSinkOperator childRS, ReduceSinkOperator parentRS) {
+        return mergeToChild(childRS, parentRS, -1);
+      }
+
+      protected boolean mergeToChild(ReduceSinkOperator childRS, ReduceSinkOperator parentRS, 
+          int index) {
+        int[] result = checkAll(childRS, parentRS, index);
         if (result == null) {
           return false;
         }
-        if (result[0] < 0) {
-          if (!removeChild) {
-            return false;
-          }
-        } else if (result[0] > 0) {
+        if (result[0] > 0) {
+          Operator<?> terminal = getSingleParent(parentRS);
+          ArrayList<ExprNodeDesc> childKCs = childRS.getConf().getKeyCols();
+          parentRS.getConf().setKeyCols(backtrack(childKCs, childRS, terminal, index));
+        }
+        if (result[1] > 0) {
           Operator<?> terminal = getSingleParent(parentRS);
           ArrayList<ExprNodeDesc> childPCs = childRS.getConf().getPartitionCols();
-          parentRS.getConf().setPartitionCols(backtrack(childPCs, childRS, terminal, tag));
+          parentRS.getConf().setPartitionCols(backtrack(childPCs, childRS, terminal, index));
         }
-        if (result[1] < 0) {
-          childRS.getConf().setOrder(parentRS.getConf().getOrder());
-        } else if (result[1] > 0) {
+        if (result[2] > 0) {
           parentRS.getConf().setOrder(childRS.getConf().getOrder());
         }
-        if (result[2] < 0) {
-          childRS.getConf().setNumReducers(parentRS.getConf().getNumReducers());
-        } else if (result[2] > 0) {
+        if (result[3] > 0) {
           parentRS.getConf().setNumReducers(childRS.getConf().getNumReducers());
         }
         return true;
       }
 
       // -1 for p to c, 1 for c to p
-      private int[] checkStatus(ReduceSinkOperator childRS, ReduceSinkOperator parentRS, int tag) {
-        List<ExprNodeDesc> ckeys = childRS.getConf().getKeyCols();
-        List<ExprNodeDesc> pkeys = parentRS.getConf().getKeyCols();
-        if (pkeys != null && !pkeys.isEmpty() && !sameKeys(ckeys, pkeys, childRS, parentRS, tag)) {
+      protected int[] checkAll(ReduceSinkOperator childRS, ReduceSinkOperator parentRS,
+          int index) {
+        ReduceSinkDesc cconf = childRS.getConf();
+        ReduceSinkDesc pconf = parentRS.getConf();
+
+        List<ExprNodeDesc> ckeys = cconf.getKeyCols();
+        List<ExprNodeDesc> pkeys = pconf.getKeyCols();
+        Integer moveKeyColTo = checkExprs(ckeys, pkeys, childRS, parentRS, index);
+        if (moveKeyColTo == null) {
           return null;
         }
-        int movePartitionColTo = 0;
-        List<ExprNodeDesc> cpars = childRS.getConf().getPartitionCols();
-        List<ExprNodeDesc> ppars = parentRS.getConf().getPartitionCols();
-        if (cpars == null || cpars.isEmpty()) {
-          if (ppars != null && !ppars.isEmpty()) {
-            movePartitionColTo = -1;
-          }
-        } else {
-          if (ppars == null || ppars.isEmpty()) {
-            movePartitionColTo = 1;
-          } else {
-            if (!sameKeys(cpars, ppars, childRS, parentRS, tag)) {
-              return null;
-            }
-          }
+        List<ExprNodeDesc> cpars = cconf.getPartitionCols();
+        List<ExprNodeDesc> ppars = pconf.getPartitionCols();
+        Integer movePartitionColTo = checkExprs(cpars, ppars, childRS, parentRS, index);
+        if (movePartitionColTo == null) {
+          return null;
         }
-        int moveRSOrderTo = 0;
-        String corder = childRS.getConf().getOrder();
-        String porder = parentRS.getConf().getOrder();
+        String corder = cconf.getOrder();
+        String porder = pconf.getOrder();
+        Integer moveRSOrderTo = checkOrder(corder, porder);
+        if (moveRSOrderTo == null) {
+          return null;
+        }
+        int creduce = cconf.getNumReducers();
+        int preduce = pconf.getNumReducers();
+        Integer moveReducerNumTo = checkNumReducer(creduce, preduce);
+        if (moveReducerNumTo == null) {
+          return null;
+        }
+        return new int[] {moveKeyColTo, movePartitionColTo, moveRSOrderTo, moveReducerNumTo};
+      }
+
+      protected int[] checkMisc(ReduceSinkOperator childRS, ReduceSinkOperator parentRS) {
+        ReduceSinkDesc cconf = childRS.getConf();
+        ReduceSinkDesc pconf = parentRS.getConf();
+
+        String corder = cconf.getOrder();
+        String porder = pconf.getOrder();
+        Integer moveRSOrderTo = checkOrder(corder, porder);
+        if (moveRSOrderTo == null) {
+          return null;
+        }
+        int creduce = cconf.getNumReducers();
+        int preduce = pconf.getNumReducers();
+        Integer moveReducerNumTo = checkNumReducer(creduce, preduce);
+        if (moveReducerNumTo == null) {
+          return null;
+        }
+        return new int[] {moveRSOrderTo, moveReducerNumTo};
+      }
+
+      private Integer checkOrder(String corder, String porder) {
+        Integer moveRSOrderTo = 0;
         if (corder == null || corder.trim().equals("")) {
           if (porder != null && !porder.trim().equals("")) {
             moveRSOrderTo = -1;
@@ -550,14 +302,21 @@ public class ReduceSinkDeDuplication implements Transform{
           if (porder == null || porder.trim().equals("")) {
             moveRSOrderTo = 1;
           } else {
-            if (!corder.trim().equals(porder.trim())) {
-              return null;
+            corder = corder.trim();
+            porder = porder.trim();
+            int target = Math.min(corder.length(), porder.length());
+            if (!corder.substring(0, target).equals(porder.substring(0, target))) {
+              moveRSOrderTo = null;
+            } else {
+              moveRSOrderTo = Integer.valueOf(corder.length()).compareTo(porder.length());
             }
           }
         }
-        int moveReducerNumTo = 0;
-        int creduce = childRS.getConf().getNumReducers();
-        int preduce = parentRS.getConf().getNumReducers();
+        return moveRSOrderTo;
+      }
+
+      private Integer checkNumReducer(int creduce, int preduce) {
+        Integer moveReducerNumTo = 0;
         if (creduce < 0) {
           if (preduce >= 0) {
             moveReducerNumTo = -1;
@@ -567,86 +326,179 @@ public class ReduceSinkDeDuplication implements Transform{
             moveReducerNumTo = 1;
           } else {
             if (creduce != preduce) {
-              return null;
+              moveReducerNumTo = null;
             }
           }
         }
-        return new int[] {movePartitionColTo, moveRSOrderTo, moveReducerNumTo};
+        return moveReducerNumTo;
       }
 
-      private boolean sameKeys(List<ExprNodeDesc> cexprs, List<ExprNodeDesc> pexprs,
-                                 Operator<?> child, Operator<?> parent, int tag) {
-        if (pexprs == null || pexprs.size() != cexprs.size()) {
-          return false;
-        }
-        Operator<?> terminal = getSingleParent(parent);
-        for (int i = 0; i < cexprs.size(); i++) {
-          ExprNodeDesc cexpr = backtrack(cexprs.get(i), child, terminal, tag);
-          ExprNodeDesc pexpr = backtrack(pexprs.get(i), parent, terminal, tag);
-          if (!cexpr.isSame(pexpr)) {
-            return false;
+      protected Integer checkExprs(List<ExprNodeDesc> cexprs, List<ExprNodeDesc> pexprs,
+          Operator<?> childOP, Operator<?> parentOP, int index) {
+        Integer moveKeyColTo = 0;
+        if (cexprs == null || cexprs.isEmpty()) {
+          if (pexprs != null && !pexprs.isEmpty()) {
+            Operator<?> terminal = getSingleParent(parentOP);
+            for (ExprNodeDesc pkey : pexprs) {
+              if (backtrack(pkey, parentOP, terminal) == null) {
+                return null;
+              }
+            }
+            moveKeyColTo = -1;
+          }
+        } else {
+          if (pexprs == null || pexprs.isEmpty()) {
+            Operator<?> terminal = getSingleParent(parentOP);
+            for (ExprNodeDesc ckey : cexprs) {
+              if (backtrack(ckey, childOP, terminal) == null) {
+                return null;
+              }
+            }
+            moveKeyColTo = 1;
+          } else {
+            moveKeyColTo = sameKeys(cexprs, pexprs, childOP, parentOP, index);
           }
         }
-        return true;
+        return moveKeyColTo;
       }
 
-      private ArrayList<ExprNodeDesc> backtrack(List<ExprNodeDesc> sources, Operator<?> current, Operator<?> terminal, int tag) {
+      protected Integer sameKeys(List<ExprNodeDesc> cexprs, List<ExprNodeDesc> pexprs,
+          Operator<?> child, Operator<?> parent, int index) {
+        int common = Math.min(cexprs.size(), pexprs.size());
+        int limit = Math.max(cexprs.size(), pexprs.size());
+        Operator<?> terminal = getSingleParent(parent);
+        int i = 0;
+        for (; i < common; i++) {
+          ExprNodeDesc cexpr = backtrack(cexprs.get(i), child, terminal, index);
+          ExprNodeDesc pexpr = backtrack(pexprs.get(i), parent, terminal, index);
+          if (cexpr == null || !cexpr.isSame(pexpr)) {
+            return null;
+          }
+        }
+        for (;i < limit; i++) {
+          if (cexprs.size() > pexprs.size()) {
+            if (backtrack(cexprs.get(i), child, terminal, index) == null) {
+              return null;
+            }
+          } else if (backtrack(pexprs.get(i), parent, terminal, index) == null) {
+            return null;
+          }
+        }
+        return Integer.valueOf(cexprs.size()).compareTo(pexprs.size());
+      }
+
+      protected ArrayList<ExprNodeDesc> backtrack(List<ExprNodeDesc> sources,
+          Operator<?> current, Operator<?> terminal) {
+        return backtrack(sources, current, terminal, -1);
+      }
+
+      protected ArrayList<ExprNodeDesc> backtrack(List<ExprNodeDesc> sources,
+          Operator<?> current, Operator<?> terminal, int index) {
         ArrayList<ExprNodeDesc> result = new ArrayList<ExprNodeDesc>();
         for (ExprNodeDesc expr : sources) {
-          result.add(backtrack(expr, current, terminal, tag));
+          result.add(backtrack(expr, current, terminal, index));
         }
         return result;
       }
 
-      private ExprNodeDesc backtrack(ExprNodeDesc source, Operator<?> current, Operator<?> terminal, int tag) {
-        if (current == terminal) {
-          return source;
-        }
+      protected ExprNodeDesc backtrack(ExprNodeDesc source, Operator<?> current,
+          Operator<?> terminal) {
+        return backtrack(source, current, terminal, -1);
+      }
+
+      protected ExprNodeDesc backtrack(ExprNodeDesc source, Operator<?> current,
+          Operator<?> terminal, int index) {
         if (source instanceof ExprNodeGenericFuncDesc) {
-          ExprNodeGenericFuncDesc function = (ExprNodeGenericFuncDesc) source.clone();
           List<ExprNodeDesc> params = new ArrayList<ExprNodeDesc>();
-          for (ExprNodeDesc param : function.getChildren()) {
-            params.add(backtrack(param, current, terminal, tag));
+          for (ExprNodeDesc param : source.getChildren()) {
+            ExprNodeDesc backtrack = backtrack(param, current, terminal, index);
+            if (backtrack == null) {
+              return null;
+            }
+            params.add(backtrack);
           }
+          ExprNodeGenericFuncDesc function = (ExprNodeGenericFuncDesc) source.clone();
           function.setChildExprs(params);
           return function;
         }
         if (source instanceof ExprNodeColumnDesc) {
           ExprNodeColumnDesc column = (ExprNodeColumnDesc) source;
-          return backtrack(column, current, terminal, tag);
+          return backtrack(column, current, terminal, index);
         }
         if (source instanceof ExprNodeFieldDesc) {
           ExprNodeFieldDesc field = (ExprNodeFieldDesc) source;
-          ExprNodeDesc backtrack = backtrack(field.getDesc(), current, terminal, tag);
-          return new ExprNodeFieldDesc(field.getTypeInfo(), backtrack, field.getFieldName(), field.getIsList());
+          String name = field.getFieldName();
+          TypeInfo type = field.getTypeInfo();
+          ExprNodeDesc backtrack = backtrack(field.getDesc(), current, terminal, index);
+          return new ExprNodeFieldDesc(type, backtrack, name, field.getIsList());
         }
         return source;
       }
 
-      private ExprNodeDesc backtrack(ExprNodeColumnDesc column, Operator<?> current, Operator<?> terminal, int tag) {
+      private ExprNodeDesc backtrack(ExprNodeColumnDesc column, Operator<?> current,
+          Operator<?> terminal, int index) {
         if (current == null || current == terminal) {
           return column;
         }
+        if (current instanceof JoinOperator) {
+          JoinDesc joinconf = ((JoinOperator)current).getConf();
+          Byte tag = joinconf.getTagOrder()[index];
+          if (!joinconf.getReversedExprs().get(column.getColumn()).equals(tag)) {
+            return null;
+          }
+        }
         Map<String, ExprNodeDesc> mapping = current.getColumnExprMap();
         if (mapping == null || !mapping.containsKey(column.getColumn())) {
-          return backtrack(column, getSingleParent(current, tag), terminal, tag);
+          return backtrack(column, getSingleParent(current, index), terminal, index);
         }
-        return backtrack(mapping.get(column.getColumn()), getSingleParent(current, tag), terminal, tag);
+        ExprNodeDesc mapped = mapping.get(column.getColumn());
+        return backtrack(mapped, getSingleParent(current, index), terminal, index);
       }
 
       protected Operator<?> getSingleParent(Operator<?> operator) {
+        return getSingleParent(operator, false);
+      }
+
+      protected Operator<?> getSingleParent(Operator<?> operator, boolean skipForward) {
         if (operator.getParentOperators() != null && operator.getParentOperators().size() == 1) {
-          return operator.getParentOperators().get(0);
+          Operator<?> parent = operator.getParentOperators().get(0);
+          if (skipForward && parent instanceof ForwardOperator) {
+            return getSingleParent(parent, skipForward);
+          }
+          return parent;
         }
         return null;
       }
 
-      protected Operator<?> getSingleParent(Operator<?> operator, int tag) {
-        return operator instanceof JoinOperator ? operator.getParentOperators().get(tag) : getSingleParent(operator);
+      protected Operator<?> getSingleChild(Operator<?> operator) {
+        return getSingleChild(operator, false);
+      }
+
+      protected Operator<?> getSingleChild(Operator<?> operator, boolean skipForward) {
+        if (operator.getChildOperators() != null && operator.getChildOperators().size() == 1) {
+          Operator<?> child = operator.getChildOperators().get(0);
+          if (skipForward && child instanceof ForwardOperator) {
+            return getSingleChild(child, skipForward);
+          }
+          return child;
+        }
+        return null;
+      }
+
+      protected Operator<?> getSingleParent(Operator<?> operator, int index) {
+        if (operator instanceof JoinOperator && index < 0) {
+          throw new IllegalStateException("invald walk");
+        }
+        return operator instanceof JoinOperator ? operator.getParentOperators().get(index)
+            : getSingleParent(operator);
       }
 
       @SuppressWarnings("unchecked")
-      protected <T extends Operator<?>> T[] findParentOperators(Operator<?> start, Class<T> target, boolean trustScript) {
+      protected <T extends Operator<?>> T[] findParentOperators(Operator<?> start,
+          Class<T> target, boolean trustScript) {
+        if (start instanceof JoinOperator) {
+          return findParentOperators((JoinOperator) start, target);
+        }
         Operator<?> cursor = getSingleParent(start);
         for (; cursor != null; cursor = getSingleParent(cursor)) {
           if (target.isAssignableFrom(cursor.getClass())) {
@@ -664,6 +516,7 @@ public class ReduceSinkDeDuplication implements Transform{
               || cursor instanceof FilterOperator
               || cursor instanceof ExtractOperator
               || cursor instanceof ForwardOperator
+              || cursor instanceof GroupByOperator
               || cursor instanceof ScriptOperator
               || cursor instanceof ReduceSinkOperator)) {
             return null;
@@ -685,69 +538,63 @@ public class ReduceSinkDeDuplication implements Transform{
             }
           }
           if (result[tag] == null) {
-            throw new IllegalStateException("failed to find " + target.getSimpleName() + " from " + join + " on tag " + tag);
+            throw new IllegalStateException("failed to find " + target.getSimpleName()
+                + " from " + join + " on tag " + tag);
           }
         }
         return result;
       }
 
-      // copied from ReducerReducerProc
-      protected void replaceReduceSinkWithSelectOperator(
-          ReduceSinkOperator childReduceSink, ParseContext pGraphContext) throws SemanticException {
-        List<Operator<? extends Serializable>> parentOp = childReduceSink.getParentOperators();
-        List<Operator<? extends Serializable>> childOp = childReduceSink.getChildOperators();
+      protected SelectOperator replaceReduceSinkWithSelectOperator(ReduceSinkOperator childRS,
+          ParseContext context) throws SemanticException {
+        SelectOperator select = replaceOperatorWithSelect(childRS, context);
+        select.getConf().setOutputColumnNames(childRS.getConf().getOutputValueColumnNames());
+        select.getConf().setColList(childRS.getConf().getValueCols());
+        return select;
+      }
 
-        Operator<? extends Serializable> oldParent = childReduceSink;
-
-        if (childOp != null && childOp.size() == 1
-            && ((childOp.get(0)) instanceof ExtractOperator)) {
-          oldParent = childOp.get(0);
-          childOp = childOp.get(0).getChildOperators();
+      protected SelectOperator replaceGroupbyWithSelectOperator(GroupByOperator childGby,
+          ParseContext context) throws SemanticException {
+        SelectOperator select = replaceOperatorWithSelect(childGby, context);
+        ArrayList<ExprNodeDesc> colList = new ArrayList<ExprNodeDesc>();
+        for (String colName : childGby.getConf().getOutputColumnNames()) {
+          colList.add(childGby.getColumnExprMap().get(colName));
         }
+        select.getConf().setOutputColumnNames(childGby.getConf().getOutputColumnNames());
+        select.getConf().setColList(colList);
+        return select;
+      }
 
-        Operator<? extends Serializable> input = parentOp.get(0);
-        input.getChildOperators().clear();
+      private SelectOperator replaceOperatorWithSelect(Operator<?> operator,
+          ParseContext context) throws SemanticException {
+        RowResolver inputRR = context.getOpParseCtx().get(operator).getRowResolver();
+        SelectDesc select = new SelectDesc(null, null);
 
-        RowResolver inputRR = pGraphContext.getOpParseCtx().get(input).getRowResolver();
+        Operator<?> parent = getSingleParent(operator);
+        Operator<?> child = getSingleChild(operator);
 
-        ArrayList<ExprNodeDesc> exprs = new ArrayList<ExprNodeDesc>();
-        ArrayList<String> outputs = new ArrayList<String>();
-        List<String> outputCols = childReduceSink.getConf().getOutputValueColumnNames();
-        RowResolver outputRS = new RowResolver();
-
-        Map<String, ExprNodeDesc> colExprMap = new HashMap<String, ExprNodeDesc>();
-
-        for (int i = 0; i < outputCols.size(); i++) {
-          String internalName = outputCols.get(i);
-          String[] nm = inputRR.reverseLookup(internalName);
-          ColumnInfo valueInfo = inputRR.get(nm[0], nm[1]);
-          ExprNodeDesc colDesc = childReduceSink.getConf().getValueCols().get(i);
-          exprs.add(colDesc);
-          outputs.add(internalName);
-          outputRS.put(nm[0], nm[1], new ColumnInfo(internalName, valueInfo
-              .getType(), nm[0], valueInfo.getIsVirtualCol(), valueInfo.isHiddenVirtualCol()));
-          colExprMap.put(internalName, colDesc);
-        }
-
-        SelectDesc select = new SelectDesc(exprs, outputs, false);
+        parent.getChildOperators().clear();
 
         SelectOperator sel = (SelectOperator) putOpInsertMap(
-            OperatorFactory.getAndMakeChild(select, new RowSchema(outputRS
-            .getColumnInfos()), input), outputRS, pGraphContext);
+            OperatorFactory.getAndMakeChild(select, new RowSchema(inputRR
+            .getColumnInfos()), parent), inputRR, context);
 
-        sel.setColumnExprMap(colExprMap);
+        sel.setColumnExprMap(operator.getColumnExprMap());
 
-        // Insert the select operator in between.
-        if (childOp != null) {
-          sel.setChildOperators(childOp);
-          for (Operator<? extends Serializable> ch : childOp) {
-            ch.replaceParent(oldParent, sel);
-          }
+        sel.setChildOperators(operator.getChildOperators());
+        for (Operator<? extends Serializable> ch : operator.getChildOperators()) {
+          ch.replaceParent(operator, sel);
         }
+        if (child instanceof ExtractOperator) {
+          removeOperator(child, getSingleChild(child), sel, context);
+        }
+        operator.setChildOperators(null);
+        operator.setParentOperators(null);
+        return sel;
       }
 
       protected void removeReduceSinkForGroupBy(ReduceSinkOperator rs, GroupByOperator cgby,
-          ParseContext pGraphContext, int tag) throws SemanticException {
+          ParseContext context) throws SemanticException {
 
         Operator<?> parent = getSingleParent(rs);
 
@@ -761,49 +608,68 @@ public class ReduceSinkDeDuplication implements Transform{
           }
           cgby.setColumnExprMap(pgby.getColumnExprMap());
           cgby.setSchema(pgby.getSchema());
-          pGraphContext.getOpParseCtx().get(cgby).setRowResolver(pGraphContext.getOpParseCtx().get(pgby).getRowResolver());
+          RowResolver resolver = context.getOpParseCtx().get(pgby).getRowResolver();
+          context.getOpParseCtx().get(cgby).setRowResolver(resolver);
         } else {
-          cgby.getConf().setKeys(backtrack(cgby.getConf().getKeys(), cgby, parent, tag));
+          cgby.getConf().setKeys(backtrack(cgby.getConf().getKeys(), cgby, parent));
           for (AggregationDesc aggr : cgby.getConf().getAggregators()) {
-            aggr.setParameters(backtrack(aggr.getParameters(), cgby, parent, tag));
+            aggr.setParameters(backtrack(aggr.getParameters(), cgby, parent));
           }
 
-          RowResolver outputRS = new RowResolver();
-          Map<String, ExprNodeDesc> colExprMap = new HashMap<String, ExprNodeDesc>();
+          Map<String, ExprNodeDesc> oldMap = cgby.getColumnExprMap();
+          RowResolver oldRR = context.getOpParseCtx().get(cgby).getRowResolver();
 
-          RowResolver parentRR = pGraphContext.getOpParseCtx().get(rs).getRowResolver();
+          Map<String, ExprNodeDesc> newMap = new HashMap<String, ExprNodeDesc>();
+          RowResolver newRR = new RowResolver();
+
           List<String> outputCols = cgby.getConf().getOutputColumnNames();
           for (int i = 0; i < outputCols.size(); i++) {
             String colName = outputCols.get(i);
-            String[] nm = parentRR.reverseLookup(colName);
-            ColumnInfo colInfo = nm != null ? parentRR.get(nm[0], nm[1]) : null;
-            if (colInfo == null) {
-              colName = Utilities.ReduceField.VALUE.toString() + "." + colName;
-              nm = parentRR.reverseLookup(colName);
-              if (nm != null) {
-                colInfo = parentRR.get(nm[0], nm[1]);
-              }
-            }
-            if (colInfo != null) {
-              ExprNodeDesc colDesc = rs.getConf().getValueCols().get(i);
-              outputRS.put(nm[0], nm[1], colInfo);
-              colExprMap.put(colInfo.getInternalName(), colDesc);
+            String[] nm = oldRR.reverseLookup(colName);
+            ColumnInfo colInfo = oldRR.get(nm[0], nm[1]);
+            newRR.put(nm[0], nm[1], colInfo);
+            ExprNodeDesc colExpr = backtrack(oldMap.get(colName), cgby, parent, 0);
+            if (colExpr != null) {
+              newMap.put(colInfo.getInternalName(), colExpr);
             }
           }
-          cgby.setColumnExprMap(colExprMap);
-          cgby.setSchema(new RowSchema(outputRS.getColumnInfos()));
-          pGraphContext.getOpParseCtx().get(cgby).setRowResolver(outputRS);
+          cgby.setColumnExprMap(newMap);
+          cgby.setSchema(new RowSchema(newRR.getColumnInfos()));
+          context.getOpParseCtx().get(cgby).setRowResolver(newRR);
         }
+        cgby.getConf().setMode(GroupByDesc.Mode.COMPLETE);
 
-        removeOperator(rs, cgby, parent, pGraphContext);
+        removeOperator(rs, cgby, parent, context);
 
         if (parent instanceof GroupByOperator) {
-          removeOperator(parent, cgby, getSingleParent(parent), pGraphContext);
+          removeOperator(parent, cgby, getSingleParent(parent), context);
         }
       }
 
+      protected GroupByOperator[] getPeerGroupbys(GroupByOperator gby) {
+        Operator<?> parent = getSingleParent(gby);
+        if (parent instanceof ForwardOperator) {
+          GroupByOperator[] result = new GroupByOperator[parent.getChildOperators().size()];
+          int index = 0;
+          for (Operator<?> pgby : parent.getChildOperators()) {
+            if (!(pgby instanceof GroupByOperator)) {
+              return null;
+            }
+            result[index++] = (GroupByOperator) pgby;
+          }
+          return result;
+        }
+        return new GroupByOperator[] { gby };
+      }
+
+      protected void removeFollowingGroupBy(ReduceSinkOperator childRS, GroupByOperator cgby,
+          ParseContext context) throws SemanticException {
+        removeReduceSinkForGroupBy(childRS, cgby, context);
+        replaceGroupbyWithSelectOperator(cgby, context);
+      }
+
       private void removeOperator(Operator<?> target, Operator<?> child, Operator<?> parent,
-          ParseContext pGraphContext) {
+          ParseContext context) {
         for (Operator<? extends Serializable> aparent : target.getParentOperators()) {
           aparent.replaceChild(target, child);
         }
@@ -812,45 +678,43 @@ public class ReduceSinkDeDuplication implements Transform{
         }
         target.setChildOperators(null);
         target.setParentOperators(null);
-        pGraphContext.getOpParseCtx().remove(target);
+        context.getOpParseCtx().remove(target);
       }
 
-      protected Operator<? extends Serializable> putOpInsertMap(
-          Operator<? extends Serializable> op, RowResolver rr, ParseContext pGraphContext) {
+      private Operator<? extends Serializable> putOpInsertMap(Operator<?> op, RowResolver rr,
+          ParseContext context) {
         OpParseContext ctx = new OpParseContext(rr);
-        pGraphContext.getOpParseCtx().put(op, ctx);
+        context.getOpParseCtx().put(op, ctx);
         return op;
       }
     }
-    
+
     static class ReducerGroupbyProc extends AbsctractReducerReducerProc {
 
-      @Override
-      public Object process(Node nd, Stack<Node> stack,
-          NodeProcessorCtx procCtx, Object... nodeOutputs)
+      public Object process(Node nd, Stack<Node> stack, ParseContext context)
           throws SemanticException {
-        ReduceSinkDeduplicateProcCtx ctx = (ReduceSinkDeduplicateProcCtx) procCtx;
-        ParseContext pGraphContext = ctx.getPctx();
 
-        if (pGraphContext.getConf().getBoolVar(HIVEGROUPBYSKEW)) {
+        if (context.getConf().getBoolVar(HIVEGROUPBYSKEW)) {
           return false;
         }
 
-        GroupByOperator childGroupBy = (GroupByOperator)nd;
-        ReduceSinkOperator childRS = (ReduceSinkOperator) getSingleParent(childGroupBy);
+        GroupByOperator cgby = (GroupByOperator)nd;
+        ReduceSinkOperator childRS = (ReduceSinkOperator) getSingleParent(cgby);
         if (childRS == null) {
           return false;
         }
         Operator<? extends Serializable> check = getSingleParent(childRS);
         Operator<?> start = check instanceof GroupByOperator ? check : childRS;
-        boolean trustScript = pGraphContext.getConf().getBoolVar(HIVESCRIPTOPERATORTRUST);
-        ReduceSinkOperator[] possibleRS = findParentOperators(start, ReduceSinkOperator.class, trustScript);
+        boolean trustScript = context.getConf().getBoolVar(HIVESCRIPTOPERATORTRUST);
+        ReduceSinkOperator[] possibleRS =
+            findParentOperators(start, ReduceSinkOperator.class, trustScript);
         if (possibleRS == null || possibleRS.length != 1) {
           return false;
         }
         ReduceSinkOperator parentRS = possibleRS[0];
-        if (deduplicate(childRS, parentRS, false)) {
-          replaceReduceSinkWithSelectOperator(parentRS, pGraphContext);
+        if (mergeToChild(childRS, parentRS)) {
+          removeReduceSinkForGroupBy(childRS, cgby, context);
+          dedupCtx.addRemovedOperator(childRS);
           return true;
         }
         return false;
@@ -859,65 +723,324 @@ public class ReduceSinkDeDuplication implements Transform{
 
     static class GroupbyReducerProc extends AbsctractReducerReducerProc {
 
-      @Override
-      public Object process(Node nd, Stack<Node> stack,
-          NodeProcessorCtx procCtx, Object... nodeOutputs)
+      public Object process(Node nd, Stack<Node> stack, ParseContext context)
           throws SemanticException {
-        ReduceSinkDeduplicateProcCtx ctx = (ReduceSinkDeduplicateProcCtx) procCtx;
-        ParseContext pGraphContext = ctx.getPctx();
 
-        if (pGraphContext.getConf().getBoolVar(HIVEGROUPBYSKEW)) {
+        if (context.getConf().getBoolVar(HIVEGROUPBYSKEW)) {
           return false;
         }
 
         ReduceSinkOperator childRS = (ReduceSinkOperator)nd;
-        if (childRS.getChildOperators().get(0) instanceof JoinOperator) {
+        Operator<?> child = getSingleChild(childRS, true);
+        if (child == null || child instanceof JoinOperator || child instanceof GroupByOperator) {
           return false;
         }
-        boolean trustScript = pGraphContext.getConf().getBoolVar(HIVESCRIPTOPERATORTRUST);
-        GroupByOperator[] possibleGBY = findParentOperators(childRS, GroupByOperator.class, trustScript);
+        boolean trustScript = context.getConf().getBoolVar(HIVESCRIPTOPERATORTRUST);
+        GroupByOperator[] possibleGBY =
+            findParentOperators(childRS, GroupByOperator.class, trustScript);
         if (possibleGBY == null || possibleGBY.length != 1) {
           return false;
         }
-        ReduceSinkOperator[] possibleParentRS = findParentOperators(possibleGBY[0], ReduceSinkOperator.class, trustScript);
+        ReduceSinkOperator[] possibleParentRS = findParentOperators(possibleGBY[0],
+            ReduceSinkOperator.class, trustScript);
         if (possibleParentRS == null || possibleParentRS.length != 1) {
           return false;
         }
         ReduceSinkOperator parentRS = possibleParentRS[0];
-        if (deduplicate(childRS, parentRS, true)) {
-          replaceReduceSinkWithSelectOperator(childRS, pGraphContext);
+        if (mergeToChild(childRS, parentRS)) {
+          replaceReduceSinkWithSelectOperator(childRS, context);
+          dedupCtx.addRemovedOperator(childRS);
           return true;
         }
         return false;
       }
     }
 
-    static class JoinGroupbyProc extends AbsctractReducerReducerProc {
+    static class GroupbyGroupbyProc extends AbsctractReducerReducerProc {
 
-      @Override
-      public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx, Object... nodeOutputs) throws SemanticException {
-        ReduceSinkDeduplicateProcCtx ctx = (ReduceSinkDeduplicateProcCtx) procCtx;
-        ParseContext pGraphContext = ctx.getPctx();
+      public Object process(Node nd, Stack<Node> stack, ParseContext context)
+          throws SemanticException {
 
-        if (pGraphContext.getConf().getBoolVar(HIVEGROUPBYSKEW)) {
+        if (context.getConf().getBoolVar(HIVEGROUPBYSKEW)) {
           return false;
         }
 
-        boolean trustScript = pGraphContext.getConf().getBoolVar(HIVESCRIPTOPERATORTRUST);
-
-        GroupByOperator gby = (GroupByOperator)nd;
-        ReduceSinkOperator childRS = (ReduceSinkOperator) getSingleParent(gby);
-
+        GroupByOperator cgby = (GroupByOperator)nd;
+        ReduceSinkOperator childRS = (ReduceSinkOperator) getSingleParent(cgby);
+        if (childRS == null) {
+          return false;
+        }
+        boolean trustScript = context.getConf().getBoolVar(HIVESCRIPTOPERATORTRUST);
         Operator<? extends Serializable> check = getSingleParent(childRS);
         Operator<?> start = check instanceof GroupByOperator ? check : childRS;
-        ReduceSinkOperator[] possibleRSs = findParentOperators(start, ReduceSinkOperator.class, trustScript);
+        GroupByOperator[] possibleGBY =
+            findParentOperators(start, GroupByOperator.class, trustScript);
+        if (possibleGBY == null || possibleGBY.length != 1) {
+          return false;
+        }
+        GroupByOperator pgby = possibleGBY[0];
+        Operator<?> parent = getSingleParent(pgby);
+        if (!(parent instanceof ReduceSinkOperator)) {
+          return false;
+        }
+        ReduceSinkOperator parentRS = (ReduceSinkOperator) parent;
+        if (mergeToChild(childRS, parentRS)) {
+          removeFollowingGroupBy(childRS, cgby, context);
+          dedupCtx.addRemovedOperator(childRS);
+          dedupCtx.addRemovedOperator(cgby);
+          return true;
+        }
+        return false;
+      }
+    }
 
-        for (int tag = 0; tag < possibleRSs.length; tag++) {
-          ReduceSinkOperator parentRS = possibleRSs[tag];
-          if (deduplicate(childRS, parentRS, true, tag)) {
-            removeReduceSinkForGroupBy(childRS, gby, pGraphContext, tag);
-            return true;
+    static abstract class AbstractJoinXProc extends AbsctractReducerReducerProc {
+
+      public Object process(Node nd, Stack<Node> stack, ParseContext context)
+          throws SemanticException {
+
+        if (context.getConf().getBoolVar(HIVEGROUPBYSKEW) ||
+            context.getConf().getBoolVar(HIVESKEWJOIN)) {
+          return false;
+        }
+        ReduceSinkOperator childRS = checkChild(nd);
+        if (childRS == null) {
+          return false;
+        }
+        boolean trustScript = context.getConf().getBoolVar(HIVESCRIPTOPERATORTRUST);
+        JoinOperator[] joins =
+            findParentOperators(childRS, JoinOperator.class, trustScript);
+        if (joins == null || joins.length != 1) {
+          return false;
+        }
+        ReduceSinkOperator[] parentRSs =
+            findParentOperators(joins[0], ReduceSinkOperator.class, trustScript);
+        if (parentRSs == null || parentRSs.length == 0) {
+          return false;
+        }
+        // cross join
+        if (parentRSs[0].getConf().getKeyCols().isEmpty()) {
+          return false;
+        }
+        // order, reducer num
+        int[] misc = checkMisc(childRS, parentRSs[0]);
+        if (misc == null) {
+          return false;
+        }
+        // partition cannot be moved
+        List<ExprNodeDesc> cpars = childRS.getConf().getPartitionCols();
+        List<ExprNodeDesc> ppars = parentRSs[0].getConf().getPartitionCols();
+          Integer result = checkExprs(cpars, ppars, childRS, parentRSs[0], 0);
+        if (result == null || result != 0) {
+          return null;
+        }
+        Set<Byte> sorted = sortedTags(joins[0]);
+        Map<Byte, List<Pair>> mapped = keyMapping(childRS, parentRSs, sorted);
+        if (mapped == null) {
+          return false;
+        }
+
+        for (Map.Entry<Byte, List<Pair>> entry : mapped.entrySet()) {
+          ReduceSinkDesc pconf = parentRSs[entry.getKey()].getConf();
+          ArrayList<ExprNodeDesc> newKeys = new ArrayList<ExprNodeDesc>(pconf.getKeyCols());
+          String order = pconf.getOrder();
+          for  (int i = order.length(); i < pconf.getKeyCols().size(); i++) {
+            order += '+';
           }
+          for (Pair expr : entry.getValue()) {
+            newKeys.add(expr.expr);
+            order += expr.asc ? '+' : '-';
+          }
+          pconf.setKeyCols(newKeys);
+          if (!pconf.getOrder().isEmpty() || order.contains("-")) {
+            pconf.setOrder(order);
+          }
+        }
+
+        for (int index = 0; index < parentRSs.length; index++) {
+          if (misc[1] > 0) {
+            parentRSs[index].getConf().setNumReducers(childRS.getConf().getNumReducers());
+          }
+        }
+        return dedup(context, childRS);
+      }
+
+      protected abstract ReduceSinkOperator checkChild(Node child);
+
+      protected abstract boolean dedup(ParseContext context, ReduceSinkOperator childRS) throws SemanticException;
+
+      private Map<Byte, List<Pair>> keyMapping(ReduceSinkOperator childRS,
+          ReduceSinkOperator[] parentRSs, Set<Byte> sorted) {
+
+        String order = childRS.getConf().getOrder();
+        List<ExprNodeDesc> keys = childRS.getConf().getKeyCols();
+
+        List<Pair> exprs = new ArrayList<Pair>();
+        for (int i = 0; i < keys.size(); i++) {
+          exprs.add(new Pair(keys.get(i), order.length() < i || order.charAt(i) == '+'));
+        }
+
+        Map<Byte, List<Pair>> mapped = new HashMap<Byte, List<Pair>>();
+        for (int i = 0; i < parentRSs.length && !exprs.isEmpty(); i++) {
+          ReduceSinkOperator parentRS = parentRSs[i];
+          byte tag = (byte) parentRS.getConf().getTag();
+          Operator<?> terminal = getSingleParent(parentRS);
+
+          ArrayList<ExprNodeDesc> keyCols = parentRS.getConf().getKeyCols();
+          List<ExprNodeDesc> pkeys = backtrack(keyCols, parentRS, terminal, tag);
+          List<Pair> removed = new ArrayList<Pair>();
+          for (Pair expr : exprs) {
+            ExprNodeDesc backtrack = backtrack(expr.expr, childRS, terminal, tag);
+            if (backtrack == null) {
+              continue;
+            }
+            removed.add(expr);
+            if (!sorted.contains(tag)) {
+              return null;
+            }
+            boolean keyPart = false;
+            Iterator<ExprNodeDesc> it = pkeys.iterator();
+            while (it.hasNext()) {
+               if (it.next().isSame(backtrack)) {
+                 keyPart = true;
+                 it.remove();
+                 break;
+               }
+            }
+            if (keyPart) {
+              continue;
+            }
+            if (!pkeys.isEmpty()) {
+              return null;
+            }
+            List<Pair> list = mapped.get(tag);
+            if (list == null) {
+              mapped.put(tag, list = new ArrayList<Pair>());
+            }
+            list.add(new Pair(backtrack, expr.asc));
+          }
+          exprs.removeAll(removed);
+          removed.clear();
+        }
+        return exprs.isEmpty() ? mapped : null;
+      }
+
+      // from JoinPPD#getQualifiedAliases
+      private Set<Byte> sortedTags(JoinOperator op) {
+        Set<Byte> sorted = new HashSet<Byte>();
+
+        Byte[] orders = op.getConf().getTagOrder();
+        JoinCondDesc[] conds = op.getConf().getConds();
+        int i;
+        for (i = conds.length - 1; i >= 0; i--) {
+          int type = conds[i].getType();
+          if (type == INNER_JOIN || type == LEFT_SEMI_JOIN) {
+            sorted.add(orders[conds[i].getRight()]);
+          } else if (type == RIGHT_OUTER_JOIN) {
+            sorted.add(orders[conds[i].getRight()]);
+            break;
+          } else if (type == FULL_OUTER_JOIN) {
+            break;
+          }
+        }
+        if (i == -1) {
+          sorted.add(orders[conds[0].getLeft()]);
+        }
+        return sorted;
+      }
+
+      private static class Pair {
+        ExprNodeDesc expr;
+        boolean asc;
+        Pair(ExprNodeDesc expr, boolean asc) {
+          this.expr = expr;
+          this.asc = asc;
+        }
+      }
+    }
+
+    static class JoinReducerProc extends AbstractJoinXProc {
+
+      protected ReduceSinkOperator checkChild(Node nd) {
+        ReduceSinkOperator childRS = (ReduceSinkOperator) nd;
+        Operator<?> child = getSingleChild(childRS);
+        if (child instanceof JoinOperator || child instanceof GroupByOperator) {
+          return null;
+        }
+        return childRS;
+      }
+
+      protected boolean dedup(ParseContext context, ReduceSinkOperator childRS) throws SemanticException {
+        replaceReduceSinkWithSelectOperator(childRS, context);
+        dedupCtx.addRemovedOperator(childRS);
+        return true;
+      }
+    }
+
+    static class JoinGroupbyProc extends AbstractJoinXProc {
+
+      protected ReduceSinkOperator checkChild(Node nd) {
+        GroupByOperator cgby = (GroupByOperator)nd;
+        return (ReduceSinkOperator) getSingleParent(cgby);
+      }
+
+      protected boolean dedup(ParseContext context, ReduceSinkOperator childRS) throws SemanticException {
+        GroupByOperator cgby = (GroupByOperator) getSingleChild(childRS);
+        removeReduceSinkForGroupBy(childRS, cgby, context);
+        dedupCtx.addRemovedOperator(childRS);
+        return true;
+      }
+    }
+
+    static class ReducerJoinProc extends AbsctractReducerReducerProc {
+
+      protected Object process(Node nd, Stack<Node> stack, ParseContext context) throws SemanticException {
+        JoinOperator join = (JoinOperator) nd;
+        ReduceSinkOperator childRS = (ReduceSinkOperator) stack.get(stack.size() - 2);
+        int tag = join.getChildren().indexOf(childRS);
+
+        boolean trustScript = context.getConf().getBoolVar(HIVESCRIPTOPERATORTRUST);
+        ReduceSinkOperator[] possibleRSs =
+            findParentOperators(childRS, ReduceSinkOperator.class, trustScript);
+        if (possibleRSs == null || possibleRSs.length != 1) {
+          return false;
+        }
+        return false;
+      }
+    }
+
+    static class ReducerReducerProc extends AbsctractReducerReducerProc {
+
+      public Object process(Node nd, Stack<Node> stack, ParseContext context)
+          throws SemanticException {
+
+        if (context.getConf().getBoolVar(HIVEGROUPBYSKEW)) {
+          return false;
+        }
+        ReduceSinkOperator childRS = (ReduceSinkOperator) nd;
+        Operator<?> child = getSingleChild(childRS);
+        if (child instanceof JoinOperator || child instanceof GroupByOperator) {
+          return false;
+        }
+
+        boolean trustScript = context.getConf().getBoolVar(HIVESCRIPTOPERATORTRUST);
+        ReduceSinkOperator[] possibleRSs =
+            findParentOperators(childRS, ReduceSinkOperator.class, trustScript);
+        if (possibleRSs == null || possibleRSs.length != 1) {
+          return false;
+        }
+        ReduceSinkOperator parentRS = possibleRSs[0];
+        child = getSingleChild(parentRS);
+        if (child instanceof JoinOperator || child instanceof GroupByOperator) {
+          return false;
+        }
+        if (mergeToChild(childRS, parentRS)) {
+          if (parentRS.getConf().getKeyCols().isEmpty()) {
+            return false;
+          }
+          replaceReduceSinkWithSelectOperator(childRS, context);
+          dedupCtx.addRemovedOperator(childRS);
+          return true;
         }
         return false;
       }

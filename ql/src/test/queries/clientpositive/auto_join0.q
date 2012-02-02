@@ -1,6 +1,7 @@
 
 set hive.auto.convert.join = true;
 
+set hive.optimize.reducededuplication=false;
 explain 
 select sum(hash(a.k1,a.v1,a.k2, a.v2))
 from (

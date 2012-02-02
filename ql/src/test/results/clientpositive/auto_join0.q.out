@@ -121,7 +121,7 @@ STAGE PLANS:
   Stage: Stage-2
     Map Reduce
       Alias -> Map Operator Tree:
-        file:/tmp/sdong/hive_2011-02-10_01-13-04_569_7732693020567520800/-mr-10002 
+        file:/tmp/navis/hive_2012-02-09_17-50-07_273_2555194932511837501/-mr-10002 
             Reduce Output Operator
               key expressions:
                     expr: _col0
@@ -172,7 +172,7 @@ STAGE PLANS:
   Stage: Stage-3
     Map Reduce
       Alias -> Map Operator Tree:
-        file:/tmp/sdong/hive_2011-02-10_01-13-04_569_7732693020567520800/-mr-10003 
+        file:/tmp/navis/hive_2012-02-09_17-50-07_273_2555194932511837501/-mr-10003 
             Reduce Output Operator
               sort order: 
               tag: -1
@@ -368,7 +368,7 @@ SELECT src1.key as k1, src1.value as v1,
 ) a
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
-PREHOOK: Output: file:/tmp/sdong/hive_2011-02-10_01-13-05_121_1656293372506547246/-mr-10000
+PREHOOK: Output: file:/tmp/navis/hive_2012-02-09_17-50-08_375_6801947027604160540/-mr-10000
 POSTHOOK: query: select sum(hash(a.k1,a.v1,a.k2, a.v2))
 from (
 SELECT src1.key as k1, src1.value as v1, 
@@ -380,5 +380,5 @@ SELECT src1.key as k1, src1.value as v1,
 ) a
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
-POSTHOOK: Output: file:/tmp/sdong/hive_2011-02-10_01-13-05_121_1656293372506547246/-mr-10000
+POSTHOOK: Output: file:/tmp/navis/hive_2012-02-09_17-50-08_375_6801947027604160540/-mr-10000
 34441656720
