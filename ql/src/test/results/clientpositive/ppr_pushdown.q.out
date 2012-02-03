@@ -59,106 +59,106 @@ POSTHOOK: query: alter table ppr_test add partition (ds = '12*4')
 POSTHOOK: type: ALTERTABLE_ADDPARTS
 POSTHOOK: Input: default@ppr_test
 POSTHOOK: Output: default@ppr_test@ds=12%2A4
-PREHOOK: query: insert overwrite table ppr_test partition(ds = '1234') select * from (select '1234' from src limit 1 union all select 'abcd' from src limit 1) s
+PREHOOK: query: insert overwrite table ppr_test partition(ds = '1234') select explode(array('abcd', '1234')) as col from src limit 2
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
 PREHOOK: Output: default@ppr_test@ds=1234
-POSTHOOK: query: insert overwrite table ppr_test partition(ds = '1234') select * from (select '1234' from src limit 1 union all select 'abcd' from src limit 1) s
+POSTHOOK: query: insert overwrite table ppr_test partition(ds = '1234') select explode(array('abcd', '1234')) as col from src limit 2
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
 POSTHOOK: Output: default@ppr_test@ds=1234
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-PREHOOK: query: insert overwrite table ppr_test partition(ds = '1224') select * from (select '1224' from src limit 1 union all select 'abcd' from src limit 1) s
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+PREHOOK: query: insert overwrite table ppr_test partition(ds = '1224') select explode(array('abcd', '1224')) as col from src limit 2
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
 PREHOOK: Output: default@ppr_test@ds=1224
-POSTHOOK: query: insert overwrite table ppr_test partition(ds = '1224') select * from (select '1224' from src limit 1 union all select 'abcd' from src limit 1) s
+POSTHOOK: query: insert overwrite table ppr_test partition(ds = '1224') select explode(array('abcd', '1224')) as col from src limit 2
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
 POSTHOOK: Output: default@ppr_test@ds=1224
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-PREHOOK: query: insert overwrite table ppr_test partition(ds = '1214') select * from (select '1214' from src limit 1 union all select 'abcd' from src limit 1) s
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+PREHOOK: query: insert overwrite table ppr_test partition(ds = '1214') select explode(array('abcd', '1214')) as col from src limit 2
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
 PREHOOK: Output: default@ppr_test@ds=1214
-POSTHOOK: query: insert overwrite table ppr_test partition(ds = '1214') select * from (select '1214' from src limit 1 union all select 'abcd' from src limit 1) s
+POSTHOOK: query: insert overwrite table ppr_test partition(ds = '1214') select explode(array('abcd', '1214')) as col from src limit 2
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
 POSTHOOK: Output: default@ppr_test@ds=1214
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-PREHOOK: query: insert overwrite table ppr_test partition(ds = '12+4') select * from (select '12+4' from src limit 1 union all select 'abcd' from src limit 1) s
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+PREHOOK: query: insert overwrite table ppr_test partition(ds = '12+4') select explode(array('abcd', '12+4')) as col from src limit 2
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
 PREHOOK: Output: default@ppr_test@ds=12+4
-POSTHOOK: query: insert overwrite table ppr_test partition(ds = '12+4') select * from (select '12+4' from src limit 1 union all select 'abcd' from src limit 1) s
+POSTHOOK: query: insert overwrite table ppr_test partition(ds = '12+4') select explode(array('abcd', '12+4')) as col from src limit 2
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
 POSTHOOK: Output: default@ppr_test@ds=12+4
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-PREHOOK: query: insert overwrite table ppr_test partition(ds = '12.4') select * from (select '12.4' from src limit 1 union all select 'abcd' from src limit 1) s
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+PREHOOK: query: insert overwrite table ppr_test partition(ds = '12.4') select explode(array('abcd', '12.4')) as col from src limit 2
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
 PREHOOK: Output: default@ppr_test@ds=12.4
-POSTHOOK: query: insert overwrite table ppr_test partition(ds = '12.4') select * from (select '12.4' from src limit 1 union all select 'abcd' from src limit 1) s
+POSTHOOK: query: insert overwrite table ppr_test partition(ds = '12.4') select explode(array('abcd', '12.4')) as col from src limit 2
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
 POSTHOOK: Output: default@ppr_test@ds=12.4
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-PREHOOK: query: insert overwrite table ppr_test partition(ds = '12:4') select * from (select '12:4' from src limit 1 union all select 'abcd' from src limit 1) s
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+PREHOOK: query: insert overwrite table ppr_test partition(ds = '12:4') select explode(array('abcd', '12:4')) as col from src limit 2
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
 PREHOOK: Output: default@ppr_test@ds=12%3A4
-POSTHOOK: query: insert overwrite table ppr_test partition(ds = '12:4') select * from (select '12:4' from src limit 1 union all select 'abcd' from src limit 1) s
+POSTHOOK: query: insert overwrite table ppr_test partition(ds = '12:4') select explode(array('abcd', '12:4')) as col from src limit 2
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
 POSTHOOK: Output: default@ppr_test@ds=12%3A4
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key EXPRESSION []
-PREHOOK: query: insert overwrite table ppr_test partition(ds = '12%4') select * from (select '12%4' from src limit 1 union all select 'abcd' from src limit 1) s
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key SCRIPT []
+PREHOOK: query: insert overwrite table ppr_test partition(ds = '12%4') select explode(array('abcd', '12%4')) as col from src limit 2
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
 PREHOOK: Output: default@ppr_test@ds=12%254
-POSTHOOK: query: insert overwrite table ppr_test partition(ds = '12%4') select * from (select '12%4' from src limit 1 union all select 'abcd' from src limit 1) s
+POSTHOOK: query: insert overwrite table ppr_test partition(ds = '12%4') select explode(array('abcd', '12%4')) as col from src limit 2
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
 POSTHOOK: Output: default@ppr_test@ds=12%254
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key EXPRESSION []
-PREHOOK: query: insert overwrite table ppr_test partition(ds = '12*4') select * from (select '12*4' from src limit 1 union all select 'abcd' from src limit 1) s
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key SCRIPT []
+PREHOOK: query: insert overwrite table ppr_test partition(ds = '12*4') select explode(array('abcd', '12*4')) as col from src limit 2
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
 PREHOOK: Output: default@ppr_test@ds=12%2A4
-POSTHOOK: query: insert overwrite table ppr_test partition(ds = '12*4') select * from (select '12*4' from src limit 1 union all select 'abcd' from src limit 1) s
+POSTHOOK: query: insert overwrite table ppr_test partition(ds = '12*4') select explode(array('abcd', '12*4')) as col from src limit 2
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
 POSTHOOK: Output: default@ppr_test@ds=12%2A4
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key EXPRESSION []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key SCRIPT []
 PREHOOK: query: select * from ppr_test where ds = '1234' order by key
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ppr_test@ds=1234
@@ -167,14 +167,14 @@ POSTHOOK: query: select * from ppr_test where ds = '1234' order by key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ppr_test@ds=1234
 #### A masked pattern was here ####
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key EXPRESSION []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key SCRIPT []
 1234	1234
 abcd	1234
 PREHOOK: query: select * from ppr_test where ds = '1224' order by key
@@ -185,14 +185,14 @@ POSTHOOK: query: select * from ppr_test where ds = '1224' order by key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ppr_test@ds=1224
 #### A masked pattern was here ####
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key EXPRESSION []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key SCRIPT []
 1224	1224
 abcd	1224
 PREHOOK: query: select * from ppr_test where ds = '1214' order by key
@@ -203,14 +203,14 @@ POSTHOOK: query: select * from ppr_test where ds = '1214' order by key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ppr_test@ds=1214
 #### A masked pattern was here ####
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key EXPRESSION []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key SCRIPT []
 1214	1214
 abcd	1214
 PREHOOK: query: select * from ppr_test where ds = '12.4' order by key
@@ -221,14 +221,14 @@ POSTHOOK: query: select * from ppr_test where ds = '12.4' order by key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ppr_test@ds=12.4
 #### A masked pattern was here ####
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key EXPRESSION []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key SCRIPT []
 12.4	12.4
 abcd	12.4
 PREHOOK: query: select * from ppr_test where ds = '12+4' order by key
@@ -239,14 +239,14 @@ POSTHOOK: query: select * from ppr_test where ds = '12+4' order by key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ppr_test@ds=12+4
 #### A masked pattern was here ####
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key EXPRESSION []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key SCRIPT []
 12+4	12+4
 abcd	12+4
 PREHOOK: query: select * from ppr_test where ds = '12:4' order by key
@@ -257,14 +257,14 @@ POSTHOOK: query: select * from ppr_test where ds = '12:4' order by key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ppr_test@ds=12%3A4
 #### A masked pattern was here ####
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key EXPRESSION []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key SCRIPT []
 12:4	12:4
 abcd	12:4
 PREHOOK: query: select * from ppr_test where ds = '12%4' order by key
@@ -275,14 +275,14 @@ POSTHOOK: query: select * from ppr_test where ds = '12%4' order by key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ppr_test@ds=12%254
 #### A masked pattern was here ####
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key EXPRESSION []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key SCRIPT []
 12%4	12%4
 abcd	12%4
 PREHOOK: query: select * from ppr_test where ds = '12*4' order by key
@@ -293,14 +293,14 @@ POSTHOOK: query: select * from ppr_test where ds = '12*4' order by key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ppr_test@ds=12%2A4
 #### A masked pattern was here ####
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key EXPRESSION []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key SCRIPT []
 12*4	12*4
 abcd	12*4
 PREHOOK: query: select * from ppr_test where ds = '12.*4' order by key
@@ -309,14 +309,14 @@ PREHOOK: type: QUERY
 POSTHOOK: query: select * from ppr_test where ds = '12.*4' order by key
 POSTHOOK: type: QUERY
 #### A masked pattern was here ####
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key EXPRESSION []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key SCRIPT []
 PREHOOK: query: select * from ppr_test where ds = '1234' and key = '1234'
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ppr_test@ds=1234
@@ -325,14 +325,14 @@ POSTHOOK: query: select * from ppr_test where ds = '1234' and key = '1234'
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ppr_test@ds=1234
 #### A masked pattern was here ####
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key EXPRESSION []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key SCRIPT []
 1234	1234
 PREHOOK: query: select * from ppr_test where ds = '1224' and key = '1224'
 PREHOOK: type: QUERY
@@ -342,14 +342,14 @@ POSTHOOK: query: select * from ppr_test where ds = '1224' and key = '1224'
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ppr_test@ds=1224
 #### A masked pattern was here ####
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key EXPRESSION []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key SCRIPT []
 1224	1224
 PREHOOK: query: select * from ppr_test where ds = '1214' and key = '1214'
 PREHOOK: type: QUERY
@@ -359,14 +359,14 @@ POSTHOOK: query: select * from ppr_test where ds = '1214' and key = '1214'
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ppr_test@ds=1214
 #### A masked pattern was here ####
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key EXPRESSION []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key SCRIPT []
 1214	1214
 PREHOOK: query: select * from ppr_test where ds = '12.4' and key = '12.4'
 PREHOOK: type: QUERY
@@ -376,14 +376,14 @@ POSTHOOK: query: select * from ppr_test where ds = '12.4' and key = '12.4'
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ppr_test@ds=12.4
 #### A masked pattern was here ####
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key EXPRESSION []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key SCRIPT []
 12.4	12.4
 PREHOOK: query: select * from ppr_test where ds = '12+4' and key = '12+4'
 PREHOOK: type: QUERY
@@ -393,14 +393,14 @@ POSTHOOK: query: select * from ppr_test where ds = '12+4' and key = '12+4'
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ppr_test@ds=12+4
 #### A masked pattern was here ####
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key EXPRESSION []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key SCRIPT []
 12+4	12+4
 PREHOOK: query: select * from ppr_test where ds = '12:4' and key = '12:4'
 PREHOOK: type: QUERY
@@ -410,14 +410,14 @@ POSTHOOK: query: select * from ppr_test where ds = '12:4' and key = '12:4'
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ppr_test@ds=12%3A4
 #### A masked pattern was here ####
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key EXPRESSION []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key SCRIPT []
 12:4	12:4
 PREHOOK: query: select * from ppr_test where ds = '12%4' and key = '12%4'
 PREHOOK: type: QUERY
@@ -427,14 +427,14 @@ POSTHOOK: query: select * from ppr_test where ds = '12%4' and key = '12%4'
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ppr_test@ds=12%254
 #### A masked pattern was here ####
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key EXPRESSION []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key SCRIPT []
 12%4	12%4
 PREHOOK: query: select * from ppr_test where ds = '12*4' and key = '12*4'
 PREHOOK: type: QUERY
@@ -444,12 +444,12 @@ POSTHOOK: query: select * from ppr_test where ds = '12*4' and key = '12*4'
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ppr_test@ds=12%2A4
 #### A masked pattern was here ####
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key EXPRESSION []
-POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key EXPRESSION []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12%4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12*4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12+4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12.4).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1214).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1224).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=1234).key SCRIPT []
+POSTHOOK: Lineage: ppr_test PARTITION(ds=12:4).key SCRIPT []
 12*4	12*4

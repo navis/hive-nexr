@@ -106,7 +106,9 @@ public class GenMRUnion1 implements NodeProcessor {
     if (uTask.getParentTasks() == null
         || uTask.getParentTasks().isEmpty()) {
       if (!ctx.getRootTasks().contains(uTask)) {
-        ctx.getRootTasks().add(uTask);
+        if (uTask.getParentTasks() == null || uTask.getParentTasks().isEmpty()) {
+          ctx.getRootTasks().add(uTask);
+        }
       }
     }
 
@@ -175,7 +177,9 @@ public class GenMRUnion1 implements NodeProcessor {
     if (ctx.getRootTasks().contains(uTask)) {
       ctx.getRootTasks().remove(uTask);
       if (!ctx.getRootTasks().contains(currTask)) {
-        ctx.getRootTasks().add(currTask);
+        if (currTask.getParentTasks() == null || currTask.getParentTasks().isEmpty()) {
+          ctx.getRootTasks().add(currTask);
+        }
       }
     }
   }
@@ -289,7 +293,9 @@ public class GenMRUnion1 implements NodeProcessor {
       // is the current task a root task
       if (shouldBeRootTask(currTask, parseCtx)
           && (!ctx.getRootTasks().contains(currTask))) {
-        ctx.getRootTasks().add(currTask);
+        if (currTask.getParentTasks() == null || currTask.getParentTasks().isEmpty()) {
+          ctx.getRootTasks().add(currTask);
+        }
       }
       // If there is a mapjoin at position 'pos'
       if (uPrsCtx.getMapJoinSubq(pos)) {

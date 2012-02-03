@@ -1,0 +1,20 @@
+PREHOOK: query: select * from (select '1234' from src limit 1 union all select 'abcd' from src limit 1) s
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: select * from (select '1234' from src limit 1 union all select 'abcd' from src limit 1) s
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+1234
+abcd
+PREHOOK: query: select * from (select 'abcd' from src limit 1 union all select '1234' from src limit 1) s
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: select * from (select 'abcd' from src limit 1 union all select '1234' from src limit 1) s
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+abcd
+1234

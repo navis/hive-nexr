@@ -88,7 +88,9 @@ public class GenMRTableScan1 implements NodeProcessor {
           Task<StatsWork> statsTask = TaskFactory.get(statsWork, parseCtx.getConf());
           currTask.addDependentTask(statsTask);
           if (!ctx.getRootTasks().contains(currTask)) {
-            ctx.getRootTasks().add(currTask);
+            if (currTask.getParentTasks() == null || currTask.getParentTasks().isEmpty()) {
+              ctx.getRootTasks().add(currTask);
+            }
           }
           currWork.setGatheringStats(true);
           // NOTE: here we should use the new partition predicate pushdown API to get a list of pruned list,

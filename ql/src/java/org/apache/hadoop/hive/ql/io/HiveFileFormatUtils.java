@@ -31,7 +31,13 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.ql.exec.ExtractOperator;
+import org.apache.hadoop.hive.ql.exec.FilterOperator;
+import org.apache.hadoop.hive.ql.exec.ForwardOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
+import org.apache.hadoop.hive.ql.exec.SelectOperator;
+import org.apache.hadoop.hive.ql.exec.TableScanOperator;
+import org.apache.hadoop.hive.ql.exec.UnionOperator;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator.RecordWriter;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
@@ -380,7 +386,7 @@ public final class HiveFileFormatUtils {
   }
 
   /**
-   * Get the list of operatators from the opeerator tree that are needed for the path
+   * Get the list of operators from the operator tree that are needed for the path
    * @param pathToAliases  mapping from path to aliases
    * @param aliasToWork    The operator tree to be invoked for a given alias
    * @param dir            The path to look for
@@ -395,7 +401,36 @@ public final class HiveFileFormatUtils {
     for (String alias : aliases) {
       opList.add(aliasToWork.get(alias));
     }
+    return replaceForUnion(opList);
+  }
+
+  private static List<Operator<? extends Serializable>> replaceForUnion(
+      List<Operator<? extends Serializable>> opList) {
+    for (int i = 0; i < opList.size(); i++) {
+      Operator<? extends Serializable> operator = opList.get(i);
+      if (operator instanceof TableScanOperator) {
+        Operator<? extends Serializable> union = searchUnion(operator);
+        if (union != null) {
+          opList.set(i, union);
+        }
+      }
+    }
     return opList;
+  }
+
+  private static UnionOperator searchUnion(Operator<?> current) {
+    List<Operator<? extends Serializable>> children = current.getChildOperators();
+    if (children != null && children.size() == 1) {
+      Operator<? extends Serializable> operator = children.get(0);
+      if (operator instanceof UnionOperator) {
+        return (UnionOperator) operator;
+      }
+      if (operator instanceof SelectOperator || operator instanceof FilterOperator ||
+          operator instanceof ExtractOperator || operator instanceof ForwardOperator) {
+        return searchUnion(operator);
+      }
+    }
+    return null;
   }
 
   /**

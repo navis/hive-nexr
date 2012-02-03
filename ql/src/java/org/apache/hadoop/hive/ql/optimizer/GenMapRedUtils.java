@@ -393,7 +393,9 @@ public final class GenMapRedUtils {
     if (opProcCtx.getRootTasks().contains(currentUnionTask)) {
       opProcCtx.getRootTasks().remove(currentUnionTask);
       if (!opProcCtx.getRootTasks().contains(existingTask)) {
-        opProcCtx.getRootTasks().add(existingTask);
+        if (existingTask.getParentTasks() == null || existingTask.getParentTasks().isEmpty()) {
+          opProcCtx.getRootTasks().add(existingTask);
+        }
       }
     }
 

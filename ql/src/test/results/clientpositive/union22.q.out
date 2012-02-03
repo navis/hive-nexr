@@ -83,11 +83,11 @@ ABSTRACT SYNTAX TREE:
 
 STAGE DEPENDENCIES:
   Stage-7 is a root stage
-  Stage-1 depends on stages: Stage-7
-  Stage-2 depends on stages: Stage-1
-  Stage-3 depends on stages: Stage-2
-  Stage-0 depends on stages: Stage-3
-  Stage-4 depends on stages: Stage-0
+  Stage-4 depends on stages: Stage-7
+  Stage-5 depends on stages: Stage-4
+  Stage-2 depends on stages: Stage-5
+  Stage-0 depends on stages: Stage-2
+  Stage-3 depends on stages: Stage-0
 
 STAGE PLANS:
   Stage: Stage-7
@@ -128,7 +128,7 @@ STAGE PLANS:
                     1 [Column[_col1]]
                   Position of Big Table: 0
 
-  Stage: Stage-1
+  Stage: Stage-4
     Map Reduce
       Alias -> Map Operator Tree:
         null-subquery2:subq-subquery2:a 
@@ -223,7 +223,7 @@ STAGE PLANS:
               name: default.dst_union22
             name: default.dst_union22
 
-  Stage: Stage-2
+  Stage: Stage-5
     Map Reduce
       Alias -> Map Operator Tree:
 #### A masked pattern was here ####
@@ -285,7 +285,7 @@ STAGE PLANS:
                 columns.types string,string,string,string
                 escape.delim \
 
-  Stage: Stage-3
+  Stage: Stage-2
     Map Reduce
       Alias -> Map Operator Tree:
 #### A masked pattern was here ####
@@ -494,7 +494,7 @@ STAGE PLANS:
               name: default.dst_union22
 #### A masked pattern was here ####
 
-  Stage: Stage-4
+  Stage: Stage-3
     Stats-Aggr Operator
 #### A masked pattern was here ####
 

@@ -270,8 +270,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     opToPartList = new HashMap<TableScanOperator, PrunedPartitionList>();
     opToSamplePruner = new HashMap<TableScanOperator, sampleDesc>();
     nameToSplitSample = new HashMap<String, SplitSample>();
-    topOps = new HashMap<String, Operator<? extends Serializable>>();
-    topSelOps = new HashMap<String, Operator<? extends Serializable>>();
+    topOps = new LinkedHashMap<String, Operator<? extends Serializable>>();
+    topSelOps = new LinkedHashMap<String, Operator<? extends Serializable>>();
     loadTableWork = new ArrayList<LoadTableDesc>();
     loadFileWork = new ArrayList<LoadFileDesc>();
     opParseCtx = new LinkedHashMap<Operator<? extends Serializable>, OpParseContext>();

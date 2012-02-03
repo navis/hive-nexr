@@ -34,13 +34,13 @@ ABSTRACT SYNTAX TREE:
 
 STAGE DEPENDENCIES:
   Stage-1 is a root stage
-  Stage-2 depends on stages: Stage-1, Stage-7
+  Stage-2 depends on stages: Stage-1, Stage-8
   Stage-6 depends on stages: Stage-2 , consists of Stage-5, Stage-4
   Stage-5
   Stage-0 depends on stages: Stage-5, Stage-4
   Stage-3 depends on stages: Stage-0
   Stage-4
-  Stage-7 is a root stage
+  Stage-8 is a root stage
 
 STAGE PLANS:
   Stage: Stage-1
@@ -188,7 +188,7 @@ STAGE PLANS:
                   serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
                   name: default.dest_l1
 
-  Stage: Stage-7
+  Stage: Stage-8
     Map Reduce
       Alias -> Map Operator Tree:
         null-subquery2:j-subquery2:p2 
@@ -276,4 +276,4 @@ POSTHOOK: Input: default@src
 POSTHOOK: Input: default@src1
 POSTHOOK: Output: default@dest_l1
 POSTHOOK: Lineage: dest_l1.key EXPRESSION [(src1)t1.FieldSchema(name:key, type:string, comment:default), (src1)t2.FieldSchema(name:key, type:string, comment:default), ]
-POSTHOOK: Lineage: dest_l1.value EXPRESSION [(src)p2.FieldSchema(name:value, type:string, comment:default), (src)p1.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: dest_l1.value EXPRESSION [(src)p1.FieldSchema(name:value, type:string, comment:default), (src)p2.FieldSchema(name:value, type:string, comment:default), ]

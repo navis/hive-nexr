@@ -895,12 +895,12 @@ STAGE PLANS:
   Stage: Stage-1
     Map Reduce
       Alias -> Map Operator Tree:
-        lastyear:default__lineitem_lineitem_lshipdate_idx__ 
+        thisyear:default__lineitem_lineitem_lshipdate_idx__ 
           TableScan
-            alias: lastyear:default__lineitem_lineitem_lshipdate_idx__
+            alias: thisyear:default__lineitem_lineitem_lshipdate_idx__
             Filter Operator
               predicate:
-                  expr: (year(l_shipdate) = 1997)
+                  expr: (year(l_shipdate) = 1998)
                   type: boolean
               Select Operator
                 expressions:
@@ -974,7 +974,7 @@ STAGE PLANS:
               Map-reduce partition columns:
                     expr: _col1
                     type: int
-              tag: 0
+              tag: 1
               value expressions:
                     expr: _col1
                     type: int
@@ -989,7 +989,7 @@ STAGE PLANS:
               Map-reduce partition columns:
                     expr: _col1
                     type: int
-              tag: 1
+              tag: 0
               value expressions:
                     expr: _col1
                     type: int
@@ -1023,12 +1023,12 @@ STAGE PLANS:
   Stage: Stage-3
     Map Reduce
       Alias -> Map Operator Tree:
-        thisyear:default__lineitem_lineitem_lshipdate_idx__ 
+        lastyear:default__lineitem_lineitem_lshipdate_idx__ 
           TableScan
-            alias: thisyear:default__lineitem_lineitem_lshipdate_idx__
+            alias: lastyear:default__lineitem_lineitem_lshipdate_idx__
             Filter Operator
               predicate:
-                  expr: (year(l_shipdate) = 1998)
+                  expr: (year(l_shipdate) = 1997)
                   type: boolean
               Select Operator
                 expressions:
@@ -1115,12 +1115,12 @@ ABSTRACT SYNTAX TREE:
   (TOK_QUERY (TOK_FROM (TOK_SUBQUERY (TOK_UNION (TOK_QUERY (TOK_FROM (TOK_TABREF (TOK_TABNAME lineitem))) (TOK_INSERT (TOK_DESTINATION (TOK_DIR TOK_TMP_FILE)) (TOK_SELECT (TOK_SELEXPR (TOK_TABLE_OR_COL l_shipdate)) (TOK_SELEXPR (TOK_FUNCTION count (TOK_TABLE_OR_COL l_shipdate)) cnt)) (TOK_GROUPBY (TOK_TABLE_OR_COL l_shipdate)))) (TOK_QUERY (TOK_FROM (TOK_TABREF (TOK_TABNAME lineitem))) (TOK_INSERT (TOK_DESTINATION (TOK_DIR TOK_TMP_FILE)) (TOK_SELECT (TOK_SELEXPR (TOK_TABLE_OR_COL l_shipdate)) (TOK_SELEXPR (TOK_TABLE_OR_COL l_orderkey) cnt))))) dummy)) (TOK_INSERT (TOK_DESTINATION (TOK_DIR TOK_TMP_FILE)) (TOK_SELECT (TOK_SELEXPR (TOK_TABLE_OR_COL l_shipdate)) (TOK_SELEXPR (TOK_TABLE_OR_COL cnt)))))
 
 STAGE DEPENDENCIES:
-  Stage-1 is a root stage
-  Stage-2 depends on stages: Stage-1
+  Stage-3 is a root stage
+  Stage-2 depends on stages: Stage-3
   Stage-0 is a root stage
 
 STAGE PLANS:
-  Stage: Stage-1
+  Stage: Stage-3
     Map Reduce
       Alias -> Map Operator Tree:
         null-subquery1:default__lineitem_lineitem_lshipdate_idx__ 
