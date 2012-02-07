@@ -1,0 +1,18 @@
+PREHOOK: query: select count(*) from srcbucket2 tablesample (1 percent)
+PREHOOK: type: QUERY
+PREHOOK: Input: default@srcbucket2
+PREHOOK: Output: file:/tmp/navis/hive_2012-02-08_16-41-28_319_2764849103082709610/-mr-10000
+POSTHOOK: query: select count(*) from srcbucket2 tablesample (1 percent)
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@srcbucket2
+POSTHOOK: Output: file:/tmp/navis/hive_2012-02-08_16-41-28_319_2764849103082709610/-mr-10000
+118
+PREHOOK: query: select count(*) from srcbucket2 tablesample (1 percent)
+PREHOOK: type: QUERY
+PREHOOK: Input: default@srcbucket2
+PREHOOK: Output: file:/tmp/navis/hive_2012-02-08_16-41-31_507_5767295052295470337/-mr-10000
+POSTHOOK: query: select count(*) from srcbucket2 tablesample (1 percent)
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@srcbucket2
+POSTHOOK: Output: file:/tmp/navis/hive_2012-02-08_16-41-31_507_5767295052295470337/-mr-10000
+8

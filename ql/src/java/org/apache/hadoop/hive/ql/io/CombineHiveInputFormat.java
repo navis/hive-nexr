@@ -457,7 +457,8 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
    * @param splits
    * @return the sampled splits
    */
-  private List<InputSplitShim> sampleSplits(List<InputSplitShim> splits) {
+  private List<InputSplitShim> sampleSplits(List<InputSplitShim> splits) throws IOException {
+
     HashMap<String, SplitSample> nameToSamples = mrwork.getNameToSplitSample();
     List<InputSplitShim> retLists = new ArrayList<InputSplitShim>();
     Map<String, ArrayList<InputSplitShim>> aliasToSplitList = new HashMap<String, ArrayList<InputSplitShim>>();
@@ -500,33 +501,27 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
     // for every sampled alias, we figure out splits to be sampled and add
     // them to return list
     //
-    for (Map.Entry<String, ArrayList<InputSplitShim>> entry: aliasToSplitList.entrySet()) {
-      ArrayList<InputSplitShim> splitList = entry.getValue();
-      long totalSize = 0;
-      for (InputSplitShim split : splitList) {
-        totalSize += split.getLength();
-      }
-
-      long targetSize = (long) (totalSize * nameToSamples.get(entry.getKey()).getPercent() / 100D);
-      int startIndex = nameToSamples.get(entry.getKey()).getSeedNum() % splitList.size();
-      long size = 0;
-      for (int i = 0; i < splitList.size(); i++) {
-        InputSplitShim split = splitList.get((startIndex + i) % splitList.size());
-        retLists.add(split);
-        long splitgLength = split.getLength();
-        if (size + splitgLength >= targetSize) {
-          LOG.info("Sample alias " + entry.getValue() + " using " + (i + 1) + "splits");
-          if (size + splitgLength > targetSize) {
-            split.shrinkSplit(targetSize - size);
-          }
-          break;
-        }
-        size += splitgLength;
-      }
-
-    }
+    Map<String, PartitionDesc> pathToPartitions = mrwork.getPathToPartitionInfo();
+    List<InputSplitShim> sampled = sampling(job, nameToSamples, aliasToSplitList, pathToPartitions);
+    retLists.addAll(sampled);
 
     return retLists;
+  }
+
+  private List<InputSplitShim> sampling(JobConf job, Map<String, SplitSample> nameToSamples,
+      Map<String, ArrayList<InputSplitShim>> aliasToSplitList,
+      Map<String, PartitionDesc> pathToPartitions) throws IOException {
+
+    String name = job.get("hive.input.percent.sampler", DefaultPercentSampler.class.getName());
+
+    PercentSampler sampler;
+    try {
+       sampler = (PercentSampler) Class.forName(name, true,
+          Thread.currentThread().getContextClassLoader()).newInstance();
+    } catch (Exception e) {
+      throw new IllegalArgumentException(e);
+    }
+    return sampler.sampling(nameToSamples, aliasToSplitList, pathToPartitions);
   }
 
   Map<String, ArrayList<String>> removeScheme(Map<String, ArrayList<String>> pathToAliases) {
@@ -610,6 +605,76 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
         s.append(pString + " ");
       }
       return s.toString();
+    }
+  }
+
+  public static class DefaultPercentSampler implements PercentSampler {
+
+    public List<InputSplitShim> sampling(Map<String, SplitSample> nameToSamples,
+       Map<String, ArrayList<InputSplitShim>> aliasToSplitList,
+       Map<String, PartitionDesc> pathToPartitions) {
+    List<InputSplitShim> retLists = new ArrayList<InputSplitShim>();
+    for (Map.Entry<String, ArrayList<InputSplitShim>> entry: aliasToSplitList.entrySet()) {
+      ArrayList<InputSplitShim> splitList = entry.getValue();
+      long totalSize = 0;
+      for (InputSplitShim split : splitList) {
+        totalSize += split.getLength();
+      }
+
+      long targetSize = (long) (totalSize * nameToSamples.get(entry.getKey()).getPercent() / 100D);
+      int startIndex = nameToSamples.get(entry.getKey()).getSeedNum() % splitList.size();
+      long size = 0;
+      for (int i = 0; i < splitList.size(); i++) {
+        InputSplitShim split = splitList.get((startIndex + i) % splitList.size());
+        retLists.add(split);
+        long splitgLength = split.getLength();
+        if (size + splitgLength >= targetSize) {
+          LOG.info("Sample alias " + entry.getValue() + " using " + (i + 1) + "splits");
+          if (size + splitgLength > targetSize) {
+            split.shrinkSplit(targetSize - size);
+          }
+          break;
+        }
+        size += splitgLength;
+      }
+
+    }
+
+    return retLists;
+    }
+  }
+
+  public static class HeadPercentSampler implements PercentSampler {
+
+    public List<InputSplitShim> sampling(Map<String, SplitSample> nameToSamples,
+        Map<String, ArrayList<InputSplitShim>> aliasToSplitList,
+        Map<String, PartitionDesc> pathToPartitions) throws IOException {
+      List<InputSplitShim> retLists = new ArrayList<InputSplitShim>();
+      for (Map.Entry<String, ArrayList<InputSplitShim>> entry: aliasToSplitList.entrySet()) {
+        SplitSample sample = nameToSamples.get(entry.getKey());
+        for (InputSplitShim split : entry.getValue()) {
+          boolean nonNative = false;
+          for (Path path : split.getPaths()) {
+            PartitionDesc part = HiveFileFormatUtils.getPartitionDescFromPathRecursively(
+                pathToPartitions, path, IOPrepareCache.get().allocatePartitionDescMap());
+            if (part.getTableDesc().isNonNative()) {
+              nonNative = true;
+              break;
+            }
+          }
+          if (!nonNative) {
+            long totalLength = 0;
+            long[] lenths = split.getLengths();
+            for (int i = 0; i < lenths.length; i++) {
+              lenths[i] *= sample.getPercent() / 100D;
+              totalLength += lenths[i];
+            }
+            split.shrinkSplit(totalLength);
+          }
+          retLists.add(split);
+        }
+      }
+      return retLists;
     }
   }
 }
