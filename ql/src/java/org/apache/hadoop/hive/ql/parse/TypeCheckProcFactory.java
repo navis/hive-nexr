@@ -855,8 +855,19 @@ public final class TypeCheckProcFactory {
             .getChild(0).getChild(0).getText());
         // NOTE: tableAlias must be a valid non-ambiguous table alias,
         // because we've checked that in TOK_TABLE_OR_COL's process method.
-        ColumnInfo colInfo = input.get(tableAlias,
-            ((ExprNodeConstantDesc) nodeOutputs[1]).getValue().toString());
+        String columnAlias;
+        if (expr.getChild(1).getType() == HiveParser.Number) {
+          int index = Integer.valueOf(expr.getChild(1).getText());
+          List<ColumnInfo> signature = input.getRowSchema().getSignature();
+          if (index > signature.size()) {
+            ctx.setError(ErrorMsg.INVALID_COLUMN.getMsg(expr.getChild(1)), expr);
+            return null;
+          }
+          columnAlias = signature.get(index - 1).getInternalName();
+        } else {
+          columnAlias = ((ExprNodeConstantDesc) nodeOutputs[1]).getValue().toString();
+        }
+        ColumnInfo colInfo = input.get(tableAlias, columnAlias);
 
         if (colInfo == null) {
           ctx.setError(ErrorMsg.INVALID_COLUMN.getMsg(expr.getChild(1)), expr);

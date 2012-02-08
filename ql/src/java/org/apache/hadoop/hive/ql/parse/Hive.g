@@ -1901,7 +1901,7 @@ atomExpression
 
 precedenceFieldExpression
     :
-    atomExpression ((LSQUARE^ expression RSQUARE!) | (DOT^ Identifier))*
+    atomExpression ((LSQUARE^ expression RSQUARE!) | (DOT^ Identifier) | (DOT^ Number))*
     ;
 
 precedenceUnaryOperator
