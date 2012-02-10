@@ -484,7 +484,7 @@ public class CliDriver {
     ss.setIsSilent(saveSilent);
   }
 
-  public static Completor getCommandCompletor () {
+  public static Completor[] getCommandCompletor () {
     // SimpleCompletor matches against a pre-defined wordlist
     // We start with an empty wordlist and build it up
     SimpleCompletor sc = new SimpleCompletor(new String[0]);
@@ -547,7 +547,20 @@ public class CliDriver {
       }
     };
 
-    return completor;
+    List<String> vars = new ArrayList<String>();
+    for (HiveConf.ConfVars conf : HiveConf.ConfVars.values()) {
+      vars.add(conf.varname);
+    }
+    SimpleCompletor conf = new SimpleCompletor(vars.toArray(new String[vars.size()]));
+    conf.setDelimiter(".");
+
+    SimpleCompletor set = new SimpleCompletor("set") {
+      @Override
+      public int complete(String buffer, int cursor, java.util.List clist) {
+        return buffer == null || buffer.isEmpty() ? -1 : super.complete(buffer, cursor, clist);
+      }
+    };
+    return new Completor[] {new ArgumentCompletor(new Completor[]{set, conf}), completor};
   }
 
   public static void main(String[] args) throws Exception {
@@ -656,7 +669,9 @@ public class CliDriver {
     ConsoleReader reader = new ConsoleReader();
     reader.setBellEnabled(false);
     // reader.setDebug(new PrintWriter(new FileWriter("writer.debug", true)));
-    reader.addCompletor(getCommandCompletor());
+    for (Completor completor : getCommandCompletor()) {
+      reader.addCompletor(completor);
+    }
 
     String line;
     final String HISTORYFILE = ".hivehistory";
