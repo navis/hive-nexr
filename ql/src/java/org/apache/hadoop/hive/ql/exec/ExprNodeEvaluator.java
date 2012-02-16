@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hive.ql.exec;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 
@@ -31,7 +32,8 @@ public abstract class ExprNodeEvaluator {
    * Initialize should be called once and only once. Return the ObjectInspector
    * for the return value, given the rowInspector.
    */
-  public abstract ObjectInspector initialize(ObjectInspector rowInspector) throws HiveException;
+  public abstract ObjectInspector initialize(Configuration config, ObjectInspector rowInspector)
+      throws HiveException;
 
   /**
    * Evaluate the expression given the row. This method should use the
@@ -46,5 +48,9 @@ public abstract class ExprNodeEvaluator {
   public boolean isDeterministic() {
     return true;
   }
-  
+
+  /**
+   * close expression
+   */
+  public abstract void close();
 }

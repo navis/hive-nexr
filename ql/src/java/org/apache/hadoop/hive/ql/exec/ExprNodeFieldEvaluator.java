@@ -21,6 +21,7 @@ package org.apache.hadoop.hive.ql.exec;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeFieldDesc;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
@@ -50,9 +51,10 @@ public class ExprNodeFieldEvaluator extends ExprNodeEvaluator {
   }
 
   @Override
-  public ObjectInspector initialize(ObjectInspector rowInspector) throws HiveException {
+  public ObjectInspector initialize(Configuration config, ObjectInspector rowInspector)
+      throws HiveException {
 
-    leftInspector = leftEvaluator.initialize(rowInspector);
+    leftInspector = leftEvaluator.initialize(config, rowInspector);
     if (desc.getIsList()) {
       structObjectInspector = (StructObjectInspector) ((ListObjectInspector) leftInspector)
           .getListElementObjectInspector();
@@ -96,4 +98,7 @@ public class ExprNodeFieldEvaluator extends ExprNodeEvaluator {
     }
   }
 
+  public void close() {
+    leftEvaluator.close();
+  }
 }

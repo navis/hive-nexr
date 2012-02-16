@@ -36,13 +36,19 @@ public class ExtractOperator extends Operator<ExtractDesc> implements
   @Override
   protected void initializeOp(Configuration hconf) throws HiveException {
     eval = ExprNodeEvaluatorFactory.get(conf.getCol());
-    outputObjInspector = eval.initialize(inputObjInspectors[0]);
+    outputObjInspector = initialize(inputObjInspectors[0], eval);
     initializeChildren(hconf);
   }
 
   @Override
   public void processOp(Object row, int tag) throws HiveException {
     forward(eval.evaluate(row), outputObjInspector);
+  }
+
+  @Override
+  public void closeOp(boolean abort) throws HiveException {
+    super.closeOp(abort);
+    close(eval);
   }
 
   @Override

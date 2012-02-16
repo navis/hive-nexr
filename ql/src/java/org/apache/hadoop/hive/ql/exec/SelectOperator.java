@@ -84,6 +84,12 @@ public class SelectOperator extends Operator<SelectDesc> implements
     forward(output, outputObjInspector);
   }
 
+  @Override
+  public void closeOp(boolean abort) throws HiveException {
+    super.closeOp(abort);
+    close(eval);
+  }
+
   /**
    * @return the name of the operator
    */

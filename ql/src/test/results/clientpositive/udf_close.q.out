@@ -1,0 +1,22 @@
+PREHOOK: query: create temporary function close_test as 'org.apache.hadoop.hive.ql.udf.generic.GenericUDFTestClose'
+PREHOOK: type: CREATEFUNCTION
+POSTHOOK: query: create temporary function close_test as 'org.apache.hadoop.hive.ql.udf.generic.GenericUDFTestClose'
+POSTHOOK: type: CREATEFUNCTION
+PREHOOK: query: select close_test(key) from src limit 10
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: file:/tmp/navis/hive_2012-02-15_22-42-51_463_6773868987012432415/-mr-10000
+POSTHOOK: query: select close_test(key) from src limit 10
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: file:/tmp/navis/hive_2012-02-15_22-42-51_463_6773868987012432415/-mr-10000
+positive : 238
+positive : 86
+positive : 311
+positive : 27
+positive : 165
+positive : 409
+positive : 255
+positive : 278
+positive : 98
+positive : 484

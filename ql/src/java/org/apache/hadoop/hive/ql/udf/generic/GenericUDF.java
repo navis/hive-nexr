@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hive.ql.udf.generic;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
@@ -85,6 +86,14 @@ public abstract class GenericUDF {
   public abstract ObjectInspector initialize(ObjectInspector[] arguments)
       throws UDFArgumentException;
 
+  public ObjectInspector initialize(Configuration conf, ObjectInspector[] arguments)
+      throws UDFArgumentException {
+    return initialize(arguments);
+  }
+
+  public void close() {
+  }
+
   /**
    * Initialize this GenericUDF.  Additionally, if the arguments are constant
    * and the function is eligible to be folded, then the constant value
@@ -92,10 +101,10 @@ public abstract class GenericUDF {
    * ConstantObjectInspector returned.  Otherwise, the function behaves exactly
    * like initialize().
    */
-  public ObjectInspector initializeAndFoldConstants(ObjectInspector[] arguments)
+  public ObjectInspector initializeAndFoldConstants(Configuration conf, ObjectInspector[] arguments)
       throws UDFArgumentException {
 
-    ObjectInspector oi = initialize(arguments);
+    ObjectInspector oi = initialize(conf, arguments);
 
     // If the UDF depends on any external resources, we can't fold because the
     // resources may not be available at compile time.

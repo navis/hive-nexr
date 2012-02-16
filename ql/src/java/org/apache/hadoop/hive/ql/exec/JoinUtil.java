@@ -51,31 +51,6 @@ import org.apache.hadoop.util.ReflectionUtils;
 
 public class JoinUtil {
 
-  public static HashMap<Byte, List<ObjectInspector>> getObjectInspectorsFromEvaluators(
-      Map<Byte, List<ExprNodeEvaluator>> exprEntries,
-      ObjectInspector[] inputObjInspector,
-      int posBigTableAlias) throws HiveException {
-    HashMap<Byte, List<ObjectInspector>> result = new HashMap<Byte, List<ObjectInspector>>();
-    for (Entry<Byte, List<ExprNodeEvaluator>> exprEntry : exprEntries
-        .entrySet()) {
-      Byte alias = exprEntry.getKey();
-      //get big table
-      if(alias == (byte) posBigTableAlias){
-        //skip the big tables
-          continue;
-      }
-
-      List<ExprNodeEvaluator> exprList = exprEntry.getValue();
-      ArrayList<ObjectInspector> fieldOIList = new ArrayList<ObjectInspector>();
-      for (int i = 0; i < exprList.size(); i++) {
-        fieldOIList.add(exprList.get(i).initialize(inputObjInspector[alias]));
-      }
-      result.put(alias, fieldOIList);
-    }
-    return result;
-  }
-
-
   public static HashMap<Byte, List<ObjectInspector>> getStandardObjectInspectors(
       Map<Byte, List<ObjectInspector>> aliasToObjectInspectors,
       int posBigTableAlias) {

@@ -103,7 +103,7 @@ public class TestExpressionEvaluator extends TestCase {
       ExprNodeEvaluator eval = ExprNodeEvaluatorFactory.get(exprDesc);
 
       // evaluate on row
-      ObjectInspector resultOI = eval.initialize(r.oi);
+      ObjectInspector resultOI = eval.initialize(null, r.oi);
       Object resultO = eval.evaluate(r.o);
 
       Object standardResult = ObjectInspectorUtils.copyToStandardObject(
@@ -144,7 +144,7 @@ public class TestExpressionEvaluator extends TestCase {
       ExprNodeEvaluator eval = ExprNodeEvaluatorFactory.get(func1);
 
       // evaluate on row
-      ObjectInspector resultOI = eval.initialize(r.oi);
+      ObjectInspector resultOI = eval.initialize(null, r.oi);
       Object resultO = eval.evaluate(r.o);
       assertEquals("1a", ObjectInspectorUtils.copyToStandardObject(resultO,
           resultOI, ObjectInspectorCopyOption.JAVA));
@@ -166,7 +166,7 @@ public class TestExpressionEvaluator extends TestCase {
       ExprNodeEvaluator eval = ExprNodeEvaluatorFactory.get(func1);
 
       // evaluate on row
-      ObjectInspector resultOI = eval.initialize(r.oi);
+      ObjectInspector resultOI = eval.initialize(null, r.oi);
       Object resultO = eval.evaluate(r.o);
       assertEquals(Double.valueOf("1"), ObjectInspectorUtils
           .copyToStandardObject(resultO, resultOI,
@@ -183,7 +183,7 @@ public class TestExpressionEvaluator extends TestCase {
       throws HiveException {
     System.out.println("Evaluating " + expr + " for " + times + " times");
     new InspectableObject();
-    ObjectInspector resultOI = eval.initialize(input.oi);
+    ObjectInspector resultOI = eval.initialize(null, input.oi);
     Object resultO = null;
     long start = System.currentTimeMillis();
     for (int i = 0; i < times; i++) {

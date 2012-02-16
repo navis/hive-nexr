@@ -20,6 +20,7 @@ package org.apache.hadoop.hive.ql.exec;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
@@ -121,11 +122,12 @@ public class ExprNodeGenericFuncEvaluator extends ExprNodeEvaluator {
   }
 
   @Override
-  public ObjectInspector initialize(ObjectInspector rowInspector) throws HiveException {
+  public ObjectInspector initialize(Configuration conf, ObjectInspector rowInspector)
+      throws HiveException {
     // Initialize all children first
     ObjectInspector[] childrenOIs = new ObjectInspector[children.length];
     for (int i = 0; i < children.length; i++) {
-      childrenOIs[i] = children[i].initialize(rowInspector);
+      childrenOIs[i] = children[i].initialize(conf, rowInspector);
     }
     genericUDF = expr.getGenericUDF();
     if (isEager &&
@@ -134,8 +136,18 @@ public class ExprNodeGenericFuncEvaluator extends ExprNodeEvaluator {
       throw new HiveException(
         "Stateful expressions cannot be used inside of CASE");
     }
-    this.outputOI = genericUDF.initializeAndFoldConstants(childrenOIs);
+    this.outputOI = genericUDF.initializeAndFoldConstants(conf, childrenOIs);
     return this.outputOI;
+  }
+
+  @Override
+  public void close() {
+    for (ExprNodeEvaluator expr : children) {
+      expr.close();
+    }
+    if (genericUDF != null) {
+      genericUDF.close();
+    }
   }
 
   @Override

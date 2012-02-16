@@ -211,7 +211,7 @@ public class ExprNodeGenericFuncDesc extends ExprNodeDesc implements
       }
     }
 
-    ObjectInspector oi = genericUDF.initializeAndFoldConstants(childrenOIs);
+    ObjectInspector oi = genericUDF.initializeAndFoldConstants(null, childrenOIs);
 
     String[] requiredJars = genericUDF.getRequiredJars();
     String[] requiredFiles = genericUDF.getRequiredFiles();

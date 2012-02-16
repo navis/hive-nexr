@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hive.ql.exec;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeConstantDesc;
 import org.apache.hadoop.hive.serde2.objectinspector.ConstantObjectInspector;
@@ -38,7 +39,8 @@ public class ExprNodeConstantEvaluator extends ExprNodeEvaluator {
   }
 
   @Override
-  public ObjectInspector initialize(ObjectInspector rowInspector) throws HiveException {
+  public ObjectInspector initialize(Configuration config, ObjectInspector rowInspector)
+      throws HiveException {
     return writableObjectInspector;
   }
 
@@ -47,4 +49,7 @@ public class ExprNodeConstantEvaluator extends ExprNodeEvaluator {
     return writableObjectInspector.getWritableConstantValue();
   }
 
+  @Override
+  public void close() {
+  }
 }

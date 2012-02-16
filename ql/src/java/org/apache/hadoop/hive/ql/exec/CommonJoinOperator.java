@@ -248,9 +248,9 @@ public abstract class CommonJoinOperator<T extends JoinDesc> extends
     JoinUtil.populateJoinKeyValue(joinFilters, conf.getFilters(),order,NOTSKIPBIGTABLE);
 
 
-    joinValuesObjectInspectors = JoinUtil.getObjectInspectorsFromEvaluators(joinValues,
+    joinValuesObjectInspectors = getObjectInspectorsFromEvaluators(joinValues,
         inputObjInspectors,NOTSKIPBIGTABLE);
-    joinFilterObjectInspectors = JoinUtil.getObjectInspectorsFromEvaluators(joinFilters,
+    joinFilterObjectInspectors = getObjectInspectorsFromEvaluators(joinFilters,
         inputObjInspectors,NOTSKIPBIGTABLE);
     joinValuesStandardObjectInspectors = JoinUtil.getStandardObjectInspectors(
         joinValuesObjectInspectors,NOTSKIPBIGTABLE);
@@ -891,6 +891,8 @@ transient boolean newGroupStarted = false;
       }
     }
     storage.clear();
+    close(joinValues);
+    close(joinFilters);
   }
 
   @Override

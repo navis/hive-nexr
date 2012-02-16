@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hive.ql.exec;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -45,7 +46,8 @@ public class ExprNodeColumnEvaluator extends ExprNodeEvaluator {
   }
 
   @Override
-  public ObjectInspector initialize(ObjectInspector rowInspector) throws HiveException {
+  public ObjectInspector initialize(Configuration config, ObjectInspector rowInspector)
+      throws HiveException {
 
     // We need to support field names like KEY.0, VALUE.1 between
     // map-reduce boundary.
@@ -75,9 +77,9 @@ public class ExprNodeColumnEvaluator extends ExprNodeEvaluator {
           } else {
             inspectors[i] = (StructObjectInspector) fields[i - 1]
               .getFieldObjectInspector();
-	  }
+          }
         }
-	// to support names like _colx:1._coly
+        // to support names like _colx:1._coly
         unionfields = names[i].split("\\:");
         fields[i] = inspectors[i].getStructFieldRef(unionfields[0]);
         if (unionfields.length > 1) {
@@ -107,4 +109,7 @@ public class ExprNodeColumnEvaluator extends ExprNodeEvaluator {
     return o;
   }
 
+  @Override
+  public void close() {
+  }
 }

@@ -82,8 +82,8 @@ public class FilterOperator extends Operator<FilterDesc> implements
   public void processOp(Object row, int tag) throws HiveException {
     ObjectInspector rowInspector = inputObjInspectors[tag];
     if (conditionInspector == null) {
-      conditionInspector = (PrimitiveObjectInspector) conditionEvaluator
-          .initialize(rowInspector);
+      conditionInspector = (PrimitiveObjectInspector)
+          initialize(rowInspector, conditionEvaluator);
     }
 
     // If the input is sorted, and we are executing a search based on the arguments to this filter,
@@ -142,6 +142,12 @@ public class FilterOperator extends Operator<FilterDesc> implements
         reporter.progress();
       }
     }
+  }
+
+  @Override
+  public void closeOp(boolean abort) throws HiveException {
+    super.closeOp(abort);
+    close(conditionEvaluator);
   }
 
   /**

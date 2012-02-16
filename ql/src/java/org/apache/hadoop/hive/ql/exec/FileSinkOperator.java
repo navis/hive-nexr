@@ -730,6 +730,7 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
         fsp.abortWriters(fs, abort, !autoDelete && isNativeTable);
       }
     }
+    close(partitionEval);
   }
 
   /**

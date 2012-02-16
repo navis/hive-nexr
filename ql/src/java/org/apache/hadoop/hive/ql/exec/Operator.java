@@ -71,6 +71,7 @@ public abstract class Operator<T extends Serializable> implements Serializable,
   protected HashMap<String, ProgressCounter> counterNameToEnum;
 
   private transient ExecMapperContext execContext;
+  private transient Configuration hconf;
 
   private static int seqId;
 
@@ -309,7 +310,7 @@ public abstract class Operator<T extends Serializable> implements Serializable,
     if (state == State.INIT) {
       return;
     }
-
+    this.hconf = hconf;
     this.out = null;
     if (!areAllParentsInitialized()) {
       return;
@@ -889,11 +890,11 @@ public abstract class Operator<T extends Serializable> implements Serializable,
    * Initialize an array of ExprNodeEvaluator and return the result
    * ObjectInspectors.
    */
-  protected static ObjectInspector[] initEvaluators(ExprNodeEvaluator[] evals,
+  protected ObjectInspector[] initEvaluators(ExprNodeEvaluator[] evals,
       ObjectInspector rowInspector) throws HiveException {
     ObjectInspector[] result = new ObjectInspector[evals.length];
     for (int i = 0; i < evals.length; i++) {
-      result[i] = evals[i].initialize(rowInspector);
+      result[i] = initialize(rowInspector, evals[i]);
     }
     return result;
   }
@@ -902,12 +903,12 @@ public abstract class Operator<T extends Serializable> implements Serializable,
    * Initialize an array of ExprNodeEvaluator from start, for specified length
    * and return the result ObjectInspectors.
    */
-  protected static ObjectInspector[] initEvaluators(ExprNodeEvaluator[] evals,
+  protected ObjectInspector[] initEvaluators(ExprNodeEvaluator[] evals,
       int start, int length,
       ObjectInspector rowInspector) throws HiveException {
     ObjectInspector[] result = new ObjectInspector[length];
     for (int i = 0; i < length; i++) {
-      result[i] = evals[start + i].initialize(rowInspector);
+      result[i] = initialize(rowInspector, evals[start + i]);
     }
     return result;
   }
@@ -916,13 +917,38 @@ public abstract class Operator<T extends Serializable> implements Serializable,
    * Initialize an array of ExprNodeEvaluator and put the return values into a
    * StructObjectInspector with integer field names.
    */
-  protected static StructObjectInspector initEvaluatorsAndReturnStruct(
+  protected StructObjectInspector initEvaluatorsAndReturnStruct(
       ExprNodeEvaluator[] evals, List<String> outputColName,
       ObjectInspector rowInspector) throws HiveException {
     ObjectInspector[] fieldObjectInspectors = initEvaluators(evals,
         rowInspector);
     return ObjectInspectorFactory.getStandardStructObjectInspector(
         outputColName, Arrays.asList(fieldObjectInspectors));
+  }
+
+  // from JoinUtil
+  protected HashMap<Byte, List<ObjectInspector>> getObjectInspectorsFromEvaluators(
+      Map<Byte, List<ExprNodeEvaluator>> exprEntries,
+      ObjectInspector[] inputObjInspector,
+      int posBigTableAlias) throws HiveException {
+    HashMap<Byte, List<ObjectInspector>> result = new HashMap<Byte, List<ObjectInspector>>();
+    for (Map.Entry<Byte, List<ExprNodeEvaluator>> exprEntry : exprEntries
+        .entrySet()) {
+      Byte alias = exprEntry.getKey();
+      //get big table
+      if(alias == (byte) posBigTableAlias){
+        //skip the big tables
+          continue;
+      }
+
+      List<ExprNodeEvaluator> exprList = exprEntry.getValue();
+      ArrayList<ObjectInspector> fieldOIList = new ArrayList<ObjectInspector>();
+      for (int i = 0; i < exprList.size(); i++) {
+        fieldOIList.add(initialize(inputObjInspector[alias], exprList.get(i)));
+      }
+      result.put(alias, fieldOIList);
+    }
+    return result;
   }
 
   /**
@@ -1332,4 +1358,38 @@ public abstract class Operator<T extends Serializable> implements Serializable,
   public void cleanUpInputFileChangedOp() throws HiveException {
   }
 
+  protected ObjectInspector initialize(ObjectInspector rowInspector,
+      ExprNodeEvaluator evaluator) throws HiveException {
+    return evaluator.initialize(hconf, rowInspector);
+  }
+
+  protected void close(ExprNodeEvaluator evaluator) {
+    if (evaluator != null) {
+      evaluator.close();
+    }
+  }
+
+  protected void close(ExprNodeEvaluator[] evaluators) {
+    if (evaluators != null) {
+      for (ExprNodeEvaluator evaluator: evaluators) {
+        close(evaluator);
+      }
+    }
+  }
+
+  protected void close(ExprNodeEvaluator[][] evaluators) {
+    for (ExprNodeEvaluator[] evaluator : evaluators) {
+        close(evaluator);
+    }
+  }
+
+  protected void close(Map<Byte, List<ExprNodeEvaluator>> tagged) {
+    if (tagged != null) {
+      for (List<ExprNodeEvaluator> evaluators: tagged.values()) {
+        for (ExprNodeEvaluator evaluator : evaluators) {
+          close(evaluator);
+        }
+      }
+    }
+  }
 }

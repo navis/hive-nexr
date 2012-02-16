@@ -195,7 +195,7 @@ public class GroupByOperator extends Operator<GroupByDesc> implements
     currentKeyObjectInspectors = new ObjectInspector[conf.getKeys().size()];
     for (int i = 0; i < keyFields.length; i++) {
       keyFields[i] = ExprNodeEvaluatorFactory.get(conf.getKeys().get(i));
-      keyObjectInspectors[i] = keyFields[i].initialize(rowInspector);
+      keyObjectInspectors[i] = initialize(rowInspector, keyFields[i]);
       currentKeyObjectInspectors[i] = ObjectInspectorUtils
           .getStandardObjectInspector(keyObjectInspectors[i],
           ObjectInspectorCopyOption.WRITABLE);
@@ -224,7 +224,7 @@ public class GroupByOperator extends Operator<GroupByDesc> implements
                 sf.getFieldObjectInspector()),
                 keyField.getFieldName() + "." + sf.getFieldName(), null,
                 false));
-              unionExprEval.initialize(rowInspector);
+              initialize(rowInspector, unionExprEval);
             }
           }
         }
@@ -249,8 +249,8 @@ public class GroupByOperator extends Operator<GroupByDesc> implements
       for (int j = 0; j < parameters.size(); j++) {
         aggregationParameterFields[i][j] = ExprNodeEvaluatorFactory
             .get(parameters.get(j));
-        aggregationParameterObjectInspectors[i][j] = aggregationParameterFields[i][j]
-            .initialize(rowInspector);
+        aggregationParameterObjectInspectors[i][j] =
+            initialize(rowInspector, aggregationParameterFields[i][j]);
         if (unionExprEval != null) {
           String[] names = parameters.get(j).getExprString().split("\\.");
           // parameters of the form : KEY.colx:t.coly
@@ -1022,6 +1022,10 @@ public class GroupByOperator extends Operator<GroupByDesc> implements
       } catch (Exception e) {
         e.printStackTrace();
         throw new HiveException(e);
+      } finally {
+        close(keyFields);
+        close(unionExprEval);
+        close(aggregationParameterFields);
       }
     }
   }

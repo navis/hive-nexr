@@ -87,7 +87,7 @@ public abstract class AbstractMapJoinOperator <T extends MapJoinDesc> extends Co
     joinKeys = new HashMap<Byte, List<ExprNodeEvaluator>>();
 
     JoinUtil.populateJoinKeyValue(joinKeys, conf.getKeys(),order,NOTSKIPBIGTABLE);
-    joinKeysObjectInspectors = JoinUtil.getObjectInspectorsFromEvaluators(joinKeys,
+    joinKeysObjectInspectors = getObjectInspectorsFromEvaluators(joinKeys,
         inputObjInspectors,NOTSKIPBIGTABLE);
     joinKeysStandardObjectInspectors = JoinUtil.getStandardObjectInspectors(
         joinKeysObjectInspectors,NOTSKIPBIGTABLE);
@@ -124,6 +124,11 @@ public abstract class AbstractMapJoinOperator <T extends MapJoinDesc> extends Co
     initializeChildren(hconf);
   }
 
+  @Override
+  public void closeOp(boolean abort) throws HiveException {
+    super.closeOp(abort);
+    close(joinKeys);
+  }
 
   @Override
   protected void fatalErrorMessage(StringBuilder errMsg, long counterCode) {

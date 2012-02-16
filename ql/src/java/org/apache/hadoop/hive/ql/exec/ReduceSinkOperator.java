@@ -155,7 +155,7 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
    * If distinctColIndices is empty, the object inspector is same as
    * {@link Operator#initEvaluatorsAndReturnStruct(ExprNodeEvaluator[], List, ObjectInspector)}
    */
-  protected static StructObjectInspector initEvaluatorsAndReturnStruct(
+  protected StructObjectInspector initEvaluatorsAndReturnStruct(
       ExprNodeEvaluator[] evals, List<List<Integer>> distinctColIndices,
       List<String> outputColNames,
       int length, ObjectInspector rowInspector)
@@ -176,7 +176,7 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
         int numExprs = 0;
         for (int i : distinctCols) {
           names.add(HiveConf.getColumnInternalName(numExprs));
-          eois.add(evals[i].initialize(rowInspector));
+          eois.add(initialize(rowInspector, evals[i]));
           numExprs++;
         }
         uois.add(ObjectInspectorFactory.getStandardStructObjectInspector(names, eois));
@@ -303,6 +303,14 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
     } catch (IOException e) {
       throw new HiveException(e);
     }
+  }
+
+  @Override
+  public void closeOp(boolean abort) throws HiveException {
+    super.closeOp(abort);
+    close(keyEval);
+    close(valueEval);
+    close(partitionEval);
   }
 
   /**

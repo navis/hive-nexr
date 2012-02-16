@@ -201,7 +201,7 @@ public class HashTableSinkOperator extends TerminalOperator<HashTableSinkDesc> i
     // process join keys
     joinKeys = new HashMap<Byte, List<ExprNodeEvaluator>>();
     JoinUtil.populateJoinKeyValue(joinKeys, conf.getKeys(), order, posBigTableAlias);
-    joinKeysObjectInspectors = JoinUtil.getObjectInspectorsFromEvaluators(joinKeys,
+    joinKeysObjectInspectors = getObjectInspectorsFromEvaluators(joinKeys,
         inputObjInspectors, posBigTableAlias);
     joinKeysStandardObjectInspectors = JoinUtil.getStandardObjectInspectors(
         joinKeysObjectInspectors, posBigTableAlias);
@@ -209,7 +209,7 @@ public class HashTableSinkOperator extends TerminalOperator<HashTableSinkDesc> i
     // process join values
     joinValues = new HashMap<Byte, List<ExprNodeEvaluator>>();
     JoinUtil.populateJoinKeyValue(joinValues, conf.getExprs(), order, posBigTableAlias);
-    joinValuesObjectInspectors = JoinUtil.getObjectInspectorsFromEvaluators(joinValues,
+    joinValuesObjectInspectors = getObjectInspectorsFromEvaluators(joinValues,
         inputObjInspectors, posBigTableAlias);
     joinValuesStandardObjectInspectors = JoinUtil.getStandardObjectInspectors(
         joinValuesObjectInspectors, posBigTableAlias);
@@ -217,7 +217,7 @@ public class HashTableSinkOperator extends TerminalOperator<HashTableSinkDesc> i
     // process join filters
     joinFilters = new HashMap<Byte, List<ExprNodeEvaluator>>();
     JoinUtil.populateJoinKeyValue(joinFilters, conf.getFilters(), order, posBigTableAlias);
-    joinFilterObjectInspectors = JoinUtil.getObjectInspectorsFromEvaluators(joinFilters,
+    joinFilterObjectInspectors = getObjectInspectorsFromEvaluators(joinFilters,
         inputObjInspectors, posBigTableAlias);
 
     if (noOuterJoin) {
@@ -419,7 +419,9 @@ public class HashTableSinkOperator extends TerminalOperator<HashTableSinkDesc> i
           hashTable.close();
         }
       }
-
+      close(joinKeys);
+      close(joinValues);
+      close(joinFilters);
       super.closeOp(abort);
     } catch (Exception e) {
       LOG.error("Generate Hashtable error");

@@ -71,7 +71,7 @@ public class PartExprEvalUtils {
     ExprNodeEvaluator evaluator = ExprNodeEvaluatorFactory
         .get(expr);
     ObjectInspector evaluateResultOI = evaluator
-        .initialize(rowWithPartObjectInspector);
+        .initialize(null, rowWithPartObjectInspector);
     Object evaluateResultO = evaluator.evaluate(rowWithPart);
 
     return ((PrimitiveObjectInspector) evaluateResultOI)
@@ -97,7 +97,7 @@ public class PartExprEvalUtils {
       ObjectInspectorFactory.getUnionStructObjectInspector(ois);
 
     ExprNodeEvaluator evaluator = ExprNodeEvaluatorFactory.get(expr);
-    ObjectInspector evaluateResultOI = evaluator.initialize(rowWithPartObjectInspector);
+    ObjectInspector evaluateResultOI = evaluator.initialize(null, rowWithPartObjectInspector);
 
     Map<PrimitiveObjectInspector, ExprNodeEvaluator> result =
       new HashMap<PrimitiveObjectInspector, ExprNodeEvaluator>();

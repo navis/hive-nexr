@@ -1,0 +1,19 @@
+PREHOOK: query: create temporary function close_test as 'org.apache.hadoop.hive.ql.udf.generic.GenericUDFTestClose'
+PREHOOK: type: CREATEFUNCTION
+POSTHOOK: query: create temporary function close_test as 'org.apache.hadoop.hive.ql.udf.generic.GenericUDFTestClose'
+POSTHOOK: type: CREATEFUNCTION
+PREHOOK: query: select close_test(key) from src limit 10
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: file:/tmp/navis/hive_2012-02-15_22-44-31_803_5170159933650027219/-mr-10000
+Execution failed with exit status: 2
+Obtaining error information
+
+Task failed!
+Task ID:
+  Stage-1
+
+Logs:
+
+/home/navis/apache/oss-hive/build/ql/tmp//hive.log
+FAILED: Execution Error, return code 2 from org.apache.hadoop.hive.ql.exec.MapRedTask
