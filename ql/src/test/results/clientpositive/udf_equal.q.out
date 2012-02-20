@@ -23,9 +23,28 @@ Synonyms: =
 PREHOOK: query: SELECT true=false, false=true, false=false, true=true FROM src LIMIT 1
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
-PREHOOK: Output: file:/data/users/pyang/mstore/trunk/VENDOR.hive/trunk/build/ql/scratchdir/hive_2010-04-14_14-02-03_248_2636646596000796300/10000
+PREHOOK: Output: file:/tmp/navis/hive_2012-02-19_19-41-05_382_3151433401233631008/-mr-10000
 POSTHOOK: query: SELECT true=false, false=true, false=false, true=true FROM src LIMIT 1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
-POSTHOOK: Output: file:/data/users/pyang/mstore/trunk/VENDOR.hive/trunk/build/ql/scratchdir/hive_2010-04-14_14-02-03_248_2636646596000796300/10000
+POSTHOOK: Output: file:/tmp/navis/hive_2012-02-19_19-41-05_382_3151433401233631008/-mr-10000
 false	false	true	true
+PREHOOK: query: DESCRIBE FUNCTION <=>
+PREHOOK: type: DESCFUNCTION
+POSTHOOK: query: DESCRIBE FUNCTION <=>
+POSTHOOK: type: DESCFUNCTION
+a <=> b - Returns same result with EQUAL(=) operator for non-null operands, but returns TRUE if both are NULL, FALSE if one of the them is NULL
+PREHOOK: query: DESCRIBE FUNCTION EXTENDED <=>
+PREHOOK: type: DESCFUNCTION
+POSTHOOK: query: DESCRIBE FUNCTION EXTENDED <=>
+POSTHOOK: type: DESCFUNCTION
+a <=> b - Returns same result with EQUAL(=) operator for non-null operands, but returns TRUE if both are NULL, FALSE if one of the them is NULL
+PREHOOK: query: SELECT NULL<=>true, true<=>NULL, NULL<=>NULL FROM src LIMIT 1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: file:/tmp/navis/hive_2012-02-19_19-41-08_402_1906068303660051311/-mr-10000
+POSTHOOK: query: SELECT NULL<=>true, true<=>NULL, NULL<=>NULL FROM src LIMIT 1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: file:/tmp/navis/hive_2012-02-19_19-41-08_402_1906068303660051311/-mr-10000
+false	false	true
