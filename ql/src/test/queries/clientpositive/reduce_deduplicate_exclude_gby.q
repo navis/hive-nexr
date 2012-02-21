@@ -1,6 +1,10 @@
-create table t1( key_int1 int, key_int2 int, key_string1 string, key_string2 string);
+set hive.optimize.reducededuplication=true;
 
 set hive.map.aggr=false;
-select Q1.key_int1, sum(Q1.key_int1) from (select * from t1 cluster by key_int1) Q1 group by Q1.key_int1;
+select * from (select * from src distribute by key sort by key) a group by a.key limit 1;
 
-drop table t1;
+select /*+ MAPJOIN(a) */ * from (select * from src distribute by key sort by key) a join src b on a.key = b.key limit 1;
+
+set hive.auto.convert.join=true;
+select * from (select * from src distribute by key sort by key) a join src b on a.key = b.key limit 1;
+
