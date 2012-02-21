@@ -1,21 +1,27 @@
-PREHOOK: query: create table t1( key_int1 int, key_int2 int, key_string1 string, key_string2 string)
-PREHOOK: type: CREATETABLE
-POSTHOOK: query: create table t1( key_int1 int, key_int2 int, key_string1 string, key_string2 string)
-POSTHOOK: type: CREATETABLE
-POSTHOOK: Output: default@t1
-PREHOOK: query: select Q1.key_int1, sum(Q1.key_int1) from (select * from t1 cluster by key_int1) Q1 group by Q1.key_int1
+PREHOOK: query: select * from (select * from src distribute by key sort by key) a group by a.key limit 1
 PREHOOK: type: QUERY
-PREHOOK: Input: default@t1
-PREHOOK: Output: file:/tmp/navis/hive_2011-11-27_23-25-26_347_8818194470198203115/-mr-10000
-POSTHOOK: query: select Q1.key_int1, sum(Q1.key_int1) from (select * from t1 cluster by key_int1) Q1 group by Q1.key_int1
+PREHOOK: Input: default@src
+PREHOOK: Output: file:/tmp/navis/hive_2012-02-22_16-15-40_160_4718032230419814127/-mr-10000
+POSTHOOK: query: select * from (select * from src distribute by key sort by key) a group by a.key limit 1
 POSTHOOK: type: QUERY
-POSTHOOK: Input: default@t1
-POSTHOOK: Output: file:/tmp/navis/hive_2011-11-27_23-25-26_347_8818194470198203115/-mr-10000
-PREHOOK: query: drop table t1
-PREHOOK: type: DROPTABLE
-PREHOOK: Input: default@t1
-PREHOOK: Output: default@t1
-POSTHOOK: query: drop table t1
-POSTHOOK: type: DROPTABLE
-POSTHOOK: Input: default@t1
-POSTHOOK: Output: default@t1
+POSTHOOK: Input: default@src
+POSTHOOK: Output: file:/tmp/navis/hive_2012-02-22_16-15-40_160_4718032230419814127/-mr-10000
+0
+PREHOOK: query: select /*+ MAPJOIN(a) */ * from (select * from src distribute by key sort by key) a join src b on a.key = b.key limit 1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: file:/tmp/navis/hive_2012-02-22_16-15-43_334_4155914805076813990/-mr-10000
+POSTHOOK: query: select /*+ MAPJOIN(a) */ * from (select * from src distribute by key sort by key) a join src b on a.key = b.key limit 1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: file:/tmp/navis/hive_2012-02-22_16-15-43_334_4155914805076813990/-mr-10000
+238	val_238	238	val_238
+PREHOOK: query: select * from (select * from src distribute by key sort by key) a join src b on a.key = b.key limit 1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: file:/tmp/navis/hive_2012-02-22_16-15-50_377_6714855942236535294/-mr-10000
+POSTHOOK: query: select * from (select * from src distribute by key sort by key) a join src b on a.key = b.key limit 1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: file:/tmp/navis/hive_2012-02-22_16-15-50_377_6714855942236535294/-mr-10000
+0	val_0	0	val_0
