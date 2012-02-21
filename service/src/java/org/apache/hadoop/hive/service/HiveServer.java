@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -678,6 +679,7 @@ public class HiveServer extends ThriftHive {
     public int port = DEFAULT_HIVE_SERVER_PORT;
     public int minWorkerThreads = DEFAULT_MIN_WORKER_THREADS;
     public int maxWorkerThreads = DEFAULT_MAX_WORKER_THREADS;
+    public String resource;
 
     @SuppressWarnings("static-access")
     public HiveServerCli() {
@@ -690,6 +692,14 @@ public class HiveServer extends ThriftHive {
           .withDescription("Hive Server port number, default:"
               + DEFAULT_HIVE_SERVER_PORT)
           .create('p'));
+
+      // -r resource file path
+      OPTIONS.addOption(OptionBuilder
+          .hasArg()
+          .withArgName("resource")
+          .withDescription("Hive Server resource location, default:"
+              + "$USER_HOME/.hiverc")
+          .create('r'));
 
       // min worker thread count
       OPTIONS.addOption(OptionBuilder
@@ -737,6 +747,12 @@ public class HiveServer extends ThriftHive {
           port = Integer.parseInt(hivePort);
         }
       }
+
+      String location = commandLine.getOptionValue('r', System.getProperty("user.home"));
+      if (location != null && new File(location).exists()) {
+        resource = new File(location).isFile() ? location : location + "/.hiverc";
+      }
+
       if (commandLine.hasOption(OPTION_MIN_WORKER_THREADS)) {
         minWorkerThreads = Integer.parseInt(
             commandLine.getOptionValue(OPTION_MIN_WORKER_THREADS));
@@ -775,6 +791,18 @@ public class HiveServer extends ThriftHive {
         conf.set((String) item.getKey(), (String) item.getValue());
       }
 
+      if (cli.resource != null) {
+        Iface handler = new HiveServerHandler(conf);
+        for (String query : loadScript("file://" + cli.resource, conf)) {
+          System.err.println("Executing : " + query);
+          handler.execute(query);
+          for(String result : handler.fetchAll()) {
+            System.err.println(result);
+          }
+          handler.clean();
+        }
+      }
+
       ThriftHiveProcessorFactory hfactory =
         new ThriftHiveProcessorFactory(null, conf);
 
@@ -804,18 +832,6 @@ public class HiveServer extends ThriftHive {
         System.err.println(msg);
       }
 
-      if (System.getProperty("user.home") != null) {
-        String hivercUser = System.getProperty("user.home") + File.separator + ".hiverc";
-        HiveServerHandler.LOG.debug("Finding resource file from " + hivercUser);
-        if (new File(hivercUser).exists()) {
-          Iface handler = new HiveServerHandler(conf);
-          for (String query : loadScript("file://" + hivercUser, conf)) {
-            System.err.println("Executing " + query);
-            handler.execute(query);
-            handler.clean();
-          }
-        }
-      }
       server.serve();
 
     } catch (Exception x) {
@@ -826,6 +842,10 @@ public class HiveServer extends ThriftHive {
   private static List<String> loadScript(String script, HiveConf conf) throws Exception {
     Path path = new Path(script);
     FileSystem fs = path.getFileSystem(conf);
+    if (!fs.exists(path)) {
+      System.err.println("Resource file " + path + " does not exist");
+      return Collections.emptyList();
+    }
     BufferedReader reader = new BufferedReader(new InputStreamReader(fs.open(path)));
 
     try {
