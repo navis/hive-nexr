@@ -19,3 +19,43 @@ POSTHOOK: Input: default@srcpart@ds=2008-04-09/hr=11
 POSTHOOK: Input: default@srcpart@ds=2008-04-09/hr=12
 #### A masked pattern was here ####
 1114788.0
+PREHOOK: query: -- const filter on outer join
+SELECT /*+ MAPJOIN(a) */ * FROM src a RIGHT OUTER JOIN src b on a.key=b.key AND true limit 10
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: -- const filter on outer join
+SELECT /*+ MAPJOIN(a) */ * FROM src a RIGHT OUTER JOIN src b on a.key=b.key AND true limit 10
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+238	val_238	238	val_238
+238	val_238	238	val_238
+86	val_86	86	val_86
+311	val_311	311	val_311
+311	val_311	311	val_311
+311	val_311	311	val_311
+27	val_27	27	val_27
+165	val_165	165	val_165
+165	val_165	165	val_165
+409	val_409	409	val_409
+PREHOOK: query: -- func filter on outer join
+SELECT /*+ MAPJOIN(a) */ * FROM src a RIGHT OUTER JOIN src b on a.key=b.key AND b.key * 10 < '1000' limit 10
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: -- func filter on outer join
+SELECT /*+ MAPJOIN(a) */ * FROM src a RIGHT OUTER JOIN src b on a.key=b.key AND b.key * 10 < '1000' limit 10
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+NULL	NULL	238	val_238
+NULL	NULL	238	val_238
+86	val_86	86	val_86
+NULL	NULL	311	val_311
+NULL	NULL	311	val_311
+NULL	NULL	311	val_311
+27	val_27	27	val_27
+NULL	NULL	165	val_165
+NULL	NULL	165	val_165
+NULL	NULL	409	val_409

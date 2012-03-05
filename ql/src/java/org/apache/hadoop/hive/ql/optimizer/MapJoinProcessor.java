@@ -62,7 +62,7 @@ import org.apache.hadoop.hive.ql.parse.RowResolver;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
-import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
+import org.apache.hadoop.hive.ql.plan.ExprNodeUtil;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
 import org.apache.hadoop.hive.ql.plan.JoinCondDesc;
 import org.apache.hadoop.hive.ql.plan.JoinDesc;
@@ -282,7 +282,6 @@ public class MapJoinProcessor implements Transform {
     List<Operator<? extends Serializable>> newParentOps = new ArrayList<Operator<? extends Serializable>>();
     List<Operator<? extends Serializable>> oldReduceSinkParentOps = new ArrayList<Operator<? extends Serializable>>();
     Map<String, ExprNodeDesc> colExprMap = new HashMap<String, ExprNodeDesc>();
-    HashMap<Byte, HashMap<String, ExprNodeDesc>> columnTransfer = new HashMap<Byte, HashMap<String, ExprNodeDesc>>();
 
     // found a source which is not to be stored in memory
     if (leftSrc != null) {
@@ -317,10 +316,6 @@ public class MapJoinProcessor implements Transform {
       Byte tag = (byte) rsconf.getTag();
       List<ExprNodeDesc> keys = rsconf.getKeyCols();
       keyExprMap.put(tag, keys);
-
-      // set column transfer
-      HashMap<String, ExprNodeDesc> map = (HashMap<String, ExprNodeDesc>) oldPar.getColumnExprMap();
-      columnTransfer.put(tag, map);
     }
 
     // create the map-join operator
@@ -356,33 +351,22 @@ public class MapJoinProcessor implements Transform {
       valueExprMap.put(Byte.valueOf((byte) pos), values);
     }
 
-    Map<Byte, List<ExprNodeDesc>> filterMap = desc.getFilters();
-    for (Map.Entry<Byte, List<ExprNodeDesc>> entry : filterMap.entrySet()) {
-      Byte srcAlias = entry.getKey();
-      List<ExprNodeDesc> columnDescList = entry.getValue();
-
-      for (ExprNodeDesc nodeExpr : columnDescList) {
-        ExprNodeGenericFuncDesc funcDesc = (ExprNodeGenericFuncDesc) nodeExpr;
-        for (ExprNodeDesc childDesc : funcDesc.getChildExprs()) {
-          if (!(childDesc instanceof ExprNodeColumnDesc)) {
-            continue;
-          }
-          ExprNodeColumnDesc columnDesc = (ExprNodeColumnDesc) childDesc;
-          // reset columns
-          String column = columnDesc.getColumn();
-          String newColumn = null;
-          HashMap<String, ExprNodeDesc> map = columnTransfer.get(srcAlias);
-          ExprNodeColumnDesc tmpDesc = (ExprNodeColumnDesc) map.get(column);
-          if (tmpDesc != null) {
-            newColumn = tmpDesc.getColumn();
-          }
-          if (newColumn == null) {
-            throw new SemanticException("No Column name found in parent reduce sink op");
-          }
-          columnDesc.setColumn(newColumn);
-        }
-      }
+    int[] tagToAlias = new int[tagOrder.length];
+    for (int i = 0; i < tagToAlias.length; i++) {
+      tagToAlias[tagOrder[i]] = i;
     }
+
+    Map<Byte, List<ExprNodeDesc>> filterMap = desc.getFilters();
+    Map<Byte, List<ExprNodeDesc>> newFilterMap = new HashMap<Byte, List<ExprNodeDesc>>();
+    for (Map.Entry<Byte, List<ExprNodeDesc>> entry : filterMap.entrySet()) {
+      Byte srcTag = entry.getKey();
+      int srcAlias = tagToAlias[srcTag];
+      List<ExprNodeDesc> filter = entry.getValue();
+
+      Operator<?> terminal = newParentOps.get(srcAlias);
+      newFilterMap.put(srcTag, ExprNodeUtil.backtrack(filter, op, terminal, srcAlias));
+    }
+    desc.setFilters(filterMap = newFilterMap);
 
     JoinCondDesc[] joinCondns = op.getConf().getConds();
 
