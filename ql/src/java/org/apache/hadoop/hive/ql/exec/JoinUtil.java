@@ -51,6 +51,17 @@ import org.apache.hadoop.util.ReflectionUtils;
 
 public class JoinUtil {
 
+  public static void reorderInspector(ObjectInspector[] inspectors, Byte[] order) {
+    for (int i = 0; i < order.length; i++) {
+      if (i != order[i]) {
+        ObjectInspector tmp = inspectors[i];
+        inspectors[i] = inspectors[order[i]];
+        inspectors[order[i]] = tmp;
+        break;
+      }
+    }
+  }
+
   public static HashMap<Byte, List<ObjectInspector>> getObjectInspectorsFromEvaluators(
       Map<Byte, List<ExprNodeEvaluator>> exprEntries,
       ObjectInspector[] inputObjInspector,

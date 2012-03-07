@@ -38,7 +38,16 @@ FROM T1 a JOIN T2 b ON a.key = b.key
           JOIN T4 d ON a.key + 1 = d.key + 1;
 
 
+set hive.auto.convert.join=true;
 
+explain select /*+ STREAMTABLE(a) */ * from T1 a join T2 b on a.key=b.key join T3 c on a.key=c.key;
+select /*+ STREAMTABLE(a) */ * from T1 a join T2 b on a.key=b.key join T3 c on a.key=c.key;
 
+explain select /*+ STREAMTABLE(b) */ * from T1 a join T2 b on a.key=b.key join T3 c on a.key=c.key;
+select /*+ STREAMTABLE(b) */ * from T1 a join T2 b on a.key=b.key join T3 c on a.key=c.key;
 
+explain select /*+ STREAMTABLE(c) */ * from T1 a join T2 b on a.key=b.key join T3 c on a.key=c.key;
+select /*+ STREAMTABLE(c) */ * from T1 a join T2 b on a.key=b.key join T3 c on a.key=c.key;
 
+explain select /*+ STREAMTABLE(a) */ a.key,b.val,c.* from T1 a join T1 b on a.key+10=b.val join T1 c on a.key+10=c.val;
+select /*+ STREAMTABLE(a) */ a.key,b.val,c.* from T1 a join T1 b on a.key+10=b.val join T1 c on a.key+10=c.val;

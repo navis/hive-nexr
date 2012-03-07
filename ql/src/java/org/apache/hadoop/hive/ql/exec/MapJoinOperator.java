@@ -243,13 +243,13 @@ public class MapJoinOperator extends AbstractMapJoinOperator<MapJoinDesc> implem
 
 
       // Add the value to the ArrayList
-      storage.get((byte) tag).add(value);
+      storage.get(alias).add(value);
 
       for (Byte pos : order) {
-        if (pos.intValue() != tag) {
+        if (pos.intValue() != alias) {
 
-          MapJoinObjectValue o = mapJoinTables.get(pos).get(key);
-          MapJoinRowContainer<ArrayList<Object>> rowContainer = rowContainerMap.get(pos);
+          MapJoinObjectValue o = mapJoinTables.get(order[pos]).get(key);
+          MapJoinRowContainer<ArrayList<Object>> rowContainer = rowContainerMap.get(order[pos]);
 
           // there is no join-value or join-key has all null elements
           if (o == null || key.hasAnyNulls(nullsafes)) {
@@ -269,10 +269,10 @@ public class MapJoinOperator extends AbstractMapJoinOperator<MapJoinDesc> implem
       checkAndGenObject();
 
       // done with the row
-      storage.get((byte) tag).clear();
+      storage.get(alias).clear();
 
       for (Byte pos : order) {
-        if (pos.intValue() != tag) {
+        if (pos.intValue() != alias) {
           storage.put(pos, null);
         }
       }

@@ -131,9 +131,7 @@ public final class LocalMapJoinProcFactory {
       hashTableSinkOp.getConf().setHashtableMemoryUsage(hashtableMemoryUsage);
 
       // get the last operator for processing big tables
-      int bigTable = mapJoinOp.getConf().getPosBigTable();
-      Byte[] order = mapJoinOp.getConf().getTagOrder();
-      int bigTableAlias = (int) order[bigTable];
+      int bigTableAlias = mapJoinOp.getConf().getPosBigTable();
 
       // the parent ops for hashTableSinkOp
       List<Operator<? extends Serializable>> smallTablesParentOp = new ArrayList<Operator<? extends Serializable>>();

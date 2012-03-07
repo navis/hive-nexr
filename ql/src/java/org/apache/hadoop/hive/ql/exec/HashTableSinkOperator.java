@@ -198,6 +198,8 @@ public class HashTableSinkOperator extends TerminalOperator<HashTableSinkDesc> i
 
     noOuterJoin = conf.isNoOuterJoin();
 
+    JoinUtil.reorderInspector(inputObjInspectors, order);
+
     // process join keys
     joinKeys = new HashMap<Byte, List<ExprNodeEvaluator>>();
     JoinUtil.populateJoinKeyValue(joinKeys, conf.getKeys(), order, posBigTableAlias);

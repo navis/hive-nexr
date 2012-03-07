@@ -314,13 +314,13 @@ public class MapJoinProcessor implements Transform {
     for (pos = 0; pos < newParentOps.size(); pos++) {
       ReduceSinkOperator oldPar = (ReduceSinkOperator) oldReduceSinkParentOps.get(pos);
       ReduceSinkDesc rsconf = oldPar.getConf();
-      Byte tag = (byte) rsconf.getTag();
+      byte alias = (byte) op.getParentOperators().indexOf(oldPar);
       List<ExprNodeDesc> keys = rsconf.getKeyCols();
-      keyExprMap.put(tag, keys);
+      keyExprMap.put(alias, keys);
 
       // set column transfer
       HashMap<String, ExprNodeDesc> map = (HashMap<String, ExprNodeDesc>) oldPar.getColumnExprMap();
-      columnTransfer.put(tag, map);
+      columnTransfer.put(alias, map);
     }
 
     // create the map-join operator

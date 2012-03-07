@@ -79,6 +79,7 @@ public abstract class AbstractMapJoinOperator <T extends MapJoinDesc> extends Co
 
   @Override
   protected void initializeOp(Configuration hconf) throws HiveException {
+    JoinUtil.reorderInspector(inputObjInspectors, conf.getTagOrder());
     super.initializeOp(hconf);
 
     numMapRowsRead = 0;
@@ -99,7 +100,7 @@ public abstract class AbstractMapJoinOperator <T extends MapJoinDesc> extends Co
     RowContainer bigPosRC = JoinUtil.getRowContainer(hconf,
         rowContainerStandardObjectInspectors.get((byte) posBigTable),
         order[posBigTable], joinCacheSize,spillTableDesc, conf,noOuterJoin);
-    storage.put((byte) posBigTable, bigPosRC);
+    storage.put(order[posBigTable], bigPosRC);
 
     mapJoinRowsKey = HiveConf.getIntVar(hconf,
         HiveConf.ConfVars.HIVEMAPJOINROWSIZE);
