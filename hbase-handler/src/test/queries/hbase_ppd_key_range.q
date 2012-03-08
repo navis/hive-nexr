@@ -1,4 +1,4 @@
-CREATE TABLE hbase_pushdown(key string, value string) 
+CREATE TABLE hbase_pushdown(key string, value string)
 STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
 WITH SERDEPROPERTIES ("hbase.columns.mapping" = ":key,cf:string");
 
@@ -14,9 +14,13 @@ select * from hbase_pushdown where key<'1';
 select * from hbase_pushdown where key<='2';
 select * from hbase_pushdown where key>='90';
 
--- with cnostant expressinon
+-- with constant expression
 explain select * from hbase_pushdown where key>=cast(40 + 50 as string);
 select * from hbase_pushdown where key>=cast(40 + 50 as string);
+
+-- with range
+explain select * from hbase_pushdown where key between '20' and '30';
+select * from hbase_pushdown where key between '20' and '30';
 
 -- with partial pushdown
 

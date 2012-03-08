@@ -41,7 +41,9 @@ import org.apache.hadoop.hive.ql.exec.ExprNodeConstantEvaluator;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.index.IndexPredicateAnalyzer;
 import org.apache.hadoop.hive.ql.index.IndexSearchCondition;
+import org.apache.hadoop.hive.ql.index.IndexSearchConditionRanged;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.ql.plan.ExprNodeConstantDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.TableScanDesc;
 import org.apache.hadoop.hive.serde.Constants;
@@ -284,37 +286,26 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
     byte [] startRow = HConstants.EMPTY_START_ROW, stopRow = HConstants.EMPTY_END_ROW;
     for (IndexSearchCondition sc : searchConditions){
 
-      ExprNodeConstantEvaluator eval = new ExprNodeConstantEvaluator(sc.getConstantDesc());
-      PrimitiveObjectInspector objInspector;
-      Object writable;
-
-      try{
-        objInspector = (PrimitiveObjectInspector)eval.initialize(null);
-        writable = eval.evaluate(null);
-      } catch (ClassCastException cce) {
-        throw new IOException("Currently only primitve types are supported. Found: " +
-            sc.getConstantDesc().getTypeString());
-      } catch (HiveException e) {
-        throw new IOException(e);
-      }
-
-      byte [] constantVal = getConstantVal(writable, objInspector, isKeyBinary);
       String comparisonOp = sc.getComparisonOp();
 
       if("org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqual".equals(comparisonOp)){
-        startRow = constantVal;
-        stopRow = getNextBA(constantVal);
+        startRow = getConstantVal(sc.getConstantDesc(), isKeyBinary);
+        stopRow = getNextBA(startRow);
       } else if ("org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPLessThan".equals(comparisonOp)){
-        stopRow = constantVal;
+        stopRow = getConstantVal(sc.getConstantDesc(), isKeyBinary);
       } else if ("org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrGreaterThan"
           .equals(comparisonOp)) {
-        startRow = constantVal;
+        startRow = getConstantVal(sc.getConstantDesc(), isKeyBinary);
       } else if ("org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPGreaterThan"
           .equals(comparisonOp)){
-        startRow = getNextBA(constantVal);
+        startRow = getNextBA(getConstantVal(sc.getConstantDesc(), isKeyBinary));
       } else if ("org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrLessThan"
           .equals(comparisonOp)){
-        stopRow = getNextBA(constantVal);
+        stopRow = getNextBA(getConstantVal(sc.getConstantDesc(), isKeyBinary));
+      } else if ("org.apache.hadoop.hive.ql.udf.generic.GenericUDFBetween".equals(comparisonOp)){
+        IndexSearchConditionRanged scr = (IndexSearchConditionRanged)sc;
+        startRow = getConstantVal(scr.getMinConstantDesc(), isKeyBinary);
+        stopRow = getNextBA(getConstantVal(scr.getMaxConstantDesc(), isKeyBinary));
       } else {
         throw new IOException(comparisonOp + " is not a supported comparison operator");
       }
@@ -331,43 +322,58 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
     return tableSplit;
   }
 
-    private byte[] getConstantVal(Object writable, PrimitiveObjectInspector poi,
-        boolean isKeyBinary) throws IOException{
+  private byte[] getConstantVal(ExprNodeConstantDesc constant, boolean isKeyBinary)
+      throws IOException{
 
-        if (!isKeyBinary){
-          // Key is stored in text format. Get bytes representation of constant also of
-          // text format.
-          byte[] startRow;
-          ByteStream.Output serializeStream = new ByteStream.Output();
-          LazyUtils.writePrimitiveUTF8(serializeStream, writable, poi, false, (byte) 0, null);
-          startRow = new byte[serializeStream.getCount()];
-          System.arraycopy(serializeStream.getData(), 0, startRow, 0, serializeStream.getCount());
-          return startRow;
-        }
+    ExprNodeConstantEvaluator eval = new ExprNodeConstantEvaluator(constant);
+    PrimitiveObjectInspector poi;
+    Object writable;
 
-        PrimitiveCategory pc = poi.getPrimitiveCategory();
-        switch (poi.getPrimitiveCategory()) {
-        case INT:
-            return Bytes.toBytes(((IntWritable)writable).get());
-        case BOOLEAN:
-            return Bytes.toBytes(((BooleanWritable)writable).get());
-        case LONG:
-            return Bytes.toBytes(((LongWritable)writable).get());
-        case FLOAT:
-            return Bytes.toBytes(((FloatWritable)writable).get());
-        case DOUBLE:
-            return Bytes.toBytes(((DoubleWritable)writable).get());
-        case SHORT:
-            return Bytes.toBytes(((ShortWritable)writable).get());
-        case STRING:
-            return Bytes.toBytes(((Text)writable).toString());
-        case BYTE:
-            return Bytes.toBytes(((ByteWritable)writable).get());
+    try{
+      poi = (PrimitiveObjectInspector)eval.initialize(null);
+      writable = eval.evaluate(null);
+    } catch (ClassCastException cce) {
+      throw new IOException("Currently only primitve types are supported. Found: " +
+          constant.getTypeString());
+    } catch (HiveException e) {
+      throw new IOException(e);
+    }
 
-        default:
-          throw new IOException("Type not supported " + pc);
-        }
-      }
+
+    if (!isKeyBinary){
+      // Key is stored in text format. Get bytes representation of constant also of
+      // text format.
+      byte[] startRow;
+      ByteStream.Output serializeStream = new ByteStream.Output();
+      LazyUtils.writePrimitiveUTF8(serializeStream, writable, poi, false, (byte) 0, null);
+      startRow = new byte[serializeStream.getCount()];
+      System.arraycopy(serializeStream.getData(), 0, startRow, 0, serializeStream.getCount());
+      return startRow;
+    }
+
+    PrimitiveCategory pc = poi.getPrimitiveCategory();
+    switch (poi.getPrimitiveCategory()) {
+      case INT:
+        return Bytes.toBytes(((IntWritable)writable).get());
+      case BOOLEAN:
+        return Bytes.toBytes(((BooleanWritable)writable).get());
+      case LONG:
+        return Bytes.toBytes(((LongWritable)writable).get());
+      case FLOAT:
+        return Bytes.toBytes(((FloatWritable)writable).get());
+      case DOUBLE:
+        return Bytes.toBytes(((DoubleWritable)writable).get());
+      case SHORT:
+        return Bytes.toBytes(((ShortWritable)writable).get());
+      case STRING:
+        return Bytes.toBytes(((Text)writable).toString());
+      case BYTE:
+        return Bytes.toBytes(((ByteWritable)writable).get());
+
+      default:
+        throw new IOException("Type not supported " + pc);
+    }
+  }
 
 
   private byte[] getNextBA(byte[] current){
@@ -403,6 +409,7 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
       analyzer.addComparisonOp("org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrLessThan");
       analyzer.addComparisonOp("org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPLessThan");
       analyzer.addComparisonOp("org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPGreaterThan");
+      analyzer.addComparisonOp("org.apache.hadoop.hive.ql.udf.generic.GenericUDFBetween");
     }
 
     // and only on the key column

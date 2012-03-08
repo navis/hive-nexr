@@ -193,6 +193,45 @@ public class IndexPredicateAnalyzer
       return expr;
     }
 
+    IndexSearchCondition condition = parse(udfName, expr, nodeOutputs);
+    if (condition == null) {
+      return expr;
+    }
+    searchConditions.add(condition);
+    // we converted the expression to a search condition, so
+    // remove it from the residual predicate
+    return null;
+  }
+
+  private IndexSearchCondition parse(String op, ExprNodeDesc expr, Object... nodeOutputs) {
+    if (op.equals("org.apache.hadoop.hive.ql.udf.generic.GenericUDFBetween")) {
+       return parseBetween(op, expr, nodeOutputs);
+    }
+    return parseCompares(op, expr, nodeOutputs);
+  }
+
+  private IndexSearchCondition parseBetween(String op, ExprNodeDesc expr, Object[] nodeOutputs) {
+    if ((Boolean) ((ExprNodeConstantDesc)nodeOutputs[0]).getValue()) {
+      return null;  // don't support 'not between'
+    }
+    ExprNodeDesc child1 = extractConstant((ExprNodeDesc) nodeOutputs[2]);
+    ExprNodeDesc child2 = extractConstant((ExprNodeDesc) nodeOutputs[3]);
+    if (!(child1 instanceof ExprNodeConstantDesc) || !(child2 instanceof ExprNodeConstantDesc)) {
+      return null;
+    }
+    ExprNodeColumnDesc column = (ExprNodeColumnDesc) nodeOutputs[1];
+    if (allowedColumnNames != null && !allowedColumnNames.contains(column.getColumn())) {
+      return null;
+    }
+
+    IndexSearchConditionRanged condition = new IndexSearchConditionRanged(column, op, expr);
+    condition.setMinConstantDesc((ExprNodeConstantDesc) child1);
+    condition.setMaxConstantDesc((ExprNodeConstantDesc)child2);
+
+    return condition;
+  }
+
+  private IndexSearchCondition parseCompares(String op, ExprNodeDesc expr, Object[] nodeOutputs) {
     ExprNodeDesc child1 = extractConstant((ExprNodeDesc) nodeOutputs[0]);
     ExprNodeDesc child2 = extractConstant((ExprNodeDesc) nodeOutputs[1]);
     ExprNodeColumnDesc columnDesc = null;
@@ -209,23 +248,14 @@ public class IndexPredicateAnalyzer
       constantDesc = (ExprNodeConstantDesc) child1;
     }
     if (columnDesc == null) {
-      return expr;
+      return null;
     }
     if (allowedColumnNames != null) {
       if (!allowedColumnNames.contains(columnDesc.getColumn())) {
-        return expr;
+        return null;
       }
     }
-    searchConditions.add(
-      new IndexSearchCondition(
-        columnDesc,
-        udfName,
-        constantDesc,
-        expr));
-
-    // we converted the expression to a search condition, so
-    // remove it from the residual predicate
-    return null;
+    return new IndexSearchCondition(columnDesc, op, constantDesc, expr);
   }
 
   private ExprNodeDesc extractConstant(ExprNodeDesc expr) {
