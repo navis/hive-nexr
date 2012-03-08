@@ -46,10 +46,14 @@ import org.apache.hadoop.hive.serde2.objectinspector.MapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.PrimitiveCategory;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.LongObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorUtils;
 import org.apache.hadoop.hive.serde2.typeinfo.MapTypeInfo;
+import org.apache.hadoop.hive.serde2.typeinfo.PrimitiveTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.io.Writable;
@@ -64,6 +68,7 @@ public class HBaseSerDe implements SerDe {
   public static final String HBASE_TABLE_NAME = "hbase.table.name";
   public static final String HBASE_TABLE_DEFAULT_STORAGE_TYPE = "hbase.table.default.storage.type";
   public static final String HBASE_KEY_COL = ":key";
+  public static final String HBASE_TIMESTAMP_COL = ":timestamp";
   public static final String HBASE_PUT_TIMESTAMP = "hbase.put.timestamp";
   public static final Log LOG = LogFactory.getLog(HBaseSerDe.class);
 
@@ -75,6 +80,7 @@ public class HBaseSerDe implements SerDe {
   private LazyHBaseRow cachedHBaseRow;
   private final ByteStream.Output serializeStream = new ByteStream.Output();
   private int iKey;
+  private int iTimestamp;
   private long putTimestamp;
 
   // used for serializing a field
@@ -180,12 +186,20 @@ public class HBaseSerDe implements SerDe {
         columnMapping.qualifierName = null;
         columnMapping.qualifierNameBytes = null;
         columnMapping.hbaseRowKey = true;
+      } else if (colInfo.equals(HBASE_TIMESTAMP_COL)) {
+        rowKeyIndex = i;
+        columnMapping.familyName = colInfo;
+        columnMapping.familyNameBytes = Bytes.toBytes(colInfo);
+        columnMapping.qualifierName = null;
+        columnMapping.qualifierNameBytes = null;
+        columnMapping.hbaseTimestampKey = true;
       } else {
         String [] parts = colInfo.split(":");
         assert(parts.length > 0 && parts.length <= 2);
         columnMapping.familyName = parts[0];
         columnMapping.familyNameBytes = Bytes.toBytes(parts[0]);
         columnMapping.hbaseRowKey = false;
+        columnMapping.hbaseTimestampKey = false;
 
         if (parts.length == 2) {
           columnMapping.qualifierName = parts[1];
@@ -407,6 +421,7 @@ public class HBaseSerDe implements SerDe {
     byte [] qualifierNameBytes;
     List<Boolean> binaryStorage;
     boolean hbaseRowKey;
+    boolean hbaseTimestampKey;
     String mappingSpec;
   }
 
@@ -436,6 +451,9 @@ public class HBaseSerDe implements SerDe {
         if (colMap.hbaseRowKey) {
           // the row key column becomes a STRING
           sb.append(Constants.STRING_TYPE_NAME);
+        } else if (colMap.hbaseTimestampKey) {
+          // the timetamp column becomes a BIGINT
+          sb.append(Constants.BIGINT_TYPE_NAME);
         } else if (colMap.qualifierName == null)  {
           // a column family become a MAP
           sb.append(Constants.MAP_TYPE_NAME + "<" + Constants.STRING_TYPE_NAME + ","
@@ -468,7 +486,17 @@ public class HBaseSerDe implements SerDe {
     // where key extends LazyPrimitive<?, ?> and thus has type Category.PRIMITIVE
     for (int i = 0; i < columnsMapping.size(); i++) {
       ColumnMapping colMap = columnsMapping.get(i);
-      if (colMap.qualifierName == null && !colMap.hbaseRowKey) {
+      if (colMap.hbaseTimestampKey) {
+        TypeInfo typeInfo = serdeParams.getColumnTypes().get(i);
+        if (typeInfo.getCategory() != Category.PRIMITIVE ||
+          ((PrimitiveTypeInfo)typeInfo).getPrimitiveCategory() != PrimitiveCategory.TIMESTAMP &&
+          ((PrimitiveTypeInfo)typeInfo).getPrimitiveCategory() != PrimitiveCategory.STRING &&
+          ((PrimitiveTypeInfo)typeInfo).getPrimitiveCategory() != PrimitiveCategory.LONG) {
+          throw new SerDeException(serdeName + ": timestamp columns should be type of " +
+              "timestamp or bigint or string, but is mapped to " + typeInfo.getTypeName());
+        }
+      }
+      if (colMap.qualifierName == null && !colMap.hbaseRowKey && !colMap.hbaseTimestampKey) {
         TypeInfo typeInfo = serdeParams.getColumnTypes().get(i);
         if ((typeInfo.getCategory() != Category.MAP) ||
           (((MapTypeInfo) typeInfo).getMapKeyTypeInfo().getCategory()
@@ -487,6 +515,7 @@ public class HBaseSerDe implements SerDe {
     String hbaseTableStorageType = tbl.getProperty(HBaseSerDe.HBASE_TABLE_DEFAULT_STORAGE_TYPE);
     parseColumnStorageTypes(hbaseTableStorageType);
     setKeyColumnOffset();
+    setTimestatmpColumnOffset();
   }
 
   /**
@@ -540,20 +569,31 @@ public class HBaseSerDe implements SerDe {
     Put put = null;
 
     try {
+      long timestamp = putTimestamp;
+      if (timestamp < 0 && iTimestamp >= 0) {
+        ObjectInspector inspector = fields.get(iTimestamp).getFieldObjectInspector();
+        Object value = list.get(iTimestamp);
+        if (inspector instanceof LongObjectInspector) {
+          timestamp = ((LongObjectInspector)inspector).get(value);
+        } else {
+          PrimitiveObjectInspector primitive = (PrimitiveObjectInspector) inspector;
+          timestamp = PrimitiveObjectInspectorUtils.getTimestamp(value, primitive).getTime();
+        }
+      }
       byte [] key = serializeField(iKey, null, fields, list, declaredFields);
 
       if (key == null) {
         throw new SerDeException("HBase row key cannot be NULL");
       }
 
-      if(putTimestamp >= 0)
-        put = new Put(key,putTimestamp);
+      if (timestamp >= 0)
+        put = new Put(key, timestamp);
       else
         put = new Put(key);
 
       // Serialize each field
       for (int i = 0; i < fields.size(); i++) {
-        if (i == iKey) {
+        if (i == iKey || i == iTimestamp) {
           // already processed the key above
           continue;
         }
@@ -788,6 +828,13 @@ public class HBaseSerDe implements SerDe {
     return iKey;
   }
 
+  /**
+   * @return 0-based offset of the timestamp column within the table
+   */
+  int getTimestampColumnOffset() {
+    return iTimestamp;
+  }
+
   List<Boolean> getStorageFormatOfCol(int colPos){
     return columnsMapping.get(colPos).binaryStorage;
   }
@@ -799,6 +846,10 @@ public class HBaseSerDe implements SerDe {
 
   void setKeyColumnOffset() throws SerDeException {
     iKey = getRowKeyColumnOffset(columnsMapping);
+  }
+
+  void setTimestatmpColumnOffset() throws SerDeException {
+    iTimestamp = getTimestatmpColumnOffset(columnsMapping);
   }
 
   public static int getRowKeyColumnOffset(List<ColumnMapping> columnsMapping)
@@ -814,5 +865,18 @@ public class HBaseSerDe implements SerDe {
 
     throw new SerDeException("HBaseSerDe Error: columns mapping list does not contain" +
       " row key column.");
+  }
+
+  public static int getTimestatmpColumnOffset(List<ColumnMapping> columnsMapping)
+      throws SerDeException {
+
+    for (int i = 0; i < columnsMapping.size(); i++) {
+      ColumnMapping colMap = columnsMapping.get(i);
+
+      if (colMap.hbaseTimestampKey && colMap.familyName.equals(HBASE_TIMESTAMP_COL)) {
+        return i;
+      }
+    }
+    return -1;
   }
 }

@@ -152,7 +152,7 @@ public class HBaseStorageHandler extends DefaultStorageHandler
           Set<String> uniqueColumnFamilies = new HashSet<String>();
 
           for (ColumnMapping colMap : columnsMapping) {
-            if (!colMap.hbaseRowKey) {
+            if (!colMap.hbaseRowKey && !colMap.hbaseTimestampKey) {
               uniqueColumnFamilies.add(colMap.familyName);
             }
           }
@@ -180,7 +180,7 @@ public class HBaseStorageHandler extends DefaultStorageHandler
         for (int i = 0; i < columnsMapping.size(); i++) {
           ColumnMapping colMap = columnsMapping.get(i);
 
-          if (colMap.hbaseRowKey) {
+          if (colMap.hbaseRowKey || colMap.hbaseTimestampKey) {
             continue;
           }
 
@@ -305,11 +305,15 @@ public class HBaseStorageHandler extends DefaultStorageHandler
 
     HBaseSerDe hbaseSerde = (HBaseSerDe) deserializer;
     int keyColPos = hbaseSerde.getKeyColumnOffset();
+    int timestampColPos = hbaseSerde.getTimestampColumnOffset();
     String keyColType = jobConf.get(org.apache.hadoop.hive.serde.Constants.LIST_COLUMN_TYPES).
         split(",")[keyColPos];
     IndexPredicateAnalyzer analyzer =
       HiveHBaseTableInputFormat.newIndexPredicateAnalyzer(columnNames.get(keyColPos), keyColType,
         hbaseSerde.getStorageFormatOfCol(keyColPos).get(0));
+    if (timestampColPos >= 0) {
+      analyzer.allowColumnName(columnNames.get(timestampColPos));
+    }
     List<IndexSearchCondition> searchConditions =
       new ArrayList<IndexSearchCondition>();
     ExprNodeDesc residualPredicate =
