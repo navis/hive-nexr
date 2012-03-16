@@ -60,6 +60,7 @@ import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -639,54 +640,57 @@ public class HiveServer extends ThriftHive {
     }
   }
 
+  static TServer run(String[] args) throws TTransportException {
+    HiveServerCli cli = new HiveServerCli();
+
+    cli.parse(args);
+
+    // NOTE: It is critical to do this prior to initializing log4j, otherwise
+    // any log specific settings via hiveconf will be ignored
+    Properties hiveconf = cli.addHiveconfToSystemProperties();
+
+    // NOTE: It is critical to do this here so that log4j is reinitialized
+    // before any of the other core hive classes are loaded
+    try {
+      LogUtils.initHiveLog4j();
+    } catch (LogInitializationException e) {
+      HiveServerHandler.LOG.warn(e.getMessage());
+    }
+
+    HiveConf conf = new HiveConf(HiveServerHandler.class);
+    ServerUtils.cleanUpScratchDir(conf);
+    TServerTransport serverTransport = new TServerSocket(cli.port);
+
+    // set all properties specified on the command line
+    for (Map.Entry<Object, Object> item : hiveconf.entrySet()) {
+      conf.set((String) item.getKey(), (String) item.getValue());
+    }
+
+    ThriftHiveProcessorFactory hfactory =
+      new ThriftHiveProcessorFactory(null, conf);
+
+    TThreadPoolServer.Args sargs = new TThreadPoolServer.Args(serverTransport)
+      .processorFactory(hfactory)
+      .transportFactory(new TTransportFactory())
+      .protocolFactory(new TBinaryProtocol.Factory())
+      .minWorkerThreads(cli.minWorkerThreads)
+      .maxWorkerThreads(cli.maxWorkerThreads);
+
+    TServer server = new TThreadPoolServer(sargs);
+
+    String msg = "Starting hive server on port " + cli.port
+      + " with " + cli.minWorkerThreads + " min worker threads and "
+      + cli.maxWorkerThreads + " max worker threads";
+    HiveServerHandler.LOG.info(msg);
+    if (cli.isVerbose()) {
+      System.err.println(msg);
+    }
+    return server;
+  }
+
   public static void main(String[] args) {
     try {
-      HiveServerCli cli = new HiveServerCli();
-
-      cli.parse(args);
-
-      // NOTE: It is critical to do this prior to initializing log4j, otherwise
-      // any log specific settings via hiveconf will be ignored
-      Properties hiveconf = cli.addHiveconfToSystemProperties();
-
-      // NOTE: It is critical to do this here so that log4j is reinitialized
-      // before any of the other core hive classes are loaded
-      try {
-        LogUtils.initHiveLog4j();
-      } catch (LogInitializationException e) {
-        HiveServerHandler.LOG.warn(e.getMessage());
-      }
-
-      HiveConf conf = new HiveConf(HiveServerHandler.class);
-      ServerUtils.cleanUpScratchDir(conf);
-      TServerTransport serverTransport = new TServerSocket(cli.port);
-
-      // set all properties specified on the command line
-      for (Map.Entry<Object, Object> item : hiveconf.entrySet()) {
-        conf.set((String) item.getKey(), (String) item.getValue());
-      }
-
-      ThriftHiveProcessorFactory hfactory =
-        new ThriftHiveProcessorFactory(null, conf);
-
-      TThreadPoolServer.Args sargs = new TThreadPoolServer.Args(serverTransport)
-        .processorFactory(hfactory)
-        .transportFactory(new TTransportFactory())
-        .protocolFactory(new TBinaryProtocol.Factory())
-        .minWorkerThreads(cli.minWorkerThreads)
-        .maxWorkerThreads(cli.maxWorkerThreads);
-
-      TServer server = new TThreadPoolServer(sargs);
-
-      String msg = "Starting hive server on port " + cli.port
-        + " with " + cli.minWorkerThreads + " min worker threads and "
-        + cli.maxWorkerThreads + " max worker threads";
-      HiveServerHandler.LOG.info(msg);
-      if (cli.isVerbose()) {
-        System.err.println(msg);
-      }
-
-      server.serve();
+      run(args).serve();
     } catch (Exception x) {
       x.printStackTrace();
     }

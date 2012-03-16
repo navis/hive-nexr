@@ -19,7 +19,9 @@ package org.apache.hadoop.hive.service;
 
 import junit.framework.TestCase;
 import org.apache.thrift.protocol.TBinaryProtocol;
+import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TSocket;
+import org.apache.thrift.transport.TTransportException;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -32,8 +34,7 @@ public class TestHiveServerSessions extends TestCase {
 
   private static final int clientNum = 2;
 
-  private int port;
-  private Thread server;
+  private TServer server;
 
   private TSocket[] transports = new TSocket[clientNum];
   private HiveClient[] clients = new HiveClient[clientNum];
@@ -45,13 +46,16 @@ public class TestHiveServerSessions extends TestCase {
   @Override
   protected void setUp() throws Exception {
     super.setUp();
-    port = findFreePort();
-    server = new Thread(new Runnable() {
+    int port = findFreePort();
+    server = HiveServer.run(new String[]{"-p", String.valueOf(port)});
+    Thread runner = new Thread(new Runnable() {
       public void run() {
-        HiveServer.main(new String[]{"-p", String.valueOf(port)});
+          server.serve();
       }
     });
-    server.start();
+    runner.setDaemon(true);
+    runner.start();
+
     Thread.sleep(1000);
 
     for (int i = 0; i < transports.length ; i++) {
@@ -75,7 +79,7 @@ public class TestHiveServerSessions extends TestCase {
       }
     }
     if (server != null) {
-      server.interrupt();
+      server.stop();
     }
   }
 
@@ -100,6 +104,18 @@ public class TestHiveServerSessions extends TestCase {
     for (int i = 0; i < clients.length; i++) {
       clients[i].execute("set hiveconf:var");
       assertEquals("hiveconf:var=value" + i, clients[i].fetchOne());
+    }
+  }
+
+  public static void main(String[] args) throws Exception{
+    TestHiveServerSessions test = new TestHiveServerSessions("TestHiveServerSessions");
+    try {
+      test.setUp();
+      test.testSessionVars();
+    } catch (Exception e) {
+      e.printStackTrace();
+    } finally {
+      test.tearDown();
     }
   }
 }
