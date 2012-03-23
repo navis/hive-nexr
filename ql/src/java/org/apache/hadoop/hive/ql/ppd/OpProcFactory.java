@@ -692,6 +692,7 @@ public final class OpProcFactory {
           hiveConf);
         if (condn == null) {
           // we pushed the whole thing down
+          removeCandidateFilters(owi);
           return null;
         }
       }
@@ -716,6 +717,11 @@ public final class OpProcFactory {
     OpParseContext ctx = new OpParseContext(inputRR);
     owi.put(output, ctx);
 
+    removeCandidateFilters(owi);
+    return output;
+  }
+
+  private static void removeCandidateFilters(OpWalkerInfo owi) {
     if (HiveConf.getBoolVar(owi.getParseContext().getConf(),
         HiveConf.ConfVars.HIVEPPDREMOVEDUPLICATEFILTERS)) {
       // remove the candidate filter ops
@@ -733,7 +739,6 @@ public final class OpProcFactory {
       }
       owi.getCandidateFilterOps().clear();
     }
-    return output;
   }
 
   /**
