@@ -2,6 +2,10 @@ PREHOOK: query: DROP TABLE t_hbase
 PREHOOK: type: DROPTABLE
 POSTHOOK: query: DROP TABLE t_hbase
 POSTHOOK: type: DROPTABLE
+PREHOOK: query: DROP TABLE t_hbase_i
+PREHOOK: type: DROPTABLE
+POSTHOOK: query: DROP TABLE t_hbase_i
+POSTHOOK: type: DROPTABLE
 PREHOOK: query: CREATE TABLE t_hbase(key STRING,
                      tinyint_col TINYINT,
                      smallint_col SMALLINT,
@@ -68,54 +72,120 @@ Sort Columns:       	[]
 Storage Desc Params:	 	 
 	hbase.columns.mapping	cf:binarykey#-,cf:binarybyte#-,cf:binaryshort#-,:key#-,cf:binarylong#-,cf:binaryfloat#-,cf:binarydouble#-,cf:binaryboolean#-
 	serialization.format	1                   
-PREHOOK: query: INSERT OVERWRITE TABLE t_hbase
-SELECT 'user1', 1, 11, 10, 1, 1.0, 1.0, true
-FROM src
-WHERE key=100 OR key=125 OR key=126
+PREHOOK: query: CREATE TABLE t_hbase_i(key STRING,
+                     tinyint_col TINYINT,
+                     smallint_col SMALLINT,
+                     int_col INT,
+                     bigint_col BIGINT,
+                     float_col FLOAT,
+                     double_col DOUBLE,
+                     boolean_col BOOLEAN)
+STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+WITH SERDEPROPERTIES ("hbase.columns.mapping" = "cf:binarykey#-,cf:binarybyte#-,cf:binaryshort#-,:key#-,cf:binarylong#-,cf:binaryfloat#-,cf:binarydouble#-,cf:binaryboolean#-")
+TBLPROPERTIES ("hbase.table.name" = "t_hive_i",
+               "hbase.table.default.storage.type" = "lbinary")
+PREHOOK: type: CREATETABLE
+POSTHOOK: query: CREATE TABLE t_hbase_i(key STRING,
+                     tinyint_col TINYINT,
+                     smallint_col SMALLINT,
+                     int_col INT,
+                     bigint_col BIGINT,
+                     float_col FLOAT,
+                     double_col DOUBLE,
+                     boolean_col BOOLEAN)
+STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+WITH SERDEPROPERTIES ("hbase.columns.mapping" = "cf:binarykey#-,cf:binarybyte#-,cf:binaryshort#-,:key#-,cf:binarylong#-,cf:binaryfloat#-,cf:binarydouble#-,cf:binaryboolean#-")
+TBLPROPERTIES ("hbase.table.name" = "t_hive_i",
+               "hbase.table.default.storage.type" = "lbinary")
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: default@t_hbase_i
+PREHOOK: query: DESCRIBE FORMATTED t_hbase_i
+PREHOOK: type: DESCTABLE
+POSTHOOK: query: DESCRIBE FORMATTED t_hbase_i
+POSTHOOK: type: DESCTABLE
+# col_name            	data_type           	comment             
+	 	 
+key                 	string              	from deserializer   
+tinyint_col         	tinyint             	from deserializer   
+smallint_col        	smallint            	from deserializer   
+int_col             	int                 	from deserializer   
+bigint_col          	bigint              	from deserializer   
+float_col           	float               	from deserializer   
+double_col          	double              	from deserializer   
+boolean_col         	boolean             	from deserializer   
+	 	 
+# Detailed Table Information	 	 
+Database:           	default             	 
+#### A masked pattern was here ####
+Protect Mode:       	None                	 
+Retention:          	0                   	 
+#### A masked pattern was here ####
+Table Type:         	MANAGED_TABLE       	 
+Table Parameters:	 	 
+	hbase.table.default.storage.type	lbinary             
+	hbase.table.name    	t_hive_i            
+	storage_handler     	org.apache.hadoop.hive.hbase.HBaseStorageHandler
+#### A masked pattern was here ####
+	 	 
+# Storage Information	 	 
+SerDe Library:      	org.apache.hadoop.hive.hbase.HBaseSerDe	 
+InputFormat:        	org.apache.hadoop.hive.hbase.HiveHBaseTableInputFormat	 
+OutputFormat:       	org.apache.hadoop.hive.hbase.HiveHBaseTableOutputFormat	 
+Compressed:         	No                  	 
+Num Buckets:        	-1                  	 
+Bucket Columns:     	[]                  	 
+Sort Columns:       	[]                  	 
+Storage Desc Params:	 	 
+	hbase.columns.mapping	cf:binarykey#-,cf:binarybyte#-,cf:binaryshort#-,:key#-,cf:binarylong#-,cf:binaryfloat#-,cf:binarydouble#-,cf:binaryboolean#-
+	serialization.format	1                   
+PREHOOK: query: FROM src
+INSERT OVERWRITE TABLE t_hbase SELECT 'user1', 1, 11, 10, 1, 1.0, 1.0, true WHERE key=100 OR key=125 OR key=126
+INSERT OVERWRITE TABLE t_hbase_i SELECT 'user1', 1, 11, 10, 1, 1.0, 1.0, true WHERE key=100 OR key=125 OR key=126
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
 PREHOOK: Output: default@t_hbase
-POSTHOOK: query: INSERT OVERWRITE TABLE t_hbase
-SELECT 'user1', 1, 11, 10, 1, 1.0, 1.0, true
-FROM src
-WHERE key=100 OR key=125 OR key=126
+PREHOOK: Output: default@t_hbase_i
+POSTHOOK: query: FROM src
+INSERT OVERWRITE TABLE t_hbase SELECT 'user1', 1, 11, 10, 1, 1.0, 1.0, true WHERE key=100 OR key=125 OR key=126
+INSERT OVERWRITE TABLE t_hbase_i SELECT 'user1', 1, 11, 10, 1, 1.0, 1.0, true WHERE key=100 OR key=125 OR key=126
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
 POSTHOOK: Output: default@t_hbase
-PREHOOK: query: INSERT OVERWRITE TABLE t_hbase
-SELECT 'user2', 127, 327, 2147, 9223372036854775807, 211.31, 268746532.0571, false
-FROM src
-WHERE key=100 OR key=125 OR key=126
+POSTHOOK: Output: default@t_hbase_i
+PREHOOK: query: FROM src
+INSERT OVERWRITE TABLE t_hbase SELECT 'user2', 127, 327, 2147, 9223372036854775807, 211.31, 268746532.0571, false WHERE key=100 OR key=125 OR key=126
+INSERT OVERWRITE TABLE t_hbase_i SELECT 'user2', 127, 327, 2147, 9223372036854775807, 211.31, 268746532.0571, false WHERE key=100 OR key=125 OR key=126
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
 PREHOOK: Output: default@t_hbase
-POSTHOOK: query: INSERT OVERWRITE TABLE t_hbase
-SELECT 'user2', 127, 327, 2147, 9223372036854775807, 211.31, 268746532.0571, false
-FROM src
-WHERE key=100 OR key=125 OR key=126
+PREHOOK: Output: default@t_hbase_i
+POSTHOOK: query: FROM src
+INSERT OVERWRITE TABLE t_hbase SELECT 'user2', 127, 327, 2147, 9223372036854775807, 211.31, 268746532.0571, false WHERE key=100 OR key=125 OR key=126
+INSERT OVERWRITE TABLE t_hbase_i SELECT 'user2', 127, 327, 2147, 9223372036854775807, 211.31, 268746532.0571, false WHERE key=100 OR key=125 OR key=126
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
 POSTHOOK: Output: default@t_hbase
-PREHOOK: query: INSERT OVERWRITE TABLE t_hbase
-SELECT 'user3', -128, -327, -214748, -9223372036854775808, -201.17, -2110789.37145, true
-FROM src
-WHERE key=100 OR key=125 OR key=126
+POSTHOOK: Output: default@t_hbase_i
+PREHOOK: query: FROM src
+INSERT OVERWRITE TABLE t_hbase SELECT 'user3', -128, -327, -214748, -9223372036854775808, -201.17, -2110789.37145, true WHERE key=100 OR key=125 OR key=126
+INSERT OVERWRITE TABLE t_hbase_i SELECT 'user3', -128, -327, -214748, -9223372036854775808, -201.17, -2110789.37145, true WHERE key=100 OR key=125 OR key=126
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
 PREHOOK: Output: default@t_hbase
-POSTHOOK: query: INSERT OVERWRITE TABLE t_hbase
-SELECT 'user3', -128, -327, -214748, -9223372036854775808, -201.17, -2110789.37145, true
-FROM src
-WHERE key=100 OR key=125 OR key=126
+PREHOOK: Output: default@t_hbase_i
+POSTHOOK: query: FROM src
+INSERT OVERWRITE TABLE t_hbase SELECT 'user3', -128, -327, -214748, -9223372036854775808, -201.17, -2110789.37145, true WHERE key=100 OR key=125 OR key=126
+INSERT OVERWRITE TABLE t_hbase_i SELECT 'user3', -128, -327, -214748, -9223372036854775808, -201.17, -2110789.37145, true WHERE key=100 OR key=125 OR key=126
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
 POSTHOOK: Output: default@t_hbase
-PREHOOK: query: explain SELECT * FROM t_hbase where int_col > 0
+POSTHOOK: Output: default@t_hbase_i
+PREHOOK: query: explain SELECT * FROM t_hbase where int_col > 0 AND 1=1
 PREHOOK: type: QUERY
-POSTHOOK: query: explain SELECT * FROM t_hbase where int_col > 0
+POSTHOOK: query: explain SELECT * FROM t_hbase where int_col > 0 AND 1=1
 POSTHOOK: type: QUERY
 ABSTRACT SYNTAX TREE:
-  (TOK_QUERY (TOK_FROM (TOK_TABREF (TOK_TABNAME t_hbase))) (TOK_INSERT (TOK_DESTINATION (TOK_DIR TOK_TMP_FILE)) (TOK_SELECT (TOK_SELEXPR TOK_ALLCOLREF)) (TOK_WHERE (> (TOK_TABLE_OR_COL int_col) 0))))
+  (TOK_QUERY (TOK_FROM (TOK_TABREF (TOK_TABNAME t_hbase))) (TOK_INSERT (TOK_DESTINATION (TOK_DIR TOK_TMP_FILE)) (TOK_SELECT (TOK_SELEXPR TOK_ALLCOLREF)) (TOK_WHERE (AND (> (TOK_TABLE_OR_COL int_col) 0) (= 1 1)))))
 
 STAGE DEPENDENCIES:
   Stage-1 is a root stage
@@ -133,7 +203,7 @@ STAGE PLANS:
                 type: boolean
             Filter Operator
               predicate:
-                  expr: (int_col > 0)
+                  expr: (1 = 1)
                   type: boolean
               Select Operator
                 expressions:
@@ -166,13 +236,80 @@ STAGE PLANS:
       limit: -1
 
 
-PREHOOK: query: SELECT * FROM t_hbase where int_col > 0
+PREHOOK: query: SELECT * FROM t_hbase where int_col > 0 AND 1=1
 PREHOOK: type: QUERY
 PREHOOK: Input: default@t_hbase
 #### A masked pattern was here ####
-POSTHOOK: query: SELECT * FROM t_hbase where int_col > 0
+POSTHOOK: query: SELECT * FROM t_hbase where int_col > 0 AND 1=1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t_hbase
+#### A masked pattern was here ####
+user1	1	11	10	1	1.0	1.0	true
+user2	127	327	2147	9223372036854775807	211.31	2.687465320571E8	false
+user3	-128	-327	-214748	-9223372036854775808	-201.17	-2110789.37145	true
+PREHOOK: query: explain SELECT * FROM t_hbase_i where int_col > 0 AND 1=1
+PREHOOK: type: QUERY
+POSTHOOK: query: explain SELECT * FROM t_hbase_i where int_col > 0 AND 1=1
+POSTHOOK: type: QUERY
+ABSTRACT SYNTAX TREE:
+  (TOK_QUERY (TOK_FROM (TOK_TABREF (TOK_TABNAME t_hbase_i))) (TOK_INSERT (TOK_DESTINATION (TOK_DIR TOK_TMP_FILE)) (TOK_SELECT (TOK_SELEXPR TOK_ALLCOLREF)) (TOK_WHERE (AND (> (TOK_TABLE_OR_COL int_col) 0) (= 1 1)))))
+
+STAGE DEPENDENCIES:
+  Stage-1 is a root stage
+  Stage-0 is a root stage
+
+STAGE PLANS:
+  Stage: Stage-1
+    Map Reduce
+      Alias -> Map Operator Tree:
+        t_hbase_i 
+          TableScan
+            alias: t_hbase_i
+            filterExpr:
+                expr: (int_col > 0)
+                type: boolean
+            Filter Operator
+              predicate:
+                  expr: (1 = 1)
+                  type: boolean
+              Select Operator
+                expressions:
+                      expr: key
+                      type: string
+                      expr: tinyint_col
+                      type: tinyint
+                      expr: smallint_col
+                      type: smallint
+                      expr: int_col
+                      type: int
+                      expr: bigint_col
+                      type: bigint
+                      expr: float_col
+                      type: float
+                      expr: double_col
+                      type: double
+                      expr: boolean_col
+                      type: boolean
+                outputColumnNames: _col0, _col1, _col2, _col3, _col4, _col5, _col6, _col7
+                File Output Operator
+                  compressed: false
+                  GlobalTableId: 0
+                  table:
+                      input format: org.apache.hadoop.mapred.TextInputFormat
+                      output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+
+  Stage: Stage-0
+    Fetch Operator
+      limit: -1
+
+
+PREHOOK: query: SELECT * FROM t_hbase_i where int_col > 0 AND 1=1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@t_hbase_i
+#### A masked pattern was here ####
+POSTHOOK: query: SELECT * FROM t_hbase_i where int_col > 0 AND 1=1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@t_hbase_i
 #### A masked pattern was here ####
 user1	1	11	10	1	1.0	1.0	true
 user2	127	327	2147	9223372036854775807	211.31	2.687465320571E8	false
@@ -184,3 +321,11 @@ POSTHOOK: query: DROP TABLE t_hbase
 POSTHOOK: type: DROPTABLE
 POSTHOOK: Input: default@t_hbase
 POSTHOOK: Output: default@t_hbase
+PREHOOK: query: DROP TABLE t_hbase_i
+PREHOOK: type: DROPTABLE
+PREHOOK: Input: default@t_hbase_i
+PREHOOK: Output: default@t_hbase_i
+POSTHOOK: query: DROP TABLE t_hbase_i
+POSTHOOK: type: DROPTABLE
+POSTHOOK: Input: default@t_hbase_i
+POSTHOOK: Output: default@t_hbase_i

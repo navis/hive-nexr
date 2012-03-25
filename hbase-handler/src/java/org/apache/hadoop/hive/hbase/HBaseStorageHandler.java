@@ -290,6 +290,15 @@ public class HBaseStorageHandler extends DefaultStorageHandler
       }
     }
     jobProperties.put(HBaseSerDe.HBASE_TABLE_NAME, tableName);
+
+    String columns = tableProperties.getProperty(Constants.META_TABLE_COLUMNS);
+    if (columns != null) {
+      jobProperties.put(Constants.META_TABLE_COLUMNS, columns);
+    }
+    String columnTypes = tableProperties.getProperty(Constants.META_TABLE_COLUMN_TYPES);
+    if (columns != null) {
+      jobProperties.put(Constants.META_TABLE_COLUMN_TYPES, columnTypes);
+    }
   }
 
   @Override
@@ -309,7 +318,7 @@ public class HBaseStorageHandler extends DefaultStorageHandler
         split(",")[keyColPos];
     IndexPredicateAnalyzer analyzer =
       HiveHBaseTableInputFormat.newIndexPredicateAnalyzer(columnNames.get(keyColPos), keyColType,
-        hbaseSerde.getStorageFormatOfCol(keyColPos).get(0));
+        hbaseSerde.isBinary(keyColPos, 0));
     List<IndexSearchCondition> searchConditions =
       new ArrayList<IndexSearchCondition>();
     ExprNodeDesc residualPredicate =

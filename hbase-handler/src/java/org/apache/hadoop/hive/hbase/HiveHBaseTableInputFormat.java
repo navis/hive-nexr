@@ -90,12 +90,11 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
     TableSplit tableSplit = hbaseSplit.getSplit();
     String hbaseTableName = jobConf.get(HBaseSerDe.HBASE_TABLE_NAME);
     setHTable(new HTable(HBaseConfiguration.create(jobConf), Bytes.toBytes(hbaseTableName)));
-    String hbaseColumnsMapping = jobConf.get(HBaseSerDe.HBASE_COLUMNS_MAPPING);
     List<Integer> readColIDs = ColumnProjectionUtils.getReadColumnIDs(jobConf);
     List<ColumnMapping> columnsMapping = null;
 
     try {
-      columnsMapping = HBaseSerDe.parseColumnsMapping(hbaseColumnsMapping);
+      columnsMapping = HBaseSerDe.parseColumnsMapping(jobConf);
     } catch (SerDeException e) {
       throw new IOException(e);
     }
@@ -159,9 +158,7 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
       throw new IOException(e);
     }
 
-    tableSplit = convertFilter(jobConf, scan, tableSplit, iKey,
-      getStorageFormatOfKey(columnsMapping.get(iKey).mappingSpec,
-      jobConf.get(HBaseSerDe.HBASE_TABLE_DEFAULT_STORAGE_TYPE, "string")));
+    tableSplit = convertFilter(jobConf, scan, tableSplit, iKey, columnsMapping.get(iKey));
     setScan(scan);
     Job job = new Job(jobConf);
     TaskAttemptContext tac = ShimLoader.getHadoopShims().newTaskAttemptContext(
@@ -246,7 +243,7 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
     JobConf jobConf,
     Scan scan,
     TableSplit tableSplit,
-    int iKey, boolean isKeyBinary)
+    int iKey, ColumnMapping column)
     throws IOException {
 
     String filterExprSerialized =
@@ -254,6 +251,8 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
     if (filterExprSerialized == null) {
       return tableSplit;
     }
+    boolean isKeyBinary = column.isBinary(0);
+
     ExprNodeDesc filterExpr =
       Utilities.deserializeExpression(filterExprSerialized, jobConf);
 
@@ -299,6 +298,8 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
       }
 
       byte [] constantVal = getConstantVal(writable, objInspector, isKeyBinary);
+      constantVal = column.writeHook(0, constantVal);
+
       String comparisonOp = sc.getComparisonOp();
 
       if("org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqual".equals(comparisonOp)){
@@ -428,7 +429,7 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
 
     List<ColumnMapping> columnsMapping = null;
     try {
-      columnsMapping = HBaseSerDe.parseColumnsMapping(hbaseColumnsMapping);
+      columnsMapping = HBaseSerDe.parseColumnsMapping(jobConf);
     } catch (SerDeException e) {
       throw new IOException(e);
     }
@@ -464,9 +465,7 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
     // split per region, the implementation actually takes the scan
     // definition into account and excludes regions which don't satisfy
     // the start/stop row conditions (HBASE-1829).
-    convertFilter(jobConf, scan, null, iKey,
-      getStorageFormatOfKey(columnsMapping.get(iKey).mappingSpec,
-      jobConf.get(HBaseSerDe.HBASE_TABLE_DEFAULT_STORAGE_TYPE, "string")));
+    convertFilter(jobConf, scan, null, iKey, columnsMapping.get(iKey));
 
     setScan(scan);
     Job job = new Job(jobConf);
@@ -482,29 +481,5 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
     }
 
     return results;
-  }
-
-  private boolean getStorageFormatOfKey(String spec, String defaultFormat) throws IOException{
-
-    String[] mapInfo = spec.split("#");
-    boolean tblLevelDefault = "binary".equalsIgnoreCase(defaultFormat) ? true : false;
-
-    switch (mapInfo.length) {
-    case 1:
-      return tblLevelDefault;
-
-    case 2:
-      String storageType = mapInfo[1];
-      if(storageType.equals("-")) {
-        return tblLevelDefault;
-      } else if ("string".startsWith(storageType)){
-        return false;
-      } else if ("binary".startsWith(storageType)){
-        return true;
-      }
-
-    default:
-      throw new IOException("Malformed string: " + spec);
-    }
   }
 }

@@ -19,7 +19,6 @@
 package org.apache.hadoop.hive.hbase;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Map.Entry;
@@ -41,8 +40,7 @@ import org.apache.hadoop.io.Writable;
 public class LazyHBaseCellMap extends LazyMap {
 
   private Result result;
-  private byte [] columnFamilyBytes;
-  private List<Boolean> binaryStorage;
+  private HBaseSerDe.ColumnMapping colMap;
 
   /**
    * Construct a LazyCellMap object with the ObjectInspector.
@@ -52,14 +50,9 @@ public class LazyHBaseCellMap extends LazyMap {
     super(oi);
   }
 
-  public void init(
-      Result r,
-      byte [] columnFamilyBytes,
-      List<Boolean> binaryStorage) {
-
-    result = r;
-    this.columnFamilyBytes = columnFamilyBytes;
-    this.binaryStorage = binaryStorage;
+  public void init(Result r, HBaseSerDe.ColumnMapping colMap) {
+    this.result = r;
+    this.colMap = colMap;
     setParsed(false);
   }
 
@@ -70,7 +63,7 @@ public class LazyHBaseCellMap extends LazyMap {
       cachedMap.clear();
     }
 
-    NavigableMap<byte [], byte []> familyMap = result.getFamilyMap(columnFamilyBytes);
+    NavigableMap<byte [], byte []> familyMap = result.getFamilyMap(colMap.familyNameBytes);
 
     if (familyMap != null) {
 
@@ -86,19 +79,18 @@ public class LazyHBaseCellMap extends LazyMap {
         LazyPrimitive<? extends ObjectInspector, ? extends Writable> key =
           LazyFactory.createLazyPrimitiveClass(
               (PrimitiveObjectInspector) lazyMoi.getMapKeyObjectInspector(),
-              binaryStorage.get(0));
+              colMap.isBinaryDataStream(0));
 
         ByteArrayRef keyRef = new ByteArrayRef();
-        keyRef.setData(e.getKey());
+        keyRef.setData(colMap.readHook(0, e.getKey()));
         key.init(keyRef, 0, keyRef.getData().length);
 
         // Value
         LazyObject<?> value =
           LazyFactory.createLazyObject(lazyMoi.getMapValueObjectInspector(),
-              binaryStorage.get(1));
-
+              colMap.isBinaryDataStream(1));
         ByteArrayRef valueRef = new ByteArrayRef();
-        valueRef.setData(e.getValue());
+        valueRef.setData(colMap.readHook(1, e.getValue()));
         value.init(valueRef, 0, valueRef.getData().length);
 
         // Put the key/value into the map

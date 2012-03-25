@@ -88,7 +88,7 @@ public class LazyHBaseRow extends LazyStruct {
 
         fields[i] = LazyFactory.createLazyObject(
             fieldRefs.get(i).getFieldObjectInspector(),
-            colMap.binaryStorage.get(0));
+            colMap.isBinaryDataStream(0));
       }
 
       setFields(fields);
@@ -139,13 +139,14 @@ public class LazyHBaseRow extends LazyStruct {
 
       if (colMap.hbaseRowKey) {
         ref = new ByteArrayRef();
-        ref.setData(result.getRow());
+        byte[] row = result.getRow();
+        row = colMap.readHook(0, row);
+        ref.setData(row);
       } else {
         if (colMap.qualifierName == null) {
           // it is a column family
           // primitive type for Map<Key, Value> can be stored in binary format
-          ((LazyHBaseCellMap) fields[fieldID]).init(
-              result, colMap.familyNameBytes, colMap.binaryStorage);
+          ((LazyHBaseCellMap) fields[fieldID]).init(result, colMap);
         } else {
           // it is a column i.e. a column-family with column-qualifier
           byte [] res = result.getValue(colMap.familyNameBytes, colMap.qualifierNameBytes);
@@ -153,6 +154,7 @@ public class LazyHBaseRow extends LazyStruct {
           if (res == null) {
             return null;
           } else {
+            res = colMap.readHook(0, res);
             ref = new ByteArrayRef();
             ref.setData(res);
           }
