@@ -67,6 +67,7 @@ public class ParseContext {
   private Map<JoinOperator, QBJoinTree> joinContext;
   private Map<MapJoinOperator, QBJoinTree> mapJoinContext;
   private HashMap<TableScanOperator, Table> topToTable;
+  private HashMap<TableScanOperator, Map<String, String>> topToProps;
   private HashMap<String, SplitSample> nameToSplitSample;
   private List<LoadTableDesc> loadTableWork;
   private List<LoadFileDesc> loadFileWork;
@@ -153,6 +154,7 @@ public class ParseContext {
       LinkedHashMap<Operator<? extends Serializable>, OpParseContext> opParseCtx,
       Map<JoinOperator, QBJoinTree> joinContext,
       HashMap<TableScanOperator, Table> topToTable,
+      HashMap<TableScanOperator, Map<String, String>> topToProps,
       List<LoadTableDesc> loadTableWork, List<LoadFileDesc> loadFileWork,
       Context ctx, HashMap<String, String> idToTableNameMap, int destTableId,
       UnionProcContext uCtx, List<AbstractMapJoinOperator<? extends MapJoinDesc>> listMapJoinOpsNoReducer,
@@ -169,6 +171,7 @@ public class ParseContext {
     this.opToPartList = opToPartList;
     this.joinContext = joinContext;
     this.topToTable = topToTable;
+    this.topToProps = topToProps;
     this.loadFileWork = loadFileWork;
     this.loadTableWork = loadTableWork;
     this.opParseCtx = opParseCtx;
@@ -286,6 +289,21 @@ public class ParseContext {
    */
   public void setTopToTable(HashMap<TableScanOperator, Table> topToTable) {
     this.topToTable = topToTable;
+  }
+
+  /**
+   * @return the topToProps
+   */
+  public HashMap<TableScanOperator, Map<String, String>> getTopToProps() {
+    return topToProps;
+  }
+
+  /**
+   * @param topToProps
+   *          the topToProps to set
+   */
+  public void setTopToProps(HashMap<TableScanOperator, Map<String, String>> topToProps) {
+    this.topToProps = topToProps;
   }
 
   /**

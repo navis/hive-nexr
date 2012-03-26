@@ -65,6 +65,8 @@ public class HBaseSerDe implements SerDe {
   public static final String HBASE_TABLE_DEFAULT_STORAGE_TYPE = "hbase.table.default.storage.type";
   public static final String HBASE_KEY_COL = ":key";
   public static final String HBASE_PUT_TIMESTAMP = "hbase.put.timestamp";
+  public static final String HBASE_MAX_VERSIONS = "hbase.max.versions";
+  public static final String HBASE_VERSIONS_ORDER = "hbase.versions.order";
   public static final Log LOG = LogFactory.getLog(HBaseSerDe.class);
 
   private ObjectInspector cachedObjectInspector;

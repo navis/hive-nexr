@@ -1,0 +1,91 @@
+PREHOOK: query: DROP TABLE hbase_table
+PREHOOK: type: DROPTABLE
+POSTHOOK: query: DROP TABLE hbase_table
+POSTHOOK: type: DROPTABLE
+PREHOOK: query: CREATE TABLE hbase_table(key string, value string)
+STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+WITH SERDEPROPERTIES ("hbase.columns.mapping" = ":key,cf:string")
+TBLPROPERTIES ("hbase.table.name" = "hbase_table_0")
+PREHOOK: type: CREATETABLE
+POSTHOOK: query: CREATE TABLE hbase_table(key string, value string)
+STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+WITH SERDEPROPERTIES ("hbase.columns.mapping" = ":key,cf:string")
+TBLPROPERTIES ("hbase.table.name" = "hbase_table_0")
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: default@hbase_table
+PREHOOK: query: INSERT OVERWRITE TABLE hbase_table SELECT 'key', 'value1' FROM src LIMIT 1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: default@hbase_table
+POSTHOOK: query: INSERT OVERWRITE TABLE hbase_table SELECT 'key', 'value1' FROM src LIMIT 1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: default@hbase_table
+PREHOOK: query: INSERT OVERWRITE TABLE hbase_table SELECT 'key', 'value2' FROM src LIMIT 1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: default@hbase_table
+POSTHOOK: query: INSERT OVERWRITE TABLE hbase_table SELECT 'key', 'value2' FROM src LIMIT 1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: default@hbase_table
+PREHOOK: query: INSERT OVERWRITE TABLE hbase_table SELECT 'key', 'value3' FROM src LIMIT 1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: default@hbase_table
+POSTHOOK: query: INSERT OVERWRITE TABLE hbase_table SELECT 'key', 'value3' FROM src LIMIT 1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: default@hbase_table
+PREHOOK: query: select value from hbase_table
+PREHOOK: type: QUERY
+PREHOOK: Input: default@hbase_table
+#### A masked pattern was here ####
+POSTHOOK: query: select value from hbase_table
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@hbase_table
+#### A masked pattern was here ####
+value3
+PREHOOK: query: select value from hbase_table('hbase.max.versions'='3')
+PREHOOK: type: QUERY
+PREHOOK: Input: default@hbase_table
+#### A masked pattern was here ####
+POSTHOOK: query: select value from hbase_table('hbase.max.versions'='3')
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@hbase_table
+#### A masked pattern was here ####
+value3
+value2
+value1
+PREHOOK: query: select value from hbase_table('hbase.max.versions'='3', 'hbase.versions.order'='ASC')
+PREHOOK: type: QUERY
+PREHOOK: Input: default@hbase_table
+#### A masked pattern was here ####
+POSTHOOK: query: select value from hbase_table('hbase.max.versions'='3', 'hbase.versions.order'='ASC')
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@hbase_table
+#### A masked pattern was here ####
+value1
+value2
+value3
+PREHOOK: query: -- fetch operator
+select * from hbase_table('hbase.max.versions'='3')
+PREHOOK: type: QUERY
+PREHOOK: Input: default@hbase_table
+#### A masked pattern was here ####
+POSTHOOK: query: -- fetch operator
+select * from hbase_table('hbase.max.versions'='3')
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@hbase_table
+#### A masked pattern was here ####
+key	value3
+key	value2
+key	value1
+PREHOOK: query: DROP TABLE hbase_table
+PREHOOK: type: DROPTABLE
+PREHOOK: Input: default@hbase_table
+PREHOOK: Output: default@hbase_table
+POSTHOOK: query: DROP TABLE hbase_table
+POSTHOOK: type: DROPTABLE
+POSTHOOK: Input: default@hbase_table
+POSTHOOK: Output: default@hbase_table
