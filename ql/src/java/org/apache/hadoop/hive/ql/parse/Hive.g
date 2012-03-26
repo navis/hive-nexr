@@ -1686,8 +1686,8 @@ tableSample
 tableSource
 @init { msgs.push("table source"); }
 @after { msgs.pop(); }
-    : tabname=tableName (ts=tableSample)? (alias=Identifier)?
-    -> ^(TOK_TABREF $tabname $ts? $alias?)
+    : tabname=tableName (props=tableProperties)? (ts=tableSample)? (alias=Identifier)?
+    -> ^(TOK_TABREF $tabname $props? $ts? $alias?)
     ;
 
 tableName

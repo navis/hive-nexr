@@ -20,13 +20,18 @@ package org.apache.hadoop.hive.hbase;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
@@ -35,7 +40,6 @@ import org.apache.hadoop.hbase.mapred.TableMapReduceUtil;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormatBase;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Writables;
 import org.apache.hadoop.hive.hbase.HBaseSerDe.ColumnMapping;
 import org.apache.hadoop.hive.ql.exec.ExprNodeConstantEvaluator;
 import org.apache.hadoop.hive.ql.exec.Utilities;
@@ -78,12 +82,12 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
  * such as column pruning and filter pushdown.
  */
 public class HiveHBaseTableInputFormat extends TableInputFormatBase
-    implements InputFormat<ImmutableBytesWritable, Result> {
+    implements InputFormat<ImmutableBytesWritable, ResultWrapper> {
 
   static final Log LOG = LogFactory.getLog(HiveHBaseTableInputFormat.class);
 
   @Override
-  public RecordReader<ImmutableBytesWritable, Result> getRecordReader(
+  public RecordReader<ImmutableBytesWritable, ResultWrapper> getRecordReader(
     InputSplit split,
     JobConf jobConf,
     final Reporter reporter) throws IOException {
@@ -108,6 +112,13 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
 
     boolean addAll = (readColIDs.size() == 0);
     Scan scan = new Scan();
+    String maxVersions = jobConf.get(HBaseSerDe.HBASE_MAX_VERSIONS);
+    if (maxVersions != null) {
+      scan.setMaxVersions(Integer.valueOf(maxVersions));
+    }
+    String order = jobConf.get(HBaseSerDe.HBASE_VERSIONS_ORDER, "DESC");
+    final boolean orderAsc = order.equals("ASC");
+
     boolean empty = true;
 
     if (!addAll) {
@@ -172,7 +183,7 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
     final org.apache.hadoop.mapreduce.RecordReader<ImmutableBytesWritable, Result>
     recordReader = createRecordReader(tableSplit, tac);
 
-    return new RecordReader<ImmutableBytesWritable, Result>() {
+    return new RecordReader<ImmutableBytesWritable, ResultWrapper>() {
 
       @Override
       public void close() throws IOException {
@@ -185,8 +196,8 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
       }
 
       @Override
-      public Result createValue() {
-        return new Result();
+      public ResultWrapper createValue() {
+        return new ResultWrapper();
       }
 
       @Override
@@ -207,23 +218,35 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
         return progress;
       }
 
+      byte[] key;
+      Map<Long, List<KeyValue>> rows = orderAsc ? new TreeMap<Long, List<KeyValue>>()
+          : new LinkedHashMap<Long, List<KeyValue>>();
+      Iterator<List<KeyValue>> iterator;
+
       @Override
-      public boolean next(ImmutableBytesWritable rowKey, Result value) throws IOException {
-
-        boolean next = false;
-
-        try {
-          next = recordReader.nextKeyValue();
-
-          if (next) {
-            rowKey.set(recordReader.getCurrentValue().getRow());
-            Writables.copyWritable(recordReader.getCurrentValue(), value);
+      public boolean next(ImmutableBytesWritable rowKey, ResultWrapper value) throws IOException {
+        while (iterator == null || !iterator.hasNext()) {
+          rows.clear();
+          try {
+            if (!recordReader.nextKeyValue()) {
+              return false;
+            }
+            key = recordReader.getCurrentKey().get();
+            for (KeyValue kv : recordReader.getCurrentValue().raw()) {
+              List<KeyValue> values = rows.get(kv.getTimestamp());
+              if (values == null) {
+                rows.put(kv.getTimestamp(), values = new ArrayList<KeyValue>());
+              }
+              values.add(kv);
+            }
+            iterator = rows.values().iterator();
+          } catch (InterruptedException e) {
+            throw new IOException(e);
           }
-        } catch (InterruptedException e) {
-          throw new IOException(e);
         }
-
-        return next;
+        rowKey.set(key);
+        value.setTarget(iterator.next());
+        return true;
       }
     };
   }

@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
@@ -659,6 +660,15 @@ public final class GenMapRedUtils {
 
     }
 
+    Map<String, String> props = parseCtx.getTopToProps().get(topOp);
+    if (props != null) {
+      Properties target = aliasPartnDesc.getProperties();
+      if (target == null) {
+        aliasPartnDesc.setProperties(target = new Properties());
+      }
+      target.putAll(props);
+    }
+
     plan.getAliasToPartnInfo().put(alias_id, aliasPartnDesc);
 
     long sizeNeeded = Integer.MAX_VALUE;
@@ -755,6 +765,14 @@ public final class GenMapRedUtils {
         tblDesc = Utilities.getTableDesc(part.getTable());
       } else if (tblDesc == null) {
         tblDesc = Utilities.getTableDesc(part.getTable());
+      }
+
+      if (props != null) {
+        Properties target = tblDesc.getProperties();
+        if (target == null) {
+          tblDesc.setProperties(target = new Properties());
+        }
+        target.putAll(props);
       }
 
       for (Path p : paths) {

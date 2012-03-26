@@ -290,6 +290,17 @@ public class HBaseStorageHandler extends DefaultStorageHandler
       }
     }
     jobProperties.put(HBaseSerDe.HBASE_TABLE_NAME, tableName);
+
+    String maxVersions =
+      tableProperties.getProperty(HBaseSerDe.HBASE_MAX_VERSIONS);
+    if (maxVersions != null) {
+      jobProperties.put(HBaseSerDe.HBASE_MAX_VERSIONS, maxVersions);
+    }
+    String versionsOrder =
+      tableProperties.getProperty(HBaseSerDe.HBASE_VERSIONS_ORDER);
+    if (versionsOrder != null) {
+      jobProperties.put(HBaseSerDe.HBASE_VERSIONS_ORDER, versionsOrder);
+    }
   }
 
   @Override

@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.Map.Entry;
@@ -191,6 +192,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
   private List<LoadFileDesc> loadFileWork;
   private Map<JoinOperator, QBJoinTree> joinContext;
   private final HashMap<TableScanOperator, Table> topToTable;
+  private final HashMap<TableScanOperator, Map<String, String>> topToTableProps;
   private QB qb;
   private ASTNode ast;
   private int destTableId;
@@ -280,6 +282,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     opParseCtx = new LinkedHashMap<Operator<? extends Serializable>, OpParseContext>();
     joinContext = new HashMap<JoinOperator, QBJoinTree>();
     topToTable = new HashMap<TableScanOperator, Table>();
+    topToTableProps = new HashMap<TableScanOperator, Map<String, String>>();
     destTableId = 1;
     uCtx = null;
     listMapJoinOpsNoReducer = new ArrayList<AbstractMapJoinOperator<? extends MapJoinDesc>>();
@@ -334,7 +337,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
   public ParseContext getParseContext() {
     return new ParseContext(conf, qb, ast, opToPartPruner, opToPartList, topOps,
-        topSelOps, opParseCtx, joinContext, topToTable, loadTableWork,
+        topSelOps, opParseCtx, joinContext, topToTable, topToTableProps, loadTableWork,
         loadFileWork, ctx, idToTableNameMap, destTableId, uCtx,
         listMapJoinOpsNoReducer, groupOpToInputTables, prunedPartitions,
         opToSamplePruner, globalLimitCtx, nameToSplitSample, inputs, rootTasks);
@@ -473,28 +476,23 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     boolean splitSamplePresent = false;
 
     int aliasIndex = 0;
-    if (tabref.getChildCount() == 2) {
-      // tablename tablesample
-      // OR
-      // tablename alias
-      ASTNode ct = (ASTNode) tabref.getChild(1);
+    int propsIndex = -1;
+    int sampleIndex = -1;
+    for (int index = 1; index < tabref.getChildCount(); index++) {
+      ASTNode ct = (ASTNode) tabref.getChild(index);
       if (ct.getToken().getType() == HiveParser.TOK_TABLEBUCKETSAMPLE) {
+        sampleIndex = index;
         tableSamplePresent = true;
       } else if (ct.getToken().getType() == HiveParser.TOK_TABLESPLITSAMPLE) {
+        sampleIndex = index;
         splitSamplePresent = true;
+      } else if (ct.getToken().getType() == HiveParser.TOK_TABLEPROPERTIES) {
+        propsIndex = index;
       } else {
-        aliasIndex = 1;
-      }
-    } else if (tabref.getChildCount() == 3) {
-      // table name table sample alias
-      aliasIndex = 2;
-      ASTNode ct = (ASTNode) tabref.getChild(1);
-      if (ct.getToken().getType() == HiveParser.TOK_TABLEBUCKETSAMPLE) {
-        tableSamplePresent = true;
-      } else if (ct.getToken().getType() == HiveParser.TOK_TABLESPLITSAMPLE) {
-        splitSamplePresent = true;
+        aliasIndex = index;
       }
     }
+
     ASTNode tableTree = (ASTNode) (tabref.getChild(0));
 
     String tabIdName = getUnescapedName(tableTree);
@@ -502,13 +500,18 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     String alias = (aliasIndex != 0) ?
         unescapeIdentifier(tabref.getChild(aliasIndex).getText()) : tabIdName;
 
+    Map<String, String> props = null;
+    if (propsIndex >= 0) {
+      props = DDLSemanticAnalyzer.getProps((ASTNode) tabref.getChild(propsIndex).getChild(0));
+    }
+
     // If the alias is already there then we have a conflict
     if (qb.exists(alias)) {
       throw new SemanticException(ErrorMsg.AMBIGUOUS_TABLE_ALIAS.getMsg(tabref
           .getChild(aliasIndex)));
     }
     if (tableSamplePresent) {
-      ASTNode sampleClause = (ASTNode) tabref.getChild(1);
+      ASTNode sampleClause = (ASTNode) tabref.getChild(sampleIndex);
       ArrayList<ASTNode> sampleCols = new ArrayList<ASTNode>();
       if (sampleClause.getChildCount() > 2) {
         for (int i = 2; i < sampleClause.getChildCount(); i++) {
@@ -539,10 +542,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       String inputFormat = HiveConf.getVar(conf, HiveConf.ConfVars.HIVEINPUTFORMAT);
       if (!inputFormat.equals(
         CombineHiveInputFormat.class.getName())) {
-        throw new SemanticException(generateErrorMessage((ASTNode) tabref.getChild(1),
+        throw new SemanticException(generateErrorMessage((ASTNode) tabref.getChild(sampleIndex),
             "Percentage sampling is not supported in " + inputFormat));
       }
-      ASTNode sampleClause = (ASTNode) tabref.getChild(1);
+      ASTNode sampleClause = (ASTNode) tabref.getChild(sampleIndex);
       String alias_id = getAliasId(alias, qb);
       String strPercentage = unescapeIdentifier(sampleClause.getChild(0).getText());
       Double percent = Double.valueOf(strPercentage).doubleValue();
@@ -558,6 +561,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     qb.addAlias(alias);
 
     qb.getParseInfo().setSrcForAlias(alias, tableTree);
+    if (props != null) {
+      qb.setTabProps(alias, props);
+    }
 
     unparseTranslator.addTableNameTranslation(tableTree);
     if (aliasIndex != 0) {
@@ -6535,6 +6541,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
       // Add a mapping from the table scan operator to Table
       topToTable.put((TableScanOperator) top, tab);
+      Map<String, String> props = qb.getTabPropsForAlias(alias);
+      if (props != null) {
+        topToTableProps.put((TableScanOperator) top, props);
+      }
     } else {
       rwsch = opParseCtx.get(top).getRowResolver();
       top.setChildOperators(null);
@@ -7003,9 +7013,18 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       Iterator<Map.Entry<String, Table>> iter = qb.getMetaData()
           .getAliasToTable().entrySet().iterator();
       Table tab = (iter.next()).getValue();
+      Map<String, String> props = qb.getTabPropsForAlias(tab.getTableName());
+
       if (!tab.isPartitioned()) {
-        FetchWork work = new FetchWork(tab.getPath().toString(), Utilities
-            .getTableDesc(tab), qb.getParseInfo().getOuterQueryLimit());
+        TableDesc tableDesc = Utilities.getTableDesc(tab);
+        if (props != null) {
+          Properties target = tableDesc.getProperties();
+          if (target == null) {
+            tableDesc.setProperties(target = new Properties());
+          }
+          target.putAll(props);
+        }
+        FetchWork work = new FetchWork(tab.getPath().toString(), tableDesc, qb.getParseInfo().getOuterQueryLimit());
         if (qb.isSelectStartOnly() && qbParseInfo.getDestToWhereExpr().isEmpty()) {
           fetch = work;
         } else if (HiveConf.getBoolVar(conf, ConfVars.HIVEAGGRESIVEFETCHTASKCONVERSION)
@@ -7054,7 +7073,15 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
                 listP.add(part.getPartitionPath().toString());
                 try {
-                  partP.add(Utilities.getPartitionDesc(part));
+                  PartitionDesc partitionDesc = Utilities.getPartitionDesc(part);
+                  if (props != null) {
+                    Properties target = partitionDesc.getProperties();
+                    if (target == null) {
+                      partitionDesc.setProperties(target = new Properties());
+                    }
+                    target.putAll(props);
+                  }
+                  partP.add(partitionDesc);
                 } catch (HiveException e) {
                   throw new SemanticException(e.getMessage(), e);
                 }
@@ -7647,7 +7674,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     }
 
     ParseContext pCtx = new ParseContext(conf, qb, child, opToPartPruner,
-        opToPartList, topOps, topSelOps, opParseCtx, joinContext, topToTable,
+        opToPartList, topOps, topSelOps, opParseCtx, joinContext, topToTable, topToTableProps,
         loadTableWork, loadFileWork, ctx, idToTableNameMap, destTableId, uCtx,
         listMapJoinOpsNoReducer, groupOpToInputTables, prunedPartitions,
         opToSamplePruner, globalLimitCtx, nameToSplitSample, inputs, rootTasks);
