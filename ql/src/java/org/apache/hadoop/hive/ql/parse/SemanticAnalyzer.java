@@ -57,10 +57,12 @@ import org.apache.hadoop.hive.ql.exec.ConditionalTask;
 import org.apache.hadoop.hive.ql.exec.ExecDriver;
 import org.apache.hadoop.hive.ql.exec.FetchTask;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
+import org.apache.hadoop.hive.ql.exec.FilterOperator;
 import org.apache.hadoop.hive.ql.exec.FunctionInfo;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.JoinOperator;
+import org.apache.hadoop.hive.ql.exec.LimitOperator;
 import org.apache.hadoop.hive.ql.exec.MapRedTask;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.OperatorFactory;
@@ -68,6 +70,7 @@ import org.apache.hadoop.hive.ql.exec.RecordReader;
 import org.apache.hadoop.hive.ql.exec.RecordWriter;
 import org.apache.hadoop.hive.ql.exec.ReduceSinkOperator;
 import org.apache.hadoop.hive.ql.exec.RowSchema;
+import org.apache.hadoop.hive.ql.exec.SelectOperator;
 import org.apache.hadoop.hive.ql.exec.StatsTask;
 import org.apache.hadoop.hive.ql.exec.TableScanOperator;
 import org.apache.hadoop.hive.ql.exec.Task;
@@ -6959,7 +6962,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     QBParseInfo qbParseInfo = qb.getParseInfo();
 
     // Does this query need reduce job
-    if (qb.isSelectStarQuery() && qbParseInfo.getDestToClusterBy().isEmpty()
+    if (qb.isSimpleSelectQuery() && qbParseInfo.getDestToClusterBy().isEmpty()
         && qbParseInfo.getDestToDistributeBy().isEmpty()
         && qbParseInfo.getDestToOrderBy().isEmpty()
         && qbParseInfo.getDestToSortBy().isEmpty()) {
@@ -6969,9 +6972,15 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           .getAliasToTable().entrySet().iterator();
       Table tab = (iter.next()).getValue();
       if (!tab.isPartitioned()) {
-        if (qbParseInfo.getDestToWhereExpr().isEmpty()) {
-          fetch = new FetchWork(tab.getPath().toString(), Utilities
-              .getTableDesc(tab), qb.getParseInfo().getOuterQueryLimit());
+        FetchWork work = new FetchWork(tab.getPath().toString(), Utilities
+            .getTableDesc(tab), qb.getParseInfo().getOuterQueryLimit());
+        if (qb.isSelectStarOnly() && qbParseInfo.getDestToWhereExpr().isEmpty()) {
+          fetch = work;
+        } else if (HiveConf.getBoolVar(conf, ConfVars.HIVEAGGRESIVEFETCHTASKCONVERSION)
+            && topOps.size() == 1) {
+          fetch = tryConvertToFetchWork(work, (Operator) topOps.values().toArray()[0]);
+        }
+        if (fetch != null) {
           noMapRed = true;
           inputs.add(new ReadEntity(tab));
         }
@@ -7017,12 +7026,21 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
                 } catch (HiveException e) {
                   throw new SemanticException(e.getMessage(), e);
                 }
-                inputs.add(new ReadEntity(part));
               }
 
-              fetch = new FetchWork(listP, partP, qb.getParseInfo()
-                  .getOuterQueryLimit());
-              noMapRed = true;
+              FetchWork work = new FetchWork(listP, partP, qb.getParseInfo().getOuterQueryLimit());
+              if (qb.isSelectStarOnly()) {
+                fetch = work;
+              } else if (HiveConf.getBoolVar(conf, ConfVars.HIVEAGGRESIVEFETCHTASKCONVERSION)
+                  && topOps.size() == 1) {
+                fetch = tryConvertToFetchWork(work, (Operator) topOps.values().toArray()[0]);
+              }
+              if (fetch != null) {
+                noMapRed = true;
+                for (Partition part : partsList.getConfirmedPartns()) {
+                  inputs.add(new ReadEntity(part));
+                }
+              }
             }
           }
         }
@@ -7324,6 +7342,57 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         tsk.setRetryCmdWhenFail(true);
       }
     }
+  }
+
+  private FetchWork tryConvertToFetchWork(FetchWork fetch, Operator<?> ts) {
+    if (!(ts instanceof TableScanOperator) && ts.getChildOperators().size() != 1) {
+      return null;
+    }
+    Operator<?> op = ts.getChildOperators().get(0);
+    for (; ; op = op.getChildOperators().get(0)) {
+      if (!(op instanceof SelectOperator || op instanceof LimitOperator
+          || op instanceof FilterOperator)) {
+        break;
+      }
+      if (op instanceof SelectOperator) {
+        SelectOperator sel = (SelectOperator) op;
+        if (!sel.getConf().isSelectStar()) {
+          for (ExprNodeDesc expr: sel.getConf().getColList()) {
+            if (hasVirtualColumn(expr)) {
+              return null;
+            }
+          }
+        }
+      }
+      if (op.getChildOperators() != null && op.getChildOperators().size() != 1) {
+        return null;
+      }
+      if (op.getChildOperators() == null || op.getChildOperators().isEmpty()) {
+        break;
+      }
+    }
+    if (op instanceof FileSinkOperator &&
+        op.getChildOperators() == null || op.getChildOperators().isEmpty()) {
+      op.getParentOperators().get(0).setChildOperators(null);
+      op.setParentOperators(null);
+      fetch.setProcessor(ts);
+      return fetch;
+    }
+    return null;
+  }
+
+  private boolean hasVirtualColumn(ExprNodeDesc expr) {
+    if (expr instanceof ExprNodeColumnDesc) {
+      return ((ExprNodeColumnDesc)expr).getIsPartitionColOrVirtualCol();
+    }
+    if (expr instanceof ExprNodeGenericFuncDesc) {
+      for (ExprNodeDesc param : ((ExprNodeGenericFuncDesc)expr).getChildExprs()) {
+        if (hasVirtualColumn(param)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /**
