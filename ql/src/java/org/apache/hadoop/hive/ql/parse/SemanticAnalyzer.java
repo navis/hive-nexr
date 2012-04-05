@@ -110,7 +110,6 @@ import org.apache.hadoop.hive.ql.optimizer.MapJoinFactory;
 import org.apache.hadoop.hive.ql.optimizer.Optimizer;
 import org.apache.hadoop.hive.ql.optimizer.physical.PhysicalContext;
 import org.apache.hadoop.hive.ql.optimizer.physical.PhysicalOptimizer;
-import org.apache.hadoop.hive.ql.optimizer.ppr.PartitionPruner;
 import org.apache.hadoop.hive.ql.optimizer.unionproc.UnionProcContext;
 import org.apache.hadoop.hive.ql.parse.BaseSemanticAnalyzer.tableSpec.SpecType;
 import org.apache.hadoop.hive.ql.plan.AggregationDesc;
@@ -142,7 +141,6 @@ import org.apache.hadoop.hive.ql.plan.LoadTableDesc;
 import org.apache.hadoop.hive.ql.plan.MapJoinDesc;
 import org.apache.hadoop.hive.ql.plan.MapredWork;
 import org.apache.hadoop.hive.ql.plan.MoveWork;
-import org.apache.hadoop.hive.ql.plan.PartitionDesc;
 import org.apache.hadoop.hive.ql.plan.PlanUtils;
 import org.apache.hadoop.hive.ql.plan.ReduceSinkDesc;
 import org.apache.hadoop.hive.ql.plan.ScriptDesc;
@@ -327,6 +325,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     qb = pctx.getQB();
     groupOpToInputTables = pctx.getGroupOpToInputTables();
     prunedPartitions = pctx.getPrunedPartitions();
+    fetchTask = pctx.getFetchTask();
     setLineageInfo(pctx.getLineageInfo());
   }
 
@@ -6903,219 +6902,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     }
   }
 
-
-  /**
-   * Recursively check the limit number in all sub queries
-   * @param qbParseInfo
-   * @return if there is one and only one limit for all subqueries, return the limit
-   * if there is no limit, return 0
-   * otherwise, return null
-   */
-  private Integer checkQbpForGlobalLimit(QB localQb) {
-    QBParseInfo qbParseInfo = localQb.getParseInfo();
-    if (localQb.getNumSelDi() == 0 && qbParseInfo.getDestToClusterBy().isEmpty()
-        && qbParseInfo.getDestToDistributeBy().isEmpty()
-        && qbParseInfo.getDestToOrderBy().isEmpty()
-        && qbParseInfo.getDestToSortBy().isEmpty()
-        && qbParseInfo.getDestToAggregationExprs().size() <= 1
-        && qbParseInfo.getDestToDistinctFuncExprs().size() <= 1
-        && qbParseInfo.getNameToSample().isEmpty()) {
-      if ((qbParseInfo.getDestToAggregationExprs().size() < 1 ||
-          qbParseInfo.getDestToAggregationExprs().values().iterator().next().isEmpty()) &&
-          (qbParseInfo.getDestToDistinctFuncExprs().size() < 1 ||
-          qbParseInfo.getDestToDistinctFuncExprs().values().iterator().next().isEmpty())
-          && qbParseInfo.getDestToLimit().size() <= 1) {
-        Integer retValue;
-        if (qbParseInfo.getDestToLimit().size() == 0) {
-          retValue = 0;
-        } else {
-          retValue = qbParseInfo.getDestToLimit().values().iterator().next().intValue();
-        }
-
-        for (String alias : localQb.getSubqAliases()) {
-          Integer limit = checkQbpForGlobalLimit(localQb.getSubqForAlias(alias).getQB());
-          if  (limit == null) {
-            return null;
-          } else if (retValue > 0  && limit > 0) {
-            // Any query has more than one LIMITs shown in the query is not
-            // qualified to this optimization
-            return null;
-          } else if (limit > 0) {
-            retValue = limit;
-          }
-        }
-        return retValue;
-      }
-    }
-    return null;
-  }
-
   @SuppressWarnings("nls")
   private void genMapRedTasks(QB qb) throws SemanticException {
-    FetchWork fetch = null;
     List<Task<? extends Serializable>> mvTask = new ArrayList<Task<? extends Serializable>>();
-    FetchTask fetchTask = null;
-
-    QBParseInfo qbParseInfo = qb.getParseInfo();
-
-    // Does this query need reduce job
-    if (qb.isSelectStarQuery() && qbParseInfo.getDestToClusterBy().isEmpty()
-        && qbParseInfo.getDestToDistributeBy().isEmpty()
-        && qbParseInfo.getDestToOrderBy().isEmpty()
-        && qbParseInfo.getDestToSortBy().isEmpty()) {
-      boolean noMapRed = false;
-
-      Iterator<Map.Entry<String, Table>> iter = qb.getMetaData()
-          .getAliasToTable().entrySet().iterator();
-      Table tab = (iter.next()).getValue();
-      if (!tab.isPartitioned()) {
-        if (qbParseInfo.getDestToWhereExpr().isEmpty()) {
-          fetch = new FetchWork(tab.getPath().toString(), Utilities
-              .getTableDesc(tab), qb.getParseInfo().getOuterQueryLimit());
-          noMapRed = true;
-          inputs.add(new ReadEntity(tab));
-        }
-      } else {
-
-        if (topOps.size() == 1) {
-          TableScanOperator ts = (TableScanOperator) topOps.values().toArray()[0];
-
-          // check if the pruner only contains partition columns
-          if (PartitionPruner.onlyContainsPartnCols(topToTable.get(ts),
-              opToPartPruner.get(ts))) {
-
-            PrunedPartitionList partsList = null;
-            try {
-              partsList = opToPartList.get(ts);
-              if (partsList == null) {
-                partsList = PartitionPruner.prune(topToTable.get(ts),
-                    opToPartPruner.get(ts), conf, (String) topOps.keySet()
-                    .toArray()[0], prunedPartitions);
-                opToPartList.put(ts, partsList);
-              }
-            } catch (HiveException e) {
-              // Has to use full name to make sure it does not conflict with
-              // org.apache.commons.lang.StringUtils
-              LOG.error(org.apache.hadoop.util.StringUtils.stringifyException(e));
-              throw new SemanticException(e.getMessage(), e);
-            }
-
-            // If there is any unknown partition, create a map-reduce job for
-            // the filter to prune correctly
-            if ((partsList.getUnknownPartns().size() == 0)) {
-              List<String> listP = new ArrayList<String>();
-              List<PartitionDesc> partP = new ArrayList<PartitionDesc>();
-
-              Set<Partition> parts = partsList.getConfirmedPartns();
-              Iterator<Partition> iterParts = parts.iterator();
-              while (iterParts.hasNext()) {
-                Partition part = iterParts.next();
-
-                listP.add(part.getPartitionPath().toString());
-                try {
-                  partP.add(Utilities.getPartitionDesc(part));
-                } catch (HiveException e) {
-                  throw new SemanticException(e.getMessage(), e);
-                }
-                inputs.add(new ReadEntity(part));
-              }
-
-              fetch = new FetchWork(listP, partP, qb.getParseInfo()
-                  .getOuterQueryLimit());
-              noMapRed = true;
-            }
-          }
-        }
-      }
-
-      if (noMapRed) {
-        if (fetch.getTblDesc() != null) {
-          PlanUtils.configureInputJobPropertiesForStorageHandler(
-            fetch.getTblDesc());
-        } else if ( (fetch.getPartDesc() != null) && (!fetch.getPartDesc().isEmpty())){
-            PartitionDesc pd0 = fetch.getPartDesc().get(0);
-            TableDesc td = pd0.getTableDesc();
-            if ((td != null)&&(td.getProperties() != null)
-                && td.getProperties().containsKey(
-                    org.apache.hadoop.hive.metastore.api.Constants.META_TABLE_STORAGE)){
-              PlanUtils.configureInputJobPropertiesForStorageHandler(td);
-            }
-        }
-        fetchTask = (FetchTask) TaskFactory.get(fetch, conf);
-        setFetchTask(fetchTask);
-
-        // remove root tasks if any
-        rootTasks.clear();
-        return;
-      }
-    }
-
-    // determine the query qualifies reduce input size for LIMIT
-    // The query only qualifies when there are only one top operator
-    // and there is no transformer or UDTF and no block sampling
-    // is used.
-    if (HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVELIMITOPTENABLE)
-        && ctx.getTryCount() == 0 && topOps.size() == 1
-        && !globalLimitCtx.ifHasTransformOrUDTF() &&
-        nameToSplitSample.isEmpty()) {
-
-      // Here we recursively check:
-      // 1. whether there are exact one LIMIT in the query
-      // 2. whether there is no aggregation, group-by, distinct, sort by,
-      //    distributed by, or table sampling in any of the sub-query.
-      // The query only qualifies if both conditions are satisfied.
-      //
-      // Example qualified queries:
-      //    CREATE TABLE ... AS SELECT col1, col2 FROM tbl LIMIT ..
-      //    INSERT OVERWRITE TABLE ... SELECT col1, hash(col2), split(col1)
-      //                               FROM ... LIMIT...
-      //    SELECT * FROM (SELECT col1 as col2 (SELECT * FROM ...) t1 LIMIT ...) t2);
-      //
-      Integer tempGlobalLimit = checkQbpForGlobalLimit(qb);
-
-      // query qualify for the optimization
-      if (tempGlobalLimit != null && tempGlobalLimit != 0)  {
-        TableScanOperator ts = (TableScanOperator) topOps.values().toArray()[0];
-        Table tab = topToTable.get(ts);
-
-        if (!tab.isPartitioned()) {
-          if (qbParseInfo.getDestToWhereExpr().isEmpty()) {
-            globalLimitCtx.enableOpt(tempGlobalLimit);
-          }
-        } else {
-          // check if the pruner only contains partition columns
-          if (PartitionPruner.onlyContainsPartnCols(tab,
-              opToPartPruner.get(ts))) {
-
-            PrunedPartitionList partsList = null;
-            try {
-              partsList = opToPartList.get(ts);
-              if (partsList == null) {
-                partsList = PartitionPruner.prune(tab,
-                    opToPartPruner.get(ts), conf, (String) topOps.keySet()
-                    .toArray()[0], prunedPartitions);
-                opToPartList.put(ts, partsList);
-              }
-            } catch (HiveException e) {
-              // Has to use full name to make sure it does not conflict with
-              // org.apache.commons.lang.StringUtils
-              LOG.error(org.apache.hadoop.util.StringUtils.stringifyException(e));
-              throw new SemanticException(e.getMessage(), e);
-            }
-
-            // If there is any unknown partition, create a map-reduce job for
-            // the filter to prune correctly
-            if ((partsList.getUnknownPartns().size() == 0)) {
-              globalLimitCtx.enableOpt(tempGlobalLimit);
-            }
-          }
-        }
-        if (globalLimitCtx.isEnable()) {
-          LOG.info("Qualify the optimize that reduces input size for 'limit' for limit "
-              + globalLimitCtx.getGlobalLimit());
-        }
-      }
-    }
 
     // In case of a select, use a fetch task instead of a move task
     if (qb.getIsQuery()) {
@@ -7128,10 +6917,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       String resFileFormat = HiveConf.getVar(conf, HiveConf.ConfVars.HIVEQUERYRESULTFILEFORMAT);
       TableDesc resultTab = PlanUtils.getDefaultQueryOutputTableDesc(cols, colTypes, resFileFormat);
 
-      fetch = new FetchWork(new Path(loadFileWork.get(0).getSourceDir()).toString(),
+      FetchWork fetch = new FetchWork(new Path(loadFileWork.get(0).getSourceDir()).toString(),
           resultTab, qb.getParseInfo().getOuterQueryLimit());
 
-      fetchTask = (FetchTask) TaskFactory.get(fetch, conf);
+      FetchTask fetchTask = (FetchTask) TaskFactory.get(fetch, conf);
       setFetchTask(fetchTask);
 
       // For the FetchTask, the limit optimiztion requires we fetch all the rows
@@ -7558,6 +7347,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     init(pCtx);
     qb = pCtx.getQB();
 
+    if (getFetchTask() != null) {
+      // replaced by single fetch task
+      return;
+    }
     // At this point we have the complete operator tree
     // from which we want to find the reduce operator
     genMapRedTasks(qb);
