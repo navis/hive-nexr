@@ -34,12 +34,14 @@ import org.apache.hadoop.hive.ql.QueryPlan;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
+import org.apache.hadoop.hive.ql.plan.api.OperatorType;
 import org.apache.hadoop.hive.ql.plan.api.StageType;
 import org.apache.hadoop.hive.serde.Constants;
 import org.apache.hadoop.hive.serde2.DelimitedJSONSerDe;
 import org.apache.hadoop.hive.serde2.SerDe;
+import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.objectinspector.InspectableObject;
-import org.apache.hadoop.io.Text;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.StringUtils;
@@ -55,6 +57,9 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
   private SerDe mSerde;
   private int totalRows;
   private static transient final Log LOG = LogFactory.getLog(FetchTask.class);
+
+  private Operator processor;
+  private ListSinkOperator sink;
 
   public FetchTask() {
     super();
@@ -84,7 +89,13 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
 
       mSerde.initialize(job, serdeProp);
 
-      ftOp = new FetchOperator(work, job);
+      processor = work.getProcessor();
+
+      ftOp = processor == null ? new FetchOperator(work, job) :
+          new FetchOperator(work, (TableScanOperator) processor, job);
+      if (processor != null) {
+        sink = initProcessor(processor, job, ftOp.getOutputObjectInspector());
+      }
     } catch (Exception e) {
       // Bail out ungracefully - we should never hit
       // this here - but would have hit it in SemanticAnalyzer
@@ -120,8 +131,32 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
     this.maxRows = maxRows;
   }
 
+  @SuppressWarnings("unchecked")
+  private ListSinkOperator initProcessor(Operator<?> processor, JobConf conf,
+      ObjectInspector inspector) throws HiveException {
+    Operator<?> op = processor;
+    for (; op.getChildOperators() != null; op = op.getChildOperators().get(0)) {
+      if (op.getChildOperators().size() != 1) {
+        throw new IllegalStateException("never");
+      }
+    }
+    ListSinkOperator receiver = new ListSinkOperator();
+    receiver.setParentOperators(new ArrayList<Operator<? extends Serializable>>());
+    receiver.getParentOperators().add(op);
+
+    op.setChildOperators(new ArrayList<Operator<? extends Serializable>>());
+    op.getChildOperators().add(receiver);
+
+    processor.initialize(conf, new ObjectInspector[] {inspector});
+    return receiver;
+  }
+
   @Override
   public boolean fetch(ArrayList<String> res) throws IOException, CommandNeedRetryException {
+    if (processor != null) {
+      sink.res = res;
+      sink.numRows = 0;
+    }
     try {
       int numRows = 0;
       int rowsRet = maxRows;
@@ -135,8 +170,13 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
           if (io == null) {
             throw new CommandNeedRetryException();
           }
-          res.add(((Text) mSerde.serialize(io.o, io.oi)).toString());
-          numRows++;
+          if (processor == null) {
+            res.add(mSerde.serialize(io.o, io.oi).toString());
+            numRows++;
+          } else {
+            processor.process(io.o, 0);
+            numRows = sink.numRows;
+          }
         }
         totalRows = work.getLeastNumRows();
         return true;
@@ -159,9 +199,13 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
           totalRows += numRows;
           return true;
         }
-
-        res.add(((Text) mSerde.serialize(io.o, io.oi)).toString());
-        numRows++;
+        if (processor == null) {
+          res.add(mSerde.serialize(io.o, io.oi).toString());
+          numRows++;
+        } else {
+          processor.process(io.o, 0);
+          numRows = sink.numRows;
+        }
       }
       totalRows += numRows;
       return true;
@@ -205,6 +249,28 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
   public void clearFetch() throws HiveException {
     if (null != ftOp) {
       ftOp.clearFetchContext();
+    }
+    if (null != processor) {
+      processor.close(false);
+    }
+  }
+
+  private class ListSinkOperator extends Operator {
+
+    ArrayList<String> res;
+    int numRows;
+
+    public void processOp(Object row, int tag) throws HiveException {
+      try {
+        res.add(mSerde.serialize(row, outputObjInspector).toString());
+        numRows++;
+      } catch (SerDeException e) {
+        throw new HiveException(e);
+      }
+    }
+
+    public OperatorType getType() {
+      return OperatorType.FORWARD;
     }
   }
 }

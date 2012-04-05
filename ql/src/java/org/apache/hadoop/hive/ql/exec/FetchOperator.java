@@ -36,6 +36,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.ql.io.HiveInputFormat;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
 import org.apache.hadoop.hive.ql.plan.PartitionDesc;
@@ -67,6 +68,7 @@ public class FetchOperator implements Serializable {
   private boolean isEmptyTable;
   private boolean isNativeTable;
   private FetchWork work;
+  private TableScanOperator ts;
   private int splitNum;
   private PartitionDesc currPart;
   private TableDesc currTbl;
@@ -89,6 +91,12 @@ public class FetchOperator implements Serializable {
 
   public FetchOperator(FetchWork work, JobConf job) {
     this.work = work;
+    initialize(job);
+  }
+
+  public FetchOperator(FetchWork work, TableScanOperator ts, JobConf job) {
+    this.work = work;
+    this.ts = ts;
     initialize(job);
   }
 
@@ -278,6 +286,9 @@ public class FetchOperator implements Serializable {
 
       inputFormat = getInputFormatFromCache(tmp.getInputFileFormatClass(), job);
       Utilities.copyTableJobPropertiesToConf(tmp.getTableDesc(), job);
+      if (ts != null) {
+        HiveInputFormat.pushFilters(job, ts);
+      }
       inputSplits = inputFormat.getSplits(job, 1);
       splitNum = 0;
       serde = tmp.getDeserializerClass().newInstance();

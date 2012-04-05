@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.ql.exec.Operator;
 
 /**
  * FetchWork.
@@ -37,6 +38,8 @@ public class FetchWork implements Serializable {
 
   private ArrayList<String> partDir;
   private ArrayList<PartitionDesc> partDesc;
+
+  private Operator<?> processor;
 
   private int limit;
   private int leastNumRows;
@@ -196,6 +199,15 @@ public class FetchWork implements Serializable {
 
   public void setLeastNumRows(int leastNumRows) {
     this.leastNumRows = leastNumRows;
+  }
+
+  public void setProcessor(Operator<?> processor) {
+    this.processor = processor;
+  }
+
+  @Explain(displayName = "Processor Tree")
+  public Operator<?> getProcessor() {
+    return processor;
   }
 
   @Override

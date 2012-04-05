@@ -183,8 +183,13 @@ public class QB {
     return isQuery;
   }
 
-  public boolean isSelectStarQuery() {
-    return qbp.isSelectStarQuery() && aliasToSubq.isEmpty() && !isCTAS() && !qbp.isAnalyzeCommand();
+  public boolean isSimpleSelectQuery() {
+    return qbp.isSimpleSelectQuery() && aliasToSubq.isEmpty() && !isCTAS() &&
+        !qbp.isAnalyzeCommand();
+  }
+
+  public boolean isSelectStartOnly() {
+    return qbp.isSelectStarOnly();
   }
 
   public CreateTableDesc getTableDesc() {

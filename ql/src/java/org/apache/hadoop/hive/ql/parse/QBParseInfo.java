@@ -376,7 +376,7 @@ public class QBParseInfo {
     this.outerQueryLimit = outerQueryLimit;
   }
 
-  public boolean isSelectStarQuery() {
+  public boolean isSimpleSelectQuery() {
     if (isSubQ || (joinExpr != null) || (!nameToSample.isEmpty())
         || (!destToGroupby.isEmpty()) || (!destToClusterby.isEmpty())
         || (!aliasToLateralViews.isEmpty())) {
@@ -413,10 +413,11 @@ public class QBParseInfo {
       }
     }
 
-    iter = destToSelExpr.entrySet().iterator();
-    while (iter.hasNext()) {
-      Map.Entry<String, ASTNode> entry = iter.next();
-      ASTNode selExprList = entry.getValue();
+    return true;
+  }
+
+  public boolean isSelectStarOnly() {
+    for (ASTNode selExprList : destToSelExpr.values()) {
       // Iterate over the selects
       for (int i = 0; i < selExprList.getChildCount(); ++i) {
 
@@ -429,7 +430,6 @@ public class QBParseInfo {
         }
       }
     }
-
     return true;
   }
 
