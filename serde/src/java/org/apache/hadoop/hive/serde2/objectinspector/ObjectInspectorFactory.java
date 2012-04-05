@@ -290,6 +290,17 @@ public final class ObjectInspectorFactory {
     return result;
   }
 
+  public static UnionStructObjectInspector repackUnionStructObjectInspector(
+      UnionStructObjectInspector unionInspector, List<StructObjectInspector> fieldsInspector) {
+    if (unionInspector == null) {
+      return getUnionStructObjectInspector(fieldsInspector);
+    }
+    cachedUnionStructObjectInspector.remove(fieldsInspector);
+    unionInspector.init(fieldsInspector);
+    cachedUnionStructObjectInspector.put(fieldsInspector, unionInspector);
+    return unionInspector;
+  }
+
   static HashMap<ArrayList<Object>, ColumnarStructObjectInspector> cachedColumnarStructObjectInspector = new HashMap<ArrayList<Object>, ColumnarStructObjectInspector>();
 
   public static ColumnarStructObjectInspector getColumnarStructObjectInspector(
