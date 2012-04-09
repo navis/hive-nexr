@@ -18,10 +18,13 @@
 package org.apache.hadoop.hive.service;
 
 import junit.framework.TestCase;
+import org.apache.hadoop.hive.cli.CliDriver;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TSocket;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.ServerSocket;
 
 /**
@@ -94,6 +97,20 @@ public class TestHiveServerSessions extends TestCase {
     for (int i = 0; i < clients.length; i++) {
       clients[i].execute("set hiveconf:var");
       assertEquals("hiveconf:var=value" + i, clients[i].fetchOne());
+    }
+  }
+
+  public void testCliHivevar() throws Exception {
+    PrintStream err = System.err;
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    try {
+      System.setErr(new PrintStream(output));
+      CliDriver.run(new String[] {"-h", "localhost", "-p", String.valueOf(port), "-S",
+          "-d", "K=dummy", "-e", "select * from '${K}' limit 1"});
+      String result = new String(output.toByteArray(), "UTF-8");
+      assertTrue("hivevar is not evaluated", result.contains("dummy"));
+    } finally {
+      System.setErr(err);
     }
   }
 }

@@ -634,6 +634,14 @@ public class CliDriver {
 
     CliDriver cli = new CliDriver();
     cli.setHiveVariables(oproc.getHiveVariables());
+    if (ss.isRemoteMode() && !oproc.getHiveVariables().isEmpty()) {
+      StringBuilder builder = new StringBuilder();
+      for (Map.Entry<String, String> entry : oproc.getHiveVariables().entrySet()) {
+        builder.append(" set hivevar:").append(entry.getKey()).append('=');
+        builder.append(entry.getValue()).append(';');
+      }
+      cli.processLine(builder.toString());
+    }
 
     // Execute -i init files (always in silent mode)
     cli.processInitFiles(ss);
