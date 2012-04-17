@@ -60,6 +60,7 @@ import org.apache.hadoop.hive.ql.io.HiveKey;
 import org.apache.hadoop.hive.ql.io.HiveOutputFormat;
 import org.apache.hadoop.hive.ql.io.HiveOutputFormatImpl;
 import org.apache.hadoop.hive.ql.io.IOPrepareCache;
+import org.apache.hadoop.hive.ql.io.OneNullRowInputFormat;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
 import org.apache.hadoop.hive.ql.plan.FileSinkDesc;
@@ -788,12 +789,14 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
     // The input file does not exist, replace it by a empty file
     Class<? extends HiveOutputFormat> outFileFormat = null;
     boolean nonNative = true;
+    boolean oneRow = false;
     Properties props;
     if (isEmptyPath) {
       PartitionDesc partDesc = work.getPathToPartitionInfo().get(path);
       props = partDesc.getProperties();
       outFileFormat = partDesc.getOutputFileFormatClass();
       nonNative = partDesc.getTableDesc().isNonNative();
+      oneRow = partDesc.getInputFileFormatClass() == OneNullRowInputFormat.class;
     } else {
       TableDesc tableDesc = work.getAliasToPartnInfo().get(alias).getTableDesc();
       props = tableDesc.getProperties();
@@ -851,6 +854,9 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
     String onefile = newPath.toString();
     RecordWriter recWriter = outFileFormat.newInstance().getHiveRecordWriter(job, newFilePath,
         Text.class, false, props, null);
+    if (oneRow) {
+      recWriter.write(new Text("empty"));  // HiveIgnoreKeyTextOutputFormat
+    }
     recWriter.close(false);
     FileInputFormat.addInputPaths(job, onefile);
     return numEmptyPaths;
