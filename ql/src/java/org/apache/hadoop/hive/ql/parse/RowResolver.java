@@ -282,4 +282,18 @@ public class RowResolver implements Serializable{
     this.expressionMap = expressionMap;
   }
 
+  public RowResolver duplicate() {
+    return copy(new RowResolver());
+  }
+
+  protected RowResolver copy(RowResolver duplicate) {
+    for (Map.Entry<String, LinkedHashMap<String, ColumnInfo>> entry1 : getRslvMap().entrySet()) {
+      for (Map.Entry<String, ColumnInfo> entry2 : entry1.getValue().entrySet()) {
+        duplicate.put(entry1.getKey(), entry2.getKey(), entry2.getValue());
+      }
+    }
+    duplicate.setExpressionMap(new HashMap<String, ASTNode>(getExpressionMap()));
+    duplicate.setIsExprResolver(getIsExprResolver());
+    return duplicate;
+  }
 }

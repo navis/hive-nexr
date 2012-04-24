@@ -54,6 +54,8 @@ public class ColumnInfo implements Serializable {
 
   private boolean isHiddenVirtualCol;
 
+  private boolean transientCol;
+
   public ColumnInfo() {
   }
 
@@ -73,17 +75,17 @@ public class ColumnInfo implements Serializable {
       boolean isVirtualCol, boolean isHiddenVirtualCol) {
     this(internalName,
          TypeInfoUtils.getStandardWritableObjectInspectorFromTypeInfo(type),
-         tabAlias, 
+         tabAlias,
          isVirtualCol,
          isHiddenVirtualCol);
   }
 
-  public ColumnInfo(String internalName, ObjectInspector objectInspector, 
+  public ColumnInfo(String internalName, ObjectInspector objectInspector,
       String tabAlias, boolean isVirtualCol) {
     this(internalName, objectInspector, tabAlias, isVirtualCol, false);
   }
 
-  public ColumnInfo(String internalName, ObjectInspector objectInspector, 
+  public ColumnInfo(String internalName, ObjectInspector objectInspector,
       String tabAlias, boolean isVirtualCol, boolean isHiddenVirtualCol) {
     this.internalName = internalName;
     this.objectInspector = objectInspector;
@@ -125,6 +127,10 @@ public class ColumnInfo implements Serializable {
     return isHiddenVirtualCol;
   }
 
+  public boolean isTransientCol() {
+    return transientCol;
+  }
+
   /**
    * Returns the string representation of the ColumnInfo.
    */
@@ -153,5 +159,8 @@ public class ColumnInfo implements Serializable {
     this.isHiddenVirtualCol = isHiddenVirtualCol;
   }
 
+  public void setTransientCol(boolean transientCol) {
+    this.transientCol = transientCol;
+  }
 
 }

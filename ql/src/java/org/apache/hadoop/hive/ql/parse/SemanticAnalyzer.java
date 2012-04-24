@@ -2107,9 +2107,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
   private Operator<?> genSelectPlan(String dest, QB qb, Operator<?> input)
       throws SemanticException {
-    ASTNode selExprList = qb.getParseInfo().getSelForClause(dest);
+    QBParseInfo qbp = qb.getParseInfo();
+    ASTNode selExprList = qbp.getSelForClause(dest);
 
-    Operator<?> op = genSelectPlan(selExprList, qb, input);
+    List<ASTNode> auxs = extractAuxs(dest, qbp, input);
+    Operator<?> op = genSelectPlan(selExprList, qb, input, auxs);
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("Created Select Plan for clause: " + dest);
@@ -2118,9 +2120,49 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     return op;
   }
 
+  private List<ASTNode> extractAuxs(String dest, QBParseInfo qbp, Operator<?> input) {
+    RowResolver inputRR = opParseCtx.get(input).getRowResolver();
+    if (inputRR.getIsExprResolver()) {
+      // for group-by cases, columns should be included in gby keys and cannot be appended
+      return null;
+    }
+    List<ASTNode> auxs = new ArrayList<ASTNode>();
+    if (qbp.getClusterByForClause(dest) != null) {
+      for (Object node : qbp.getClusterByForClause(dest).getChildren()) {
+        ASTNode dummy = new ASTNode();
+        dummy.addChild((ASTNode)node);
+        auxs.add(dummy);
+      }
+    }
+    if (qbp.getDistributeByForClause(dest) != null) {
+      for (Object node : qbp.getDistributeByForClause(dest).getChildren()) {
+        ASTNode dummy = new ASTNode();
+        dummy.addChild((ASTNode)node);
+        auxs.add(dummy);
+      }
+    }
+    if (qbp.getOrderByForClause(dest) != null) {
+      for (Object node : qbp.getOrderByForClause(dest).getChildren()) {
+        auxs.add((ASTNode) node);
+      }
+    }
+    if (qbp.getSortByForClause(dest) != null) {
+      for (Object node : qbp.getSortByForClause(dest).getChildren()) {
+        auxs.add((ASTNode) node);
+      }
+    }
+    return auxs.isEmpty() ? null : auxs;
+  }
+
   @SuppressWarnings("nls")
   private Operator<?> genSelectPlan(ASTNode selExprList, QB qb,
       Operator<?> input) throws SemanticException {
+    return genSelectPlan(selExprList, qb, input, null);
+  }
+
+  @SuppressWarnings("nls")
+  private Operator<?> genSelectPlan(ASTNode selExprList, QB qb,
+      Operator<?> input, List<ASTNode> auxs) throws SemanticException {
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("tree: " + selExprList.toStringTree());
@@ -2309,19 +2351,46 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         tcCtx.setAllowStatefulFunctions(true);
         ExprNodeDesc exp = genExprNodeDesc(expr, inputRR, tcCtx);
         col_list.add(exp);
-        if (!StringUtils.isEmpty(alias)
-            && (out_rwsch.get(null, colAlias) != null)) {
+        if (!StringUtils.isEmpty(alias) && out_rwsch.get(tabAlias, colAlias) != null) {
           throw new SemanticException(ErrorMsg.AMBIGUOUS_COLUMN.getMsg(colAlias));
         }
 
-        out_rwsch.put(tabAlias, colAlias, new ColumnInfo(
-            getColumnInternalName(pos), exp.getWritableObjectInspector(),
-            tabAlias, false));
-
+        ColumnInfo column = new ColumnInfo(getColumnInternalName(pos),
+            exp.getWritableObjectInspector(), tabAlias, false);
+        out_rwsch.put(tabAlias, colAlias, column);
         pos = Integer.valueOf(pos.intValue() + 1);
       }
     }
     selectStar = selectStar && exprList.getChildCount() == posn + 1;
+
+    if (!isUDTF && !isInTransform && !selectStar && auxs != null) {
+      RowResolver blockRR = new BlockRowResolver(inputRR, out_rwsch);
+      for (int i = 0; i < auxs.size(); i++) {
+        ASTNode child = auxs.get(i);
+        ASTNode expr = (ASTNode) child.getChild(0);
+        TypeCheckCtx tcCtx = new TypeCheckCtx(blockRR);
+        // We allow stateful functions in the SELECT list (but nowhere else)
+        tcCtx.setAllowStatefulFunctions(true);
+        ExprNodeDesc exp = genExprNodeDesc(expr, blockRR, tcCtx);
+        for (ExprNodeColumnDesc colExpr : extractColumns(exp)) {
+          if (out_rwsch.reverseLookup(colExpr.getColumn()) != null) {
+            continue;
+          }
+          if (out_rwsch.get(colExpr.getTabAlias(), colExpr.getColumn()) != null
+              || out_rwsch.get(null, colExpr.getColumn()) != null) {
+            continue;
+          }
+          col_list.add(colExpr);
+          ColumnInfo column = new ColumnInfo(getColumnInternalName(pos),
+              colExpr.getWritableObjectInspector(), colExpr.getTabAlias(), false);
+          column.setTransientCol(true);
+          out_rwsch.put(colExpr.getTabAlias(), colExpr.getColumn(), column);
+
+          pos = Integer.valueOf(pos.intValue() + 1);
+          selectStar = false;
+        }
+      }
+    }
 
     ArrayList<String> columnNames = new ArrayList<String>();
     Map<String, ExprNodeDesc> colExprMap = new HashMap<String, ExprNodeDesc>();
@@ -2353,6 +2422,22 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       LOG.debug("Created Select Plan row schema: " + out_rwsch.toString());
     }
     return output;
+  }
+
+  private List<ExprNodeColumnDesc> extractColumns(ExprNodeDesc expr) {
+    return extractColumns(expr, new ArrayList<ExprNodeColumnDesc>());
+  }
+
+  private List<ExprNodeColumnDesc> extractColumns(ExprNodeDesc expr,
+      List<ExprNodeColumnDesc> columns) {
+    if (expr instanceof ExprNodeColumnDesc) {
+      columns.add((ExprNodeColumnDesc)expr);
+    } else if (expr.getChildren() != null) {
+      for (ExprNodeDesc child : expr.getChildren()) {
+        extractColumns(child, columns);
+      }
+    }
+    return columns;
   }
 
   /**
@@ -4851,9 +4936,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     Integer pos = Integer.valueOf(0);
     for (ColumnInfo colInfo : interim_rwsch.getColumnInfos()) {
       String[] info = interim_rwsch.reverseLookup(colInfo.getInternalName());
-      out_rwsch.put(info[0], info[1], new ColumnInfo(
+      ColumnInfo newCol = new ColumnInfo(
           getColumnInternalName(pos), colInfo.getType(), info[0],
-          colInfo.getIsVirtualCol(), colInfo.isHiddenVirtualCol()));
+          colInfo.getIsVirtualCol(), colInfo.isHiddenVirtualCol());
+      newCol.setTransientCol(colInfo.isTransientCol());
+      out_rwsch.put(info[0], info[1], newCol);
       pos = Integer.valueOf(pos.intValue() + 1);
     }
 
@@ -5749,6 +5836,40 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     return output;
   }
 
+  private Operator genSelectNonTransient(Operator input)
+      throws SemanticException {
+    OpParseContext inputCtx = opParseCtx.get(input);
+    RowResolver inputRR = inputCtx.getRowResolver();
+
+    RowResolver outputRR = new RowResolver();
+    ArrayList<ExprNodeDesc> colList = new ArrayList<ExprNodeDesc>();
+    ArrayList<String> columnNames = new ArrayList<String>();
+    Map<String, ExprNodeDesc> columnExprMap = new HashMap<String, ExprNodeDesc>();
+
+    boolean hasTransient = false;
+    for (ColumnInfo col : inputRR.getColumnInfos()) {
+      if (col.isTransientCol()) {
+        hasTransient = true;
+        continue;
+      }
+      colList.add(new ExprNodeColumnDesc(col.getType(), col.getInternalName(),
+          col.getTabAlias(), col.getIsVirtualCol()));
+      columnNames.add(col.getInternalName());
+      columnExprMap.put(col.getInternalName(),
+          new ExprNodeColumnDesc(col.getType(), col.getInternalName(),
+              col.getTabAlias(), col.getIsVirtualCol()));
+      outputRR.put(col.getTabAlias(), col.getInternalName(), col);
+    }
+    if (!hasTransient) {
+      return input;
+    }
+    RowSchema scheme = new RowSchema(outputRR.getColumnInfos());
+    Operator output = putOpInsertMap(OperatorFactory.getAndMakeChild(
+        new SelectDesc(colList, columnNames, true), scheme, input), outputRR);
+    output.setColumnExprMap(columnExprMap);
+    return output;
+  }
+
   // Return the common distinct expression
   // There should be more than 1 destination, with group bys in all of them.
   private List<ASTNode> getCommonDistinctExprs(QB qb, Operator input) {
@@ -6063,6 +6184,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           curr = genLimitMapRedPlan(dest, qb, curr, limit.intValue(), true);
           qb.getParseInfo().setOuterQueryLimit(limit.intValue());
         }
+        curr = genSelectNonTransient(curr);
         curr = genFileSinkPlan(dest, qb, curr);
       }
     } else {
@@ -6205,9 +6327,13 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
             extraMRStep);
         qb.getParseInfo().setOuterQueryLimit(limit.intValue());
       }
-      curr = genFileSinkPlan(dest, qb, curr);
     }
 
+    curr = genSelectNonTransient(curr);
+
+    if (!qbp.getIsSubQ()) {
+      curr = genFileSinkPlan(dest, qb, curr);
+    }
     // change curr ops row resolver's tab aliases to query alias if it
     // exists
     if (qb.getParseInfo().getAlias() != null) {
@@ -7781,6 +7907,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         continue;
       }
       String[] tmp = input.reverseLookup(columnDesc.getColumn());
+        if (tmp == null) {
+            System.err.println("[SemanticAnalyzer/genExprNodeDesc] " + columnDesc.getColumn());
+        }
       StringBuilder replacementText = new StringBuilder();
       replacementText.append(HiveUtils.unparseIdentifier(tmp[0]));
       replacementText.append(".");

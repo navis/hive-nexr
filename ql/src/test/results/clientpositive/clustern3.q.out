@@ -1,0 +1,66 @@
+PREHOOK: query: EXPLAIN
+SELECT x.key as k1, x.value FROM SRC x CLUSTER BY x.key
+PREHOOK: type: QUERY
+POSTHOOK: query: EXPLAIN
+SELECT x.key as k1, x.value FROM SRC x CLUSTER BY x.key
+POSTHOOK: type: QUERY
+ABSTRACT SYNTAX TREE:
+  (TOK_QUERY (TOK_FROM (TOK_TABREF (TOK_TABNAME SRC) x)) (TOK_INSERT (TOK_DESTINATION (TOK_DIR TOK_TMP_FILE)) (TOK_SELECT (TOK_SELEXPR (. (TOK_TABLE_OR_COL x) key) k1) (TOK_SELEXPR (. (TOK_TABLE_OR_COL x) value))) (TOK_CLUSTERBY (. (TOK_TABLE_OR_COL x) key))))
+
+STAGE DEPENDENCIES:
+  Stage-1 is a root stage
+  Stage-0 is a root stage
+
+STAGE PLANS:
+  Stage: Stage-1
+    Map Reduce
+      Alias -> Map Operator Tree:
+        x 
+          TableScan
+            alias: x
+            Select Operator
+              expressions:
+                    expr: key
+                    type: string
+                    expr: value
+                    type: string
+                    expr: key
+                    type: string
+              outputColumnNames: _col0, _col1, _col2
+              Reduce Output Operator
+                key expressions:
+                      expr: _col2
+                      type: string
+                sort order: +
+                Map-reduce partition columns:
+                      expr: _col2
+                      type: string
+                tag: -1
+                value expressions:
+                      expr: _col0
+                      type: string
+                      expr: _col1
+                      type: string
+                      expr: _col2
+                      type: string
+      Reduce Operator Tree:
+        Extract
+          Select Operator
+            expressions:
+                  expr: _col0
+                  type: string
+                  expr: _col1
+                  type: string
+            outputColumnNames: _col0, _col1
+            File Output Operator
+              compressed: false
+              GlobalTableId: 0
+              table:
+                  input format: org.apache.hadoop.mapred.TextInputFormat
+                  output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+
+  Stage: Stage-0
+    Fetch Operator
+      limit: -1
+
+
