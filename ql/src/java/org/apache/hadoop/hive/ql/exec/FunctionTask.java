@@ -30,10 +30,7 @@ import org.apache.hadoop.hive.ql.plan.CreateFunctionDesc;
 import org.apache.hadoop.hive.ql.plan.DropFunctionDesc;
 import org.apache.hadoop.hive.ql.plan.FunctionWork;
 import org.apache.hadoop.hive.ql.plan.api.StageType;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFResolver;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDTF;
-import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.util.StringUtils;
 
 /**
@@ -70,12 +67,21 @@ public class FunctionTask extends Task<FunctionWork> {
     return 0;
   }
 
+  @SuppressWarnings("unchecked")
   private int createFunction(CreateFunctionDesc createFunctionDesc) {
+    boolean temporary = createFunctionDesc.getTemporary();
+    String functionName = createFunctionDesc.getFunctionName();
+
+    if (!temporary && !conf.getBoolVar(HiveConf.ConfVars.HIVEUDFOVERRIDE)) {
+      if (FunctionRegistry.get().getFunctionInfo(functionName) != null) {
+        throw new RuntimeException("Function " + functionName + " is hive native, " +
+            "it can't be replaced");
+      }
+    }
+    Registry registry = temporary ? SessionState.getRegistry() : FunctionRegistry.get();
     try {
       Class<?> udfClass = getUdfClass(createFunctionDesc);
-      boolean registered = FunctionRegistry.registerTemporaryFunction(
-        createFunctionDesc.getFunctionName(),
-        udfClass);
+      boolean registered = registry.registerFunction(functionName, udfClass);
       if (registered) {
         return 0;
       }
@@ -90,9 +96,10 @@ public class FunctionTask extends Task<FunctionWork> {
   }
 
   private int dropFunction(DropFunctionDesc dropFunctionDesc) {
+    boolean temporary = dropFunctionDesc.getTemporary();
+    Registry registry = temporary ? SessionState.getRegistry() : FunctionRegistry.get();
     try {
-      FunctionRegistry.unregisterTemporaryUDF(dropFunctionDesc
-          .getFunctionName());
+      registry.unregisterUDF(dropFunctionDesc.getFunctionName());
       return 0;
     } catch (HiveException e) {
       LOG.info("drop function: " + StringUtils.stringifyException(e));

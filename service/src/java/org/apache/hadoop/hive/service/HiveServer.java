@@ -53,6 +53,7 @@ import org.apache.hadoop.hive.ql.processors.CommandProcessorFactory;
 import org.apache.hadoop.hive.ql.processors.CommandProcessorResponse;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.shims.ShimLoader;
+import org.apache.hadoop.hive.thrift.TFilterTransport;
 import org.apache.hadoop.mapred.ClusterStatus;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
@@ -779,7 +780,16 @@ public class HiveServer extends ThriftHive {
 
       TThreadPoolServer.Args sargs = new TThreadPoolServer.Args(serverTransport)
         .processorFactory(hfactory)
-        .transportFactory(new TTransportFactory())
+        .transportFactory(new TTransportFactory() {
+          public TTransport getTransport(TTransport trans) {
+            return new TFilterTransport(trans) {
+              public void close() {
+                super.close();
+                SessionState.getRegistry().clear();
+              }
+            };
+          }
+        })
         .protocolFactory(new TBinaryProtocol.Factory())
         .minWorkerThreads(cli.minWorkerThreads)
         .maxWorkerThreads(cli.maxWorkerThreads);
