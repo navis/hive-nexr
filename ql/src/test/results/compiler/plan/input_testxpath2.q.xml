@@ -492,7 +492,7 @@
                     <void method="add"> 
                      <object class="org.apache.hadoop.hive.ql.exec.ColumnInfo"> 
                       <void property="alias"> 
-                       <string>_c0</string> 
+                       <string>lint</string>
                       </void> 
                       <void property="internalName"> 
                        <string>_col0</string> 
@@ -505,7 +505,7 @@
                     <void method="add"> 
                      <object class="org.apache.hadoop.hive.ql.exec.ColumnInfo"> 
                       <void property="alias"> 
-                       <string>_c1</string> 
+                       <string>lintstring</string>
                       </void> 
                       <void property="internalName"> 
                        <string>_col1</string> 
@@ -518,7 +518,7 @@
                     <void method="add"> 
                      <object class="org.apache.hadoop.hive.ql.exec.ColumnInfo"> 
                       <void property="alias"> 
-                       <string>_c2</string> 
+                       <string>mstringstring</string>
                       </void> 
                       <void property="internalName"> 
                        <string>_col2</string> 
