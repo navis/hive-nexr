@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
@@ -35,6 +36,8 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.common.ServerUtils;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.LogUtils;
 import org.apache.hadoop.hive.common.LogUtils.LogInitializationException;
 import org.apache.hadoop.hive.common.cli.CommonCliOptions;
@@ -791,9 +794,56 @@ public class HiveServer extends ThriftHive {
         System.err.println(msg);
       }
 
+      if (System.getProperty("user.home") != null) {
+        String hivercUser = System.getProperty("user.home") + File.separator + ".hiverc";
+        HiveServerHandler.LOG.debug("Finding resource file from " + hivercUser);
+        if (new File(hivercUser).exists()) {
+          Iface handler = new HiveServerHandler(conf);
+          for (String query : loadScript("file://" + hivercUser, conf)) {
+            System.err.println("Executing " + query);
+            handler.execute(query);
+            handler.clean();
+          }
+        }
+      }
       server.serve();
+
     } catch (Exception x) {
       x.printStackTrace();
+    }
+  }
+
+  private static List<String> loadScript(String script, HiveConf conf) throws Exception {
+    Path path = new Path(script);
+    FileSystem fs = path.getFileSystem(conf);
+    BufferedReader reader = new BufferedReader(new InputStreamReader(fs.open(path)));
+
+    try {
+      List<String> result = new ArrayList<String>();
+
+      String line;
+      StringBuilder builder = new StringBuilder();
+      while ((line = reader.readLine()) != null) {
+        String trimed = line.trim();
+        if (trimed.isEmpty()) {
+          continue;
+        }
+        if (trimed.endsWith(";")) {
+          builder.append(line.substring(0, line.lastIndexOf(';')));
+          result.add(builder.toString());
+          builder.setLength(0);
+        } else {
+          builder.append(line);
+        }
+      }
+      if (builder.toString().trim().length() != 0) {
+        throw new IllegalArgumentException("Invalid end of script");
+      }
+      return result;
+    } catch (Throwable e) {
+      throw new IllegalStateException("Failed to load script file " + script, e);
+    } finally {
+      org.apache.hadoop.io.IOUtils.closeStream(reader);
     }
   }
 }
