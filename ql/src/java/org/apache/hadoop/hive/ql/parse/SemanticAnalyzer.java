@@ -2315,6 +2315,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         // We allow stateful functions in the SELECT list (but nowhere else)
         tcCtx.setAllowStatefulFunctions(true);
         ExprNodeDesc exp = genExprNodeDesc(expr, inputRR, tcCtx);
+        String recommended = extractName(exp, colAlias);
+        if (recommended != null && out_rwsch.get(tabAlias, recommended) == null) {
+          colAlias = recommended;
+        }
         col_list.add(exp);
         if (subQuery) {
           ColumnInfo prev = out_rwsch.get(null, colAlias);
@@ -2363,6 +2367,26 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       LOG.debug("Created Select Plan row schema: " + out_rwsch.toString());
     }
     return output;
+  }
+
+  private String extractName(ExprNodeDesc exp, String colAlias) {
+    if (!colAlias.startsWith(autogenColAliasPrfxLbl)) {
+      return null;
+    }
+    String recommend = null;
+    if (exp instanceof ExprNodeColumnDesc) {
+      recommend = ((ExprNodeColumnDesc) exp).getColumn();
+    }
+    if (exp instanceof ExprNodeGenericFuncDesc) {
+      List<ExprNodeDesc> children = ((ExprNodeGenericFuncDesc)exp).getChildren();
+      if (children.size() == 1 && children.get(0) instanceof ExprNodeColumnDesc) {
+        recommend = ((ExprNodeColumnDesc) children.get(0)).getColumn();
+      }
+    }
+    if (recommend != null && !recommend.startsWith(autogenColAliasPrfxLbl)) {
+      return recommend;
+    }
+    return null;
   }
 
   /**
