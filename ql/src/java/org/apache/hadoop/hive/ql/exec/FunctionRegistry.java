@@ -18,22 +18,14 @@
 
 package org.apache.hadoop.hive.ql.exec;
 
-import java.io.InputStream;
 import java.lang.reflect.Method;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -41,6 +33,7 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
+import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.ql.udf.UDAFPercentile;
 import org.apache.hadoop.hive.ql.udf.UDFAbs;
 import org.apache.hadoop.hive.ql.udf.UDFAcos;
@@ -126,7 +119,6 @@ import org.apache.hadoop.hive.ql.udf.UDFUpper;
 import org.apache.hadoop.hive.ql.udf.UDFWeekOfYear;
 import org.apache.hadoop.hive.ql.udf.UDFYear;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFAverage;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFBridge;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFCollectSet;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFContextNGrams;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFCorrelation;
@@ -138,10 +130,8 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFHistogramNumeric;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFMax;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFMin;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFParameterInfo;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFPercentileApprox;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFResolver;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFResolver2;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFStd;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFStdSample;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFSum;
@@ -204,7 +194,6 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDTFExplode;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDTFJSONTuple;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDTFParseUrlTuple;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDTFStack;
-import org.apache.hadoop.hive.ql.udf.generic.SimpleGenericUDAFParameterInfo;
 import org.apache.hadoop.hive.ql.udf.xml.GenericUDFXPath;
 import org.apache.hadoop.hive.ql.udf.xml.UDFXPathBoolean;
 import org.apache.hadoop.hive.ql.udf.xml.UDFXPathDouble;
@@ -221,13 +210,7 @@ import org.apache.hadoop.hive.serde2.typeinfo.MapTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
-import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.ReflectionUtils;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
 /**
  * FunctionRegistry.
@@ -236,10 +219,7 @@ public final class FunctionRegistry {
 
   private static Log LOG = LogFactory.getLog(FunctionRegistry.class);
 
-  /**
-   * The mapping from expression function names to expression classes.
-   */
-  static Map<String, FunctionInfo> mFunctions = new LinkedHashMap<String, FunctionInfo>();
+  private static Registry instance = new Registry(true);
   static {
     registerUDF("concat", UDFConcat.class, false);
     registerUDF("substr", UDFSubstr.class, false);
@@ -467,386 +447,100 @@ public final class FunctionRegistry {
     registerGenericUDTF("stack", GenericUDTFStack.class);
   }
 
-  public static void registerTemporaryUDF(String functionName,
+  public static Registry get() {
+    return instance;
+  }
+
+  private static void registerUDF(String functionName,
       Class<? extends UDF> UDFClass, boolean isOperator) {
-    registerUDF(false, functionName, UDFClass, isOperator);
+    instance.registerUDF(functionName, UDFClass, isOperator);
   }
 
-  static void registerUDF(String functionName, Class<? extends UDF> UDFClass,
-      boolean isOperator) {
-    registerUDF(true, functionName, UDFClass, isOperator);
-  }
-
-  public static void registerUDF(boolean isNative, String functionName,
-      Class<? extends UDF> UDFClass, boolean isOperator) {
-    registerUDF(isNative, functionName, UDFClass, isOperator, functionName
-        .toLowerCase());
-  }
-
-  public static void registerUDF(String functionName,
+  private static void registerUDF(String functionName,
       Class<? extends UDF> UDFClass, boolean isOperator, String displayName) {
-    registerUDF(true, functionName, UDFClass, isOperator, displayName);
+    instance.registerUDF(functionName, UDFClass, isOperator, displayName);
   }
 
-  public static void registerUDF(boolean isNative, String functionName,
-      Class<? extends UDF> UDFClass, boolean isOperator, String displayName) {
-    if (UDF.class.isAssignableFrom(UDFClass)) {
-      FunctionInfo fI = new FunctionInfo(isNative, displayName,
-          new GenericUDFBridge(displayName, isOperator, UDFClass));
-      mFunctions.put(functionName.toLowerCase(), fI);
-    } else {
-      throw new RuntimeException("Registering UDF Class " + UDFClass
-          + " which does not extend " + UDF.class);
-    }
-  }
-
-  public static void registerTemporaryGenericUDF(String functionName,
+  private static void registerGenericUDF(String functionName,
       Class<? extends GenericUDF> genericUDFClass) {
-    registerGenericUDF(false, functionName, genericUDFClass);
+    instance.registerGenericUDF(functionName, genericUDFClass);
   }
 
-  static void registerGenericUDF(String functionName,
-      Class<? extends GenericUDF> genericUDFClass) {
-    registerGenericUDF(true, functionName, genericUDFClass);
+  private static void registerGenericUDAF(String functionName,
+      GenericUDAFResolver genericUDAFResolver) {
+    instance.registerGenericUDAF(functionName, genericUDAFResolver);
   }
 
-  public static void registerGenericUDF(boolean isNative, String functionName,
-      Class<? extends GenericUDF> genericUDFClass) {
-    if (GenericUDF.class.isAssignableFrom(genericUDFClass)) {
-      FunctionInfo fI = new FunctionInfo(isNative, functionName,
-          (GenericUDF) ReflectionUtils.newInstance(genericUDFClass, null));
-      mFunctions.put(functionName.toLowerCase(), fI);
-    } else {
-      throw new RuntimeException("Registering GenericUDF Class "
-          + genericUDFClass + " which does not extend " + GenericUDF.class);
-    }
+  private static void registerUDAF(String functionName, Class<? extends UDAF> udafClass) {
+    instance.registerUDAF(functionName, udafClass);
   }
 
-  public static void registerTemporaryGenericUDTF(String functionName,
-      Class<? extends GenericUDTF> genericUDTFClass) {
-    registerGenericUDTF(false, functionName, genericUDTFClass);
-  }
-
-  static void registerGenericUDTF(String functionName,
-      Class<? extends GenericUDTF> genericUDTFClass) {
-    registerGenericUDTF(true, functionName, genericUDTFClass);
-  }
-
-  public static void registerGenericUDTF(boolean isNative, String functionName,
-      Class<? extends GenericUDTF> genericUDTFClass) {
-    if (GenericUDTF.class.isAssignableFrom(genericUDTFClass)) {
-      FunctionInfo fI = new FunctionInfo(isNative, functionName,
-          (GenericUDTF) ReflectionUtils.newInstance(genericUDTFClass, null));
-      mFunctions.put(functionName.toLowerCase(), fI);
-    } else {
-      throw new RuntimeException("Registering GenericUDTF Class "
-          + genericUDTFClass + " which does not extend " + GenericUDTF.class);
-    }
+  private static void registerGenericUDTF(String functionName,
+      Class<? extends GenericUDTF> udtfClass) {
+    instance.registerGenericUDTF(functionName, udtfClass);
   }
 
   public static FunctionInfo getFunctionInfo(String functionName) {
-    return mFunctions.get(functionName.toLowerCase());
+    FunctionInfo info = null;
+    Registry registry = SessionState.getRegistry();
+    if (registry != null) {
+      info = registry.getFunctionInfo(functionName);
+    }
+    return info != null ? info : instance.getFunctionInfo(functionName);
   }
 
-  /**
-   * Returns a set of registered function names. This is used for the CLI
-   * command "SHOW FUNCTIONS;"
-   *
-   * @return set of strings contains function names
-   */
   public static Set<String> getFunctionNames() {
-    return mFunctions.keySet();
+    Set<String> names = new TreeSet<String>();
+    Registry registry = SessionState.getRegistry();
+    if (registry != null) {
+      names.addAll(registry.getFunctionNames());
+    }
+    names.addAll(instance.getFunctionNames());
+    return names;
   }
 
-  /**
-   * Returns a set of registered function names. This is used for the CLI
-   * command "SHOW FUNCTIONS 'regular expression';" Returns an empty set when
-   * the regular expression is not valid.
-   *
-   * @param funcPatternStr
-   *          regular expression of the interested function names
-   * @return set of strings contains function names
-   */
   public static Set<String> getFunctionNames(String funcPatternStr) {
     Set<String> funcNames = new TreeSet<String>();
-    Pattern funcPattern = null;
-    try {
-      funcPattern = Pattern.compile(funcPatternStr);
-    } catch (PatternSyntaxException e) {
-      return funcNames;
+    Registry registry = SessionState.getRegistry();
+    if (registry != null) {
+      funcNames.addAll(registry.getFunctionNames(funcPatternStr));
     }
-    for (String funcName : mFunctions.keySet()) {
-      if (funcPattern.matcher(funcName).matches()) {
-        funcNames.add(funcName);
-      }
-    }
+    funcNames.addAll(instance.getFunctionNames(funcPatternStr));
     return funcNames;
   }
 
-  /**
-   * Returns the set of synonyms of the supplied function.
-   *
-   * @param funcName
-   *          the name of the function
-   * @return Set of synonyms for funcName
-   */
   public static Set<String> getFunctionSynonyms(String funcName) {
     Set<String> synonyms = new HashSet<String>();
-
-    FunctionInfo funcInfo = getFunctionInfo(funcName);
-    if (null == funcInfo) {
-      return synonyms;
+    Registry registry = SessionState.getRegistry();
+    if (registry != null) {
+      synonyms.addAll(registry.getFunctionSynonyms(funcName));
     }
-
-    Class<?> funcClass = funcInfo.getFunctionClass();
-    for (String name : mFunctions.keySet()) {
-      if (name.equals(funcName)) {
-        continue;
-      }
-      if (mFunctions.get(name).getFunctionClass().equals(funcClass)) {
-        synonyms.add(name);
-      }
-    }
-
+    synonyms.addAll(instance.getFunctionSynonyms(funcName));
     return synonyms;
   }
 
-  static Map<TypeInfo, Integer> numericTypes = new HashMap<TypeInfo, Integer>();
-  static List<TypeInfo> numericTypeList = new ArrayList<TypeInfo>();
-
-  static void registerNumericType(String typeName, int level) {
-    TypeInfo t = TypeInfoFactory.getPrimitiveTypeInfo(typeName);
-    numericTypeList.add(t);
-    numericTypes.put(t, level);
-  }
-
-  static {
-    registerNumericType(Constants.TINYINT_TYPE_NAME, 1);
-    registerNumericType(Constants.SMALLINT_TYPE_NAME, 2);
-    registerNumericType(Constants.INT_TYPE_NAME, 3);
-    registerNumericType(Constants.BIGINT_TYPE_NAME, 4);
-    registerNumericType(Constants.FLOAT_TYPE_NAME, 5);
-    registerNumericType(Constants.DOUBLE_TYPE_NAME, 6);
-    registerNumericType(Constants.STRING_TYPE_NAME, 7);
-  }
-
-  /**
-   * Find a common class for union-all operator
-   */
-  public static TypeInfo getCommonClassForUnionAll(TypeInfo a, TypeInfo b) {
-    if (a.equals(b)) {
-      return a;
-    }
-    if (FunctionRegistry.implicitConvertable(a, b)) {
-      return b;
-    }
-    if (FunctionRegistry.implicitConvertable(b, a)) {
-      return a;
-    }
-    for (TypeInfo t : numericTypeList) {
-      if (FunctionRegistry.implicitConvertable(a, t)
-          && FunctionRegistry.implicitConvertable(b, t)) {
-        return t;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Find a common class that objects of both TypeInfo a and TypeInfo b can
-   * convert to. This is used for comparing objects of type a and type b.
-   *
-   * When we are comparing string and double, we will always convert both of
-   * them to double and then compare.
-   *
-   * @return null if no common class could be found.
-   */
-  public static TypeInfo getCommonClassForComparison(TypeInfo a, TypeInfo b) {
-    // If same return one of them
-    if (a.equals(b)) {
-      return a;
-    }
-    for (TypeInfo t : numericTypeList) {
-      if (FunctionRegistry.implicitConvertable(a, t)
-          && FunctionRegistry.implicitConvertable(b, t)) {
-        return t;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Find a common class that objects of both TypeInfo a and TypeInfo b can
-   * convert to. This is used for places other than comparison.
-   *
-   * The common class of string and double is string.
-   *
-   * @return null if no common class could be found.
-   */
-  public static TypeInfo getCommonClass(TypeInfo a, TypeInfo b) {
-    if (a.equals(b)) {
-      return a;
-    }
-    Integer ai = numericTypes.get(a);
-    Integer bi = numericTypes.get(b);
-    if (ai == null || bi == null) {
-      // If either is not a numeric type, return null.
-      return null;
-    }
-    return (ai > bi) ? a : b;
-  }
-
-  /**
-   * Returns whether it is possible to implicitly convert an object of Class
-   * from to Class to.
-   */
-  public static boolean implicitConvertable(TypeInfo from, TypeInfo to) {
-    if (from.equals(to)) {
-      return true;
-    }
-    // Allow implicit String to Double conversion
-    if (from.equals(TypeInfoFactory.stringTypeInfo)
-        && to.equals(TypeInfoFactory.doubleTypeInfo)) {
-      return true;
-    }
-    // Void can be converted to any type
-    if (from.equals(TypeInfoFactory.voidTypeInfo)) {
-      return true;
-    }
-
-    if (from.equals(TypeInfoFactory.timestampTypeInfo)
-        && to.equals(TypeInfoFactory.stringTypeInfo)) {
-      return true;
-    }
-
-    // Allow implicit conversion from Byte -> Integer -> Long -> Float -> Double
-    // -> String
-    Integer f = numericTypes.get(from);
-    Integer t = numericTypes.get(to);
-    if (f == null || t == null) {
-      return false;
-    }
-    if (f.intValue() > t.intValue()) {
-      return false;
-    }
-    return true;
-  }
-
-  /**
-   * Get the GenericUDAF evaluator for the name and argumentClasses.
-   *
-   * @param name
-   *          the name of the UDAF
-   * @param argumentOIs
-   * @param isDistinct
-   * @param isAllColumns
-   * @return The UDAF evaluator
-   */
-  @SuppressWarnings("deprecation")
   public static GenericUDAFEvaluator getGenericUDAFEvaluator(String name,
       List<ObjectInspector> argumentOIs, boolean isDistinct,
       boolean isAllColumns) throws SemanticException {
-
-    GenericUDAFResolver udafResolver = getGenericUDAFResolver(name);
-    if (udafResolver == null) {
-      return null;
+    GenericUDAFEvaluator evaluator = null;
+    Registry registry = SessionState.getRegistry();
+    if (registry != null) {
+      evaluator = registry.getGenericUDAFEvaluator(name, argumentOIs, isDistinct, isAllColumns);
     }
-
-    GenericUDAFEvaluator udafEvaluator = null;
-    ObjectInspector args[] = new ObjectInspector[argumentOIs.size()];
-    // Can't use toArray here because Java is dumb when it comes to
-    // generics + arrays.
-    for (int ii = 0; ii < argumentOIs.size(); ++ii) {
-      args[ii] = argumentOIs.get(ii);
-    }
-
-    GenericUDAFParameterInfo paramInfo =
-        new SimpleGenericUDAFParameterInfo(
-            args, isDistinct, isAllColumns);
-    if (udafResolver instanceof GenericUDAFResolver2) {
-      udafEvaluator =
-          ((GenericUDAFResolver2) udafResolver).getEvaluator(paramInfo);
-    } else {
-      udafEvaluator = udafResolver.getEvaluator(paramInfo.getParameters());
-    }
-    return udafEvaluator;
-  }
-
-  /**
-   * This method is shared between UDFRegistry and UDAFRegistry. methodName will
-   * be "evaluate" for UDFRegistry, and "aggregate"/"evaluate"/"evaluatePartial"
-   * for UDAFRegistry.
-   * @throws UDFArgumentException
-   */
-  public static <T> Method getMethodInternal(Class<? extends T> udfClass,
-      String methodName, boolean exact, List<TypeInfo> argumentClasses)
-      throws UDFArgumentException {
-
-    List<Method> mlist = new ArrayList<Method>();
-
-    for (Method m : udfClass.getMethods()) {
-      if (m.getName().equals(methodName)) {
-        mlist.add(m);
-      }
-    }
-
-    return getMethodInternal(udfClass, mlist, exact, argumentClasses);
-  }
-
-  public static void registerTemporaryGenericUDAF(String functionName,
-      GenericUDAFResolver genericUDAFResolver) {
-    registerGenericUDAF(false, functionName, genericUDAFResolver);
-  }
-
-  static void registerGenericUDAF(String functionName,
-      GenericUDAFResolver genericUDAFResolver) {
-    registerGenericUDAF(true, functionName, genericUDAFResolver);
-  }
-
-  public static void registerGenericUDAF(boolean isNative, String functionName,
-      GenericUDAFResolver genericUDAFResolver) {
-    mFunctions.put(functionName.toLowerCase(), new FunctionInfo(isNative,
-        functionName.toLowerCase(), genericUDAFResolver));
-  }
-
-  public static void registerTemporaryUDAF(String functionName,
-      Class<? extends UDAF> udafClass) {
-    registerUDAF(false, functionName, udafClass);
-  }
-
-  static void registerUDAF(String functionName, Class<? extends UDAF> udafClass) {
-    registerUDAF(true, functionName, udafClass);
-  }
-
-  public static void registerUDAF(boolean isNative, String functionName,
-      Class<? extends UDAF> udafClass) {
-    mFunctions.put(functionName.toLowerCase(), new FunctionInfo(isNative,
-        functionName.toLowerCase(), new GenericUDAFBridge(
-        (UDAF) ReflectionUtils.newInstance(udafClass, null))));
-  }
-
-  public static void unregisterTemporaryUDF(String functionName) throws HiveException {
-    FunctionInfo fi = mFunctions.get(functionName.toLowerCase());
-    if (fi != null) {
-      if (!fi.isNative()) {
-        mFunctions.remove(functionName.toLowerCase());
-      } else {
-        throw new HiveException("Function " + functionName
-            + " is hive native, it can't be dropped");
-      }
-    }
+    return evaluator != null ? evaluator :
+        instance.getGenericUDAFEvaluator(name, argumentOIs, isDistinct, isAllColumns);
   }
 
   public static GenericUDAFResolver getGenericUDAFResolver(String functionName) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Looking up GenericUDAF: " + functionName);
     }
-    FunctionInfo finfo = mFunctions.get(functionName.toLowerCase());
-    if (finfo == null) {
-      return null;
+    GenericUDAFResolver evaluator = null;
+    Registry registry = SessionState.getRegistry();
+    if (registry != null) {
+      evaluator = registry.getGenericUDAFResolver(functionName);
     }
-    GenericUDAFResolver result = finfo.getGenericUDAFResolver();
-    return result;
+    return evaluator != null ? evaluator : instance.getGenericUDAFResolver(functionName);
   }
 
   public static Object invoke(Method m, Object thisObject, Object... arguments)
@@ -936,6 +630,27 @@ public final class FunctionRegistry {
     }
 
     return -1;
+  }
+
+  /**
+   * This method is shared between UDFRegistry and UDAFRegistry. methodName will
+   * be "evaluate" for UDFRegistry, and "aggregate"/"evaluate"/"evaluatePartial"
+   * for UDAFRegistry.
+   * @throws UDFArgumentException
+   */
+  public static <T> Method getMethodInternal(Class<? extends T> udfClass,
+      String methodName, boolean exact, List<TypeInfo> argumentClasses)
+      throws UDFArgumentException {
+
+    List<Method> mlist = new ArrayList<Method>();
+
+    for (Method m : udfClass.getMethods()) {
+      if (m.getName().equals(methodName)) {
+        mlist.add(m);
+      }
+    }
+
+    return getMethodInternal(udfClass, mlist, exact, argumentClasses);
   }
 
   /**
@@ -1172,83 +887,126 @@ public final class FunctionRegistry {
     return UDFOPPositive.class == udfClass;
   }
 
-  /**
-   * Registers the appropriate kind of temporary function based on a class's
-   * type.
-   *
-   * @param functionName name under which to register function
-   *
-   * @param udfClass class implementing UD[A|T]F
-   *
-   * @return true if udfClass's type was recognized (so registration
-   * succeeded); false otherwise
-   */
-  public static boolean registerTemporaryFunction(
-    String functionName, Class<?> udfClass) {
 
-    if (UDF.class.isAssignableFrom(udfClass)) {
-      FunctionRegistry.registerTemporaryUDF(
-        functionName, (Class<? extends UDF>) udfClass, false);
-    } else if (GenericUDF.class.isAssignableFrom(udfClass)) {
-      FunctionRegistry.registerTemporaryGenericUDF(
-        functionName, (Class<? extends GenericUDF>) udfClass);
-    } else if (GenericUDTF.class.isAssignableFrom(udfClass)) {
-      FunctionRegistry.registerTemporaryGenericUDTF(
-        functionName, (Class<? extends GenericUDTF>) udfClass);
-    } else if (UDAF.class.isAssignableFrom(udfClass)) {
-      FunctionRegistry.registerTemporaryUDAF(
-        functionName, (Class<? extends UDAF>) udfClass);
-    } else if (GenericUDAFResolver.class.isAssignableFrom(udfClass)) {
-      FunctionRegistry.registerTemporaryGenericUDAF(
-        functionName, (GenericUDAFResolver)
-        ReflectionUtils.newInstance(udfClass, null));
-    } else {
+  static Map<TypeInfo, Integer> numericTypes = new HashMap<TypeInfo, Integer>();
+  static List<TypeInfo> numericTypeList = new ArrayList<TypeInfo>();
+
+  static void registerNumericType(String typeName, int level) {
+    TypeInfo t = TypeInfoFactory.getPrimitiveTypeInfo(typeName);
+    numericTypeList.add(t);
+    numericTypes.put(t, level);
+  }
+
+  static {
+    registerNumericType(Constants.TINYINT_TYPE_NAME, 1);
+    registerNumericType(Constants.SMALLINT_TYPE_NAME, 2);
+    registerNumericType(Constants.INT_TYPE_NAME, 3);
+    registerNumericType(Constants.BIGINT_TYPE_NAME, 4);
+    registerNumericType(Constants.FLOAT_TYPE_NAME, 5);
+    registerNumericType(Constants.DOUBLE_TYPE_NAME, 6);
+    registerNumericType(Constants.STRING_TYPE_NAME, 7);
+  }
+
+  /**
+   * Find a common class for union-all operator
+   */
+  public static TypeInfo getCommonClassForUnionAll(TypeInfo a, TypeInfo b) {
+    if (a.equals(b)) {
+      return a;
+    }
+    if (FunctionRegistry.implicitConvertable(a, b)) {
+      return b;
+    }
+    if (FunctionRegistry.implicitConvertable(b, a)) {
+      return a;
+    }
+    for (TypeInfo t : numericTypeList) {
+      if (FunctionRegistry.implicitConvertable(a, t)
+          && FunctionRegistry.implicitConvertable(b, t)) {
+        return t;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Find a common class that objects of both TypeInfo a and TypeInfo b can
+   * convert to. This is used for comparing objects of type a and type b.
+   *
+   * When we are comparing string and double, we will always convert both of
+   * them to double and then compare.
+   *
+   * @return null if no common class could be found.
+   */
+  public static TypeInfo getCommonClassForComparison(TypeInfo a, TypeInfo b) {
+    // If same return one of them
+    if (a.equals(b)) {
+      return a;
+    }
+
+    for (TypeInfo t : numericTypeList) {
+      if (FunctionRegistry.implicitConvertable(a, t)
+          && FunctionRegistry.implicitConvertable(b, t)) {
+        return t;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Find a common class that objects of both TypeInfo a and TypeInfo b can
+   * convert to. This is used for places other than comparison.
+   *
+   * The common class of string and double is string.
+   *
+   * @return null if no common class could be found.
+   */
+  public static TypeInfo getCommonClass(TypeInfo a, TypeInfo b) {
+    if (a.equals(b)) {
+      return a;
+    }
+    Integer ai = numericTypes.get(a);
+    Integer bi = numericTypes.get(b);
+    if (ai == null || bi == null) {
+      // If either is not a numeric type, return null.
+      return null;
+    }
+    return (ai > bi) ? a : b;
+  }
+
+  /**
+   * Returns whether it is possible to implicitly convert an object of Class
+   * from to Class to.
+   */
+  public static boolean implicitConvertable(TypeInfo from, TypeInfo to) {
+    if (from.equals(to)) {
+      return true;
+    }
+    // Allow implicit String to Double conversion
+    if (from.equals(TypeInfoFactory.stringTypeInfo)
+        && to.equals(TypeInfoFactory.doubleTypeInfo)) {
+      return true;
+    }
+    // Void can be converted to any type
+    if (from.equals(TypeInfoFactory.voidTypeInfo)) {
+      return true;
+    }
+
+    if (from.equals(TypeInfoFactory.timestampTypeInfo)
+        && to.equals(TypeInfoFactory.stringTypeInfo)) {
+      return true;
+    }
+
+    // Allow implicit conversion from Byte -> Integer -> Long -> Float -> Double
+    // -> String
+    Integer f = numericTypes.get(from);
+    Integer t = numericTypes.get(to);
+    if (f == null || t == null) {
+      return false;
+    }
+    if (f.intValue() > t.intValue()) {
       return false;
     }
     return true;
-  }
-
-  /**
-   * Registers Hive functions from a plugin jar, using metadata from
-   * the jar's META-INF/class-info.xml.
-   *
-   * @param jarLocation URL for reading jar file
-   *
-   * @param classLoader classloader to use for loading function classes
-   */
-  public static void registerFunctionsFromPluginJar(
-    URL jarLocation,
-    ClassLoader classLoader) throws Exception {
-
-    URL url = new URL("jar:" + jarLocation + "!/META-INF/class-info.xml");
-    InputStream inputStream = null;
-    try {
-      inputStream = url.openStream();
-      DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-      DocumentBuilder docBuilder = dbf.newDocumentBuilder();
-      Document doc = docBuilder.parse(inputStream);
-      Element root = doc.getDocumentElement();
-      if (!root.getTagName().equals("ClassList")) {
-        return;
-      }
-      NodeList children = root.getElementsByTagName("Class");
-      for (int i = 0; i < children.getLength(); ++i) {
-        Element child = (Element) children.item(i);
-        String javaName = child.getAttribute("javaname");
-        String sqlName = child.getAttribute("sqlname");
-        Class<?> udfClass = Class.forName(javaName, true, classLoader);
-        boolean registered = registerTemporaryFunction(sqlName, udfClass);
-        if (!registered) {
-          throw new RuntimeException(
-            "Class " + udfClass + " is not a Hive function implementation");
-        }
-      }
-    } finally {
-      IOUtils.closeStream(inputStream);
-    }
-  }
-
-  private FunctionRegistry() {
-    // prevent instantiation
   }
 }

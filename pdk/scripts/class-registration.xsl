@@ -24,7 +24,7 @@
   <xsl:param name="functionPrefix"/>
 
   <xsl:template match="Class">
-    <xsl:text>CREATE TEMPORARY FUNCTION </xsl:text>
+    <xsl:text>CREATE FUNCTION </xsl:text>
     <xsl:value-of select="$functionPrefix"/>
     <xsl:value-of select="@sqlname"/>
     <xsl:text> AS '</xsl:text>

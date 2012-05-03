@@ -59,7 +59,7 @@ import org.apache.hadoop.hive.common.io.CachingPrintStream;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.Index;
-import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
+import org.apache.hadoop.hive.ql.exec.Registry;
 import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.exec.Utilities.StreamPrinter;
@@ -416,8 +416,11 @@ public class QTestUtil {
       // Best effort
     }
 
-    FunctionRegistry.unregisterTemporaryUDF("test_udaf");
-    FunctionRegistry.unregisterTemporaryUDF("test_error");
+    Registry registry = SessionState.getRegistry();
+    if (registry != null) {
+      registry.unregisterUDF("test_udaf");
+      registry.unregisterUDF("test_error");
+    }
   }
 
   private void runLoadCmd(String loadCmd) throws Exception {
