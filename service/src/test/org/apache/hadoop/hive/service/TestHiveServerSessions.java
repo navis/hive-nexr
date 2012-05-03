@@ -18,6 +18,8 @@
 package org.apache.hadoop.hive.service;
 
 import junit.framework.TestCase;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TSocket;
 
@@ -38,8 +40,16 @@ public class TestHiveServerSessions extends TestCase {
   private TSocket[] transports = new TSocket[clientNum];
   private HiveClient[] clients = new HiveClient[clientNum];
 
+  private String tableName;
+  private Path dataFilePath;
+
   public TestHiveServerSessions(String name) {
     super(name);
+    HiveConf conf = new HiveConf(TestHiveServerSessions.class);
+    String dataFileDir = conf.get("test.data.files").replace('\\', '/')
+        .replace("c:", "");
+    dataFilePath = new Path(dataFileDir, "kv1.txt");
+    tableName = "testsessionfunc";
   }
 
   @Override
@@ -59,6 +69,7 @@ public class TestHiveServerSessions extends TestCase {
       transport.open();
       transports[i] = transport;
       clients[i] = new HiveClient(new TBinaryProtocol(transport));
+      clients[i].execute("set hive.support.concurrency = false");
     }
   }
 
@@ -95,5 +106,27 @@ public class TestHiveServerSessions extends TestCase {
       clients[i].execute("set hiveconf:var");
       assertEquals("hiveconf:var=value" + i, clients[i].fetchOne());
     }
+  }
+
+  public void testSessionFuncs() throws Exception {
+
+    try {
+      clients[0].execute("drop table " + tableName);
+    } catch (Exception ex) {
+    }
+    clients[0].execute("create table " + tableName + " (key int, value string)");
+    clients[0].execute("load data local inpath '" + dataFilePath.toString()
+        + "' into table " + tableName);
+
+    clients[0].execute("create temporary function dummy as " +
+        "'org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPLessThan'");
+    clients[1].execute("create temporary function dummy as " +
+        "'org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrGreaterThan'");
+
+    clients[0].execute("select count(*) from " + tableName + " where dummy(key, 100)");
+    assertEquals(84, Integer.valueOf(clients[0].fetchOne()).intValue());
+
+    clients[1].execute("select count(*) from " + tableName + " where dummy(key, 100)");
+    assertEquals(416, Integer.valueOf(clients[1].fetchOne()).intValue());
   }
 }
