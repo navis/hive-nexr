@@ -76,7 +76,8 @@ public class JdbcColumn {
     case Types.INTEGER:
     case Types.BIGINT:
       return columnPrecision(columnType) + 1; // allow +/-
-
+    case Types.TIMESTAMP:
+      return columnPrecision(columnType);
     // see http://download.oracle.com/javase/6/docs/api/constant-values.html#java.lang.Float.MAX_EXPONENT
     case Types.FLOAT:
       return 24; // e.g. -(17#).e-###
@@ -107,6 +108,8 @@ public class JdbcColumn {
       return 7;
     case Types.DOUBLE:
       return 15;
+    case Types.TIMESTAMP:
+      return 29;
     default:
       throw new SQLException("Invalid column type: " + columnType);
     }
@@ -126,6 +129,8 @@ public class JdbcColumn {
       return 7;
     case Types.DOUBLE:
       return 15;
+    case Types.TIMESTAMP:
+      return 9;
     default:
       throw new SQLException("Invalid column type: " + columnType);
     }
