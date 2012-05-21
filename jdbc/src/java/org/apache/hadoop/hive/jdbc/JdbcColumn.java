@@ -31,15 +31,17 @@ public class JdbcColumn {
   private final String type;
   private final String comment;
   private final int ordinalPos;
+  private final boolean partition;
 
   JdbcColumn(String columnName, String tableName, String tableCatalog
-          , String type, String comment, int ordinalPos) {
+          , String type, String comment, int ordinalPos, boolean partition) {
     this.columnName = columnName;
     this.tableName = tableName;
     this.tableCatalog = tableCatalog;
     this.type = type;
     this.comment = comment;
     this.ordinalPos = ordinalPos;
+    this.partition = partition;
   }
 
   public String getColumnName() {
@@ -181,5 +183,9 @@ public class JdbcColumn {
 
   public int getOrdinalPos() {
     return ordinalPos;
+  }
+
+  public boolean isPartition() {
+    return partition;
   }
 }

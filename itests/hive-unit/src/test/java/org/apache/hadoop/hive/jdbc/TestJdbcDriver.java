@@ -1095,6 +1095,74 @@ public class TestJdbcDriver extends TestCase {
     }
   }
 
+  public void testPartitionedResultSetMetaData() throws SQLException {
+    Statement stmt = con.createStatement();
+
+    ResultSet res = stmt.executeQuery(
+        "select under_col, value, " + partitionedColumnName + " " +
+        "from " + partitionedTableName + " limit 1");
+    ResultSetMetaData meta = res.getMetaData();
+
+    ResultSet colRS = con.getMetaData().getColumns(null, null,
+        partitionedTableName.toLowerCase(), null);
+
+    assertEquals(3, meta.getColumnCount());
+
+    assertTrue(colRS.next());
+
+    assertEquals("under_col", meta.getColumnName(1));
+    assertEquals(Types.INTEGER, meta.getColumnType(1));
+    assertEquals("int", meta.getColumnTypeName(1));
+    assertEquals(11, meta.getColumnDisplaySize(1));
+    assertEquals(10, meta.getPrecision(1));
+    assertEquals(0, meta.getScale(1));
+
+    assertEquals("under_col", colRS.getString("COLUMN_NAME"));
+    assertEquals(Types.INTEGER, colRS.getInt("DATA_TYPE"));
+    assertEquals("int", colRS.getString("TYPE_NAME").toLowerCase());
+    assertEquals(meta.getPrecision(1), colRS.getInt("COLUMN_SIZE"));
+    assertEquals(meta.getScale(1), colRS.getInt("DECIMAL_DIGITS"));
+    assertFalse(colRS.getBoolean("IS_PARTITION_COLUMN"));
+
+    assertTrue(colRS.next());
+
+    assertEquals("value", meta.getColumnName(2));
+    assertEquals(Types.VARCHAR, meta.getColumnType(2));
+    assertEquals("string", meta.getColumnTypeName(2));
+    assertEquals(Integer.MAX_VALUE, meta.getColumnDisplaySize(2));
+    assertEquals(Integer.MAX_VALUE, meta.getPrecision(2));
+    assertEquals(0, meta.getScale(2));
+
+    assertEquals("value", colRS.getString("COLUMN_NAME"));
+    assertEquals(Types.VARCHAR, colRS.getInt("DATA_TYPE"));
+    assertEquals("string", colRS.getString("TYPE_NAME").toLowerCase());
+    assertEquals(meta.getPrecision(2), colRS.getInt("COLUMN_SIZE"));
+    assertEquals(meta.getScale(2), colRS.getInt("DECIMAL_DIGITS"));
+    assertFalse(colRS.getBoolean("IS_PARTITION_COLUMN"));
+
+    assertTrue(colRS.next());
+
+    assertEquals("partcolabc", meta.getColumnName(3));
+    assertEquals(Types.VARCHAR, meta.getColumnType(3));
+    assertEquals("string", meta.getColumnTypeName(3));
+    assertEquals(Integer.MAX_VALUE, meta.getColumnDisplaySize(3));
+    assertEquals(Integer.MAX_VALUE, meta.getPrecision(3));
+    assertEquals(0, meta.getScale(3));
+
+    assertEquals("partcolabc", colRS.getString("COLUMN_NAME"));
+    assertEquals(Types.VARCHAR, colRS.getInt("DATA_TYPE"));
+    assertEquals("string", colRS.getString("TYPE_NAME").toLowerCase());
+    assertEquals(meta.getPrecision(3), colRS.getInt("COLUMN_SIZE"));
+    assertEquals(meta.getScale(3), colRS.getInt("DECIMAL_DIGITS"));
+    assertTrue(colRS.getBoolean("IS_PARTITION_COLUMN"));
+
+    for (int i = 1; i <= meta.getColumnCount(); i++) {
+      assertFalse(meta.isAutoIncrement(i));
+      assertFalse(meta.isCurrency(i));
+      assertEquals(ResultSetMetaData.columnNullable, meta.isNullable(i));
+    }
+  }
+
   // [url] [host] [port] [db]
   private static final String[][] URL_PROPERTIES = new String[][] {
       {"jdbc:hive://", "", "", "default"},
