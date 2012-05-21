@@ -218,12 +218,14 @@ public class HiveDatabaseMetaData implements java.sql.DatabaseMetaData {
       List<String> tables = client.get_tables(catalog, "*");
       for (String table: tables) {
         if (table.matches(regtableNamePattern)) {
+          List<FieldSchema> partitions = client.get_table(catalog, table).getPartitionKeys();
           List<FieldSchema> fields = client.get_schema(catalog, table);
           int ordinalPos = 1;
           for (FieldSchema field: fields) {
             if (field.getName().matches(regcolumnNamePattern)) {
               columns.add(new JdbcColumn(field.getName(), table, catalog
-                      , field.getType(), field.getComment(), ordinalPos));
+                      , field.getType(), field.getComment(), ordinalPos
+                      , partitions.contains(field)));
               ordinalPos++;
             }
           }
@@ -237,18 +239,18 @@ public class HiveDatabaseMetaData implements java.sql.DatabaseMetaData {
                       , "NUM_PREC_RADIX", "NULLABLE", "REMARKS", "COLUMN_DEF", "SQL_DATA_TYPE"
                       , "SQL_DATETIME_SUB", "CHAR_OCTET_LENGTH", "ORDINAL_POSITION"
                       , "IS_NULLABLE", "SCOPE_CATLOG", "SCOPE_SCHEMA", "SCOPE_TABLE"
-                      , "SOURCE_DATA_TYPE")
+                      , "SOURCE_DATA_TYPE", "IS_PARTITION_COLUMN")
               , Arrays.asList("STRING", "STRING", "STRING", "STRING", "INT", "STRING"
                 , "INT", "INT", "INT", "INT", "INT", "STRING"
                 , "STRING", "INT", "INT", "INT", "INT"
-                , "STRING", "STRING", "STRING", "STRING", "INT")
+                , "STRING", "STRING", "STRING", "STRING", "INT", "BOOLEAN")
               , columns) {
 
         private int cnt = 0;
 
         public boolean next() throws SQLException {
           if (cnt<data.size()) {
-            List<Object> a = new ArrayList<Object>(20);
+            List<Object> a = new ArrayList<Object>(21);
             JdbcColumn column = data.get(cnt);
             a.add(column.getTableCatalog()); // TABLE_CAT String => table catalog (may be null)
             a.add(null); // TABLE_SCHEM String => table schema (may be null)
@@ -272,6 +274,7 @@ public class HiveDatabaseMetaData implements java.sql.DatabaseMetaData {
             a.add(null); // SCOPE_SCHEMA String
             a.add(null); // SCOPE_TABLE String
             a.add(null); // SOURCE_DATA_TYPE short
+            a.add(Boolean.valueOf(column.isPartition())); // PARTITION_COLUMN boolean
             row = a;
             cnt++;
             return true;
