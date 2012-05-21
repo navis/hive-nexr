@@ -161,7 +161,7 @@ public class HiveDatabaseMetaData implements java.sql.DatabaseMetaData {
           if (c != SEARCH_STRING_ESCAPE) {
             escaped = false;
           }
-          result.append(c);
+          result.append(Character.toLowerCase(c));
         } else {
           if (c == SEARCH_STRING_ESCAPE) {
             escaped = true;
@@ -171,7 +171,7 @@ public class HiveDatabaseMetaData implements java.sql.DatabaseMetaData {
           } else if (c == '_') {
             result.append('.');
           } else {
-            result.append(c);
+            result.append(Character.toLowerCase(c));
           }
         }
       }
