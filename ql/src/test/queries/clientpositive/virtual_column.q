@@ -17,3 +17,5 @@ select INPUT__FILE__NAME, key, BLOCK__OFFSET__INSIDE__FILE from src_index_test_r
 
 DROP TABLE src_index_test_rc;
 DROP INDEX src_index on src_index_test_rc;
+
+select *, BLOCK__OFFSET__INSIDE__FILE from srcpart where key < 10;

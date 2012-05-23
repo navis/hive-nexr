@@ -499,9 +499,13 @@ public class MapOperator extends Operator<MapredWork> implements Serializable {
     try {
       if (this.hasVC) {
         this.rowWithPartAndVC[0] = deserializer.deserialize(value);
-        int vcPos = isPartitioned ? 2 : 1;
         populateVirtualColumnValues();
-        this.rowWithPartAndVC[vcPos] = this.vcValues;
+        if (isPartitioned) {
+          this.rowWithPartAndVC[1] = rowWithPart[1];
+          this.rowWithPartAndVC[2] = this.vcValues;
+        } else {
+          this.rowWithPartAndVC[1] = this.vcValues;
+        }
       } else if (!isPartitioned) {
         row = deserializer.deserialize((Writable) value);
       } else {
