@@ -31,6 +31,7 @@ import org.apache.hadoop.hive.ql.CommandNeedRetryException;
 import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.DriverContext;
 import org.apache.hadoop.hive.ql.QueryPlan;
+import org.apache.hadoop.hive.ql.io.HiveInputFormat;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
@@ -58,7 +59,7 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
   private int totalRows;
   private static transient final Log LOG = LogFactory.getLog(FetchTask.class);
 
-  private Operator processor;
+  private TableScanOperator processor;
   private ListSinkOperator sink;
 
   public FetchTask() {
@@ -89,11 +90,12 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
 
       mSerde.initialize(job, serdeProp);
 
-      processor = work.getProcessor();
-
-      ftOp = processor == null ? new FetchOperator(work, job) :
-          new FetchOperator(work, (TableScanOperator) processor, job);
-      if (processor != null) {
+      processor = (TableScanOperator) work.getProcessor();
+      if (processor == null) {
+        ftOp = new FetchOperator(work, job);
+      } else {
+        HiveInputFormat.pushFilters(job, processor);
+        ftOp = new FetchOperator(work, processor, job);
         sink = initProcessor(processor, job, ftOp.getOutputObjectInspector());
       }
     } catch (Exception e) {
