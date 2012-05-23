@@ -7009,37 +7009,37 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
               throw new SemanticException(e.getMessage(), e);
             }
 
-            // If there is any unknown partition, create a map-reduce job for
-            // the filter to prune correctly
-            if ((partsList.getUnknownPartns().size() == 0)) {
-              List<String> listP = new ArrayList<String>();
-              List<PartitionDesc> partP = new ArrayList<PartitionDesc>();
+            List<String> listP = new ArrayList<String>();
+            List<PartitionDesc> partP = new ArrayList<PartitionDesc>();
 
-              Set<Partition> parts = partsList.getConfirmedPartns();
-              Iterator<Partition> iterParts = parts.iterator();
-              while (iterParts.hasNext()) {
-                Partition part = iterParts.next();
-
-                listP.add(part.getPartitionPath().toString());
-                try {
-                  partP.add(Utilities.getPartitionDesc(part));
-                } catch (HiveException e) {
-                  throw new SemanticException(e.getMessage(), e);
-                }
+            for (Partition part : partsList.getConfirmedPartns()) {
+              listP.add(part.getPartitionPath().toString());
+              try {
+                partP.add(Utilities.getPartitionDesc(part));
+              } catch (HiveException e) {
+                throw new SemanticException(e.getMessage(), e);
               }
-
-              FetchWork work = new FetchWork(listP, partP, qb.getParseInfo().getOuterQueryLimit());
-              if (qb.isSelectStarOnly()) {
-                fetch = work;
-              } else if (HiveConf.getBoolVar(conf, ConfVars.HIVEAGGRESIVEFETCHTASKCONVERSION)
-                  && topOps.size() == 1) {
-                fetch = tryConvertToFetchWork(work, (Operator) topOps.values().toArray()[0]);
+            }
+            for (Partition part : partsList.getUnknownPartns()) {
+              listP.add(part.getPartitionPath().toString());
+              try {
+                partP.add(Utilities.getPartitionDesc(part));
+              } catch (HiveException e) {
+                throw new SemanticException(e.getMessage(), e);
               }
-              if (fetch != null) {
-                noMapRed = true;
-                for (Partition part : partsList.getConfirmedPartns()) {
-                  inputs.add(new ReadEntity(part));
-                }
+            }
+
+            FetchWork work = new FetchWork(listP, partP, qb.getParseInfo().getOuterQueryLimit());
+            if (qb.isSelectStarOnly()) {
+              fetch = work;
+            } else if (HiveConf.getBoolVar(conf, ConfVars.HIVEAGGRESIVEFETCHTASKCONVERSION)
+                && topOps.size() == 1) {
+              fetch = tryConvertToFetchWork(work, (Operator) topOps.values().toArray()[0]);
+            }
+            if (fetch != null) {
+              noMapRed = true;
+              for (Partition part : partsList.getConfirmedPartns()) {
+                inputs.add(new ReadEntity(part));
               }
             }
           }
@@ -7354,16 +7354,6 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           || op instanceof FilterOperator)) {
         break;
       }
-      if (op instanceof SelectOperator) {
-        SelectOperator sel = (SelectOperator) op;
-        if (!sel.getConf().isSelectStar()) {
-          for (ExprNodeDesc expr: sel.getConf().getColList()) {
-            if (hasVirtualColumn(expr)) {
-              return null;
-            }
-          }
-        }
-      }
       if (op.getChildOperators() != null && op.getChildOperators().size() != 1) {
         return null;
       }
@@ -7379,20 +7369,6 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       return fetch;
     }
     return null;
-  }
-
-  private boolean hasVirtualColumn(ExprNodeDesc expr) {
-    if (expr instanceof ExprNodeColumnDesc) {
-      return ((ExprNodeColumnDesc)expr).getIsPartitionColOrVirtualCol();
-    }
-    if (expr instanceof ExprNodeGenericFuncDesc) {
-      for (ExprNodeDesc param : ((ExprNodeGenericFuncDesc)expr).getChildExprs()) {
-        if (hasVirtualColumn(param)) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   /**
