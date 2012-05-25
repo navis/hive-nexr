@@ -31,6 +31,12 @@ import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import java.util.concurrent.Executor;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -54,12 +60,27 @@ import java.util.Properties;
  *
  */
 public class HiveConnection implements java.sql.Connection {
+
   private TTransport transport;
+  private HiveInterface inner;
   private HiveInterface client;
   private boolean isClosed = true;
   private SQLWarning warningChain = null;
 
+  private String uri;
+  private Properties info;
+
+  private String host;
+  private int port;
+  private String database;
+
+  private boolean reconnect;
+
+  private static final String JDBC_PREFIX = "jdbc:";
   private static final String URI_PREFIX = "jdbc:hive://";
+
+  private static final String RECONNECT = "reconnect";
+  private static final int DEFAULT_PORT = 10000;
 
   /**
    * Create a connection to a local Hive
@@ -69,56 +90,108 @@ public class HiveConnection implements java.sql.Connection {
    */
   public HiveConnection(HiveConf hiveConf) throws SQLException {
     try {
-      client = new HiveServer.HiveServerHandler(hiveConf);
+      client = inner = new HiveServer.HiveServerHandler(hiveConf);
     } catch (MetaException e) {
       throw new SQLException("Error accessing Hive metastore: "
           + e.getMessage(), "08S01",e);
     }
-    isClosed = false;
     configureConnection();
   }
 
-  /**
-   * TODO: - parse uri (use java.net.URI?).
-   */
   public HiveConnection(String uri, Properties info) throws SQLException {
-    if (!uri.startsWith(URI_PREFIX)) {
+    if (!uri.startsWith(JDBC_PREFIX)) {
       throw new SQLException("Invalid URL: " + uri, "08S01");
     }
-
-    // remove prefix
-    uri = uri.substring(URI_PREFIX.length());
-
-    // If uri is not specified, use local mode.
-    if (uri.isEmpty()) {
-      try {
-        client = new HiveServer.HiveServerHandler();
-      } catch (MetaException e) {
-        throw new SQLException("Error accessing Hive metastore: "
-            + e.getMessage(), "08S01",e);
-      }
+    parseAndConnect(uri, info);
+    if (host == null) {
+      client = inner;
     } else {
-      // parse uri
-      // form: hostname:port/databasename
-      String[] parts = uri.split("/");
-      String[] hostport = parts[0].split(":");
-      int port = 10000;
-      String host = hostport[0];
-      try {
-        port = Integer.parseInt(hostport[1]);
-      } catch (Exception e) {
-      }
-      transport = new TSocket(host, port);
-      TProtocol protocol = new TBinaryProtocol(transport);
-      client = new HiveClient(protocol);
-      try {
-        transport.open();
-      } catch (TTransportException e) {
-        throw new SQLException("Could not establish connection to "
-            + uri + ": " + e.getMessage(), "08S01");
-      }
+      InvocationHandler handler = new InvocationHandler() {
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+          try {
+            return method.invoke(connection(), args);
+          } catch (InvocationTargetException e) {
+            if (e.getTargetException() instanceof TTransportException) {
+              closeInternal();
+            }
+            throw e.getTargetException();
+          }
+        }
+      };
+      ClassLoader loader = Thread.currentThread().getContextClassLoader();
+      client = (HiveInterface) Proxy.newProxyInstance(loader,
+          new Class[]{HiveInterface.class}, handler);
     }
     isClosed = false;
+  }
+
+  private void parseAndConnect(String uri, Properties info) throws SQLException {
+    this.uri = uri;
+    this.info = info;
+    if (uri.equals(URI_PREFIX)) { // backward compatible
+      connectSQL();
+      return;
+    }
+    try {
+      URI connectTo = new URI(uri.substring(JDBC_PREFIX.length()));
+      if (!"hive".equals(connectTo.getScheme())) {
+        throw new SQLException("Invalid URL: " + uri, "08S01");
+      }
+      host = connectTo.getHost();
+      port = connectTo.getPort();
+      if (connectTo.getPath() != null && !connectTo.getPath().isEmpty()) {
+        database = connectTo.getPath().substring(1);
+      }
+      if (connectTo.getQuery() != null) {
+        for (String query : connectTo.getQuery().split("&")) {
+          int index = query.indexOf('=');
+          if (index < 0) {
+            continue;
+          }
+          String key = query.substring(0, index).trim();
+          String value = query.substring(index + 1).trim();
+          if (RECONNECT.equals(key)) {
+            reconnect = Boolean.valueOf(value);
+          }
+        }
+      }
+    } catch (URISyntaxException e) {
+      throw new SQLException("Invalid URL: " + uri, "08S01", e);
+    }
+    connectSQL();
+  }
+
+  private void connectSQL() throws SQLException {
+    try {
+      connect();
+    } catch (SQLException e) {
+      throw e;
+    } catch (MetaException e) {
+      throw new SQLException("Error accessing Hive metastore: "
+            + e.getMessage(), "08S01", e);
+    } catch (Exception e) {
+      throw new SQLException("Invalid URL: " + uri, "08S01", e);
+    }
+  }
+
+  private void connectT() throws Exception {
+    try {
+      connect();
+    } catch (SQLException e) {
+      throw new TTransportException(e.getMessage(), e);
+    }
+  }
+
+  private void connect() throws Exception {
+    if (host == null) {
+      // If uri is not specified, use local mode.
+        inner = new HiveServer.HiveServerHandler();
+    } else {
+      transport = new TSocket(host, port < 0 ? DEFAULT_PORT : port);
+      transport.open();
+      TProtocol protocol = new TBinaryProtocol(transport);
+      inner = new HiveClient(protocol);
+    }
     configureConnection();
   }
  
@@ -127,8 +200,45 @@ public class HiveConnection implements java.sql.Connection {
     throw new SQLException("Method not supported");
   }
 
+  private void closeInternal() {
+    try {
+      if (inner != null) {
+        inner.clean();
+      }
+    } catch (TException e) {
+      // ignore
+    }
+    try {
+      if (transport != null) {
+        transport.close();
+      }
+    } catch (Exception e) {
+      // ignore
+    }
+    inner = null;
+    transport = null;
+  }
+
+  private HiveInterface connection() throws Exception {
+    if (isClosed()) {
+        throw new TException("connection is closed");
+    }
+    if (needReconnect() && reconnect) {
+      closeInternal();
+      connectT();
+    }
+    return inner;
+  }
+
+  private boolean needReconnect() {
+    return inner == null || (host != null && (transport == null || !transport.isOpen()));
+  }
+
   private void configureConnection() throws SQLException {
-    Statement stmt = createStatement();
+    Statement stmt = new HiveStatement(inner);
+    if (database != null) {
+      stmt.execute("use " + database);
+    }
     stmt.execute(
         "set hive.fetch.output.serde = org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe");
     stmt.close();
@@ -151,9 +261,11 @@ public class HiveConnection implements java.sql.Connection {
    */
 
   public void close() throws SQLException {
-    if (!isClosed) {
+    if (!isClosed()) {
       try {
-        client.clean();
+        if (inner != null) {
+          inner.clean();
+        }
       } catch (TException e) {
         throw new SQLException("Error while cleaning up the server resources", e);
       } finally {
@@ -161,6 +273,8 @@ public class HiveConnection implements java.sql.Connection {
         if (transport != null) {
           transport.close();
         }
+        transport = null;
+        client = inner = null;
       }
     }
   }
