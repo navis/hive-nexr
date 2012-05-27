@@ -53,7 +53,6 @@ import org.apache.hadoop.hive.serde2.objectinspector.UnionStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
-import org.apache.hadoop.mapred.FileSplit;
 import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
@@ -84,7 +83,7 @@ public class FetchOperator implements Serializable {
   private ExecMapperContext context;
 
   private transient RecordReader<WritableComparable, Writable> currRecReader;
-  private transient FileSplit[] inputSplits;
+  private transient HiveInputFormat.HiveInputSplit[] inputSplits;
   private transient InputFormat inputFormat;
   private transient JobConf job;
   private transient WritableComparable key;
@@ -326,7 +325,7 @@ public class FetchOperator implements Serializable {
       inputFormat = getInputFormatFromCache(formatter, job);
       Utilities.copyTableJobPropertiesToConf(tmp.getTableDesc(), job);
       InputSplit[] splits = inputFormat.getSplits(job, 1);
-      inputSplits = new FileSplit[splits.length];
+      inputSplits = new HiveInputFormat.HiveInputSplit[splits.length];
       for (int i = 0; i < splits.length; i++) {
         inputSplits[i] = new HiveInputFormat.HiveInputSplit(splits[i], formatter.getName());
       }
@@ -356,7 +355,7 @@ public class FetchOperator implements Serializable {
 
     @SuppressWarnings("unchecked")
     final RecordReader<WritableComparable, Writable> reader =
-        inputFormat.getRecordReader(inputSplits[splitNum], job, Reporter.NULL);
+        inputFormat.getRecordReader(inputSplits[splitNum].getInputSplit(), job, Reporter.NULL);
     if (hasVC) {
       currRecReader = new HiveContextAwareRecordReader<WritableComparable, Writable>(reader, job) {
         public void doClose() throws IOException {
