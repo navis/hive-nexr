@@ -216,7 +216,9 @@ public class QueryPlan implements Serializable {
       TableScanOperator ts = (TableScanOperator) op;
       if (ts.getConf() != null) {
         String tableName = ts.getConf().getAlias();
-        operator.putToOperatorAttributes("alias", tableName);
+        if (tableName != null) {
+          operator.putToOperatorAttributes("alias", tableName);
+        }
         if (ts.getConf().getFilterExpr() != null) {
           operator.putToOperatorAttributes("filterExpr", ts.getConf().getFilterExpr().getExprString());
         }
