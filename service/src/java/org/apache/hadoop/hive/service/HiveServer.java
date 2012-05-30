@@ -157,11 +157,11 @@ public class HiveServer extends ThriftHive {
           session.in = null;
           session.out = new PrintStream(System.out, true, "UTF-8");
           session.err = new PrintStream(System.err, true, "UTF-8");
-      	  } catch (UnsupportedEncodingException ee) {
-      	    ee.printStackTrace();
-      	    session.out = null;
-      	    session.err = null;
-      	  }
+        } catch (UnsupportedEncodingException ee) {
+          ee.printStackTrace();
+          session.out = null;
+          session.err = null;
+        }
       }
     }
 
@@ -663,6 +663,8 @@ public class HiveServer extends ThriftHive {
         Iface handler = new HiveServerHandler(new HiveConf(conf));
         return new ThriftHive.Processor(handler);
       } catch (Exception e) {
+        HiveServerHandler.LOG.warn("Failed to get processor by exception " + e, e);
+        trans.close();
         throw new RuntimeException(e);
       }
     }
