@@ -76,6 +76,7 @@ public class FetchOperator implements Serializable {
   private PartitionDesc currPart;
   private TableDesc currTbl;
   private boolean tblDataDone;
+  private boolean hasVirtialColumn;
 
   private boolean hasVC;
   private boolean isPartitioned;
@@ -95,6 +96,7 @@ public class FetchOperator implements Serializable {
   private transient Path currPath;
   private transient StructObjectInspector rowObjectInspector;
   private transient Object[] row;
+
   public FetchOperator() {
   }
 
@@ -142,6 +144,11 @@ public class FetchOperator implements Serializable {
     if (hasVC) {
       ts.setExecContext(context = new ExecMapperContext());
     }
+  }
+
+  private boolean hasVirtualColumn(TableScanOperator ts) {
+    return ts != null && ts.getConf() != null &&
+        ts.getConf().getVirtualCols() != null && !ts.getConf().getVirtualCols().isEmpty();
   }
 
   public FetchWork getWork() {

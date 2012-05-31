@@ -539,6 +539,10 @@ public class ParseContext {
     this.rootTasks.addAll(tasks);
   }
 
+  public List<Task<? extends Serializable>> getRootTasks() {
+    return rootTasks;
+  }
+
   public FetchTask getFetchTask() {
     return fetchTask;
   }
@@ -556,5 +560,9 @@ public class ParseContext {
       opToPartList.put(ts, partsList);
     }
     return partsList;
+  }
+
+  public boolean isSet(HiveConf.ConfVars key) {
+    return HiveConf.getBoolVar(conf, key);
   }
 }
