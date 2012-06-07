@@ -27,6 +27,7 @@ import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -66,8 +67,6 @@ import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportFactory;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import com.facebook.fb303.fb_status;
 
 /**
@@ -681,7 +680,7 @@ public class HiveServer extends ThriftHive {
     public int port = DEFAULT_HIVE_SERVER_PORT;
     public int minWorkerThreads = DEFAULT_MIN_WORKER_THREADS;
     public int maxWorkerThreads = DEFAULT_MAX_WORKER_THREADS;
-    public String resource;
+    public String[] initFiles;
 
     @SuppressWarnings("static-access")
     public HiveServerCli() {
@@ -695,13 +694,12 @@ public class HiveServer extends ThriftHive {
               + DEFAULT_HIVE_SERVER_PORT)
           .create('p'));
 
-      // -r resource file path
+      // -i <init-query-file>
       OPTIONS.addOption(OptionBuilder
-          .hasArg()
-          .withArgName("resource")
-          .withDescription("Hive Server resource location, default:"
-              + "$USER_HOME/.hiverc")
-          .create('r'));
+        .hasArg()
+        .withArgName("filename")
+        .withDescription("Initialization SQL file")
+        .create('i'));
 
       // min worker thread count
       OPTIONS.addOption(OptionBuilder
@@ -750,10 +748,7 @@ public class HiveServer extends ThriftHive {
         }
       }
 
-      String location = commandLine.getOptionValue('r', System.getProperty("user.home"));
-      if (location != null && new File(location).exists()) {
-        resource = new File(location).isFile() ? location : location + "/.hiverc";
-      }
+      initFiles = commandLine.getOptionValues('i');
 
       if (commandLine.hasOption(OPTION_MIN_WORKER_THREADS)) {
         minWorkerThreads = Integer.parseInt(
@@ -793,15 +788,20 @@ public class HiveServer extends ThriftHive {
         conf.set((String) item.getKey(), (String) item.getValue());
       }
 
-      if (cli.resource != null) {
+      if (cli.initFiles != null && cli.initFiles.length > 0) {
         Iface handler = new HiveServerHandler(conf);
-        for (String query : loadScript("file://" + cli.resource, conf)) {
-          System.err.println("Executing : " + query);
-          handler.execute(query);
-          for(String result : handler.fetchAll()) {
-            System.err.println(result);
+        for (String initFile : cli.initFiles) {
+          if (new URI(initFile).getScheme() == null) {
+            initFile = "file://" + initFile;
           }
-          handler.clean();
+          for (String query : loadScript(new Path(initFile), conf)) {
+            System.err.println("Executing : " + query);
+            handler.execute(query);
+            for (String result : handler.fetchAll()) {
+              System.err.println(result);
+            }
+            handler.clean();
+          }
         }
       }
 
@@ -841,11 +841,10 @@ public class HiveServer extends ThriftHive {
     }
   }
 
-  private static List<String> loadScript(String script, HiveConf conf) throws Exception {
-    Path path = new Path(script);
+  private static List<String> loadScript(Path path, HiveConf conf) throws Exception {
     FileSystem fs = path.getFileSystem(conf);
     if (!fs.exists(path)) {
-      System.err.println("Resource file " + path + " does not exist");
+      System.err.println("Resource file " + path + " does not exist.. skip");
       return Collections.emptyList();
     }
     BufferedReader reader = new BufferedReader(new InputStreamReader(fs.open(path)));
@@ -873,7 +872,7 @@ public class HiveServer extends ThriftHive {
       }
       return result;
     } catch (Throwable e) {
-      throw new IllegalStateException("Failed to load script file " + script, e);
+      throw new IllegalStateException("Failed to load script file " + path, e);
     } finally {
       org.apache.hadoop.io.IOUtils.closeStream(reader);
     }
