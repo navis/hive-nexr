@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.ql.exec.Operator;
+import org.apache.hadoop.hive.ql.parse.SplitSample;
 
 /**
  * FetchWork.
@@ -43,6 +44,8 @@ public class FetchWork implements Serializable {
 
   private int limit;
   private int leastNumRows;
+
+  private SplitSample splitSample;
 
   /**
    * Serialization Null Format for the serde used to fetch data.
@@ -208,6 +211,14 @@ public class FetchWork implements Serializable {
   @Explain(displayName = "Processor Tree")
   public Operator<?> getProcessor() {
     return processor;
+  }
+
+  public void setSplitSample(SplitSample splitSample) {
+    this.splitSample = splitSample;
+  }
+
+  public SplitSample getSplitSample() {
+    return splitSample;
   }
 
   @Override

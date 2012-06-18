@@ -377,7 +377,7 @@ public class QBParseInfo {
   }
 
   public boolean isSimpleSelectQuery() {
-    if (isSubQ || (joinExpr != null) || (!nameToSample.isEmpty())
+    if (isSubQ || (joinExpr != null)
         || (!destToGroupby.isEmpty()) || (!destToClusterby.isEmpty())
         || (!aliasToLateralViews.isEmpty())) {
       return false;

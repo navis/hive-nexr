@@ -40,6 +40,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapred.Counters;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reporter;
 
@@ -71,6 +72,7 @@ public abstract class Operator<T extends Serializable> implements Serializable,
   protected HashMap<String, ProgressCounter> counterNameToEnum;
 
   private transient ExecMapperContext execContext;
+  private transient HashReducer hashReducer;
 
   private static int seqId;
 
@@ -91,7 +93,7 @@ public abstract class Operator<T extends Serializable> implements Serializable,
     // to children. Note: close() being called and its state being CLOSE is
     // difference since close() could be called but state is not CLOSE if
     // one of its parent is not in state CLOSE..
-  };
+  }
 
   protected transient State state = State.UNINIT;
 
@@ -223,6 +225,14 @@ public abstract class Operator<T extends Serializable> implements Serializable,
     return id;
   }
 
+  public void setHashReducer(HashReducer hashReducer) {
+    this.hashReducer = hashReducer;
+  }
+
+  public HashReducer getHashReducer() {
+    return hashReducer;
+  }
+
   public void setReporter(Reporter rep) {
     reporter = rep;
 
@@ -245,6 +255,9 @@ public abstract class Operator<T extends Serializable> implements Serializable,
     }
 
     for (Operator<? extends Serializable> op : childOperators) {
+      if (op.getHashReducer() != null) {
+        continue;
+      }
       op.setOutputCollector(out);
     }
   }
@@ -283,13 +296,11 @@ public abstract class Operator<T extends Serializable> implements Serializable,
       return true;
     }
     for (Operator<? extends Serializable> parent : parentOperators) {
-      if (parent == null) {
+      if (parent == null || parent.state != State.UNINIT) {
         //return true;
         continue;
       }
-      if (parent.state != State.INIT) {
-        return false;
-      }
+      return false;
     }
     return true;
   }
@@ -309,9 +320,11 @@ public abstract class Operator<T extends Serializable> implements Serializable,
     if (state == State.INIT) {
       return;
     }
-
-    this.out = null;
     if (!areAllParentsInitialized()) {
+      return;
+    }
+    if (hashReducer != null && !hashReducer.isInitialized()) {
+      hashReducer.configure(new JobConf(hconf));
       return;
     }
 
@@ -540,6 +553,11 @@ public abstract class Operator<T extends Serializable> implements Serializable,
       return;
     }
 
+    if (hashReducer != null && !hashReducer.flush()) {
+      // all of the reducers are not yet finished
+      return;
+    }
+
     // set state as CLOSE as long as all parents are closed
     // state == CLOSE doesn't mean all children are also in state CLOSE
     state = State.CLOSE;
@@ -592,6 +610,9 @@ public abstract class Operator<T extends Serializable> implements Serializable,
   public void jobClose(Configuration conf, boolean success, JobCloseFeedBack feedBack)
       throws HiveException {
     if (childOperators == null) {
+      return;
+    }
+    if (hashReducer != null && !hashReducer.isFinished()) {
       return;
     }
 
@@ -1332,4 +1353,7 @@ public abstract class Operator<T extends Serializable> implements Serializable,
   public void cleanUpInputFileChangedOp() throws HiveException {
   }
 
+  public String toString() {
+    return getName() + "-" + getIdentifier();
+  }
 }

@@ -36,8 +36,12 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.ql.io.HiveContextAwareRecordReader;
 import org.apache.hadoop.hive.ql.io.HiveInputFormat;
+import org.apache.hadoop.hive.ql.io.HiveRecordReader;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
+import org.apache.hadoop.hive.ql.parse.SplitSample;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
 import org.apache.hadoop.hive.ql.plan.PartitionDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
@@ -47,6 +51,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.InspectableObject;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.UnionStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
@@ -73,42 +78,82 @@ public class FetchOperator implements Serializable {
   private PartitionDesc currPart;
   private TableDesc currTbl;
   private boolean tblDataDone;
+  private boolean hasVirtialColumn;
+
+  private boolean hasVC;
+  private boolean isPartitioned;
+  private StructObjectInspector vcsOI;
+  private ExecMapperContext context;
 
   private transient RecordReader<WritableComparable, Writable> currRecReader;
-  private transient InputSplit[] inputSplits;
+  private transient FetchInputFormat[] inputSplits;
   private transient InputFormat inputFormat;
   private transient JobConf job;
   private transient WritableComparable key;
   private transient Writable value;
+  private transient Writable[] vcValues;
   private transient Deserializer serde;
   private transient Iterator<Path> iterPath;
   private transient Iterator<PartitionDesc> iterPartDesc;
   private transient Path currPath;
   private transient StructObjectInspector rowObjectInspector;
-  private transient Object[] rowWithPart;
+  private transient Object[] row;
+
   public FetchOperator() {
   }
 
   public FetchOperator(FetchWork work, JobConf job) {
+    this.job = job;
     this.work = work;
-    initialize(job);
+    initialize();
   }
 
   public FetchOperator(FetchWork work, TableScanOperator ts, JobConf job) {
+    this.job = job;
     this.work = work;
     this.ts = ts;
-    initialize(job);
+    initialize();
   }
 
-  public void initialize(JobConf job) {
-    this.job = job;
+  private void initialize() {
+    if (hasVC = ts != null && ts.getConf() != null &&
+        ts.getConf().getVirtualCols() != null && !ts.getConf().getVirtualCols().isEmpty()) {
+      List<VirtualColumn> vcs = ts.getConf().getVirtualCols();
+      List<String> names = new ArrayList<String>(vcs.size());
+      List<ObjectInspector> inspectors = new ArrayList<ObjectInspector>(vcs.size());
+      for (VirtualColumn vc : vcs) {
+        inspectors.add(PrimitiveObjectInspectorFactory.getPrimitiveWritableObjectInspector(
+                vc.getTypeInfo().getPrimitiveCategory()));
+        names.add(vc.getName());
+      }
+      vcsOI = ObjectInspectorFactory.getStandardStructObjectInspector(names, inspectors);
+      vcValues = new Writable[vcs.size()];
+    }
+    isPartitioned = work.getTblDesc() == null;
     tblDataDone = false;
-    rowWithPart = new Object[2];
+    if (hasVC && isPartitioned) {
+      row = new Object[3];
+    } else if (hasVC || isPartitioned) {
+      row = new Object[2];
+    } else {
+      row = new Object[1];
+    }
     if (work.getTblDesc() != null) {
       isNativeTable = !work.getTblDesc().isNonNative();
     } else {
       isNativeTable = true;
     }
+    if (hasVC || work.getSplitSample() != null) {
+      context = new ExecMapperContext();
+      if (ts != null) {
+        ts.setExecContext(context);
+      }
+    }
+  }
+
+  private boolean hasVirtualColumn(TableScanOperator ts) {
+    return ts != null && ts.getConf() != null &&
+        ts.getConf().getVirtualCols() != null && !ts.getConf().getVirtualCols().isEmpty();
   }
 
   public FetchWork getWork() {
@@ -159,11 +204,16 @@ public class FetchOperator implements Serializable {
     this.isEmptyTable = isEmptyTable;
   }
 
+  public JobConf getConf() {
+    return job;
+  }
+
   /**
    * A cache of InputFormat instances.
    */
   private static Map<Class, InputFormat<WritableComparable, Writable>> inputFormats = new HashMap<Class, InputFormat<WritableComparable, Writable>>();
 
+  @SuppressWarnings("unchecked")
   static InputFormat<WritableComparable, Writable> getInputFormatFromCache(Class inputFormatClass,
       Configuration conf) throws IOException {
     if (!inputFormats.containsKey(inputFormatClass)) {
@@ -196,11 +246,14 @@ public class FetchOperator implements Serializable {
     }
     StructObjectInspector partObjectInspector = ObjectInspectorFactory
         .getStandardStructObjectInspector(partNames, partObjectInspectors);
-    rowObjectInspector = (StructObjectInspector) serde.getObjectInspector();
+    StructObjectInspector noPartObjectInspector =
+        (StructObjectInspector) serde.getObjectInspector();
 
-    rowWithPart[1] = partValues;
-    rowObjectInspector = ObjectInspectorFactory.getUnionStructObjectInspector(Arrays
-        .asList(new StructObjectInspector[] {rowObjectInspector, partObjectInspector}));
+    row[1] = partValues;
+    rowObjectInspector = ObjectInspectorFactory.repackUnionStructObjectInspector(
+        (UnionStructObjectInspector) rowObjectInspector,
+        hasVC ? Arrays.asList(noPartObjectInspector, partObjectInspector, vcsOI) :
+            Arrays.asList(noPartObjectInspector, partObjectInspector));
   }
 
   private void getNextPath() throws Exception {
@@ -284,12 +337,19 @@ public class FetchOperator implements Serializable {
         tmp = new PartitionDesc(currTbl, null);
       }
 
-      inputFormat = getInputFormatFromCache(tmp.getInputFileFormatClass(), job);
+      Class<? extends InputFormat> formatter = tmp.getInputFileFormatClass();
+      inputFormat = getInputFormatFromCache(formatter, job);
       Utilities.copyTableJobPropertiesToConf(tmp.getTableDesc(), job);
-      if (ts != null) {
-        HiveInputFormat.pushFilters(job, ts);
+      InputSplit[] splits = inputFormat.getSplits(job, 1);
+      FetchInputFormat[] inputSplits = new FetchInputFormat[splits.length];
+      for (int i = 0; i < splits.length; i++) {
+        inputSplits[i] = new FetchInputFormat(splits[i], formatter.getName());
       }
-      inputSplits = inputFormat.getSplits(job, 1);
+      if (work.getSplitSample() != null) {
+        inputSplits = splitSampling(work.getSplitSample(), inputSplits);
+      }
+      this.inputSplits = inputSplits;
+
       splitNum = 0;
       serde = tmp.getDeserializerClass().newInstance();
       serde.initialize(job, tmp.getProperties());
@@ -314,10 +374,54 @@ public class FetchOperator implements Serializable {
       return getRecordReader();
     }
 
-    currRecReader = inputFormat.getRecordReader(inputSplits[splitNum++], job, Reporter.NULL);
+    final FetchInputFormat target = inputSplits[splitNum];
+    @SuppressWarnings("unchecked")
+    final RecordReader<WritableComparable, Writable> reader =
+        inputFormat.getRecordReader(target.getInputSplit(), job, Reporter.NULL);
+    if (hasVC || work.getSplitSample() != null) {
+      currRecReader = new HiveRecordReader<WritableComparable, Writable>(reader, job) {
+        @Override
+        public boolean doNext(WritableComparable key, Writable value) throws IOException {
+          if (target.shrinkedLength > 0 &&
+              context.getIoCxt().getCurrentBlockStart() > target.shrinkedLength) {
+            return false;
+          }
+          return super.doNext(key, value);
+        }
+      };
+      ((HiveContextAwareRecordReader)currRecReader).
+          initIOContext(target, job, inputFormat.getClass(), reader);
+    } else {
+      currRecReader = reader;
+    }
+    splitNum++;
     key = currRecReader.createKey();
     value = currRecReader.createValue();
     return currRecReader;
+  }
+
+  private FetchInputFormat[] splitSampling(SplitSample splitSample, FetchInputFormat[] splits) {
+    long totalSize = 0;
+    for (FetchInputFormat split: splits) {
+        totalSize += split.getLength();
+    }
+    List<FetchInputFormat> result = new ArrayList<FetchInputFormat>();
+    long targetSize = (long) (totalSize * splitSample.getPercent() / 100D);
+    int startIndex = splitSample.getSeedNum() % splits.length;
+    long size = 0;
+    for (int i = 0; i < splits.length; i++) {
+      FetchInputFormat split = splits[(startIndex + i) % splits.length];
+      result.add(split);
+      long splitgLength = split.getLength();
+      if (size + splitgLength >= targetSize) {
+        if (size + splitgLength > targetSize) {
+          split.shrinkedLength = targetSize - size;
+        }
+        break;
+      }
+      size += splitgLength;
+    }
+    return result.toArray(new FetchInputFormat[result.size()]);
   }
 
   /**
@@ -327,6 +431,9 @@ public class FetchOperator implements Serializable {
   public InspectableObject getNextRow() throws IOException {
     try {
       while (true) {
+        if (context != null) {
+          context.resetRow();
+        }
         if (currRecReader == null) {
           currRecReader = getRecordReader();
           if (currRecReader == null) {
@@ -336,13 +443,24 @@ public class FetchOperator implements Serializable {
 
         boolean ret = currRecReader.next(key, value);
         if (ret) {
-          if (this.currPart == null) {
-            Object obj = serde.deserialize(value);
-            return new InspectableObject(obj, serde.getObjectInspector());
-          } else {
-            rowWithPart[0] = serde.deserialize(value);
-            return new InspectableObject(rowWithPart, rowObjectInspector);
+          if (ts != null && context != null && context.inputFileChanged()) {
+            // The child operators cleanup if input file has changed
+            try {
+              ts.cleanUpInputFileChanged();
+            } catch (HiveException e) {
+              throw new IOException(e);
+            }
           }
+          if (hasVC) {
+            List<VirtualColumn> vcs = ts.getConf().getVirtualCols();
+            context.populateVirtualColumnValues(vcs, vcValues, serde);
+            row[isPartitioned ? 2 : 1] = vcValues;
+          }
+          row[0] = serde.deserialize(value);
+          if (hasVC || isPartitioned) {
+            return new InspectableObject(row, rowObjectInspector);
+          }
+          return new InspectableObject(row[0], serde.getObjectInspector());
         } else {
           currRecReader.close();
           currRecReader = null;
@@ -362,6 +480,10 @@ public class FetchOperator implements Serializable {
       if (currRecReader != null) {
         currRecReader.close();
         currRecReader = null;
+      }
+      if (context != null) {
+        context.clear();
+        context = null;
       }
       this.currPath = null;
       this.iterPath = null;
@@ -396,7 +518,12 @@ public class FetchOperator implements Serializable {
         TableDesc tbl = work.getTblDesc();
         Deserializer serde = tbl.getDeserializerClass().newInstance();
         serde.initialize(job, tbl.getProperties());
-        return serde.getObjectInspector();
+        StructObjectInspector oi = (StructObjectInspector) serde.getObjectInspector();
+        if (hasVC) {
+          return rowObjectInspector = ObjectInspectorFactory.repackUnionStructObjectInspector(
+              (UnionStructObjectInspector) rowObjectInspector, Arrays.asList(oi, vcsOI));
+        }
+        return rowObjectInspector = oi;
       } else if (work.getPartDesc() != null) {
         List<PartitionDesc> listParts = work.getPartDesc();
         if(listParts.size() == 0) {
@@ -440,5 +567,14 @@ public class FetchOperator implements Serializable {
       FileUtils.listStatusRecursively(fs, stat, results);
     }
     return results.toArray(new FileStatus[results.size()]);
+  }
+
+  private static class FetchInputFormat extends HiveInputFormat.HiveInputSplit {
+
+    long shrinkedLength = -1;
+
+    public FetchInputFormat(InputSplit split, String name) {
+      super(split, name);
+    }
   }
 }

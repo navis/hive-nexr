@@ -27,7 +27,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.Map.Entry;
@@ -56,12 +55,11 @@ import org.apache.hadoop.hive.ql.exec.ConditionalTask;
 import org.apache.hadoop.hive.ql.exec.ExecDriver;
 import org.apache.hadoop.hive.ql.exec.FetchTask;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
-import org.apache.hadoop.hive.ql.exec.FilterOperator;
+import org.apache.hadoop.hive.ql.exec.ForwardTask;
 import org.apache.hadoop.hive.ql.exec.FunctionInfo;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.JoinOperator;
-import org.apache.hadoop.hive.ql.exec.LimitOperator;
 import org.apache.hadoop.hive.ql.exec.MapRedTask;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.OperatorFactory;
@@ -69,7 +67,6 @@ import org.apache.hadoop.hive.ql.exec.RecordReader;
 import org.apache.hadoop.hive.ql.exec.RecordWriter;
 import org.apache.hadoop.hive.ql.exec.ReduceSinkOperator;
 import org.apache.hadoop.hive.ql.exec.RowSchema;
-import org.apache.hadoop.hive.ql.exec.SelectOperator;
 import org.apache.hadoop.hive.ql.exec.StatsTask;
 import org.apache.hadoop.hive.ql.exec.TableScanOperator;
 import org.apache.hadoop.hive.ql.exec.Task;
@@ -112,7 +109,6 @@ import org.apache.hadoop.hive.ql.optimizer.Optimizer;
 import org.apache.hadoop.hive.ql.optimizer.GenMRProcContext.GenMapRedCtx;
 import org.apache.hadoop.hive.ql.optimizer.physical.PhysicalContext;
 import org.apache.hadoop.hive.ql.optimizer.physical.PhysicalOptimizer;
-import org.apache.hadoop.hive.ql.optimizer.ppr.PartitionPruner;
 import org.apache.hadoop.hive.ql.optimizer.unionproc.UnionProcContext;
 import org.apache.hadoop.hive.ql.parse.BaseSemanticAnalyzer.tableSpec.SpecType;
 import org.apache.hadoop.hive.ql.plan.AggregationDesc;
@@ -143,7 +139,6 @@ import org.apache.hadoop.hive.ql.plan.LoadTableDesc;
 import org.apache.hadoop.hive.ql.plan.MapJoinDesc;
 import org.apache.hadoop.hive.ql.plan.MapredWork;
 import org.apache.hadoop.hive.ql.plan.MoveWork;
-import org.apache.hadoop.hive.ql.plan.PartitionDesc;
 import org.apache.hadoop.hive.ql.plan.PlanUtils;
 import org.apache.hadoop.hive.ql.plan.ReduceSinkDesc;
 import org.apache.hadoop.hive.ql.plan.ScriptDesc;
@@ -332,6 +327,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     qb = pctx.getQB();
     groupOpToInputTables = pctx.getGroupOpToInputTables();
     prunedPartitions = pctx.getPrunedPartitions();
+    fetchTask = pctx.getFetchTask();
     setLineageInfo(pctx.getLineageInfo());
   }
 
@@ -2543,7 +2539,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
   @SuppressWarnings("nls")
   private Operator genGroupByPlanGroupByOperator(QBParseInfo parseInfo,
       String dest, Operator reduceSinkOperatorInfo, GroupByDesc.Mode mode,
-      Map<String, GenericUDAFEvaluator> genericUDAFEvaluators)
+      Map<String, GenericUDAFEvaluatorFactory> genericUDAFEvaluators)
       throws SemanticException {
     RowResolver groupByInputRowResolver = opParseCtx
         .get(reduceSinkOperatorInfo).getRowResolver();
@@ -2623,8 +2619,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         numDistinctUDFs++;
       }
       Mode amode = groupByDescModeToUDAFMode(mode, isDistinct);
-      GenericUDAFEvaluator genericUDAFEvaluator = getGenericUDAFEvaluator(
+      GenericUDAFEvaluatorFactory factory = new GenericUDAFEvaluatorFactory(
           aggName, aggParameters, value, isDistinct, isAllColumns);
+      GenericUDAFEvaluator genericUDAFEvaluator = factory.create();
       assert (genericUDAFEvaluator != null);
       GenericUDAFInfo udaf = getGenericUDAFInfo(genericUDAFEvaluator, amode,
           aggParameters);
@@ -2639,7 +2636,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       // Save the evaluator so that it can be used by the next-stage
       // GroupByOperators
       if (genericUDAFEvaluators != null) {
-        genericUDAFEvaluators.put(entry.getKey(), genericUDAFEvaluator);
+        genericUDAFEvaluators.put(entry.getKey(), factory);
       }
     }
     float groupByMemoryUsage = HiveConf.getFloatVar(conf, HiveConf.ConfVars.HIVEMAPAGGRHASHMEMORY);
@@ -2668,7 +2665,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
   @SuppressWarnings("nls")
   private Operator genGroupByPlanGroupByOperator1(QBParseInfo parseInfo,
       String dest, Operator reduceSinkOperatorInfo, GroupByDesc.Mode mode,
-      Map<String, GenericUDAFEvaluator> genericUDAFEvaluators,
+      Map<String, GenericUDAFEvaluatorFactory> genericUDAFEvaluators,
       boolean distPartAgg) throws SemanticException {
     ArrayList<String> outputColumnNames = new ArrayList<String>();
     RowResolver groupByInputRowResolver = opParseCtx
@@ -2771,12 +2768,13 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       GenericUDAFEvaluator genericUDAFEvaluator = null;
       // For distincts, partial aggregations have not been done
       if (distPartAgg) {
-        genericUDAFEvaluator = getGenericUDAFEvaluator(aggName, aggParameters,
-            value, isDistinct, isAllColumns);
+        GenericUDAFEvaluatorFactory factory = new GenericUDAFEvaluatorFactory(
+            aggName, aggParameters, value, isDistinct, isAllColumns);
+        genericUDAFEvaluator = factory.create();
         assert (genericUDAFEvaluator != null);
-        genericUDAFEvaluators.put(entry.getKey(), genericUDAFEvaluator);
+        genericUDAFEvaluators.put(entry.getKey(), factory);
       } else {
-        genericUDAFEvaluator = genericUDAFEvaluators.get(entry.getKey());
+        genericUDAFEvaluator = genericUDAFEvaluators.get(entry.getKey()).create();
         assert (genericUDAFEvaluator != null);
       }
 
@@ -2818,7 +2816,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
   @SuppressWarnings("nls")
   private Operator genGroupByPlanMapGroupByOperator(QB qb, String dest,
       Operator inputOperatorInfo, GroupByDesc.Mode mode,
-      Map<String, GenericUDAFEvaluator> genericUDAFEvaluators)
+      Map<String, GenericUDAFEvaluatorFactory> genericUDAFEvaluators)
       throws SemanticException {
 
     RowResolver groupByInputRowResolver = opParseCtx.get(inputOperatorInfo)
@@ -2891,8 +2889,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       boolean isAllColumns = value.getType() == HiveParser.TOK_FUNCTIONSTAR;
       Mode amode = groupByDescModeToUDAFMode(mode, isDistinct);
 
-      GenericUDAFEvaluator genericUDAFEvaluator = getGenericUDAFEvaluator(
+      GenericUDAFEvaluatorFactory factory = new GenericUDAFEvaluatorFactory(
           aggName, aggParameters, value, isDistinct, isAllColumns);
+      GenericUDAFEvaluator genericUDAFEvaluator = factory.create();
       assert (genericUDAFEvaluator != null);
       GenericUDAFInfo udaf = getGenericUDAFInfo(genericUDAFEvaluator, amode,
           aggParameters);
@@ -2907,7 +2906,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       // Save the evaluator so that it can be used by the next-stage
       // GroupByOperators
       if (genericUDAFEvaluators != null) {
-        genericUDAFEvaluators.put(entry.getKey(), genericUDAFEvaluator);
+        genericUDAFEvaluators.put(entry.getKey(), factory);
       }
     }
     float groupByMemoryUsage = HiveConf.getFloatVar(conf, HiveConf.ConfVars.HIVEMAPAGGRHASHMEMORY);
@@ -3285,7 +3284,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
   @SuppressWarnings("nls")
   private Operator genGroupByPlanGroupByOperator2MR(QBParseInfo parseInfo,
       String dest, Operator reduceSinkOperatorInfo2, GroupByDesc.Mode mode,
-      Map<String, GenericUDAFEvaluator> genericUDAFEvaluators)
+      Map<String, GenericUDAFEvaluatorFactory> genericUDAFEvaluators)
       throws SemanticException {
     RowResolver groupByInputRowResolver2 = opParseCtx.get(
         reduceSinkOperatorInfo2).getRowResolver();
@@ -3333,7 +3332,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       boolean isStar = value.getType() == HiveParser.TOK_FUNCTIONSTAR;
       Mode amode = groupByDescModeToUDAFMode(mode, isDistinct);
       GenericUDAFEvaluator genericUDAFEvaluator = genericUDAFEvaluators
-          .get(entry.getKey());
+          .get(entry.getKey()).create();
       assert (genericUDAFEvaluator != null);
       GenericUDAFInfo udaf = getGenericUDAFInfo(genericUDAFEvaluator, amode,
           aggParameters);
@@ -3544,8 +3543,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       Operator input) throws SemanticException {
 
     // ////// Generate GroupbyOperator for a map-side partial aggregation
-    Map<String, GenericUDAFEvaluator> genericUDAFEvaluators =
-      new LinkedHashMap<String, GenericUDAFEvaluator>();
+    Map<String, GenericUDAFEvaluatorFactory> genericUDAFEvaluators =
+      new LinkedHashMap<String, GenericUDAFEvaluatorFactory>();
 
     QBParseInfo parseInfo = qb.getParseInfo();
 
@@ -3627,8 +3626,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         -1 : Integer.MAX_VALUE), -1, false);
 
     // ////// 2. Generate GroupbyOperator
-    Map<String, GenericUDAFEvaluator> genericUDAFEvaluators =
-      new LinkedHashMap<String, GenericUDAFEvaluator>();
+    Map<String, GenericUDAFEvaluatorFactory> genericUDAFEvaluators =
+      new LinkedHashMap<String, GenericUDAFEvaluatorFactory>();
     GroupByOperator groupByOperatorInfo = (GroupByOperator) genGroupByPlanGroupByOperator(
         parseInfo, dest, reduceSinkOperatorInfo, GroupByDesc.Mode.PARTIAL1,
         genericUDAFEvaluators);
@@ -3689,8 +3688,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     QBParseInfo parseInfo = qb.getParseInfo();
 
     // ////// Generate GroupbyOperator for a map-side partial aggregation
-    Map<String, GenericUDAFEvaluator> genericUDAFEvaluators =
-      new LinkedHashMap<String, GenericUDAFEvaluator>();
+    Map<String, GenericUDAFEvaluatorFactory> genericUDAFEvaluators =
+      new LinkedHashMap<String, GenericUDAFEvaluatorFactory>();
     GroupByOperator groupByOperatorInfo = (GroupByOperator) genGroupByPlanMapGroupByOperator(
         qb, dest, inputOperatorInfo, GroupByDesc.Mode.HASH,
         genericUDAFEvaluators);
@@ -3760,8 +3759,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     QBParseInfo parseInfo = qb.getParseInfo();
 
     // ////// Generate GroupbyOperator for a map-side partial aggregation
-    Map<String, GenericUDAFEvaluator> genericUDAFEvaluators =
-      new LinkedHashMap<String, GenericUDAFEvaluator>();
+    Map<String, GenericUDAFEvaluatorFactory> genericUDAFEvaluators =
+      new LinkedHashMap<String, GenericUDAFEvaluatorFactory>();
     GroupByOperator groupByOperatorInfo = (GroupByOperator) genGroupByPlanMapGroupByOperator(
         qb, dest, inputOperatorInfo, GroupByDesc.Mode.HASH,
         genericUDAFEvaluators);
@@ -6948,251 +6947,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     }
   }
 
-
-  /**
-   * Recursively check the limit number in all sub queries
-   * @param qbParseInfo
-   * @return if there is one and only one limit for all subqueries, return the limit
-   * if there is no limit, return 0
-   * otherwise, return null
-   */
-  private Integer checkQbpForGlobalLimit(QB localQb) {
-    QBParseInfo qbParseInfo = localQb.getParseInfo();
-    if (localQb.getNumSelDi() == 0 && qbParseInfo.getDestToClusterBy().isEmpty()
-        && qbParseInfo.getDestToDistributeBy().isEmpty()
-        && qbParseInfo.getDestToOrderBy().isEmpty()
-        && qbParseInfo.getDestToSortBy().isEmpty()
-        && qbParseInfo.getDestToAggregationExprs().size() <= 1
-        && qbParseInfo.getDestToDistinctFuncExprs().size() <= 1
-        && qbParseInfo.getNameToSample().isEmpty()) {
-      if ((qbParseInfo.getDestToAggregationExprs().size() < 1 ||
-          qbParseInfo.getDestToAggregationExprs().values().iterator().next().isEmpty()) &&
-          (qbParseInfo.getDestToDistinctFuncExprs().size() < 1 ||
-          qbParseInfo.getDestToDistinctFuncExprs().values().iterator().next().isEmpty())
-          && qbParseInfo.getDestToLimit().size() <= 1) {
-        Integer retValue;
-        if (qbParseInfo.getDestToLimit().size() == 0) {
-          retValue = 0;
-        } else {
-          retValue = qbParseInfo.getDestToLimit().values().iterator().next().intValue();
-        }
-
-        for (String alias : localQb.getSubqAliases()) {
-          Integer limit = checkQbpForGlobalLimit(localQb.getSubqForAlias(alias).getQB());
-          if  (limit == null) {
-            return null;
-          } else if (retValue > 0  && limit > 0) {
-            // Any query has more than one LIMITs shown in the query is not
-            // qualified to this optimization
-            return null;
-          } else if (limit > 0) {
-            retValue = limit;
-          }
-        }
-        return retValue;
-      }
-    }
-    return null;
-  }
-
   @SuppressWarnings("nls")
   private void genMapRedTasks(QB qb) throws SemanticException {
-    FetchWork fetch = null;
     List<Task<? extends Serializable>> mvTask = new ArrayList<Task<? extends Serializable>>();
-    FetchTask fetchTask = null;
-
-    QBParseInfo qbParseInfo = qb.getParseInfo();
-
-    // Does this query need reduce job
-    if (qb.isSimpleSelectQuery() && qbParseInfo.getDestToClusterBy().isEmpty()
-        && qbParseInfo.getDestToDistributeBy().isEmpty()
-        && qbParseInfo.getDestToOrderBy().isEmpty()
-        && qbParseInfo.getDestToSortBy().isEmpty()) {
-      boolean noMapRed = false;
-
-      Iterator<Map.Entry<String, Table>> iter = qb.getMetaData()
-          .getAliasToTable().entrySet().iterator();
-      Table tab = (iter.next()).getValue();
-      Map<String, String> props = qb.getTabPropsForAlias(tab.getTableName());
-
-      if (!tab.isPartitioned()) {
-        TableDesc tableDesc = Utilities.getTableDesc(tab);
-        if (props != null) {
-          Properties target = tableDesc.getProperties();
-          if (target == null) {
-            tableDesc.setProperties(target = new Properties());
-          }
-          target.putAll(props);
-        }
-        FetchWork work = new FetchWork(tab.getPath().toString(), tableDesc, qb.getParseInfo().getOuterQueryLimit());
-        if (qb.isSelectStartOnly() && qbParseInfo.getDestToWhereExpr().isEmpty()) {
-          fetch = work;
-        } else if (HiveConf.getBoolVar(conf, ConfVars.HIVEAGGRESIVEFETCHTASKCONVERSION)
-            && topOps.size() == 1) {
-          fetch = tryConvertToFetchWork(work, (Operator) topOps.values().toArray()[0]);
-        }
-        if (fetch != null) {
-          noMapRed = true;
-          inputs.add(new ReadEntity(tab));
-        }
-      } else {
-
-        if (topOps.size() == 1) {
-          TableScanOperator ts = (TableScanOperator) topOps.values().toArray()[0];
-
-          // check if the pruner only contains partition columns
-          if (PartitionPruner.onlyContainsPartnCols(topToTable.get(ts),
-              opToPartPruner.get(ts))) {
-
-            PrunedPartitionList partsList = null;
-            try {
-              partsList = opToPartList.get(ts);
-              if (partsList == null) {
-                partsList = PartitionPruner.prune(topToTable.get(ts),
-                    opToPartPruner.get(ts), conf, (String) topOps.keySet()
-                    .toArray()[0], prunedPartitions);
-                opToPartList.put(ts, partsList);
-              }
-            } catch (HiveException e) {
-              // Has to use full name to make sure it does not conflict with
-              // org.apache.commons.lang.StringUtils
-              LOG.error(org.apache.hadoop.util.StringUtils.stringifyException(e));
-              throw new SemanticException(e.getMessage(), e);
-            }
-
-            // If there is any unknown partition, create a map-reduce job for
-            // the filter to prune correctly
-            if ((partsList.getUnknownPartns().size() == 0)) {
-              List<String> listP = new ArrayList<String>();
-              List<PartitionDesc> partP = new ArrayList<PartitionDesc>();
-
-              Set<Partition> parts = partsList.getConfirmedPartns();
-              Iterator<Partition> iterParts = parts.iterator();
-              while (iterParts.hasNext()) {
-                Partition part = iterParts.next();
-
-                listP.add(part.getPartitionPath().toString());
-                try {
-                  PartitionDesc partitionDesc = Utilities.getPartitionDesc(part);
-                  if (props != null) {
-                    Properties target = partitionDesc.getProperties();
-                    if (target == null) {
-                      partitionDesc.setProperties(target = new Properties());
-                    }
-                    target.putAll(props);
-                  }
-                  partP.add(partitionDesc);
-                } catch (HiveException e) {
-                  throw new SemanticException(e.getMessage(), e);
-                }
-              }
-
-              FetchWork work = new FetchWork(listP, partP, qb.getParseInfo().getOuterQueryLimit());
-              if (qb.isSelectStartOnly()) {
-                fetch = work;
-              } else if (HiveConf.getBoolVar(conf, ConfVars.HIVEAGGRESIVEFETCHTASKCONVERSION)
-                  && topOps.size() == 1) {
-                fetch = tryConvertToFetchWork(work, (Operator) topOps.values().toArray()[0]);
-              }
-              if (fetch != null) {
-                noMapRed = true;
-                for (Partition part : partsList.getConfirmedPartns()) {
-                  inputs.add(new ReadEntity(part));
-                }
-              }
-            }
-          }
-        }
-      }
-
-      if (noMapRed) {
-        if (fetch.getTblDesc() != null) {
-          PlanUtils.configureInputJobPropertiesForStorageHandler(
-            fetch.getTblDesc());
-        } else if ( (fetch.getPartDesc() != null) && (!fetch.getPartDesc().isEmpty())){
-            PartitionDesc pd0 = fetch.getPartDesc().get(0);
-            TableDesc td = pd0.getTableDesc();
-            if ((td != null)&&(td.getProperties() != null)
-                && td.getProperties().containsKey(
-                    org.apache.hadoop.hive.metastore.api.Constants.META_TABLE_STORAGE)){
-              PlanUtils.configureInputJobPropertiesForStorageHandler(td);
-            }
-        }
-        fetchTask = (FetchTask) TaskFactory.get(fetch, conf);
-        setFetchTask(fetchTask);
-
-        // remove root tasks if any
-        rootTasks.clear();
-        return;
-      }
-    }
-
-    // determine the query qualifies reduce input size for LIMIT
-    // The query only qualifies when there are only one top operator
-    // and there is no transformer or UDTF and no block sampling
-    // is used.
-    if (HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVELIMITOPTENABLE)
-        && ctx.getTryCount() == 0 && topOps.size() == 1
-        && !globalLimitCtx.ifHasTransformOrUDTF() &&
-        nameToSplitSample.isEmpty()) {
-
-      // Here we recursively check:
-      // 1. whether there are exact one LIMIT in the query
-      // 2. whether there is no aggregation, group-by, distinct, sort by,
-      //    distributed by, or table sampling in any of the sub-query.
-      // The query only qualifies if both conditions are satisfied.
-      //
-      // Example qualified queries:
-      //    CREATE TABLE ... AS SELECT col1, col2 FROM tbl LIMIT ..
-      //    INSERT OVERWRITE TABLE ... SELECT col1, hash(col2), split(col1)
-      //                               FROM ... LIMIT...
-      //    SELECT * FROM (SELECT col1 as col2 (SELECT * FROM ...) t1 LIMIT ...) t2);
-      //
-      Integer tempGlobalLimit = checkQbpForGlobalLimit(qb);
-
-      // query qualify for the optimization
-      if (tempGlobalLimit != null && tempGlobalLimit != 0)  {
-        TableScanOperator ts = (TableScanOperator) topOps.values().toArray()[0];
-        Table tab = topToTable.get(ts);
-
-        if (!tab.isPartitioned()) {
-          if (qbParseInfo.getDestToWhereExpr().isEmpty()) {
-            globalLimitCtx.enableOpt(tempGlobalLimit);
-          }
-        } else {
-          // check if the pruner only contains partition columns
-          if (PartitionPruner.onlyContainsPartnCols(tab,
-              opToPartPruner.get(ts))) {
-
-            PrunedPartitionList partsList = null;
-            try {
-              partsList = opToPartList.get(ts);
-              if (partsList == null) {
-                partsList = PartitionPruner.prune(tab,
-                    opToPartPruner.get(ts), conf, (String) topOps.keySet()
-                    .toArray()[0], prunedPartitions);
-                opToPartList.put(ts, partsList);
-              }
-            } catch (HiveException e) {
-              // Has to use full name to make sure it does not conflict with
-              // org.apache.commons.lang.StringUtils
-              LOG.error(org.apache.hadoop.util.StringUtils.stringifyException(e));
-              throw new SemanticException(e.getMessage(), e);
-            }
-
-            // If there is any unknown partition, create a map-reduce job for
-            // the filter to prune correctly
-            if ((partsList.getUnknownPartns().size() == 0)) {
-              globalLimitCtx.enableOpt(tempGlobalLimit);
-            }
-          }
-        }
-        if (globalLimitCtx.isEnable()) {
-          LOG.info("Qualify the optimize that reduces input size for 'limit' for limit "
-              + globalLimitCtx.getGlobalLimit());
-        }
-      }
-    }
 
     // In case of a select, use a fetch task instead of a move task
     if (qb.getIsQuery()) {
@@ -7205,10 +6962,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       String resFileFormat = HiveConf.getVar(conf, HiveConf.ConfVars.HIVEQUERYRESULTFILEFORMAT);
       TableDesc resultTab = PlanUtils.getDefaultQueryOutputTableDesc(cols, colTypes, resFileFormat);
 
-      fetch = new FetchWork(new Path(loadFileWork.get(0).getSourceDir()).toString(),
+      FetchWork fetch = new FetchWork(new Path(loadFileWork.get(0).getSourceDir()).toString(),
           resultTab, qb.getParseInfo().getOuterQueryLimit());
 
-      fetchTask = (FetchTask) TaskFactory.get(fetch, conf);
+      FetchTask fetchTask = (FetchTask) TaskFactory.get(fetch, conf);
       setFetchTask(fetchTask);
 
       // For the FetchTask, the limit optimiztion requires we fetch all the rows
@@ -7278,6 +7035,71 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       }
     }
 
+    if (rootTasks.isEmpty()) {
+      createMRTasks(mvTask, fetchTask);
+    }
+
+    // For each operator, generate the counters if needed
+    if (HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVEJOBPROGRESS)) {
+      for (Task<? extends Serializable> rootTask : rootTasks) {
+        generateCountersTask(rootTask);
+      }
+    }
+
+    decideExecMode(rootTasks, ctx, globalLimitCtx);
+
+    if (qb.isCTAS()) {
+      // generate a DDL task and make it a dependent task of the leaf
+      CreateTableDesc crtTblDesc = qb.getTableDesc();
+
+      validateCreateTable(crtTblDesc);
+
+      // Clear the output for CTAS since we don't need the output from the
+      // mapredWork, the
+      // DDLWork at the tail of the chain will have the output
+      getOutputs().clear();
+
+      Task<? extends Serializable> crtTblTask = TaskFactory.get(new DDLWork(
+          getInputs(), getOutputs(), crtTblDesc), conf);
+
+      // find all leaf tasks and make the DDLTask as a dependent task of all of
+      // them
+      HashSet<Task<? extends Serializable>> leaves = new HashSet<Task<? extends Serializable>>();
+      getLeafTasks(rootTasks, leaves);
+      assert (leaves.size() > 0);
+      for (Task<? extends Serializable> task : leaves) {
+        if (task instanceof StatsTask){
+          //StatsTask require table to already exist
+          for (Task<? extends Serializable> parentOfStatsTask : task.getParentTasks()){
+            parentOfStatsTask.addDependentTask(crtTblTask);
+          }
+          for (Task<? extends Serializable> parentOfCrtTblTask : crtTblTask.getParentTasks()){
+            parentOfCrtTblTask.removeDependentTask(task);
+          }
+          crtTblTask.addDependentTask(task);
+        } else {
+          task.addDependentTask(crtTblTask);
+        }
+      }
+    }
+
+    if (globalLimitCtx.isEnable() && fetchTask != null) {
+      int fetchLimit = HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVELIMITOPTMAXFETCH);
+        LOG.info("set least row check for FetchTask: " + globalLimitCtx.getGlobalLimit());
+        fetchTask.getWork().setLeastNumRows(globalLimitCtx.getGlobalLimit());
+    }
+
+    if (globalLimitCtx.isEnable() && globalLimitCtx.getLastReduceLimitDesc() != null) {
+      LOG.info("set least row check for LimitDesc: " + globalLimitCtx.getGlobalLimit());
+      globalLimitCtx.getLastReduceLimitDesc().setLeastRows(globalLimitCtx.getGlobalLimit());
+      List<ExecDriver> mrTasks = Utilities.getMRTasks(rootTasks);
+      for (ExecDriver tsk : mrTasks) {
+        tsk.setRetryCmdWhenFail(true);
+      }
+    }
+  }
+
+  private void createMRTasks(List<Task<? extends Serializable>> mvTask, FetchTask fetchTask) throws SemanticException {
     // generate map reduce plans
     ParseContext tempParseContext = getParseContext();
     GenMRProcContext procCtx = new GenMRProcContext(
@@ -7342,116 +7164,6 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     PhysicalOptimizer physicalOptimizer = new PhysicalOptimizer(
         physicalContext, conf);
     physicalOptimizer.optimize();
-
-    // For each operator, generate the counters if needed
-    if (HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVEJOBPROGRESS)) {
-      for (Task<? extends Serializable> rootTask : rootTasks) {
-        generateCountersTask(rootTask);
-      }
-    }
-
-    decideExecMode(rootTasks, ctx, globalLimitCtx);
-
-    if (qb.isCTAS()) {
-      // generate a DDL task and make it a dependent task of the leaf
-      CreateTableDesc crtTblDesc = qb.getTableDesc();
-
-      validateCreateTable(crtTblDesc);
-
-      // Clear the output for CTAS since we don't need the output from the
-      // mapredWork, the
-      // DDLWork at the tail of the chain will have the output
-      getOutputs().clear();
-
-      Task<? extends Serializable> crtTblTask = TaskFactory.get(new DDLWork(
-          getInputs(), getOutputs(), crtTblDesc), conf);
-
-      // find all leaf tasks and make the DDLTask as a dependent task of all of
-      // them
-      HashSet<Task<? extends Serializable>> leaves = new HashSet<Task<? extends Serializable>>();
-      getLeafTasks(rootTasks, leaves);
-      assert (leaves.size() > 0);
-      for (Task<? extends Serializable> task : leaves) {
-        if (task instanceof StatsTask){
-          //StatsTask require table to already exist
-          for (Task<? extends Serializable> parentOfStatsTask : task.getParentTasks()){
-            parentOfStatsTask.addDependentTask(crtTblTask);
-          }
-          for (Task<? extends Serializable> parentOfCrtTblTask : crtTblTask.getParentTasks()){
-            parentOfCrtTblTask.removeDependentTask(task);
-          }
-          crtTblTask.addDependentTask(task);
-        } else {
-          task.addDependentTask(crtTblTask);
-        }
-      }
-    }
-
-    if (globalLimitCtx.isEnable() && fetchTask != null) {
-      int fetchLimit = HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVELIMITOPTMAXFETCH);
-        LOG.info("set least row check for FetchTask: " + globalLimitCtx.getGlobalLimit());
-        fetchTask.getWork().setLeastNumRows(globalLimitCtx.getGlobalLimit());
-    }
-
-    if (globalLimitCtx.isEnable() && globalLimitCtx.getLastReduceLimitDesc() != null) {
-      LOG.info("set least row check for LimitDesc: " + globalLimitCtx.getGlobalLimit());
-      globalLimitCtx.getLastReduceLimitDesc().setLeastRows(globalLimitCtx.getGlobalLimit());
-      List<ExecDriver> mrTasks = Utilities.getMRTasks(rootTasks);
-      for (ExecDriver tsk : mrTasks) {
-        tsk.setRetryCmdWhenFail(true);
-      }
-    }
-  }
-
-  private FetchWork tryConvertToFetchWork(FetchWork fetch, Operator<?> ts) {
-    if (!(ts instanceof TableScanOperator) && ts.getChildOperators().size() != 1) {
-      return null;
-    }
-    Operator<?> op = ts.getChildOperators().get(0);
-    for (; ; op = op.getChildOperators().get(0)) {
-      if (!(op instanceof SelectOperator || op instanceof LimitOperator
-          || op instanceof FilterOperator)) {
-        break;
-      }
-      if (op instanceof SelectOperator) {
-        SelectOperator sel = (SelectOperator) op;
-        if (!sel.getConf().isSelectStar()) {
-          for (ExprNodeDesc expr: sel.getConf().getColList()) {
-            if (hasVirtualColumn(expr)) {
-              return null;
-            }
-          }
-        }
-      }
-      if (op.getChildOperators() != null && op.getChildOperators().size() != 1) {
-        return null;
-      }
-      if (op.getChildOperators() == null && op.getChildOperators().isEmpty()) {
-        break;
-      }
-    }
-    if (op instanceof FileSinkOperator &&
-        op.getChildOperators() == null || op.getChildOperators().isEmpty()) {
-      op.getParentOperators().get(0).setChildOperators(null);
-      op.setParentOperators(null);
-      fetch.setProcessor(ts);
-      return fetch;
-    }
-    return null;
-  }
-
-  private boolean hasVirtualColumn(ExprNodeDesc expr) {
-    if (expr instanceof ExprNodeColumnDesc) {
-      return ((ExprNodeColumnDesc)expr).getIsPartitionColOrVirtualCol();
-    }
-    if (expr instanceof ExprNodeGenericFuncDesc) {
-      for (ExprNodeDesc param : ((ExprNodeGenericFuncDesc)expr).getChildExprs()) {
-        if (hasVirtualColumn(param)) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   /**
@@ -7499,6 +7211,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       for (Task<? extends Serializable> tsk : listTasks) {
         generateCountersTask(tsk);
       }
+    } else if (task instanceof ForwardTask) {
+      generateCountersOperator(((ForwardTask)task).getWork().getProcessor());
     }
 
     // Start the counters from scratch - a hack for hadoop 17.
@@ -7686,6 +7400,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     init(pCtx);
     qb = pCtx.getQB();
 
+    if (getFetchTask() != null) {
+      // replaced by single fetch task
+      return;
+    }
     // At this point we have the complete operator tree
     // from which we want to find the reduce operator
     genMapRedTasks(qb);
@@ -8555,11 +8273,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       // If all the tasks can be run locally, we can use local disk for
       // storing intermediate data.
 
-      /**
-       * This code is commented out pending further testing/development
-       * for (Task<? extends Serializable> t: rootTasks)
-       * t.localizeMRTmpFiles(ctx);
-       */
+      // This code is commented out pending further testing/development
+      for (Task<? extends Serializable> t: rootTasks) {
+        t.localizeMRTmpFiles(ctx);
+      }
     }
   }
 
@@ -8576,5 +8293,28 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     }
 
     return conf.getIntVar(HiveConf.ConfVars.HADOOPNUMREDUCERS);
+  }
+
+  private class GenericUDAFEvaluatorFactory {
+
+    private String aggName;
+    private ArrayList<ExprNodeDesc> aggParameters;
+    private ASTNode aggTree;
+    private boolean isDistinct;
+    private boolean isAllColumns;
+
+    private GenericUDAFEvaluatorFactory(String aggName,
+      ArrayList<ExprNodeDesc> aggParameters, ASTNode aggTree,
+      boolean isDistinct, boolean isAllColumns) {
+      this.aggName = aggName;
+      this.aggParameters = aggParameters;
+      this.aggTree = aggTree;
+      this.isDistinct = isDistinct;
+      this.isAllColumns = isAllColumns;
+    }
+
+    private GenericUDAFEvaluator create() throws SemanticException {
+      return getGenericUDAFEvaluator(aggName, aggParameters, aggTree, isDistinct, isAllColumns);
+    }
   }
 }

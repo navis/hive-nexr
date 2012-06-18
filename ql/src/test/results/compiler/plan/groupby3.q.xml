@@ -390,21 +390,21 @@
                     <void property="counterNames"> 
                      <object class="java.util.ArrayList"> 
                       <void method="add"> 
-                       <string>CNTR_NAME_RS_53_NUM_INPUT_ROWS</string> 
+                       <string>CNTR_NAME_RS_53_NUM_INPUT_ROWS</string>
                       </void> 
                       <void method="add"> 
-                       <string>CNTR_NAME_RS_53_NUM_OUTPUT_ROWS</string> 
+                       <string>CNTR_NAME_RS_53_NUM_OUTPUT_ROWS</string>
                       </void> 
                       <void method="add"> 
-                       <string>CNTR_NAME_RS_53_TIME_TAKEN</string> 
+                       <string>CNTR_NAME_RS_53_TIME_TAKEN</string>
                       </void> 
                       <void method="add"> 
-                       <string>CNTR_NAME_RS_53_FATAL_ERROR</string> 
+                       <string>CNTR_NAME_RS_53_FATAL_ERROR</string>
                       </void> 
                      </object> 
                     </void> 
                     <void property="operatorId"> 
-                     <string>RS_53</string> 
+                     <string>RS_53</string>
                     </void> 
                     <void property="parentOperators"> 
                      <object class="java.util.ArrayList"> 
@@ -548,7 +548,7 @@
                     <void method="add"> 
                      <object class="org.apache.hadoop.hive.ql.plan.AggregationDesc"> 
                       <void property="genericUDAFEvaluator"> 
-                       <object id="GenericUDAFSum$GenericUDAFSumDouble0" class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFSum$GenericUDAFSumDouble"/> 
+                       <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFSum$GenericUDAFSumDouble"/> 
                       </void> 
                       <void property="genericUDAFName"> 
                        <string>sum</string> 
@@ -614,7 +614,7 @@
                     <void method="add"> 
                      <object class="org.apache.hadoop.hive.ql.plan.AggregationDesc"> 
                       <void property="genericUDAFEvaluator"> 
-                       <object id="GenericUDAFAverage$GenericUDAFAverageEvaluator0" class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFAverage$GenericUDAFAverageEvaluator"/> 
+                       <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFAverage$GenericUDAFAverageEvaluator"/> 
                       </void> 
                       <void property="genericUDAFName"> 
                        <string>avg</string> 
@@ -681,7 +681,7 @@
                        <boolean>true</boolean> 
                       </void> 
                       <void property="genericUDAFEvaluator"> 
-                       <object id="GenericUDAFAverage$GenericUDAFAverageEvaluator1" class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFAverage$GenericUDAFAverageEvaluator"/> 
+                       <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFAverage$GenericUDAFAverageEvaluator"/> 
                       </void> 
                       <void property="genericUDAFName"> 
                        <string>avg</string> 
@@ -745,7 +745,7 @@
                     <void method="add"> 
                      <object class="org.apache.hadoop.hive.ql.plan.AggregationDesc"> 
                       <void property="genericUDAFEvaluator"> 
-                       <object id="GenericUDAFMax$GenericUDAFMaxEvaluator0" class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFMax$GenericUDAFMaxEvaluator"/> 
+                       <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFMax$GenericUDAFMaxEvaluator"/> 
                       </void> 
                       <void property="genericUDAFName"> 
                        <string>max</string> 
@@ -809,7 +809,7 @@
                     <void method="add"> 
                      <object class="org.apache.hadoop.hive.ql.plan.AggregationDesc"> 
                       <void property="genericUDAFEvaluator"> 
-                       <object id="GenericUDAFMin$GenericUDAFMinEvaluator0" class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFMin$GenericUDAFMinEvaluator"/> 
+                       <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFMin$GenericUDAFMinEvaluator"/> 
                       </void> 
                       <void property="genericUDAFName"> 
                        <string>min</string> 
@@ -917,21 +917,21 @@
                 <void property="counterNames"> 
                  <object class="java.util.ArrayList"> 
                   <void method="add"> 
-                   <string>CNTR_NAME_GBY_52_NUM_INPUT_ROWS</string> 
+                   <string>CNTR_NAME_GBY_52_NUM_INPUT_ROWS</string>
                   </void> 
                   <void method="add"> 
-                   <string>CNTR_NAME_GBY_52_NUM_OUTPUT_ROWS</string> 
+                   <string>CNTR_NAME_GBY_52_NUM_OUTPUT_ROWS</string>
                   </void> 
                   <void method="add"> 
-                   <string>CNTR_NAME_GBY_52_TIME_TAKEN</string> 
+                   <string>CNTR_NAME_GBY_52_TIME_TAKEN</string>
                   </void> 
                   <void method="add"> 
-                   <string>CNTR_NAME_GBY_52_FATAL_ERROR</string> 
+                   <string>CNTR_NAME_GBY_52_FATAL_ERROR</string>
                   </void> 
                  </object> 
                 </void> 
                 <void property="operatorId"> 
-                 <string>GBY_52</string> 
+                 <string>GBY_52</string>
                 </void> 
                 <void property="parentOperators"> 
                  <object class="java.util.ArrayList"> 
@@ -1130,21 +1130,21 @@
             <void property="counterNames"> 
              <object class="java.util.ArrayList"> 
               <void method="add"> 
-               <string>CNTR_NAME_SEL_51_NUM_INPUT_ROWS</string> 
+               <string>CNTR_NAME_SEL_51_NUM_INPUT_ROWS</string>
               </void> 
               <void method="add"> 
-               <string>CNTR_NAME_SEL_51_NUM_OUTPUT_ROWS</string> 
+               <string>CNTR_NAME_SEL_51_NUM_OUTPUT_ROWS</string>
               </void> 
               <void method="add"> 
-               <string>CNTR_NAME_SEL_51_TIME_TAKEN</string> 
+               <string>CNTR_NAME_SEL_51_TIME_TAKEN</string>
               </void> 
               <void method="add"> 
-               <string>CNTR_NAME_SEL_51_FATAL_ERROR</string> 
+               <string>CNTR_NAME_SEL_51_FATAL_ERROR</string>
               </void> 
              </object> 
             </void> 
             <void property="operatorId"> 
-             <string>SEL_51</string> 
+             <string>SEL_51</string>
             </void> 
             <void property="parentOperators"> 
              <object class="java.util.ArrayList"> 
@@ -1191,16 +1191,16 @@
         <void property="counterNames"> 
          <object class="java.util.ArrayList"> 
           <void method="add"> 
-           <string>CNTR_NAME_TS_50_NUM_INPUT_ROWS</string> 
+           <string>CNTR_NAME_TS_50_NUM_INPUT_ROWS</string>
           </void> 
           <void method="add"> 
-           <string>CNTR_NAME_TS_50_NUM_OUTPUT_ROWS</string> 
+           <string>CNTR_NAME_TS_50_NUM_OUTPUT_ROWS</string>
           </void> 
           <void method="add"> 
-           <string>CNTR_NAME_TS_50_TIME_TAKEN</string> 
+           <string>CNTR_NAME_TS_50_TIME_TAKEN</string>
           </void> 
           <void method="add"> 
-           <string>CNTR_NAME_TS_50_FATAL_ERROR</string> 
+           <string>CNTR_NAME_TS_50_FATAL_ERROR</string>
           </void> 
          </object> 
         </void> 
@@ -1212,7 +1212,7 @@
          </object> 
         </void> 
         <void property="operatorId"> 
-         <string>TS_50</string> 
+         <string>TS_50</string>
         </void> 
         <void property="schema"> 
          <object class="org.apache.hadoop.hive.ql.exec.RowSchema"> 
@@ -1496,21 +1496,21 @@
               <void property="counterNames"> 
                <object class="java.util.ArrayList"> 
                 <void method="add"> 
-                 <string>CNTR_NAME_FS_56_NUM_INPUT_ROWS</string> 
+                 <string>CNTR_NAME_FS_56_NUM_INPUT_ROWS</string>
                 </void> 
                 <void method="add"> 
-                 <string>CNTR_NAME_FS_56_NUM_OUTPUT_ROWS</string> 
+                 <string>CNTR_NAME_FS_56_NUM_OUTPUT_ROWS</string>
                 </void> 
                 <void method="add"> 
-                 <string>CNTR_NAME_FS_56_TIME_TAKEN</string> 
+                 <string>CNTR_NAME_FS_56_TIME_TAKEN</string>
                 </void> 
                 <void method="add"> 
-                 <string>CNTR_NAME_FS_56_FATAL_ERROR</string> 
+                 <string>CNTR_NAME_FS_56_FATAL_ERROR</string>
                 </void> 
                </object> 
               </void> 
               <void property="operatorId"> 
-               <string>FS_56</string> 
+               <string>FS_56</string>
               </void> 
               <void property="parentOperators"> 
                <object class="java.util.ArrayList"> 
@@ -1715,21 +1715,21 @@
           <void property="counterNames"> 
            <object class="java.util.ArrayList"> 
             <void method="add"> 
-             <string>CNTR_NAME_SEL_55_NUM_INPUT_ROWS</string> 
+             <string>CNTR_NAME_SEL_55_NUM_INPUT_ROWS</string>
             </void> 
             <void method="add"> 
-             <string>CNTR_NAME_SEL_55_NUM_OUTPUT_ROWS</string> 
+             <string>CNTR_NAME_SEL_55_NUM_OUTPUT_ROWS</string>
             </void> 
             <void method="add"> 
-             <string>CNTR_NAME_SEL_55_TIME_TAKEN</string> 
+             <string>CNTR_NAME_SEL_55_TIME_TAKEN</string>
             </void> 
             <void method="add"> 
-             <string>CNTR_NAME_SEL_55_FATAL_ERROR</string> 
+             <string>CNTR_NAME_SEL_55_FATAL_ERROR</string>
             </void> 
            </object> 
           </void> 
           <void property="operatorId"> 
-           <string>SEL_55</string> 
+           <string>SEL_55</string>
           </void> 
           <void property="parentOperators"> 
            <object class="java.util.ArrayList"> 
@@ -1825,7 +1825,7 @@
           <void method="add"> 
            <object class="org.apache.hadoop.hive.ql.plan.AggregationDesc"> 
             <void property="genericUDAFEvaluator"> 
-             <object idref="GenericUDAFSum$GenericUDAFSumDouble0"/> 
+             <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFSum$GenericUDAFSumDouble"/> 
             </void> 
             <void property="genericUDAFName"> 
              <string>sum</string> 
@@ -1854,7 +1854,7 @@
           <void method="add"> 
            <object class="org.apache.hadoop.hive.ql.plan.AggregationDesc"> 
             <void property="genericUDAFEvaluator"> 
-             <object idref="GenericUDAFAverage$GenericUDAFAverageEvaluator0"/> 
+             <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFAverage$GenericUDAFAverageEvaluator"/> 
             </void> 
             <void property="genericUDAFName"> 
              <string>avg</string> 
@@ -1884,7 +1884,7 @@
              <boolean>true</boolean> 
             </void> 
             <void property="genericUDAFEvaluator"> 
-             <object idref="GenericUDAFAverage$GenericUDAFAverageEvaluator1"/> 
+             <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFAverage$GenericUDAFAverageEvaluator"/> 
             </void> 
             <void property="genericUDAFName"> 
              <string>avg</string> 
@@ -1913,7 +1913,7 @@
           <void method="add"> 
            <object class="org.apache.hadoop.hive.ql.plan.AggregationDesc"> 
             <void property="genericUDAFEvaluator"> 
-             <object idref="GenericUDAFMax$GenericUDAFMaxEvaluator0"/> 
+             <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFMax$GenericUDAFMaxEvaluator"/> 
             </void> 
             <void property="genericUDAFName"> 
              <string>max</string> 
@@ -1940,7 +1940,7 @@
           <void method="add"> 
            <object class="org.apache.hadoop.hive.ql.plan.AggregationDesc"> 
             <void property="genericUDAFEvaluator"> 
-             <object idref="GenericUDAFMin$GenericUDAFMinEvaluator0"/> 
+             <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFMin$GenericUDAFMinEvaluator"/> 
             </void> 
             <void property="genericUDAFName"> 
              <string>min</string> 
@@ -2004,21 +2004,21 @@
       <void property="counterNames"> 
        <object class="java.util.ArrayList"> 
         <void method="add"> 
-         <string>CNTR_NAME_GBY_54_NUM_INPUT_ROWS</string> 
+         <string>CNTR_NAME_GBY_54_NUM_INPUT_ROWS</string>
         </void> 
         <void method="add"> 
-         <string>CNTR_NAME_GBY_54_NUM_OUTPUT_ROWS</string> 
+         <string>CNTR_NAME_GBY_54_NUM_OUTPUT_ROWS</string>
         </void> 
         <void method="add"> 
-         <string>CNTR_NAME_GBY_54_TIME_TAKEN</string> 
+         <string>CNTR_NAME_GBY_54_TIME_TAKEN</string>
         </void> 
         <void method="add"> 
-         <string>CNTR_NAME_GBY_54_FATAL_ERROR</string> 
+         <string>CNTR_NAME_GBY_54_FATAL_ERROR</string>
         </void> 
        </object> 
       </void> 
       <void property="operatorId"> 
-       <string>GBY_54</string> 
+       <string>GBY_54</string>
       </void> 
       <void property="parentOperators"> 
        <object class="java.util.ArrayList"> 

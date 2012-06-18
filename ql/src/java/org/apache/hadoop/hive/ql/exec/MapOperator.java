@@ -33,7 +33,6 @@ import java.util.Set;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.ql.io.IOContext;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
 import org.apache.hadoop.hive.ql.plan.MapredWork;
@@ -42,7 +41,6 @@ import org.apache.hadoop.hive.ql.plan.TableScanDesc;
 import org.apache.hadoop.hive.ql.plan.api.OperatorType;
 import org.apache.hadoop.hive.serde2.Deserializer;
 import org.apache.hadoop.hive.serde2.SerDeException;
-import org.apache.hadoop.hive.serde2.SerDeStats;
 import org.apache.hadoop.hive.serde2.SerDeUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
@@ -494,12 +492,15 @@ public class MapOperator extends Operator<MapredWork> implements Serializable {
       // The child operators cleanup if input file has changed
       cleanUpInputFileChanged();
     }
+    ExecMapperContext context = getExecContext();
 
     Object row = null;
     try {
       if (this.hasVC) {
         this.rowWithPartAndVC[0] = deserializer.deserialize(value);
-        populateVirtualColumnValues();
+        if (context != null) {
+          context.populateVirtualColumnValues(vcs, vcValues, deserializer);
+        }
         if (isPartitioned) {
           this.rowWithPartAndVC[1] = rowWithPart[1];
           this.rowWithPartAndVC[2] = this.vcValues;
@@ -550,56 +551,6 @@ public class MapOperator extends Operator<MapredWork> implements Serializable {
             StringUtils.stringifyException(e2) + " ]";
       }
       throw new HiveException("Hive Runtime Error while processing row " + rowString, e);
-    }
-  }
-
-  private void populateVirtualColumnValues() {
-    if (this.vcs != null) {
-      ExecMapperContext mapExecCxt = this.getExecContext();
-      IOContext ioCxt = mapExecCxt.getIoCxt();
-      for (int i = 0; i < vcs.size(); i++) {
-        VirtualColumn vc = vcs.get(i);
-        if (vc.equals(VirtualColumn.FILENAME) && mapExecCxt.inputFileChanged()) {
-          this.vcValues[i] = new Text(mapExecCxt.getCurrentInputFile());
-        } else if (vc.equals(VirtualColumn.BLOCKOFFSET)) {
-          long current = ioCxt.getCurrentBlockStart();
-          LongWritable old = (LongWritable) this.vcValues[i];
-          if (old == null) {
-            old = new LongWritable(current);
-            this.vcValues[i] = old;
-            continue;
-          }
-          if (current != old.get()) {
-            old.set(current);
-          }
-        } else if (vc.equals(VirtualColumn.ROWOFFSET)) {
-          long current = ioCxt.getCurrentRow();
-          LongWritable old = (LongWritable) this.vcValues[i];
-          if (old == null) {
-            old = new LongWritable(current);
-            this.vcValues[i] = old;
-            continue;
-          }
-          if (current != old.get()) {
-            old.set(current);
-          }
-        } else if (vc.equals(VirtualColumn.RAWDATASIZE)) {
-          long current = 0L;
-          SerDeStats stats = this.deserializer.getSerDeStats();
-          if(stats != null) {
-            current = stats.getRawDataSize();
-          }
-          LongWritable old = (LongWritable) this.vcValues[i];
-          if (old == null) {
-            old = new LongWritable(current);
-            this.vcValues[i] = old;
-            continue;
-          }
-          if (current != old.get()) {
-            old.set(current);
-          }
-        }
-      }
     }
   }
 

@@ -1,3 +1,4 @@
+set hive.nomr.conversion=true;
 set hive.aggresive.fetch.task.conversion=true;
 
 -- backward
@@ -40,3 +41,18 @@ select key, value, BLOCK__OFFSET__INSIDE__FILE from srcpart TABLESAMPLE (0.25 PE
 -- non deterministic
 explain select key, value, BLOCK__OFFSET__INSIDE__FILE from srcpart where ds="2008-04-09" AND rand() > 1;
 select key, value, BLOCK__OFFSET__INSIDE__FILE from srcpart where ds="2008-04-09" AND rand() > 1;
+
+explain select key from src order by key desc limit 10;
+select key, value from src order by key desc limit 10;
+
+explain select key, value from src order by key desc limit 10;
+select key, value from src order by key desc limit 10;
+
+explain select src.key from src join src src2 on src.key=src2.key where src2.key < 10 order by key;
+select src.key from src join src src2 on src.key=src2.key where src2.key < 10 order by key;
+
+explain select * from src src1 join src src2 on src1.key=src2.key order by src1.key desc limit 10;
+select * from src src1 join src src2 on src1.key=src2.key order by src1.key desc limit 10;
+
+explain select sum(cast (src1.key as int)) as keysum from src src1 join src src2 on src1.key=src2.key group by src1.key order by keysum desc limit 10;
+select sum(cast (src1.key as int)) as keysum from src src1 join src src2 on src1.key=src2.key group by src1.key order by keysum desc limit 10;

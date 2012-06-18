@@ -199,7 +199,11 @@ public class QB {
         !qbp.isAnalyzeCommand();
   }
 
-  public boolean isSelectStartOnly() {
+  public boolean hasTableSample(String alias) {
+    return qbp.getTabSample(alias) != null;
+  }
+
+  public boolean isSelectStarOnly() {
     return qbp.isSelectStarOnly();
   }
 
