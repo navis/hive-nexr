@@ -162,8 +162,9 @@ public class InMemoryProcessOptimizer {
     if (table == null) {
       return null;
     }
+    Map<String, String> props = qb.getTabPropsForAlias(alias);
     if (!table.isPartitioned()) {
-      return checkOperators(new FetchData(table, sample), ts, mode, false);
+      return checkOperators(new FetchData(table, sample, props), ts, mode, false);
     }
 
     boolean bypassFilter = false;
@@ -175,7 +176,7 @@ public class InMemoryProcessOptimizer {
       PrunedPartitionList prunedPartitions = pctx.getPrunedPartitions(alias, ts);
       if (mode != SIMPLE || prunedPartitions.getUnknownPartns().isEmpty()) {
         bypassFilter &= prunedPartitions.getUnknownPartns().isEmpty();
-        return checkOperators(new FetchData(prunedPartitions, sample), ts, mode, bypassFilter);
+        return checkOperators(new FetchData(prunedPartitions, sample, props), ts, mode, bypassFilter);
       }
     }
     return null;
@@ -232,16 +233,19 @@ public class InMemoryProcessOptimizer {
     private TableScanOperator scan;
     private FileSinkOperator sink;
     private boolean needProcessor;
+    private Map<String, String> props;
 
-    private FetchData(Table table, SplitSample splitSample) {
+    private FetchData(Table table, SplitSample splitSample, Map<String, String> props) {
       this.table = table;
       this.splitSample = splitSample;
+      this.props = props;
     }
 
-    private FetchData(PrunedPartitionList partsList, SplitSample splitSample) {
+    private FetchData(PrunedPartitionList partsList, SplitSample splitSample, Map<String, String> props) {
       partitions.addAll(partsList.getUnknownPartns());
       partitions.addAll(partsList.getConfirmedPartns());
       this.splitSample = splitSample;
+      this.props = props;
     }
 
     private FetchWork convertToWork(int limit, Operator<?> processor) throws HiveException {
@@ -256,7 +260,7 @@ public class InMemoryProcessOptimizer {
       if (table != null) {
         inputs.add(new ReadEntity(table));
         String path = table.getPath().toString();
-        FetchWork work = new FetchWork(path, Utilities.getTableDesc(table), limit);
+        FetchWork work = new FetchWork(path, Utilities.getTableDesc(table, props), limit);
         PlanUtils.configureInputJobPropertiesForStorageHandler(work.getTblDesc());
         work.setSplitSample(splitSample);
         return work;
@@ -267,7 +271,7 @@ public class InMemoryProcessOptimizer {
       for (Partition partition : partitions) {
         inputs.add(new ReadEntity(partition));
         listP.add(partition.getPartitionPath().toString());
-        partP.add(Utilities.getPartitionDesc(partition));
+        partP.add(Utilities.getPartitionDesc(partition, props));
       }
       FetchWork work = new FetchWork(listP, partP, limit);
       if (!work.getPartDesc().isEmpty()) {

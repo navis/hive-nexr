@@ -691,6 +691,19 @@ public final class Utilities {
         .getOutputFormatClass(), tbl.getSchema()));
   }
 
+  public static TableDesc getTableDesc(Table tbl, Map<String, String> props) {
+    TableDesc desc = getTableDesc(tbl);
+    if (props == null) {
+      return desc;
+    }
+    Properties properties = desc.getProperties();
+    if (properties == null) {
+      desc.setProperties(properties = new Properties());
+    }
+    properties.putAll(props);
+    return desc;
+  }
+
   // column names and column types are all delimited by comma
   public static TableDesc getTableDesc(String cols, String colTypes) {
     return (new TableDesc(LazySimpleSerDe.class, SequenceFileInputFormat.class,
@@ -702,6 +715,19 @@ public final class Utilities {
 
   public static PartitionDesc getPartitionDesc(Partition part) throws HiveException {
     return (new PartitionDesc(part));
+  }
+
+  public static PartitionDesc getPartitionDesc(Partition part, Map<String, String> props) throws HiveException {
+    PartitionDesc desc = getPartitionDesc(part);
+    if (props == null) {
+      return desc;
+    }
+    Properties properties = desc.getProperties();
+    if (properties == null) {
+      desc.setProperties(properties = new Properties());
+    }
+    properties.putAll(props);
+    return desc;
   }
 
   public static PartitionDesc getPartitionDescFromTableDesc(TableDesc tblDesc, Partition part)
