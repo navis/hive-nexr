@@ -533,6 +533,7 @@ public class HiveConf extends Configuration {
     HIVEAGGRESIVEFETCHTASKCONVERSION("hive.aggresive.fetch.task.conversion", false),
 
     HIVENOMRCONVERSION("hive.nomr.conversion", false),
+    HIVENOMRCONVERSIONTHRESHOLD("hive.nomr.conversion.threshold", -1l),
 
     // Serde for FetchTask
     HIVEFETCHOUTPUTSERDE("hive.fetch.output.serde", "org.apache.hadoop.hive.serde2.DelimitedJSONSerDe"),
