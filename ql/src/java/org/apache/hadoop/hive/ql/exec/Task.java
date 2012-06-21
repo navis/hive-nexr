@@ -154,7 +154,7 @@ public abstract class Task<T extends Serializable> implements Serializable, Node
   }
 
   protected void notify(String callback, String status) {
-    callback = callback.replaceAll("\\$jobStatus", status).replaceAll("\\$stageId", getId());
+    callback = callback.replaceAll("\\$jobStatus", status);
 
     HttpURLConnection urlConn = null;
     try {
