@@ -418,7 +418,10 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
 
       String callback = ctx.getConf().get("task.notification.url");
       if (callback != null) {
-        callback = callback.replaceAll("\\$stageId", getId());
+        String stageId = getId();
+        String queryId = HiveConf.getVar(job, ConfVars.HIVEQUERYID);
+        callback = callback.replaceAll("\\$stageId", stageId);
+        callback = callback.replaceAll("\\$queryId", queryId);
         job.setJobEndNotificationURI(callback);
       }
 
