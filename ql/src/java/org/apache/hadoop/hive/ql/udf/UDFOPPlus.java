@@ -22,9 +22,13 @@ import org.apache.hadoop.hive.ql.exec.Description;
 import org.apache.hadoop.hive.serde2.io.ByteWritable;
 import org.apache.hadoop.hive.serde2.io.DoubleWritable;
 import org.apache.hadoop.hive.serde2.io.ShortWritable;
+import org.apache.hadoop.hive.serde2.io.TimestampWritable;
 import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
+
+import java.sql.Timestamp;
+import java.util.TimeZone;
 
 /**
  * The reason that we list evaluate methods with all numeric types is for both
@@ -37,6 +41,8 @@ import org.apache.hadoop.io.LongWritable;
  */
 @Description(name = "+", value = "a _FUNC_ b - Returns a+b")
 public class UDFOPPlus extends UDFBaseNumericOp {
+
+  protected TimestampWritable timestampWritable = new TimestampWritable();
 
   public UDFOPPlus() {
   }
@@ -113,4 +119,31 @@ public class UDFOPPlus extends UDFBaseNumericOp {
     return doubleWritable;
   }
 
+  public TimestampWritable evaluate(TimestampWritable a, TimestampWritable b) {
+    // LOG.info("Get input " + a.getClass() + ":" + a + " " + b.getClass() + ":"
+    // + b);
+    if ((a == null) || (b == null)) {
+      return null;
+    }
+
+    TimeZone current = TimeZone.getDefault();
+    Timestamp ats = a.getTimestamp();
+    Timestamp bts = b.getTimestamp();
+
+    long msec = ats.getTime() + bts.getTime();
+    int nanos = ats.getNanos() % 1000000 + bts.getNanos() % 1000000;
+    if (nanos > 1000000) {
+      nanos -= 1000000;
+      msec += 1;
+    }
+    msec += current.getRawOffset();
+
+    nanos += (msec % 1000) * 1000000;
+    Timestamp timestamp = timestampWritable.getTimestamp();
+    timestamp.setTime(msec);
+    timestamp.setNanos(nanos);
+
+    timestampWritable.set(timestamp);
+    return timestampWritable;
+  }
 }

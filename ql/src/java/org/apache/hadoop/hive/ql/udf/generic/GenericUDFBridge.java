@@ -23,6 +23,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
+import org.apache.hadoop.hive.ql.exec.NoMatchingMethodException;
 import org.apache.hadoop.hive.ql.exec.UDF;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
@@ -152,6 +153,9 @@ public class GenericUDFBridge extends GenericUDF implements Serializable {
           .getTypeInfoFromObjectInspector(argument));
     }
     udfMethod = udf.getResolver().getEvalMethod(argumentTypeInfos);
+    if (udfMethod == null) {
+      throw new NoMatchingMethodException(udfClass, argumentTypeInfos, null);
+    }
     udfMethod.setAccessible(true);
 
     // Create parameter converters

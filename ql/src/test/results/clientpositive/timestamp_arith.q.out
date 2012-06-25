@@ -1,0 +1,38 @@
+PREHOOK: query: select cast('2011-01-01 01:01:02.4567' as timestamp) - cast('1970-01-01 01:01:01.5678' as timestamp) from src limit 1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: select cast('2011-01-01 01:01:02.4567' as timestamp) - cast('1970-01-01 01:01:01.5678' as timestamp) from src limit 1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+2011-01-01 00:00:00.8889
+PREHOOK: query: select cast('2011-01-01 01:01:02.4567' as timestamp) + cast('1970-01-01 01:01:01.5678' as timestamp) from src limit 1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: select cast('2011-01-01 01:01:02.4567' as timestamp) + cast('1970-01-01 01:01:01.5678' as timestamp) from src limit 1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+2011-01-01 02:02:04.0245
+PREHOOK: query: select cast('2012-01-01 00:00:00' as timestamp) + (cast('2011-01-01 04:00:00.4567' as timestamp) - cast('2011-01-01 02:15:00.5678' as timestamp)) from src limit 1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: select cast('2012-01-01 00:00:00' as timestamp) + (cast('2011-01-01 04:00:00.4567' as timestamp) - cast('2011-01-01 02:15:00.5678' as timestamp)) from src limit 1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+2012-01-01 01:44:59.8889
+PREHOOK: query: -- null (negative time is not supported)
+select cast('2010-01-01 01:01:01.5678' as timestamp) - cast('2011-01-01 01:01:02.4567' as timestamp) from src limit 1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: -- null (negative time is not supported)
+select cast('2010-01-01 01:01:01.5678' as timestamp) - cast('2011-01-01 01:01:02.4567' as timestamp) from src limit 1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+NULL
