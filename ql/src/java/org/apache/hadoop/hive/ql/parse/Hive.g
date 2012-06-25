@@ -1891,6 +1891,7 @@ expression
 atomExpression
     :
     KW_NULL -> TOK_NULL
+    | KW_TIMESTAMP StringLiteral -> ^(TOK_FUNCTION TOK_TIMESTAMP StringLiteral)
     | constant
     | function
     | castExpression
