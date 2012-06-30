@@ -281,6 +281,7 @@ public final class GenMapRedUtils {
         localPlan.setInputFileChangeSensitive(true);
         bucketMJCxt.setMapJoinBigTableAlias(currMapJoinOp.getConf().getBigTableAlias());
         bucketMJCxt.setBucketMatcherClass(org.apache.hadoop.hive.ql.exec.DefaultBucketMatcher.class);
+        plan.setSmbJoin(currMapJoinOp instanceof SMBMapJoinOperator);
       }
     }
   }

@@ -670,6 +670,12 @@
 </property>
 
 <property>
+  <name>hive.input.format.smbjoin</name>
+  <value>org.apache.hadoop.hive.ql.io.BucketizedHiveInputFormat</value>
+  <description>The default input format for smbjoin.</description>
+</property>
+
+<property>
   <name>hive.udtf.auto.progress</name>
   <value>false</value>
   <description>Whether Hive should automatically send progress information to TaskTracker when using UDTF's to prevent the task getting killed because of inactivity.  Users should be cautious because this may prevent TaskTracker from killing tasks with infinte loops.  </description>
