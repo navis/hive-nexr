@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
+import java.util.TreeMap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -36,6 +37,7 @@ import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
 import org.apache.hadoop.hive.ql.exec.FilterOperator;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.JoinOperator;
+import org.apache.hadoop.hive.ql.exec.LateralViewForwardOperator;
 import org.apache.hadoop.hive.ql.exec.LateralViewJoinOperator;
 import org.apache.hadoop.hive.ql.exec.LimitOperator;
 import org.apache.hadoop.hive.ql.exec.MapJoinOperator;
@@ -56,6 +58,7 @@ import org.apache.hadoop.hive.ql.parse.OpParseContext;
 import org.apache.hadoop.hive.ql.parse.RowResolver;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.AggregationDesc;
+import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.GroupByDesc;
 import org.apache.hadoop.hive.ql.plan.JoinDesc;
@@ -329,9 +332,55 @@ public final class ColumnPrunerProcFactory {
           colsAfterReplacement.add(col);
         }
       }
+      ArrayList<String> outputCols = op.getConf().getOutputInternalColNames();
+      if (outputCols.size() != cols.size()) {
+        Map<Integer, String> reorder = new TreeMap<Integer, String>();
+        for (String col : cols) {
+          int index = outputCols.indexOf(col);
+          if (index >= 0 && index < colExprMap.size()) {
+            reorder.put(index, col);
+          }
+        }
+        ArrayList<String> newColNames = new ArrayList<String>(reorder.values());
+        newColNames.addAll(outputCols.subList(colExprMap.size(), outputCols.size()));
+        op.getConf().setOutputInternalColNames(newColNames);
+      }
 
       cppCtx.getPrunedColLists().put(op,
           colsAfterReplacement);
+      return null;
+    }
+  }
+
+  /**
+   * The Node Processor for Column Pruning on Lateral View Forward Operators.
+   */
+  public static class ColumnPrunerLateralViewForwardProc extends ColumnPrunerDefaultProc {
+    @Override
+    public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx ctx,
+        Object... nodeOutputs) throws SemanticException {
+      super.process(nd, stack, ctx, nodeOutputs);
+      LateralViewForwardOperator op = (LateralViewForwardOperator) nd;
+      ColumnPrunerProcCtx cppCtx = (ColumnPrunerProcCtx) ctx;
+
+      Operator<?> select = op.getChildOperators().get(LateralViewJoinOperator.SELECT_TAG);
+      List<String> cols = cppCtx.getPrunedColList(select);
+      RowResolver rr = cppCtx.getOpToParseCtxMap().get(op).getRowResolver();
+      if (rr.getColumnInfos().size() != cols.size()) {
+        ArrayList<ExprNodeDesc> colList = new ArrayList<ExprNodeDesc>();
+        ArrayList<String> outputColNames = new ArrayList<String>();
+        for (String col : cols) {
+          String[] tabcol = rr.reverseLookup(col);
+          ColumnInfo colInfo = rr.get(tabcol[0], tabcol[1]);
+          ExprNodeColumnDesc colExpr = new ExprNodeColumnDesc(colInfo.getType(),
+              colInfo.getInternalName(), colInfo.getTabAlias(), colInfo.getIsVirtualCol());
+          colList.add(colExpr);
+          outputColNames.add(col);
+        }
+        ((SelectDesc)select.getConf()).setSelStarNoCompute(false);
+        ((SelectDesc)select.getConf()).setColList(colList);
+        ((SelectDesc)select.getConf()).setOutputColumnNames(outputColNames);
+      }
       return null;
     }
   }
@@ -346,6 +395,7 @@ public final class ColumnPrunerProcFactory {
       ColumnPrunerProcCtx cppCtx = (ColumnPrunerProcCtx) ctx;
       List<String> cols = new ArrayList<String>();
 
+      LateralViewJoinOperator lvJoin = null;
       if (op.getChildOperators() != null) {
         for (Operator<? extends Serializable> child : op.getChildOperators()) {
           // If one of my children is a FileSink or Script, return all columns.
@@ -361,11 +411,20 @@ public final class ColumnPrunerProcFactory {
                 .put(op, cppCtx.getColsFromSelectExpr(op));
             return null;
           }
+          if (op.getConf().isSelStarNoCompute() && child instanceof LateralViewJoinOperator) {
+            lvJoin = (LateralViewJoinOperator) child;
+          }
         }
       }
       cols = cppCtx.genColLists(op);
 
       SelectDesc conf = op.getConf();
+
+      if (lvJoin != null) {
+        RowResolver rr = cppCtx.getOpToParseCtxMap().get(op).getRowResolver();
+        cppCtx.getPrunedColLists().put(op, cppCtx.getSelectColsFromLVJoin(rr, cols));
+        return null;
+      }
       // The input to the select does not matter. Go over the expressions
       // and return the ones which have a marked column
       cppCtx.getPrunedColLists().put(op,
@@ -536,6 +595,10 @@ public final class ColumnPrunerProcFactory {
 
   public static ColumnPrunerLateralViewJoinProc getLateralViewJoinProc() {
     return new ColumnPrunerLateralViewJoinProc();
+  }
+
+  public static ColumnPrunerLateralViewForwardProc getLateralViewForwardProc() {
+    return new ColumnPrunerLateralViewForwardProc();
   }
 
   /**
