@@ -638,6 +638,9 @@ public class HiveConf extends Configuration {
 
     HIVEJOBNAMELENGTH("hive.jobname.length", 50, "max jobname length"),
 
+    // notify mapred job start/end
+    HIVETASKNOTIFICATIONURL("task.notification.url", ""),
+
     // hive jar
     HIVEJAR("hive.jar.path", "",
         "The location of hive_cli.jar that is used when submitting jobs in a separate jvm."),

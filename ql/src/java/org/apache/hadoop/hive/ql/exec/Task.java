@@ -20,6 +20,8 @@ package org.apache.hadoop.hive.ql.exec;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -165,6 +167,27 @@ public abstract class Task<T extends Serializable> implements Serializable, Node
       return retval;
     } catch (IOException e) {
       throw new RuntimeException("Unexpected error: " + e.getMessage(), e);
+    }
+  }
+
+  protected void notify(String callback) {
+    HttpURLConnection urlConn = null;
+    try {
+      urlConn = (HttpURLConnection) new URL(callback).openConnection();
+      if (urlConn.getResponseCode() != HttpURLConnection.HTTP_OK) {
+        LOG.info("failed to notify " + callback +
+            ", unexpected response " + urlConn.getResponseCode());
+      }
+    } catch (Exception ex) {
+      LOG.info("failed to notify " + callback + " by exception", ex);
+    } finally {
+      if (urlConn != null) {
+        try {
+          urlConn.disconnect();
+        } catch (Exception e) {
+          // ignore
+        }
+      }
     }
   }
 

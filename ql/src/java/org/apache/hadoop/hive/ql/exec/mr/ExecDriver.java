@@ -425,11 +425,27 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
         TezSessionPoolManager.getInstance().close(session, true);
       }
 
+      String callback = HiveConf.getVar(ctx.getConf(), ConfVars.HIVETASKNOTIFICATIONURL);
+      if (callback != null && !callback.isEmpty()) {
+        String stageId = getId();
+        String queryId = HiveConf.getVar(job, ConfVars.HIVEQUERYID);
+        callback = callback.replaceAll("\\$stageId", stageId);
+        callback = callback.replaceAll("\\$queryId", queryId);
+        job.setJobEndNotificationURI(callback);   // use facility in hadoop
+      }
+
       // Finally SUBMIT the JOB!
       rj = jc.submitJob(job);
       // replace it back
       if (pwd != null) {
         HiveConf.setVar(job, HiveConf.ConfVars.METASTOREPWD, pwd);
+      }
+
+      if (callback != null && !callback.isEmpty()) {
+        String jobID = rj.getJobID();
+        callback = callback.replaceAll("\\$jobId", jobID);
+        callback = callback.replaceAll("\\$jobStatus", "STARTED");
+        notify(callback);
       }
 
       returnVal = jobExecHelper.progress(rj, jc, ctx.getHiveTxnManager());
