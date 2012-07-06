@@ -15,6 +15,7 @@ import org.apache.hadoop.hive.ql.plan.FetchWork;
 import org.apache.hadoop.hive.ql.plan.FileSinkDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.plan.api.StageType;
+import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.objectinspector.InspectableObject;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -54,7 +55,11 @@ public class ForwardTask extends Task<FetchWork> implements Serializable {
       Class<? extends SerDe> serdeClass = Class.forName(serdeName, true,
           JavaUtils.getClassLoader()).asSubclass(SerDe.class);
 
+      work.getLimit();
       processor = (TableScanOperator) work.getProcessor();
+      ArrayList<Integer> list = processor.getNeededColumnIDs();
+      ColumnProjectionUtils.appendReadColumnIDs(job, list);
+
       setupTmpDir(processor, job, new HashSet<Operator>());
 
       HiveInputFormat.pushFilters(job, processor);
