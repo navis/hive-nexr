@@ -1082,10 +1082,10 @@
           <remoteRepository
               id="nexus-releases"
               url="${nexus.release.repo}" />
-          <attach file="${mvn.jar.dir}/hive-${hive.project}-${version}.jar.asc"
-                  type="jar.asc"/>
-          <attach file="${mvn.pom.dir}/hive-${hive.project}-${version}.pom.asc"
-                  type="pom.asc"/>
+          <!--<attach file="${mvn.jar.dir}/hive-${hive.project}-${version}.jar.asc"-->
+                  <!--type="jar.asc"/>-->
+          <!--<attach file="${mvn.pom.dir}/hive-${hive.project}-${version}.pom.asc"-->
+                  <!--type="pom.asc"/>-->
         </artifact:deploy>
       </then>
       <elseif>
