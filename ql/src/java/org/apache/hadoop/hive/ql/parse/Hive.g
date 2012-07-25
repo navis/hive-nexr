@@ -1792,7 +1792,7 @@ lateralView
 @init {msgs.push("lateral view"); }
 @after {msgs.pop(); }
 	:
-	KW_LATERAL KW_VIEW function tableAlias KW_AS Identifier (COMMA Identifier)* -> ^(TOK_LATERAL_VIEW ^(TOK_SELECT ^(TOK_SELEXPR function Identifier+ tableAlias)))
+	KW_LATERAL KW_VIEW function tableAlias (KW_AS Identifier (COMMA Identifier)*)? -> ^(TOK_LATERAL_VIEW ^(TOK_SELECT ^(TOK_SELEXPR function Identifier* tableAlias)))
 	;
 
 tableAlias
