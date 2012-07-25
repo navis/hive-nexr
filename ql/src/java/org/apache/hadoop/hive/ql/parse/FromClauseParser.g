@@ -125,7 +125,7 @@ lateralView
 @init {gParent.msgs.push("lateral view"); }
 @after {gParent.msgs.pop(); }
 	:
-	KW_LATERAL KW_VIEW function tableAlias KW_AS identifier (COMMA identifier)* -> ^(TOK_LATERAL_VIEW ^(TOK_SELECT ^(TOK_SELEXPR function identifier+ tableAlias)))
+	KW_LATERAL KW_VIEW function tableAlias (KW_AS identifier (COMMA identifier)*)? -> ^(TOK_LATERAL_VIEW ^(TOK_SELECT ^(TOK_SELEXPR function identifier* tableAlias)))
 	;
 
 tableAlias
