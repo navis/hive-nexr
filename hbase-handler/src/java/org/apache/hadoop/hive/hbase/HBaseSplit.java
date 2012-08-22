@@ -39,6 +39,8 @@ public class HBaseSplit extends FileSplit implements InputSplit {
   /**
    * For Writable
    */
+  private transient long length = -1;
+
   public HBaseSplit() {
     super((Path) null, 0, 0, (String[]) null);
     tableSplit = new TableSplit();
@@ -101,12 +103,19 @@ public class HBaseSplit extends FileSplit implements InputSplit {
 
   @Override
   public long getLength() {
+    if (length >= 0) {
+      return length;
+    }
     long val = 0;
     try {
       val = isTableSplit ? tableSplit.getLength() : snapshotSplit.getLength();
     } finally {
       return val;
     }
+  }
+
+  public void setLength(long length) {
+    this.length = length;
   }
 
   @Override

@@ -20,15 +20,24 @@ package org.apache.hadoop.hive.hbase;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.HRegionLocation;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
@@ -38,7 +47,9 @@ import org.apache.hadoop.hbase.mapreduce.TableInputFormatBase;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hive.hbase.ColumnMappings.ColumnMapping;
+import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.hive.ql.exec.ExprNodeConstantEvaluator;
+import org.apache.hadoop.hive.ql.exec.LazySplitMetaProvider;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.index.IndexPredicateAnalyzer;
 import org.apache.hadoop.hive.ql.index.IndexSearchCondition;
@@ -61,6 +72,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectIn
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.io.BooleanWritable;
 import org.apache.hadoop.io.FloatWritable;
+import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -81,7 +93,7 @@ import org.apache.hadoop.security.UserGroupInformation;
  * such as column pruning and filter pushdown.
  */
 public class HiveHBaseTableInputFormat extends TableInputFormatBase
-    implements InputFormat<ImmutableBytesWritable, ResultWritable> {
+    implements InputFormat<ImmutableBytesWritable, ResultWritable>, LazySplitMetaProvider {
 
   static final Log LOG = LogFactory.getLog(HiveHBaseTableInputFormat.class);
   private static final Object hbaseTableMonitor = new Object();
@@ -112,6 +124,8 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
 
     return new RecordReader<ImmutableBytesWritable, ResultWritable>() {
 
+      private transient long pos;
+
       @Override
       public void close() throws IOException {
         recordReader.close();
@@ -129,7 +143,7 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
 
       @Override
       public long getPos() throws IOException {
-        return 0;
+        return pos;
       }
 
       @Override
@@ -147,21 +161,22 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
 
       @Override
       public boolean next(ImmutableBytesWritable rowKey, ResultWritable value) throws IOException {
-
-        boolean next = false;
-
         try {
-          next = recordReader.nextKeyValue();
-
-          if (next) {
-            rowKey.set(recordReader.getCurrentValue().getRow());
-            value.setResult(recordReader.getCurrentValue());
+          if (!recordReader.nextKeyValue()) {
+            return false;
           }
-        } catch (InterruptedException e) {
+          Result result = recordReader.getCurrentValue();
+          rowKey.set(result.getRow());
+          value.setResult(result);
+
+          for (Cell cell : result.rawCells()) {
+            pos += cell.getValueLength();
+          }
+          pos += result.getRow().length;
+          return true;
+        } catch (Exception e) {
           throw new IOException(e);
         }
-
-        return next;
       }
     };
   }
@@ -505,5 +520,88 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
     }
 
     return results;
+  }
+
+  private boolean getStorageFormatOfKey(String spec, String defaultFormat) throws IOException{
+
+    String[] mapInfo = spec.split("#");
+    boolean tblLevelDefault = "binary".equalsIgnoreCase(defaultFormat) ? true : false;
+
+    switch (mapInfo.length) {
+    case 1:
+      return tblLevelDefault;
+
+    case 2:
+      String storageType = mapInfo[1];
+      if(storageType.equals("-")) {
+        return tblLevelDefault;
+      } else if ("string".startsWith(storageType)){
+        return false;
+      } else if ("binary".startsWith(storageType)){
+        return true;
+      }
+
+    default:
+      throw new IOException("Malformed string: " + spec);
+    }
+  }
+
+  @Override
+  public void setSplitMeta(JobConf jobConf, InputSplit[] splits) {
+    Configuration conf = HBaseConfiguration.create(new Configuration(jobConf));
+
+    try {
+      flushTable(conf, getHTable().getTableName()); // hate this
+
+      Path rootPath = FSUtils.getRootDir(conf);
+      Path tablePath = FSUtils.getTableDir(rootPath, getHTable().getName());
+
+      FileSystem fs = tablePath.getFileSystem(conf);
+
+      Set<byte[]> familiesKeys = getHTable().getTableDescriptor().getFamiliesKeys();
+      final Set<String> familyNames = toStringSet(familiesKeys);
+      for (InputSplit split : splits) {
+        TableSplit tableSplit = ((HBaseSplit) split).getTableSplit();
+        long splitLength = 0;
+        byte[] start = tableSplit.getStartRow();
+        byte[] end = tableSplit.getEndRow();
+        for (HRegionLocation region : getHTable().getRegionsInRange(start, end)) {
+          HRegionInfo info = region.getRegionInfo();
+          Path regionPath = new Path(tablePath, info.getEncodedName());
+          for (FileStatus status : fs.globStatus(new Path(regionPath, "**/*"), new PathFilter() {
+            public boolean accept(Path path) {
+              return familyNames.contains(path.getParent().getName());
+            }
+          })) {
+            splitLength += status.getLen();
+          }
+        }
+        ((HBaseSplit)split).setLength(splitLength);
+        LOG.info("Set length for table split " + tableSplit + " = " + splitLength);
+      }
+    } catch (Exception e) {
+      // ignore.. best effort
+      LOG.info("Failed to get split informations", e);
+      for (InputSplit split : splits) {
+        ((HBaseSplit)split).setLength(-1);  // reset
+      }
+    }
+  }
+
+  private void flushTable(Configuration conf, byte[] tableName) throws Exception {
+    HBaseAdmin hadmin = new HBaseAdmin(conf);
+    try {
+      hadmin.flush(tableName);
+    } finally {
+      IOUtils.closeStream(hadmin);
+    }
+  }
+
+  private Set<String> toStringSet(Set<byte[]> families) {
+    Set<String> names = new HashSet<String>();
+    for (byte[] family : families) {
+      names.add(new String(family));
+    }
+    return names;
   }
 }

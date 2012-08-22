@@ -365,6 +365,9 @@ public class FetchOperator implements Serializable {
         inputSplits[i] = new FetchInputFormatSplit(splits[i], inputFormat);
       }
       if (work.getSplitSample() != null) {
+        if (inputFormat instanceof LazySplitMetaProvider) {
+          ((LazySplitMetaProvider)inputFormat).setSplitMeta(job, splits);
+        }
         inputSplits = splitSampling(work.getSplitSample(), inputSplits);
       }
       if (inputSplits.length > 0) {
@@ -377,24 +380,22 @@ public class FetchOperator implements Serializable {
   private FetchInputFormatSplit[] splitSampling(SplitSample splitSample,
       FetchInputFormatSplit[] splits) {
     long totalSize = 0;
-    for (FetchInputFormatSplit split: splits) {
-        totalSize += split.getLength();
+    for (FetchInputFormatSplit split : splits) {
+      totalSize += split.getLength();
     }
     List<FetchInputFormatSplit> result = new ArrayList<FetchInputFormatSplit>(splits.length);
     long targetSize = splitSample.getTargetSize(totalSize);
     int startIndex = splitSample.getSeedNum() % splits.length;
-    long size = 0;
+    long consumed = 0;
     for (int i = 0; i < splits.length; i++) {
       FetchInputFormatSplit split = splits[(startIndex + i) % splits.length];
       result.add(split);
-      long splitgLength = split.getLength();
-      if (size + splitgLength >= targetSize) {
-        if (size + splitgLength > targetSize) {
-          split.shrinkedLength = targetSize - size;
-        }
+      long splitLength = split.getLength();
+      if (consumed + splitLength >= targetSize) {
+        split.shrinkedLength = targetSize - consumed;
         break;
       }
-      size += splitgLength;
+      consumed += splitLength;
     }
     return result.toArray(new FetchInputFormatSplit[result.size()]);
   }

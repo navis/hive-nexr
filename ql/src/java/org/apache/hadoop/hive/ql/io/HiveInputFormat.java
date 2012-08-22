@@ -38,6 +38,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.io.HiveIOExceptionHandlerUtil;
 import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants;
+import org.apache.hadoop.hive.ql.exec.LazySplitMetaProvider;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.TableScanOperator;
@@ -304,6 +305,9 @@ public class HiveInputFormat<K extends WritableComparable, V extends Writable>
     }
 
     InputSplit[] iss = inputFormat.getSplits(conf, splits);
+    if (inputFormat instanceof LazySplitMetaProvider) {
+      ((LazySplitMetaProvider)inputFormat).setSplitMeta(conf, iss);
+    }
     for (InputSplit is : iss) {
       result.add(new HiveInputSplit(is, inputFormatClass.getName()));
     }
