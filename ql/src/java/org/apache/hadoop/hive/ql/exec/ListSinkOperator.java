@@ -38,7 +38,7 @@ public class ListSinkOperator extends Operator<ListSinkDesc> {
   public static final String OUTPUT_FORMATTER = "output.formatter";
   public static final String OUTPUT_PROTOCOL = "output.protocol";
 
-  private transient List res;
+  private transient List sink;
   private transient FetchFormatter fetcher;
   private transient int numRows;
 
@@ -73,8 +73,12 @@ public class ListSinkOperator extends Operator<ListSinkDesc> {
   }
 
   public void reset(List res) {
-    this.res = res;
+    this.sink = res;
     this.numRows = 0;
+  }
+
+  public List getSinkList() {
+    return sink;
   }
 
   public int getNumRows() {
@@ -84,7 +88,7 @@ public class ListSinkOperator extends Operator<ListSinkDesc> {
   @SuppressWarnings("unchecked")
   public void processOp(Object row, int tag) throws HiveException {
     try {
-      res.add(fetcher.convert(row, inputObjInspectors[0]));
+      sink.add(fetcher.convert(row, inputObjInspectors[0]));
       numRows++;
     } catch (Exception e) {
       throw new HiveException(e);

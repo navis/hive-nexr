@@ -69,6 +69,11 @@ public class FetchWork implements Serializable {
     this.statRowOI = statRowOI;
   }
 
+  public FetchWork(ListSinkOperator sink) {
+    this.sink = sink;
+    this.pseudoMR = true;
+  }
+
   public ObjectInspector getStatRowOI() {
     return statRowOI;
   }
@@ -277,8 +282,17 @@ public class FetchWork implements Serializable {
     return pseudoMR;
   }
 
+  public boolean isPseudoMRListFetch() {
+    return pseudoMR && source == null;
+  }
+
   public void setPseudoMR(boolean pseudoMR) {
     this.pseudoMR = pseudoMR;
+  }
+
+  @Explain(displayName = "pseudoMR")
+  public String isPseudoMRExplain() {
+    return !pseudoMR ? null : source != null ? "push" : "pull";
   }
 
   @Override

@@ -36,6 +36,7 @@ import org.apache.hadoop.hive.ql.exec.HashReducer;
 import org.apache.hadoop.hive.ql.exec.LimitOperator;
 import org.apache.hadoop.hive.ql.exec.ListSinkOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
+import org.apache.hadoop.hive.ql.exec.OperatorUtils;
 import org.apache.hadoop.hive.ql.exec.ReduceSinkOperator;
 import org.apache.hadoop.hive.ql.exec.SelectOperator;
 import org.apache.hadoop.hive.ql.exec.TableScanOperator;
@@ -86,14 +87,18 @@ public class SimpleFetchOptimizer {
   // not analyze command
   static final int MORE = 1;
 
-  // all
+  // convert TSs to pseudo MR tasks
   static final int ALL = 2;
 
   private final Log LOG = LogFactory.getLog(SimpleFetchOptimizer.class.getName());
 
   public boolean transform(ParseContext pctx, int mode) throws SemanticException {
+    FileSinkOperator fs = searchSoleFileSink(pctx);
+    if (fs == null) {
+      return false;
+    }
     try {
-      return _transform(pctx, mode);
+      return _transform(pctx, fs, mode);
     } catch (Exception e) {
       // Has to use full name to make sure it does not conflict with
       // org.apache.commons.lang.StringUtils
@@ -105,7 +110,16 @@ public class SimpleFetchOptimizer {
     }
   }
 
-  private boolean _transform(ParseContext pctx, int mode) throws Exception {
+  private FileSinkOperator searchSoleFileSink(ParseContext pctx) {
+    Collection<Operator<?>> topOps = pctx.getTopOps().values();
+    Set<FileSinkOperator> found = OperatorUtils.findOperators(topOps, FileSinkOperator.class);
+    if (found.size() != 1) {
+      return null;
+    }
+    return found.iterator().next();
+  }
+
+  private boolean _transform(ParseContext pctx, FileSinkOperator fileSink, int mode) throws Exception {
     Map<String, Operator<? extends OperatorDesc>> topOps = pctx.getTopOps();
     if (mode != ALL && topOps.size() != 1) {
       return false;
@@ -123,21 +137,32 @@ public class SimpleFetchOptimizer {
       }
       fetchData.add(fetch);
     }
-    long remaining = HiveConf.getLongVar(pctx.getConf(),
+    long threshold = HiveConf.getLongVar(pctx.getConf(),
         HiveConf.ConfVars.HIVEFETCHTASKCONVERSIONTHRESHOLD);
-    if (remaining > 0) {
+    if (threshold > 0) {
+      long remaining = threshold;
       for (FetchData data : fetchData) {
         remaining -= data.getInputLength(pctx, remaining);
         if (remaining < 0) {
-          LOG.info("Threshold " + remaining + " exceeded for pseudoMR mode");
+          LOG.info("Input threshold for pseudoMR mode " + threshold + " was exceeded");
           return false;
         }
       }
     }
+
     int outerLimit = pctx.getQB().getParseInfo().getOuterQueryLimit();
+    ListSinkOperator listSink = convertToListSink(pctx, fileSink, mode);
+
     List<Task<?>> tasks = new ArrayList<Task<?>>();
     for (FetchData data : fetchData) {
-      tasks.add(convertToTask(pctx, data, mode, outerLimit));
+      FetchWork fetchWork = data.convertToWork();
+      for (ReadEntity input : data.inputs) {
+        PlanUtils.addInput(pctx.getSemanticInputs(), input);
+      }
+      fetchWork.setPseudoMR(mode == ALL);
+      fetchWork.setLimit(outerLimit);
+      fetchWork.setSink(listSink);
+      tasks.add(TaskFactory.get(fetchWork, pctx.getConf()));
     }
     if (mode != ALL) {
       assert tasks.size() == 1;
@@ -150,15 +175,15 @@ public class SimpleFetchOptimizer {
     return true;
   }
 
-  @SuppressWarnings("unchecked")
-  private Task<?> convertToTask(ParseContext pctx, FetchData fetch, int mode, int outerLimit)
-      throws HiveException {
-    FetchWork fetchWork = fetch.convertToWork();
-    fetchWork.setSink(fetch.completed(pctx, fetchWork, mode));
-    fetchWork.setLimit(outerLimit);
-    return TaskFactory.get(fetchWork, pctx.getConf());
+  private ListSinkOperator convertToListSink(ParseContext pctx, FileSinkOperator sink, int mode) {
+    if (mode == ALL && (!pctx.getQB().getIsQuery() || !HiveConf.getBoolVar(pctx.getConf(),
+        HiveConf.ConfVars.HIVEFETCHTASKCONVERSIONLISTFETCH))) {
+      return null;
+    }
+    String nullFormat = HiveConf.getVar(pctx.getConf(),
+        HiveConf.ConfVars.HIVEFETCHTASKCONVERSIONNULLFORMAT);
+    return replaceFSwithLS(sink, nullFormat);
   }
-
 
   // all we can handle is LimitOperator, FilterOperator SelectOperator and final FS
   private FetchData checkTree(ParseContext pctx, String alias, TableScanOperator ts, int mode)
@@ -182,7 +207,7 @@ public class SimpleFetchOptimizer {
     }
     ReadEntity parent = PlanUtils.getParentViewInfo(alias, pctx.getViewAliasToInput());
     if (!table.isPartitioned()) {
-      return checkOperators(new FetchData(parent, table, splitSample), ts, mode, false);
+      return checkOperators(new FetchData(parent, table, ts, null, splitSample), mode, false);
     }
 
     boolean bypassFilter = false;
@@ -194,18 +219,18 @@ public class SimpleFetchOptimizer {
       PrunedPartitionList pruned = pctx.getPrunedPartitions(alias, ts);
       if (mode != MINIMAL || !pruned.hasUnknownPartitions()) {
         bypassFilter &= !pruned.hasUnknownPartitions();
-        return checkOperators(new FetchData(parent, table, pruned, splitSample), ts, mode, bypassFilter);
+        return checkOperators(
+            new FetchData(parent, table, ts, pruned, splitSample), mode, bypassFilter);
       }
     }
     return null;
   }
 
-  private FetchData checkOperators(FetchData fetch, TableScanOperator ts, int mode,
-      boolean bypassFilter) {
+  private FetchData checkOperators(FetchData fetch, int mode, boolean bypassFilter) {
     if (mode == ALL) {
-      fetch.scanOp = ts;
       return fetch;
     }
+    TableScanOperator ts = fetch.scanOp;
     if (mode == MINIMAL && (ts.getConf().getFilterExpr() != null ||
         (ts.getConf().getVirtualCols() != null && !ts.getConf().getVirtualCols().isEmpty()))) {
       return null;
@@ -230,8 +255,6 @@ public class SimpleFetchOptimizer {
       }
     }
     if (op instanceof FileSinkOperator && op.getNumChild() == 0) {
-      fetch.scanOp = ts;
-      fetch.fileSink = op;
       return fetch;
     }
     return null;
@@ -249,19 +272,12 @@ public class SimpleFetchOptimizer {
     private TableScanOperator scanOp;
 
     // this is always non-null when query is converted to MORE more fetch
-    private Operator<?> fileSink;
 
-    private FetchData(ReadEntity parent, Table table, SplitSample splitSample) {
+    private FetchData(ReadEntity parent, Table table, TableScanOperator scanOp,
+        PrunedPartitionList partsList, SplitSample splitSample) {
       this.parent = parent;
       this.table = table;
-      this.partsList = null;
-      this.splitSample = splitSample;
-    }
-
-    private FetchData(ReadEntity parent, Table table, PrunedPartitionList partsList,
-        SplitSample splitSample) {
-      this.parent = parent;
-      this.table = table;
+      this.scanOp = scanOp;
       this.partsList = partsList;
       this.splitSample = splitSample;
     }
@@ -295,20 +311,6 @@ public class SimpleFetchOptimizer {
       }
       work.setSource(scanOp);
       return work;
-    }
-
-    // this optimizer is for replacing FS to temp+fetching from temp with
-    // single direct fetching, which means FS is not needed any more when conversion completed.
-    // rows forwarded will be received by ListSinkOperator, which is replacing FS
-    private ListSinkOperator completed(ParseContext pctx, FetchWork work, int mode) {
-      for (ReadEntity input : inputs) {
-        PlanUtils.addInput(pctx.getSemanticInputs(), input);
-      }
-      if (mode == ALL) {
-        work.setPseudoMR(true);
-        return null;
-      }
-      return replaceFSwithLS(fileSink, work.getSerializationNullFormat());
     }
 
     private long getInputLength(ParseContext pctx, long remaining) throws Exception {

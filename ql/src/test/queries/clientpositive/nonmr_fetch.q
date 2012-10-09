@@ -106,3 +106,16 @@ explain create table srcx as select distinct key, value from src;
 -- negative, analyze
 explain analyze table src compute statistics;
 
+set hive.fetch.task.conversion.list.fetch=true;
+
+-- groupby
+explain select key, count(value) from src group by key limit 10;
+select key, count(value) from src group by key limit 10;
+
+-- distinct
+explain select distinct key, value from src limit 10;
+select distinct key, value from src limit 10;
+
+-- join
+explain select * from src join src src2 on src.key=src2.key limit 10;
+select * from src join src src2 on src.key=src2.key limit 10;
