@@ -35,6 +35,7 @@ import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.exec.ColumnStatsTask;
 import org.apache.hadoop.hive.ql.exec.FetchTask;
+import org.apache.hadoop.hive.ql.exec.ListSinkOperator;
 import org.apache.hadoop.hive.ql.exec.StatsTask;
 import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.exec.TaskFactory;
@@ -108,21 +109,31 @@ public abstract class TaskCompiler {
 
       LoadFileDesc loadFileDesc = loadFileWork.get(0);
 
-      String cols = loadFileDesc.getColumns();
-      String colTypes = loadFileDesc.getColumnTypes();
+      FetchWork fetch = null;
+      if (!rootTasks.isEmpty()) {
+        ListSinkOperator listSink = getCommonListSink(rootTasks);
+        if (listSink != null) {
+          fetch = new FetchWork(listSink);
+        }
+      } else {
+        String cols = loadFileWork.get(0).getColumns();
+        String colTypes = loadFileWork.get(0).getColumnTypes();
 
-      TableDesc resultTab = pCtx.getFetchTabledesc();
-      if (resultTab == null) {
-        String resFileFormat = HiveConf.getVar(conf, HiveConf.ConfVars.HIVEQUERYRESULTFILEFORMAT);
-        resultTab = PlanUtils.getDefaultQueryOutputTableDesc(cols, colTypes, resFileFormat);
+        TableDesc resultTab = pCtx.getFetchTabledesc();
+        if (resultTab == null) {
+          String resFileFormat = HiveConf.getVar(conf, HiveConf.ConfVars.HIVEQUERYRESULTFILEFORMAT);
+          resultTab = PlanUtils.getDefaultQueryOutputTableDesc(cols, colTypes, resFileFormat);
+        }
+        fetch = new FetchWork(loadFileDesc.getSourcePath(), resultTab);
+        fetch.setSource(pCtx.getFetchSource());
+        fetch.setSink(pCtx.getFetchSink());
       }
 
-      FetchWork fetch = new FetchWork(loadFileDesc.getSourcePath(),
-                                      resultTab, qb.getParseInfo().getOuterQueryLimit());
-      fetch.setSource(pCtx.getFetchSource());
-      fetch.setSink(pCtx.getFetchSink());
-
-      pCtx.setFetchTask((FetchTask) TaskFactory.get(fetch, conf));
+      if (fetch != null) {
+        fetch.setLimit(qb.getParseInfo().getOuterQueryLimit());
+        FetchTask fetchTask = (FetchTask) TaskFactory.get(fetch, conf);
+        pCtx.setFetchTask(fetchTask);
+      }
 
       // For the FetchTask, the limit optimization requires we fetch all the rows
       // in memory and count how many rows we get. It's not practical if the
@@ -269,6 +280,23 @@ public abstract class TaskCompiler {
     }
   }
 
+  private ListSinkOperator getCommonListSink(List<Task<? extends Serializable>> rootTasks) {
+    ListSinkOperator prev = null;
+    for (Task task : rootTasks) {
+      if (!(task instanceof FetchTask)) {
+        return null;
+      }
+      ListSinkOperator sink = ((FetchTask) task).getWork().getSink();
+      if (sink == null) {
+        continue;
+      }
+      if (prev != null && prev != sink) {
+        return null;
+      }
+      prev = sink;
+    }
+    return prev;
+  }
 
   /**
    * A helper function to generate a column stats task on top of map-red task. The column stats

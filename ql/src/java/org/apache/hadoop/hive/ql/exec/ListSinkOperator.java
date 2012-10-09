@@ -82,6 +82,10 @@ public class ListSinkOperator extends Operator<ListSinkDesc> {
   }
 
   @SuppressWarnings("unchecked")
+  public List<String> getList() {
+    return res;
+  }
+
   public void processOp(Object row, int tag) throws HiveException {
     try {
       res.add(fetcher.convert(row, inputObjInspectors[0]));

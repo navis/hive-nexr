@@ -86,7 +86,7 @@ public class SimpleFetchOptimizer {
   // not analyze command
   static final int MORE = 1;
 
-  // all
+  // convert TSs to pseudo MR tasks
   static final int ALL = 2;
 
   private final Log LOG = LogFactory.getLog(SimpleFetchOptimizer.class.getName());
@@ -304,7 +304,9 @@ public class SimpleFetchOptimizer {
       }
       if (mode == ALL) {
         work.setPseudoMR(true);
-        return null;
+        if (!pctx.getQB().getIsQuery() || !searchSoleFileSink(pctx)) {
+          return null;
+        }
       }
       return replaceFSwithLS(fileSink, work.getSerializationNullFormat());
     }
@@ -357,6 +359,29 @@ public class SimpleFetchOptimizer {
         summary = path.getFileSystem(conf).getContentSummary(path);
       }
       return summary.getLength();
+    }
+
+    private boolean searchSoleFileSink(ParseContext pctx) {
+      Set<Operator<?>> found = new HashSet<Operator<?>>();
+      for (Operator<?> operator : pctx.getTopOps().values()) {
+        searchOperator(operator, FileSinkOperator.class, found);
+      }
+      if (found.size() != 1) {
+        return false;
+      }
+      fileSink = found.iterator().next();
+      return true;
+    }
+  }
+
+  private void searchOperator(Operator<?> operator, Class<?> finding, Set<Operator<?>> found) {
+    if (finding.isInstance(operator)) {
+      found.add(operator);
+    }
+    if (operator.getChildOperators() != null) {
+      for (Operator<?> child : operator.getChildOperators()) {
+        searchOperator(child, finding, found);
+      }
     }
   }
 

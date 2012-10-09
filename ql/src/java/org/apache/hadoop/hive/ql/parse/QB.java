@@ -240,7 +240,7 @@ public class QB {
   }
 
   public boolean isSimpleSelectQuery() {
-    return qbp.isSimpleSelectQuery() && aliasToSubq.isEmpty() && !isCTAS() &&
+    return isQuery && qbp.isSimpleSelectQuery() && aliasToSubq.isEmpty() && !isCTAS() &&
         !qbp.isAnalyzeCommand();
   }
 

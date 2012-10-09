@@ -20,6 +20,7 @@ package org.apache.hadoop.hive.ql.exec;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -75,7 +76,12 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
   }
 
   protected void initializeSource() throws Exception {
+    if (work.isPseudoMRListFetch()) {
+      sink = work.getSink();
+      return;
+    }
     if (!work.isPseudoMR()) {
+      // for direct fetch mode, source and sink should not be null
       work.initializeForFetch();
     }
     JobConf job = new JobConf(conf);
@@ -86,10 +92,13 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
       ColumnProjectionUtils.appendReadColumnIDs(job, ts.getNeededColumnIDs());
       HiveInputFormat.pushFilters(job, ts);
     }
+    sink = work.getSink();
     if (work.isPseudoMR()) {
       setupTmpDir(source, job, new HashSet<Operator>());
+      if (sink != null) {
+        sink.reset(new ArrayList<String>());
+      }
     }
-    sink = work.getSink();
     fetch = new FetchOperator(work, job, source, getVirtualColumns(source));
     source.initialize(conf, new ObjectInspector[]{fetch.getOutputObjectInspector()});
     totalRows = 0;
@@ -103,7 +112,7 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
   }
 
   private void setupTmpDir(Operator<?> parent, JobConf job, Set<Operator> setup) throws IOException {
-    if (parent.getChildOperators() == null) {
+    if (parent == null || parent.getNumChild() == 0) {
       return;
     }
     for (Operator<?> operator : parent.getChildOperators()) {
@@ -122,11 +131,12 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
     }
   }
 
-  @Override
+  // used for pseudo mr mode, push
   public int execute(DriverContext driverContext) {
     boolean success = true;
     try {
-      while (fetch.pushRow()) {
+      // push to list
+      while (fetch.pushRow() && !limitExceeded()) {
       }
       fetch.clearFetchContext(false);
       return 0;
@@ -147,6 +157,10 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
         throw new RuntimeException(e);
       }
     }
+  }
+
+  private boolean limitExceeded() {
+    return sink != null && work.getLimit() > 0 && sink.getNumRows() >= work.getLimit();
   }
 
   /**
@@ -171,6 +185,32 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
   }
 
   public boolean fetch(List res) throws IOException, CommandNeedRetryException {
+    try {
+      return work.isPseudoMRListFetch() ? fetchFromList(res) : fetchAndPush(res);
+    } catch (CommandNeedRetryException e) {
+      throw e;
+    } catch (IOException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new IOException(e);
+    }
+  }
+
+  public boolean fetchFromList(List<String> res) throws Exception {
+    int rowsRet = getRetRows();
+    if (rowsRet <= 0) {
+      return false;
+    }
+    rowsRet = Math.min(sink.getNumRows() - totalRows, rowsRet);
+    if (rowsRet == 0) {
+      return false;
+    }
+    res.addAll(sink.getList().subList(totalRows, totalRows + rowsRet));
+    totalRows += rowsRet;
+    return true;
+  }
+
+  public boolean fetchAndPush(List<String> res) throws Exception {
     sink.reset(res);
     int rowsRet = work.getLeastNumRows();
     if (rowsRet <= 0) {
@@ -192,15 +232,17 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
         fetched = true;
       }
       return true;
-    } catch (CommandNeedRetryException e) {
-      throw e;
-    } catch (IOException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new IOException(e);
     } finally {
       totalRows += sink.getNumRows();
     }
+  }
+
+  private int getRetRows() {
+    int rowsRet = work.getLeastNumRows();
+    if (rowsRet <= 0) {
+      rowsRet = work.getLimit() >= 0 ? Math.min(work.getLimit() - totalRows, maxRows) : maxRows;
+    }
+    return rowsRet;
   }
 
   @Override
