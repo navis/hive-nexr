@@ -19,6 +19,7 @@
 package org.apache.hadoop.hive.ql.exec;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
@@ -84,6 +85,10 @@ public class ListSinkOperator extends Operator<ListSinkDesc> {
 
   public int getNumRows() {
     return numRows;
+  }
+
+  public List<String> getList() {
+    return res;
   }
 
   public void processOp(Object row, int tag) throws HiveException {
