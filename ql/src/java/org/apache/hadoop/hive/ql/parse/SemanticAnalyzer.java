@@ -62,6 +62,7 @@ import org.apache.hadoop.hive.ql.exec.FunctionInfo;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.JoinOperator;
+import org.apache.hadoop.hive.ql.exec.ListSinkOperator;
 import org.apache.hadoop.hive.ql.exec.MapJoinOperator;
 import org.apache.hadoop.hive.ql.exec.MapRedTask;
 import org.apache.hadoop.hive.ql.exec.Operator;
@@ -7654,17 +7655,27 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       if ((!loadTableWork.isEmpty()) || (loadFileWork.size() != 1)) {
         throw new SemanticException(ErrorMsg.GENERIC_ERROR.getMsg());
       }
-      String cols = loadFileWork.get(0).getColumns();
-      String colTypes = loadFileWork.get(0).getColumnTypes();
+      FetchWork fetch = null;
+      if (!rootTasks.isEmpty()) {
+        ListSinkOperator listSink = getCommonListSink(rootTasks);
+        if (listSink != null) {
+          fetch = new FetchWork(listSink);
+        }
+      } else {
+        String cols = loadFileWork.get(0).getColumns();
+        String colTypes = loadFileWork.get(0).getColumnTypes();
 
-      String resFileFormat = HiveConf.getVar(conf, HiveConf.ConfVars.HIVEQUERYRESULTFILEFORMAT);
-      TableDesc resultTab = PlanUtils.getDefaultQueryOutputTableDesc(cols, colTypes, resFileFormat);
+        String resFileFormat = HiveConf.getVar(conf, HiveConf.ConfVars.HIVEQUERYRESULTFILEFORMAT);
+        TableDesc resultTab = PlanUtils.getDefaultQueryOutputTableDesc(cols, colTypes, resFileFormat);
 
-      FetchWork fetch = new FetchWork(new Path(loadFileWork.get(0).getSourceDir()).toString(),
-          resultTab, qb.getParseInfo().getOuterQueryLimit());
+        fetch = new FetchWork(new Path(loadFileWork.get(0).getSourceDir()).toString(), resultTab);
+      }
 
-      FetchTask fetchTask = (FetchTask) TaskFactory.get(fetch, conf);
-      setFetchTask(fetchTask);
+      if (fetch != null) {
+        fetch.setLimit(qb.getParseInfo().getOuterQueryLimit());
+        FetchTask fetchTask = (FetchTask) TaskFactory.get(fetch, conf);
+        setFetchTask(fetchTask);
+      }
 
       // For the FetchTask, the limit optimiztion requires we fetch all the rows
       // in memory and count how many rows we get. It's not practical if the
@@ -7793,6 +7804,21 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         tsk.setRetryCmdWhenFail(true);
       }
     }
+  }
+
+  private ListSinkOperator getCommonListSink(List<Task<? extends Serializable>> rootTasks) {
+    ListSinkOperator prev = null;
+    for (Task task : rootTasks) {
+      if (!(task instanceof FetchTask)) {
+        return null;
+      }
+      ListSinkOperator sink = ((FetchTask) task).getWork().getSink();
+      if (sink == null || prev != null && prev != sink) {
+        return null;
+      }
+      prev = sink;
+    }
+    return prev;
   }
 
   private void createMRTasks(List<Task<MoveWork>> mvTask, FetchTask fetchTask) throws SemanticException {

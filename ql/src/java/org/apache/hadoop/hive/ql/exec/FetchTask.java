@@ -77,7 +77,12 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
   }
 
   protected void initializeSource() throws Exception {
+    if (work.isPseudoMRListFetch()) {
+      sink = work.getSink();
+      return;
+    }
     if (!work.isPseudoMR()) {
+      // for direct fetch mode, source and sink should not be null
       work.initializeForFetch();
     }
     Operator<?> source = work.getSource();
@@ -87,10 +92,13 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
       HiveInputFormat.pushFilters(job, ts);
       ColumnProjectionUtils.appendReadColumnIDs(job, ts.getNeededColumnIDs());
     }
+    sink = work.getSink();
     if (work.isPseudoMR()) {
       setupTmpDir(source, job, new HashSet<Operator>());
+      if (sink != null) {
+        sink.reset(new ArrayList<String>());
+      }
     }
-    sink = work.getSink();
     fetch = new FetchOperator(work, job, source, getVirtualColumns(source));
     source.initialize(conf, new ObjectInspector[]{fetch.getOutputObjectInspector()});
   }
@@ -103,7 +111,7 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
   }
 
   private void setupTmpDir(Operator<?> parent, JobConf job, Set<Operator> setup) throws IOException {
-    if (parent.getChildOperators() == null) {
+    if (parent == null || parent.getChildOperators() == null) {
       return;
     }
     for (Operator<?> operator : parent.getChildOperators()) {
@@ -122,11 +130,12 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
     }
   }
 
-  @Override
+  // used for pseudo mr mode, push
   public int execute(DriverContext driverContext) {
     boolean success = true;
     try {
-      while (fetch.pushRow()) {
+      // push to list
+      while (fetch.pushRow() && !limitExceeded()) {
       }
       fetch.clearFetchContext(false);
       return 0;
@@ -147,6 +156,10 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
         throw new RuntimeException(e);
       }
     }
+  }
+
+  private boolean limitExceeded() {
+    return sink != null && work.getLimit() > 0 && sink.getNumRows() >= work.getLimit();
   }
 
   /**
@@ -170,14 +183,36 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
     this.maxRows = maxRows;
   }
 
-  @Override
   public boolean fetch(ArrayList<String> res) throws IOException, CommandNeedRetryException {
+    try {
+      return work.isPseudoMRListFetch() ? fetchFromList(res) : fetchAndPush(res);
+    } catch (CommandNeedRetryException e) {
+      throw e;
+    } catch (IOException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new IOException(e);
+    }
+  }
+
+  public boolean fetchFromList(ArrayList<String> res) throws Exception {
+    int rowsRet = getRetRows();
+    if (rowsRet <= 0) {
+      return false;
+    }
+    rowsRet = Math.min(sink.getNumRows() - totalRows, rowsRet);
+    if (rowsRet == 0) {
+      return false;
+    }
+    res.addAll(sink.getList().subList(totalRows, totalRows + rowsRet));
+    totalRows += rowsRet;
+    return true;
+  }
+
+  public boolean fetchAndPush(ArrayList<String> res) throws Exception {
     sink.reset(res);
     try {
-      int rowsRet = work.getLeastNumRows();
-      if (rowsRet <= 0) {
-        rowsRet = work.getLimit() >= 0 ? Math.min(work.getLimit() - totalRows, maxRows) : maxRows;
-      }
+      int rowsRet = getRetRows();
       if (rowsRet <= 0) {
         fetch.clearFetchContext();
         return false;
@@ -193,15 +228,17 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
         fetched = true;
       }
       return true;
-    } catch (CommandNeedRetryException e) {
-      throw e;
-    } catch (IOException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new IOException(e);
     } finally {
       totalRows += sink.getNumRows();
     }
+  }
+
+  private int getRetRows() {
+    int rowsRet = work.getLeastNumRows();
+    if (rowsRet <= 0) {
+      rowsRet = work.getLimit() >= 0 ? Math.min(work.getLimit() - totalRows, maxRows) : maxRows;
+    }
+    return rowsRet;
   }
 
   @Override
