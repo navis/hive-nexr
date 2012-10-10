@@ -564,7 +564,7 @@
                        <boolean>true</boolean> 
                       </void> 
                       <void property="genericUDAFEvaluator"> 
-                       <object id="GenericUDAFCount$GenericUDAFCountEvaluator0" class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFCount$GenericUDAFCountEvaluator"/> 
+                       <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFCount$GenericUDAFCountEvaluator"/> 
                       </void> 
                       <void property="genericUDAFName"> 
                        <string>count</string> 
@@ -630,7 +630,7 @@
                     <void method="add"> 
                      <object class="org.apache.hadoop.hive.ql.plan.AggregationDesc"> 
                       <void property="genericUDAFEvaluator"> 
-                       <object id="GenericUDAFSum$GenericUDAFSumDouble0" class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFSum$GenericUDAFSumDouble"/> 
+                       <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFSum$GenericUDAFSumDouble"/> 
                       </void> 
                       <void property="genericUDAFName"> 
                        <string>sum</string> 
@@ -1654,7 +1654,7 @@
              <boolean>true</boolean> 
             </void> 
             <void property="genericUDAFEvaluator"> 
-             <object idref="GenericUDAFCount$GenericUDAFCountEvaluator0"/> 
+             <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFCount$GenericUDAFCountEvaluator"/> 
             </void> 
             <void property="genericUDAFName"> 
              <string>count</string> 
@@ -1683,7 +1683,7 @@
           <void method="add"> 
            <object class="org.apache.hadoop.hive.ql.plan.AggregationDesc"> 
             <void property="genericUDAFEvaluator"> 
-             <object idref="GenericUDAFSum$GenericUDAFSumDouble0"/> 
+             <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFSum$GenericUDAFSumDouble"/> 
             </void> 
             <void property="genericUDAFName"> 
              <string>sum</string> 

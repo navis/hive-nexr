@@ -564,7 +564,7 @@
                     <void method="add"> 
                      <object class="org.apache.hadoop.hive.ql.plan.AggregationDesc"> 
                       <void property="genericUDAFEvaluator"> 
-                       <object id="GenericUDAFSum$GenericUDAFSumDouble0" class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFSum$GenericUDAFSumDouble"/> 
+                       <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFSum$GenericUDAFSumDouble"/> 
                       </void> 
                       <void property="genericUDAFName"> 
                        <string>sum</string> 
@@ -630,7 +630,7 @@
                     <void method="add"> 
                      <object class="org.apache.hadoop.hive.ql.plan.AggregationDesc"> 
                       <void property="genericUDAFEvaluator"> 
-                       <object id="GenericUDAFAverage$GenericUDAFAverageEvaluatorDouble0" class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFAverage$GenericUDAFAverageEvaluatorDouble"/> 
+                       <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFAverage$GenericUDAFAverageEvaluatorDouble"/> 
                       </void> 
                       <void property="genericUDAFName"> 
                        <string>avg</string> 
@@ -697,7 +697,7 @@
                        <boolean>true</boolean> 
                       </void> 
                       <void property="genericUDAFEvaluator"> 
-                       <object id="GenericUDAFAverage$GenericUDAFAverageEvaluatorDouble1" class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFAverage$GenericUDAFAverageEvaluatorDouble"/> 
+                       <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFAverage$GenericUDAFAverageEvaluatorDouble"/> 
                       </void> 
                       <void property="genericUDAFName"> 
                        <string>avg</string> 
@@ -761,7 +761,7 @@
                     <void method="add"> 
                      <object class="org.apache.hadoop.hive.ql.plan.AggregationDesc"> 
                       <void property="genericUDAFEvaluator"> 
-                       <object id="GenericUDAFMax$GenericUDAFMaxEvaluator0" class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFMax$GenericUDAFMaxEvaluator"/> 
+                       <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFMax$GenericUDAFMaxEvaluator"/> 
                       </void> 
                       <void property="genericUDAFName"> 
                        <string>max</string> 
@@ -825,7 +825,7 @@
                     <void method="add"> 
                      <object class="org.apache.hadoop.hive.ql.plan.AggregationDesc"> 
                       <void property="genericUDAFEvaluator"> 
-                       <object id="GenericUDAFMin$GenericUDAFMinEvaluator0" class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFMin$GenericUDAFMinEvaluator"/> 
+                       <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFMin$GenericUDAFMinEvaluator"/> 
                       </void> 
                       <void property="genericUDAFName"> 
                        <string>min</string> 
@@ -1893,7 +1893,7 @@
           <void method="add"> 
            <object class="org.apache.hadoop.hive.ql.plan.AggregationDesc"> 
             <void property="genericUDAFEvaluator"> 
-             <object idref="GenericUDAFSum$GenericUDAFSumDouble0"/> 
+             <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFSum$GenericUDAFSumDouble"/> 
             </void> 
             <void property="genericUDAFName"> 
              <string>sum</string> 
@@ -1922,7 +1922,7 @@
           <void method="add"> 
            <object class="org.apache.hadoop.hive.ql.plan.AggregationDesc"> 
             <void property="genericUDAFEvaluator"> 
-             <object idref="GenericUDAFAverage$GenericUDAFAverageEvaluatorDouble0"/> 
+             <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFAverage$GenericUDAFAverageEvaluatorDouble"/> 
             </void> 
             <void property="genericUDAFName"> 
              <string>avg</string> 
@@ -1952,7 +1952,7 @@
              <boolean>true</boolean> 
             </void> 
             <void property="genericUDAFEvaluator"> 
-             <object idref="GenericUDAFAverage$GenericUDAFAverageEvaluatorDouble1"/> 
+             <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFAverage$GenericUDAFAverageEvaluatorDouble"/> 
             </void> 
             <void property="genericUDAFName"> 
              <string>avg</string> 
@@ -1981,7 +1981,7 @@
           <void method="add"> 
            <object class="org.apache.hadoop.hive.ql.plan.AggregationDesc"> 
             <void property="genericUDAFEvaluator"> 
-             <object idref="GenericUDAFMax$GenericUDAFMaxEvaluator0"/> 
+             <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFMax$GenericUDAFMaxEvaluator"/> 
             </void> 
             <void property="genericUDAFName"> 
              <string>max</string> 
@@ -2008,7 +2008,7 @@
           <void method="add"> 
            <object class="org.apache.hadoop.hive.ql.plan.AggregationDesc"> 
             <void property="genericUDAFEvaluator"> 
-             <object idref="GenericUDAFMin$GenericUDAFMinEvaluator0"/> 
+             <object class="org.apache.hadoop.hive.ql.udf.generic.GenericUDAFMin$GenericUDAFMinEvaluator"/> 
             </void> 
             <void property="genericUDAFName"> 
              <string>min</string> 

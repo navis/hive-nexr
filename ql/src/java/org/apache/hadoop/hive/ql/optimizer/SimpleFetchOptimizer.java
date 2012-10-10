@@ -18,22 +18,20 @@
 
 package org.apache.hadoop.hive.ql.optimizer;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.exec.FetchTask;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
 import org.apache.hadoop.hive.ql.exec.FilterOperator;
+import org.apache.hadoop.hive.ql.exec.HashReducer;
 import org.apache.hadoop.hive.ql.exec.LimitOperator;
 import org.apache.hadoop.hive.ql.exec.ListSinkOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
+import org.apache.hadoop.hive.ql.exec.ReduceSinkOperator;
 import org.apache.hadoop.hive.ql.exec.SelectOperator;
 import org.apache.hadoop.hive.ql.exec.TableScanOperator;
+import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.exec.TaskFactory;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.hooks.ReadEntity;
@@ -54,55 +52,84 @@ import org.apache.hadoop.hive.ql.plan.PartitionDesc;
 import org.apache.hadoop.hive.ql.plan.PlanUtils;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 /**
  * Tries to convert simple fetch query to single fetch task, which fetches rows directly
  * from location of table/partition.
  */
-public class SimpleFetchOptimizer implements Transform {
+public class SimpleFetchOptimizer {
+
+  // 1. no samping
+  // 2. for partitioned table, all filters should be targeted to partition column
+  // 3. SelectOperator should be select star
+  static final int MINIMAL = 0;
+
+  // single sourced select only (no CTAS or insert)
+  // no join, no groupby, no distinct, no lateral view, no subq
+  // not analyze command
+  static final int MORE = 1;
+
+  // all
+  static final int ALL = 2;
 
   private final Log LOG = LogFactory.getLog(SimpleFetchOptimizer.class.getName());
 
-  public ParseContext transform(ParseContext pctx) throws SemanticException {
+  public boolean transform(ParseContext pctx, int mode) throws SemanticException {
     Map<String, Operator<? extends OperatorDesc>> topOps = pctx.getTopOps();
-    if (pctx.getQB().isSimpleSelectQuery() && topOps.size() == 1) {
-      // no join, no groupby, no distinct, no lateral view, no subq,
-      // no CTAS or insert, not analyze command, and single sourced.
-      String alias = (String) pctx.getTopOps().keySet().toArray()[0];
-      Operator topOp = (Operator) pctx.getTopOps().values().toArray()[0];
-      if (topOp instanceof TableScanOperator) {
-        try {
-          FetchTask fetchTask = optimize(pctx, alias, (TableScanOperator) topOp);
-          if (fetchTask != null) {
-            pctx.setFetchTask(fetchTask);
-          }
-        } catch (HiveException e) {
-          // Has to use full name to make sure it does not conflict with
-          // org.apache.commons.lang.StringUtils
-          LOG.error(org.apache.hadoop.util.StringUtils.stringifyException(e));
-          if (e instanceof SemanticException) {
-            throw (SemanticException) e;
-          }
-          throw new SemanticException(e.getMessage(), e);
+    if (mode != ALL && topOps.size() != 1) {
+      return false;
+    }
+    List<Task<?>> tasks = new ArrayList<Task<?>>();
+    for (Map.Entry<String, Operator<? extends OperatorDesc>> entry : topOps.entrySet()) {
+      String alias = entry.getKey();
+      Operator topOp = entry.getValue();
+      if (!(topOp instanceof TableScanOperator)) {
+        return false;
+      }
+      try {
+        Task<?> task = optimize(pctx, alias, (TableScanOperator) topOp, mode);
+        if (task == null) {
+          return false;
         }
+        tasks.add(task);
+      } catch (HiveException e) {
+        // Has to use full name to make sure it does not conflict with
+        // org.apache.commons.lang.StringUtils
+        LOG.error(org.apache.hadoop.util.StringUtils.stringifyException(e));
+        if (e instanceof SemanticException) {
+          throw (SemanticException) e;
+        }
+        throw new SemanticException(e.getMessage(), e);
       }
     }
-    return pctx;
+    if (mode != ALL) {
+      pctx.setFetchTask((FetchTask) tasks.get(0));
+    } else {
+      prepareReducers(topOps.values());
+      pctx.getRootTasks().addAll(tasks);
+    }
+    topOps.clear();
+    return true;
   }
 
   // returns non-null FetchTask instance when succeeded
-  @SuppressWarnings("unchecked")
-  private FetchTask optimize(ParseContext pctx, String alias, TableScanOperator source)
+  private Task<?> optimize(ParseContext pctx, String alias, TableScanOperator source, int mode)
       throws HiveException {
-    String mode = HiveConf.getVar(
-        pctx.getConf(), HiveConf.ConfVars.HIVEFETCHTASKCONVERSION);
-
-    boolean aggressive = "more".equals(mode);
-    FetchData fetch = checkTree(aggressive, pctx, alias, source);
+    FetchData fetch = checkTree(pctx, alias, source, mode);
     if (fetch != null) {
       int limit = pctx.getQB().getParseInfo().getOuterQueryLimit();
       FetchWork fetchWork = fetch.convertToWork();
+
+      @SuppressWarnings("unchecked")
       FetchTask fetchTask = (FetchTask) TaskFactory.get(fetchWork, pctx.getConf());
-      fetchWork.setSink(fetch.completed(pctx, fetchWork));
+      fetchWork.setSink(fetch.completed(pctx, fetchWork, mode));
       fetchWork.setSource(source);
       fetchWork.setLimit(limit);
       return fetchTask;
@@ -111,19 +138,15 @@ public class SimpleFetchOptimizer implements Transform {
   }
 
   // all we can handle is LimitOperator, FilterOperator SelectOperator and final FS
-  //
-  // for non-aggressive mode (minimal)
-  // 1. samping is not allowed
-  // 2. for partitioned table, all filters should be targeted to partition column
-  // 3. SelectOperator should be select star
-  private FetchData checkTree(boolean aggressive, ParseContext pctx, String alias,
-      TableScanOperator ts) throws HiveException {
+  private FetchData checkTree(ParseContext pctx, String alias, TableScanOperator ts, int mode)
+      throws HiveException {
+    QB qb = pctx.getQB();
     SplitSample splitSample = pctx.getNameToSplitSample().get(alias);
-    if (!aggressive && splitSample != null) {
+    if (mode == MINIMAL &&
+        (splitSample != null || !qb.isSimpleSelectQuery() || qb.hasTableSample(alias))) {
       return null;
     }
-    QB qb = pctx.getQB();
-    if (!aggressive && qb.hasTableSample(alias)) {
+    if (mode == MORE && !qb.isSimpleSelectQuery()) {
       return null;
     }
 
@@ -132,7 +155,7 @@ public class SimpleFetchOptimizer implements Transform {
       return null;
     }
     if (!table.isPartitioned()) {
-      return checkOperators(new FetchData(table, splitSample), ts, aggressive, false);
+      return checkOperators(new FetchData(table, splitSample), ts, mode, false);
     }
 
     boolean bypassFilter = false;
@@ -140,24 +163,32 @@ public class SimpleFetchOptimizer implements Transform {
       ExprNodeDesc pruner = pctx.getOpToPartPruner().get(ts);
       bypassFilter = PartitionPruner.onlyContainsPartnCols(table, pruner);
     }
-    if (aggressive || bypassFilter) {
+    if (mode != MINIMAL || bypassFilter) {
       PrunedPartitionList pruned = pctx.getPrunedPartitions(alias, ts);
-      if (aggressive || pruned.getUnknownPartns().isEmpty()) {
+      if (mode != MINIMAL || pruned.getUnknownPartns().isEmpty()) {
         bypassFilter &= pruned.getUnknownPartns().isEmpty();
-        return checkOperators(new FetchData(pruned, splitSample), ts, aggressive, bypassFilter);
+        return checkOperators(new FetchData(pruned, splitSample), ts, mode, bypassFilter);
       }
     }
     return null;
   }
 
-  private FetchData checkOperators(FetchData fetch, TableScanOperator ts, boolean aggresive,
+  private FetchData checkOperators(FetchData fetch, TableScanOperator ts, int mode,
       boolean bypassFilter) {
+    if (mode == ALL) {
+      return fetch;
+    }
+    if (mode == MINIMAL && (ts.getConf().getFilterExpr() != null ||
+        (ts.getConf().getVirtualCols() != null && !ts.getConf().getVirtualCols().isEmpty()))) {
+      return null;
+    }
     if (ts.getChildOperators().size() != 1) {
       return null;
     }
+    boolean needProcessor = ts.getConf().getFilterExpr() != null;
     Operator<?> op = ts.getChildOperators().get(0);
     for (; ; op = op.getChildOperators().get(0)) {
-      if (aggresive) {
+      if (mode == MORE) {
         if (!(op instanceof LimitOperator || op instanceof FilterOperator
             || op instanceof SelectOperator)) {
           break;
@@ -170,7 +201,8 @@ public class SimpleFetchOptimizer implements Transform {
         return null;
       }
     }
-    if (op instanceof FileSinkOperator) {
+    if (op instanceof FileSinkOperator &&
+        op.getChildOperators() == null || op.getChildOperators().isEmpty()) {
       fetch.fileSink = op;
       return fetch;
     }
@@ -184,7 +216,7 @@ public class SimpleFetchOptimizer implements Transform {
     private final PrunedPartitionList partsList;
     private final HashSet<ReadEntity> inputs = new HashSet<ReadEntity>();
 
-    // this is always non-null when conversion is completed
+    // this is always non-null when query is converted to MORE more fetch
     private Operator<?> fileSink;
 
     private FetchData(Table table, SplitSample splitSample) {
@@ -232,8 +264,12 @@ public class SimpleFetchOptimizer implements Transform {
     // this optimizer is for replacing FS to temp+fetching from temp with
     // single direct fetching, which means FS is not needed any more when conversion completed.
     // rows forwarded will be received by ListSinkOperator, which is replacing FS
-    private ListSinkOperator completed(ParseContext pctx, FetchWork work) {
+    private ListSinkOperator completed(ParseContext pctx, FetchWork work, int mode) {
       pctx.getSemanticInputs().addAll(inputs);
+      if (mode == ALL) {
+        work.setPseudoMR(true);
+        return null;
+      }
       ListSinkOperator sink = new ListSinkOperator();
       sink.setConf(new ListSinkDesc(work.getSerializationNullFormat()));
       sink.setParentOperators(new ArrayList<Operator<? extends OperatorDesc>>());
@@ -243,5 +279,40 @@ public class SimpleFetchOptimizer implements Transform {
       fileSink.setParentOperators(null);
       return sink;
     }
+  }
+
+  private void prepareReducers(Collection<Operator<? extends OperatorDesc>> operators) {
+    Set<Operator<? extends OperatorDesc>> targets =
+        new HashSet<Operator<? extends OperatorDesc>>();
+    for (Operator<?> operator : operators) {
+      targets.addAll(createReducer(operator, operator));
+    }
+    if (!targets.isEmpty()) {
+      prepareReducers(targets);
+    }
+  }
+
+  // set  hash reducer from start to child of RS
+  private Set<Operator<?>> createReducer(Operator<?> start, Operator<?> current) {
+    if (current == null || current.getChildOperators() == null) {
+      return Collections.emptySet();
+    }
+    Set<Operator<?>> next = new HashSet<Operator<?>>();
+    if (current instanceof ReduceSinkOperator && current.getChildOperators() != null) {
+      ReduceSinkOperator rs = (ReduceSinkOperator) current;
+      for (Operator<?> child : rs.getChildOperators()) {
+        if (child.getHashReducer() == null) {
+          child.setHashReducer(new HashReducer(child, rs));
+        }
+        child.getHashReducer().setValueDesc(rs);
+        start.setOutputCollector(child.getHashReducer());
+        next.add(child);
+      }
+      return next;
+    }
+    for (Operator<?> child : current.getChildOperators()) {
+      next.addAll(createReducer(start, child));
+    }
+    return next;
   }
 }
