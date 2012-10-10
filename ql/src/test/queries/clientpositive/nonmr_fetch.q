@@ -81,3 +81,28 @@ explain select a.* from (select * from src) a;
 
 -- negative, join
 explain select * from src join src src2 on src.key=src2.key;
+
+set hive.fetch.task.conversion=all;
+
+-- groupby
+explain select key, count(value) from src group by key limit 10;
+select key, count(value) from src group by key limit 10;
+
+-- distinct
+explain select distinct key, value from src limit 10;
+select distinct key, value from src limit 10;
+
+-- join
+explain select * from src join src src2 on src.key=src2.key limit 10;
+select * from src join src src2 on src.key=src2.key limit 10;
+
+-- negative, subq (todo)
+explain select a.* from (select * from src) a limit 10;
+select a.* from (select * from src) a limit 10;
+
+-- negative, CTAS
+explain create table srcx as select distinct key, value from src;
+
+-- negative, analyze
+explain analyze table src compute statistics;
+

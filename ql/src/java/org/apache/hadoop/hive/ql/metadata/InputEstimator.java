@@ -29,7 +29,7 @@ public interface InputEstimator {
    *
    * @param remaining Early exit condition. If it has positive value, further estimation
    *                  can be canceled on the point of exceeding it. In this case,
-   *                  return any bigger length value then this (Long.MAX_VALUE, for eaxmple).
+   *                  return any bigger length value then this (Long.MAX_VALUE, for example).
    */
   Estimation estimate(JobConf job, TableScanOperator ts, long remaining) throws HiveException;
 

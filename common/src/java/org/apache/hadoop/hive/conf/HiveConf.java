@@ -782,7 +782,7 @@ public class HiveConf extends Configuration {
 
     // 'minimal', 'more' (and 'all' later)
     HIVEFETCHTASKCONVERSION("hive.fetch.task.conversion", "minimal",
-        new StringsValidator("minimal", "more")),
+        new StringsValidator("minimal", "more", "all")),
     HIVEFETCHTASKCONVERSIONTHRESHOLD("hive.fetch.task.conversion.threshold", -1l),
 
     HIVEFETCHTASKAGGR("hive.fetch.task.aggr", false),

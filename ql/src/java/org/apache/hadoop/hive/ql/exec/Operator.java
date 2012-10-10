@@ -32,7 +32,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.exec.mr.ExecMapperContext;
 import org.apache.hadoop.hive.ql.lib.Node;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
@@ -47,6 +46,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reporter;
 
@@ -68,6 +68,7 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
   protected List<Operator<? extends OperatorDesc>> parentOperators;
   protected String operatorId;
   private transient ExecMapperContext execContext;
+  private transient HashReducer hashReducer;
 
   private static AtomicInteger seqId;
 
@@ -240,6 +241,14 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
     return id;
   }
 
+  public void setHashReducer(HashReducer hashReducer) {
+    this.hashReducer = hashReducer;
+  }
+
+  public HashReducer getHashReducer() {
+    return hashReducer;
+  }
+
   public void setReporter(Reporter rep) {
     reporter = rep;
 
@@ -263,6 +272,9 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
     }
 
     for (Operator<? extends OperatorDesc> op : childOperators) {
+      if (op.getHashReducer() != null) {
+        continue;
+      }
       op.setOutputCollector(out);
     }
   }
@@ -305,7 +317,8 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
         //return true;
         continue;
       }
-      if (parent.state != State.INIT) {
+      if (parent.state == State.UNINIT ||
+          parent.state == State.CLOSE && hashReducer == null) {
         return false;
       }
     }
@@ -330,7 +343,12 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
     }
 
     this.configuration = hconf;
+
     if (!areAllParentsInitialized()) {
+      return;
+    }
+    if (hashReducer != null && !hashReducer.isInitialized()) {
+      hashReducer.configure(new JobConf(hconf));
       return;
     }
 
@@ -568,6 +586,11 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
       return;
     }
 
+    if (hashReducer != null && !hashReducer.flush()) {
+      // not all of the reducers are finished yet
+      return;
+    }
+
     // set state as CLOSE as long as all parents are closed
     // state == CLOSE doesn't mean all children are also in state CLOSE
     state = State.CLOSE;
@@ -622,6 +645,10 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
       throws HiveException {
     // JobClose has already been performed on this operator
     if (jobCloseDone) {
+      return;
+    }
+
+    if (hashReducer != null && !hashReducer.isFinished()) {
       return;
     }
 
@@ -1054,7 +1081,7 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
 
     if (parents != null) {
       for (Operator<? extends OperatorDesc> parent : parents) {
-        parentClones.add((Operator<? extends OperatorDesc>)(parent.clone()));
+        parentClones.add(parent.clone());
       }
     }
 
@@ -1074,8 +1101,7 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
    */
   public Operator<? extends OperatorDesc> cloneOp() throws CloneNotSupportedException {
     T descClone = (T) conf.clone();
-    Operator<? extends OperatorDesc> ret =
-        (Operator<? extends OperatorDesc>) OperatorFactory.getAndMakeChild(
+    Operator<? extends OperatorDesc> ret = OperatorFactory.getAndMakeChild(
             descClone, getSchema());
     return ret;
   }

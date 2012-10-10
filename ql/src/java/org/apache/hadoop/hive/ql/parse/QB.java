@@ -271,6 +271,10 @@ public class QB {
     return tblDesc != null;
   }
 
+  public boolean isAnalyze() {
+    return qbp.isAnalyzeCommand();
+  }
+
   /**
    * Retrieve skewed column name for a table.
    * @param alias table alias

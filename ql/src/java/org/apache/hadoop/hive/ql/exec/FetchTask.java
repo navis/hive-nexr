@@ -20,10 +20,14 @@ package org.apache.hadoop.hive.ql.exec;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.CommandNeedRetryException;
 import org.apache.hadoop.hive.ql.DriverContext;
@@ -32,6 +36,7 @@ import org.apache.hadoop.hive.ql.io.HiveInputFormat;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
+import org.apache.hadoop.hive.ql.plan.FileSinkDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.plan.api.StageType;
 import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
@@ -59,26 +64,8 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
   @Override
   public void initialize(HiveConf conf, QueryPlan queryPlan, DriverContext ctx) {
     super.initialize(conf, queryPlan, ctx);
-    work.initializeForFetch();
-
     try {
-      // Create a file system handle
-      JobConf job = new JobConf(conf);
-
-      Operator<?> source = work.getSource();
-      if (source instanceof TableScanOperator) {
-        TableScanOperator ts = (TableScanOperator) source;
-        // push down projections
-        ColumnProjectionUtils.appendReadColumns(
-            job, ts.getNeededColumnIDs(), ts.getNeededColumns());
-        // push down filters
-        HiveInputFormat.pushFilters(job, ts);
-      }
-      sink = work.getSink();
-      fetch = new FetchOperator(work, job, source, getVirtualColumns(source));
-      source.initialize(conf, new ObjectInspector[]{fetch.getOutputObjectInspector()});
-      totalRows = 0;
-
+      initializeSource();
     } catch (Exception e) {
       // Bail out ungracefully - we should never hit
       // this here - but would have hit it in SemanticAnalyzer
@@ -87,17 +74,79 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
     }
   }
 
+  protected void initializeSource() throws Exception {
+    if (!work.isPseudoMR()) {
+      work.initializeForFetch();
+    }
+    JobConf job = new JobConf(conf);
+
+    Operator<?> source = work.getSource();
+    if (source instanceof TableScanOperator) {
+      TableScanOperator ts = (TableScanOperator) source;
+      ColumnProjectionUtils.appendReadColumnIDs(job, ts.getNeededColumnIDs());
+      HiveInputFormat.pushFilters(job, ts);
+    }
+    if (work.isPseudoMR()) {
+      setupTmpDir(source, job, new HashSet<Operator>());
+    }
+    sink = work.getSink();
+    fetch = new FetchOperator(work, job, source, getVirtualColumns(source));
+    source.initialize(conf, new ObjectInspector[]{fetch.getOutputObjectInspector()});
+    totalRows = 0;
+  }
+
   private List<VirtualColumn> getVirtualColumns(Operator<?> ts) {
     if (ts instanceof TableScanOperator && ts.getConf() != null) {
-      return ((TableScanOperator)ts).getConf().getVirtualCols();
+      return ((TableScanOperator) ts).getConf().getVirtualCols();
     }
     return null;
   }
 
+  private void setupTmpDir(Operator<?> parent, JobConf job, Set<Operator> setup) throws IOException {
+    if (parent.getChildOperators() == null) {
+      return;
+    }
+    for (Operator<?> operator : parent.getChildOperators()) {
+      if (operator instanceof FileSinkOperator && setup.add(operator)) {
+        FileSinkDesc fdesc = ((FileSinkOperator) operator).getConf();
+        Path tempPath = fdesc.getDirName();
+
+        if (tempPath != null) {
+          tempPath = Utilities.toTempPath(tempPath);
+          LOG.info("Making Temp Directory: " + tempPath);
+          FileSystem fs = tempPath.getFileSystem(job);
+          fs.mkdirs(tempPath);
+        }
+      }
+      setupTmpDir(operator, job, setup);
+    }
+  }
+
   @Override
   public int execute(DriverContext driverContext) {
-    assert false;
-    return 0;
+    boolean success = true;
+    try {
+      while (fetch.pushRow()) {
+      }
+      fetch.clearFetchContext(false);
+      return 0;
+    } catch (Exception e) {
+      success = false;
+      console.printError("Failed with exception " + e.getMessage(),
+          "\n" + StringUtils.stringifyException(e));
+      try {
+        fetch.clearFetchContext(true);
+      } catch (HiveException e1) {
+        throw new RuntimeException("Hive Runtime Error while closing operators", e1);
+      }
+      return 1;
+    } finally {
+      try {
+        fetch.jobClosed(success);
+      } catch (HiveException e) {
+        throw new RuntimeException(e);
+      }
+    }
   }
 
   /**
