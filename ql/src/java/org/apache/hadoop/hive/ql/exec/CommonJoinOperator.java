@@ -320,6 +320,7 @@ public abstract class CommonJoinOperator<T extends JoinDesc> extends
     }
 
     LOG.info("JOIN " + outputObjInspector.getTypeName() + " totalsz = " + totalSz);
+    state = State.INIT;
   }
 
   transient boolean newGroupStarted = false;

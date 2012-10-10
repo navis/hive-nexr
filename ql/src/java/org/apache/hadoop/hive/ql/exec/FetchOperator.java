@@ -545,19 +545,22 @@ public class FetchOperator implements Serializable {
     }
   }
 
+  public void clearFetchContext() throws HiveException {
+    clearFetchContext(false);
+  }
+
   /**
    * Clear the context, if anything needs to be done.
    *
    **/
-  public void clearFetchContext() throws HiveException {
+  public void clearFetchContext(boolean abort) throws HiveException {
     try {
       if (currRecReader != null) {
         currRecReader.close();
         currRecReader = null;
       }
       if (operator != null) {
-        operator.close(false);
-        operator = null;
+        operator.close(abort);
       }
       if (context != null) {
         context.clear();
@@ -570,6 +573,14 @@ public class FetchOperator implements Serializable {
     } catch (Exception e) {
       throw new HiveException("Failed with exception " + e.getMessage()
           + org.apache.hadoop.util.StringUtils.stringifyException(e));
+    }
+  }
+
+  public void jobClosed(boolean success) throws HiveException {
+    if (operator != null) {
+      JobCloseFeedBack feedBack = new JobCloseFeedBack();
+      operator.jobClose(job, success, feedBack);
+      operator = null;
     }
   }
 
