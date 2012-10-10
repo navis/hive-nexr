@@ -49,6 +49,8 @@ public class FetchWork implements Serializable {
 
   private SplitSample splitSample;
 
+  private boolean pseudoMR;
+
   /**
    * Serialization Null Format for the serde used to fetch data.
    */
@@ -258,6 +260,14 @@ public class FetchWork implements Serializable {
 
   public SplitSample getSplitSample() {
     return splitSample;
+  }
+
+  public boolean isPseudoMR() {
+    return pseudoMR;
+  }
+
+  public void setPseudoMR(boolean pseudoMR) {
+    this.pseudoMR = pseudoMR;
   }
 
   @Override

@@ -88,7 +88,7 @@ public class Optimizer {
     if (HiveConf.getBoolVar(hiveConf, HiveConf.ConfVars.HIVELIMITOPTENABLE)) {
       transformations.add(new GlobalLimitOptimizer());
     }
-    transformations.add(new SimpleFetchOptimizer());  // must be called last
+    transformations.add(new FetchConversionOptimizer());  // must be called last
   }
 
   /**

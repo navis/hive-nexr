@@ -343,6 +343,7 @@ public abstract class CommonJoinOperator<T extends JoinDesc> extends
         + ((StructObjectInspector) outputObjInspector).getTypeName()
         + " totalsz = " + totalSz);
 
+    state = State.INIT;
   }
 
 
