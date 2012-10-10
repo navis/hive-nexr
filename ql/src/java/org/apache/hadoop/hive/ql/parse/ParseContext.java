@@ -604,6 +604,10 @@ public class ParseContext {
     this.rootTasks.addAll(tasks);
   }
 
+  public List<Task<? extends Serializable>> getRootTasks() {
+    return rootTasks;
+  }
+
   public FetchTask getFetchTask() {
     return fetchTask;
   }

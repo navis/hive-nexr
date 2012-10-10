@@ -192,28 +192,30 @@ public abstract class TaskCompiler {
       }
     }
 
-    generateTaskTree(rootTasks, pCtx, mvTask, inputs, outputs);
+    if (rootTasks.isEmpty()) {
+      generateTaskTree(rootTasks, pCtx, mvTask, inputs, outputs);
 
     /*
      * If the query was the result of analyze table column compute statistics rewrite, create
      * a column stats task instead of a fetch task to persist stats to the metastore.
      */
-    if (isCStats) {
-      genColumnStatsTask(qb, loadTableWork, loadFileWork, rootTasks);
-    }
+      if (isCStats) {
+        genColumnStatsTask(qb, loadTableWork, loadFileWork, rootTasks);
+      }
 
-    // For each task, set the key descriptor for the reducer
-    for (Task<? extends Serializable> rootTask : rootTasks) {
-      GenMapRedUtils.setKeyAndValueDescForTaskTree(rootTask);
-    }
+      // For each task, set the key descriptor for the reducer
+      for (Task<? extends Serializable> rootTask : rootTasks) {
+        GenMapRedUtils.setKeyAndValueDescForTaskTree(rootTask);
+      }
 
-    // If a task contains an operator which instructs bucketizedhiveinputformat
-    // to be used, please do so
-    for (Task<? extends Serializable> rootTask : rootTasks) {
-      setInputFormat(rootTask);
-    }
+      // If a task contains an operator which instructs bucketizedhiveinputformat
+      // to be used, please do so
+      for (Task<? extends Serializable> rootTask : rootTasks) {
+        setInputFormat(rootTask);
+      }
 
-    optimizeTaskPlan(rootTasks, pCtx, ctx);
+      optimizeTaskPlan(rootTasks, pCtx, ctx);
+    }
 
     decideExecMode(rootTasks, ctx, globalLimitCtx);
 

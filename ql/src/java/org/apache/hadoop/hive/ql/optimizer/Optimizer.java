@@ -128,7 +128,7 @@ public class Optimizer {
       transformations.add(new AnnotateWithOpTraits());
     }
 
-    transformations.add(new SimpleFetchOptimizer());  // must be called last
+    transformations.add(new FetchConversionOptimizer());  // must be called last
 
     if (HiveConf.getBoolVar(hiveConf, HiveConf.ConfVars.HIVEFETCHTASKAGGR)) {
       transformations.add(new SimpleFetchAggregation());

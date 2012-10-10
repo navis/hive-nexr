@@ -3446,7 +3446,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
   @SuppressWarnings("nls")
   private Operator genGroupByPlanGroupByOperator(QBParseInfo parseInfo,
       String dest, Operator input, ReduceSinkOperator rs, GroupByDesc.Mode mode,
-      Map<String, GenericUDAFEvaluator> genericUDAFEvaluators)
+      Map<String, GenericUDAFEvaluatorFactory> genericUDAFEvaluators)
       throws SemanticException {
     RowResolver groupByInputRowResolver = opParseCtx
         .get(input).getRowResolver();
@@ -3536,8 +3536,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         numDistinctUDFs++;
       }
       Mode amode = groupByDescModeToUDAFMode(mode, isDistinct);
-      GenericUDAFEvaluator genericUDAFEvaluator = getGenericUDAFEvaluator(
+      GenericUDAFEvaluatorFactory factory = new GenericUDAFEvaluatorFactory(
           aggName, aggParameters, value, isDistinct, isAllColumns);
+      GenericUDAFEvaluator genericUDAFEvaluator = factory.create();
       assert (genericUDAFEvaluator != null);
       GenericUDAFInfo udaf = getGenericUDAFInfo(genericUDAFEvaluator, amode,
           aggParameters);
@@ -3552,7 +3553,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       // Save the evaluator so that it can be used by the next-stage
       // GroupByOperators
       if (genericUDAFEvaluators != null) {
-        genericUDAFEvaluators.put(entry.getKey(), genericUDAFEvaluator);
+        genericUDAFEvaluators.put(entry.getKey(), factory);
       }
     }
     float groupByMemoryUsage = HiveConf.getFloatVar(conf, HiveConf.ConfVars.HIVEMAPAGGRHASHMEMORY);
@@ -3653,7 +3654,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
   @SuppressWarnings("nls")
   private Operator genGroupByPlanGroupByOperator1(QBParseInfo parseInfo,
       String dest, Operator reduceSinkOperatorInfo, GroupByDesc.Mode mode,
-      Map<String, GenericUDAFEvaluator> genericUDAFEvaluators,
+      Map<String, GenericUDAFEvaluatorFactory> genericUDAFEvaluators,
       boolean distPartAgg,
       List<Integer> groupingSets,
       boolean groupingSetsPresent,
@@ -3811,12 +3812,13 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       GenericUDAFEvaluator genericUDAFEvaluator = null;
       // For distincts, partial aggregations have not been done
       if (distPartAgg) {
-        genericUDAFEvaluator = getGenericUDAFEvaluator(aggName, aggParameters,
-            value, isDistinct, isAllColumns);
+        GenericUDAFEvaluatorFactory factory = new GenericUDAFEvaluatorFactory(
+            aggName, aggParameters, value, isDistinct, isAllColumns);
+        genericUDAFEvaluator = factory.create();
         assert (genericUDAFEvaluator != null);
-        genericUDAFEvaluators.put(entry.getKey(), genericUDAFEvaluator);
+        genericUDAFEvaluators.put(entry.getKey(), factory);
       } else {
-        genericUDAFEvaluator = genericUDAFEvaluators.get(entry.getKey());
+        genericUDAFEvaluator = genericUDAFEvaluators.get(entry.getKey()).create();
         assert (genericUDAFEvaluator != null);
       }
 
@@ -3895,7 +3897,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       List<ASTNode> grpByExprs,
       Operator inputOperatorInfo,
       GroupByDesc.Mode mode,
-      Map<String, GenericUDAFEvaluator> genericUDAFEvaluators,
+      Map<String, GenericUDAFEvaluatorFactory> genericUDAFEvaluators,
       List<Integer> groupingSetKeys,
       boolean groupingSetsPresent) throws SemanticException {
 
@@ -3985,8 +3987,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       boolean isAllColumns = value.getType() == HiveParser.TOK_FUNCTIONSTAR;
       Mode amode = groupByDescModeToUDAFMode(mode, isDistinct);
 
-      GenericUDAFEvaluator genericUDAFEvaluator = getGenericUDAFEvaluator(
+      GenericUDAFEvaluatorFactory factory = new GenericUDAFEvaluatorFactory(
           aggName, aggParameters, value, isDistinct, isAllColumns);
+      GenericUDAFEvaluator genericUDAFEvaluator = factory.create();
       assert (genericUDAFEvaluator != null);
       GenericUDAFInfo udaf = getGenericUDAFInfo(genericUDAFEvaluator, amode,
           aggParameters);
@@ -4003,7 +4006,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       // Save the evaluator so that it can be used by the next-stage
       // GroupByOperators
       if (genericUDAFEvaluators != null) {
-        genericUDAFEvaluators.put(entry.getKey(), genericUDAFEvaluator);
+        genericUDAFEvaluators.put(entry.getKey(), factory);
       }
     }
     float groupByMemoryUsage = HiveConf.getFloatVar(conf, HiveConf.ConfVars.HIVEMAPAGGRHASHMEMORY);
@@ -4441,7 +4444,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       String dest,
       Operator reduceSinkOperatorInfo2,
       GroupByDesc.Mode mode,
-      Map<String, GenericUDAFEvaluator> genericUDAFEvaluators,
+      Map<String, GenericUDAFEvaluatorFactory> genericUDAFEvaluators,
       boolean groupingSetsPresent) throws SemanticException {
 
     RowResolver groupByInputRowResolver2 = opParseCtx.get(
@@ -4505,7 +4508,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       boolean isStar = value.getType() == HiveParser.TOK_FUNCTIONSTAR;
       Mode amode = groupByDescModeToUDAFMode(mode, isDistinct);
       GenericUDAFEvaluator genericUDAFEvaluator = genericUDAFEvaluators
-          .get(entry.getKey());
+          .get(entry.getKey()).create();
       assert (genericUDAFEvaluator != null);
       GenericUDAFInfo udaf = getGenericUDAFInfo(genericUDAFEvaluator, amode,
           aggParameters);
@@ -4740,8 +4743,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       Operator input) throws SemanticException {
 
     // ////// Generate GroupbyOperator for a map-side partial aggregation
-    Map<String, GenericUDAFEvaluator> genericUDAFEvaluators =
-        new LinkedHashMap<String, GenericUDAFEvaluator>();
+    Map<String, GenericUDAFEvaluatorFactory> genericUDAFEvaluators =
+      new LinkedHashMap<String, GenericUDAFEvaluatorFactory>();
 
     QBParseInfo parseInfo = qb.getParseInfo();
 
@@ -4844,8 +4847,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
             false);
 
     // ////// 2. Generate GroupbyOperator
-    Map<String, GenericUDAFEvaluator> genericUDAFEvaluators =
-        new LinkedHashMap<String, GenericUDAFEvaluator>();
+    Map<String, GenericUDAFEvaluatorFactory> genericUDAFEvaluators =
+      new LinkedHashMap<String, GenericUDAFEvaluatorFactory>();
     GroupByOperator groupByOperatorInfo = (GroupByOperator) genGroupByPlanGroupByOperator(
         parseInfo, dest, reduceSinkOperatorInfo, reduceSinkOperatorInfo, GroupByDesc.Mode.PARTIAL1,
         genericUDAFEvaluators);
@@ -5026,8 +5029,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     }
 
     // ////// Generate GroupbyOperator for a map-side partial aggregation
-    Map<String, GenericUDAFEvaluator> genericUDAFEvaluators =
-        new LinkedHashMap<String, GenericUDAFEvaluator>();
+    Map<String, GenericUDAFEvaluatorFactory> genericUDAFEvaluators =
+      new LinkedHashMap<String, GenericUDAFEvaluatorFactory>();
 
     // Is the grouping sets data consumed in the current in MR job, or
     // does it need an additional MR job
@@ -5203,8 +5206,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     }
 
     // ////// Generate GroupbyOperator for a map-side partial aggregation
-    Map<String, GenericUDAFEvaluator> genericUDAFEvaluators =
-        new LinkedHashMap<String, GenericUDAFEvaluator>();
+    Map<String, GenericUDAFEvaluatorFactory> genericUDAFEvaluators =
+      new LinkedHashMap<String, GenericUDAFEvaluatorFactory>();
     GroupByOperator groupByOperatorInfo =
         (GroupByOperator) genGroupByPlanMapGroupByOperator(
             qb, dest, grpByExprs, inputOperatorInfo, GroupByDesc.Mode.HASH,
@@ -11328,5 +11331,28 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     if (isNonNativeTable) return WriteEntity.WriteType.INSERT_OVERWRITE;
     else return (ltd.getReplace() ? WriteEntity.WriteType.INSERT_OVERWRITE :
         WriteEntity.WriteType.INSERT);
+  }
+
+  private static class GenericUDAFEvaluatorFactory {
+
+    private String aggName;
+    private ArrayList<ExprNodeDesc> aggParameters;
+    private ASTNode aggTree;
+    private boolean isDistinct;
+    private boolean isAllColumns;
+
+    private GenericUDAFEvaluatorFactory(String aggName,
+      ArrayList<ExprNodeDesc> aggParameters, ASTNode aggTree,
+      boolean isDistinct, boolean isAllColumns) {
+      this.aggName = aggName;
+      this.aggParameters = aggParameters;
+      this.aggTree = aggTree;
+      this.isDistinct = isDistinct;
+      this.isAllColumns = isAllColumns;
+    }
+
+    private GenericUDAFEvaluator create() throws SemanticException {
+      return getGenericUDAFEvaluator(aggName, aggParameters, aggTree, isDistinct, isAllColumns);
+    }
   }
 }

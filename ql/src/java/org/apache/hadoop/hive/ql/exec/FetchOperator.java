@@ -34,10 +34,8 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.FileUtils;
-import org.apache.hadoop.hive.common.ObjectPair;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.exec.mr.ExecMapperContext;
-import org.apache.hadoop.hive.ql.exec.FooterBuffer;
 import org.apache.hadoop.hive.ql.io.HiveContextAwareRecordReader;
 import org.apache.hadoop.hive.ql.io.HiveInputFormat;
 import org.apache.hadoop.hive.ql.io.HiveRecordReader;
@@ -48,7 +46,6 @@ import org.apache.hadoop.hive.ql.plan.FetchWork;
 import org.apache.hadoop.hive.ql.plan.PartitionDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.session.SessionState.LogHelper;
-import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.Deserializer;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.objectinspector.DelegatedObjectInspectorFactory;
@@ -637,19 +634,22 @@ public class FetchOperator implements Serializable {
     }
   }
 
+  public void clearFetchContext() throws HiveException {
+    clearFetchContext(false);
+  }
+
   /**
    * Clear the context, if anything needs to be done.
    *
    **/
-  public void clearFetchContext() throws HiveException {
+  public void clearFetchContext(boolean abort) throws HiveException {
     try {
       if (currRecReader != null) {
         currRecReader.close();
         currRecReader = null;
       }
       if (operator != null) {
-        operator.close(false);
-        operator = null;
+        operator.close(abort);
       }
       if (context != null) {
         context.clear();
@@ -662,6 +662,13 @@ public class FetchOperator implements Serializable {
     } catch (Exception e) {
       throw new HiveException("Failed with exception " + e.getMessage()
           + org.apache.hadoop.util.StringUtils.stringifyException(e));
+    }
+  }
+
+  public void jobClosed(boolean success) throws HiveException {
+    if (operator != null) {
+      operator.jobClose(job, success);
+      operator = null;
     }
   }
 

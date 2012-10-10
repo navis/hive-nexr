@@ -68,20 +68,20 @@ public class ExecReducer extends MapReduceBase implements Reducer {
 
   private static final String PLAN_KEY = "__REDUCE_PLAN__";
 
-  private JobConf jc;
-  private OutputCollector<?, ?> oc;
-  private Operator<?> reducer;
-  private Reporter rp;
-  private boolean abort = false;
-  private boolean isTagged = false;
-  private long cntr = 0;
-  private long nextCntr = 1;
+  protected JobConf jc;
+  protected OutputCollector<?, ?> oc;
+  protected Operator<?> reducer;
+  protected Reporter rp;
+  protected boolean abort = false;
+  protected boolean isTagged = false;
+  protected long cntr = 0;
+  protected long nextCntr = 1;
 
   public static final Log l4j = LogFactory.getLog("ExecReducer");
   private boolean isLogInfoEnabled = false;
 
   // used to log memory usage periodically
-  private MemoryMXBean memoryMXBean;
+  protected MemoryMXBean memoryMXBean;
 
   // TODO: move to DynamicSerDe when it's ready
   private Deserializer inputKeyDeserializer;
@@ -96,10 +96,6 @@ public class ExecReducer extends MapReduceBase implements Reducer {
 
   @Override
   public void configure(JobConf job) {
-    rowObjectInspector = new ObjectInspector[Byte.MAX_VALUE];
-    ObjectInspector[] valueObjectInspector = new ObjectInspector[Byte.MAX_VALUE];
-    ObjectInspector keyObjectInspector;
-
     // Allocate the bean at the beginning -
     memoryMXBean = ManagementFactory.getMemoryMXBean();
     l4j.info("maximum memory = " + memoryMXBean.getHeapMemoryUsage().getMax());
@@ -117,6 +113,24 @@ public class ExecReducer extends MapReduceBase implements Reducer {
     }
     jc = job;
 
+    configureJob(job);
+
+    // initialize reduce operator tree
+    try {
+      l4j.info(reducer.dump(0));
+      reducer.initialize(jc, rowObjectInspector);
+    } catch (Throwable e) {
+      abort = true;
+      if (e instanceof OutOfMemoryError) {
+        // Don't create a new object if we are already out of memory
+        throw (OutOfMemoryError) e;
+      } else {
+        throw new RuntimeException("Reduce operator initialization failed", e);
+      }
+    }
+  }
+
+  protected void configureJob(JobConf job) {
     ObjectCache cache = ObjectCacheFactory.getCache(jc);
     ReduceWork gWork = (ReduceWork) cache.retrieve(PLAN_KEY);
     if (gWork == null) {
@@ -127,25 +141,33 @@ public class ExecReducer extends MapReduceBase implements Reducer {
     }
 
     reducer = gWork.getReducer();
-    reducer.setParentOperators(null); // clear out any parents as reducer is the
-    // root
+    reducer.setParentOperators(null); // clear out any parents as reducer is the root
+
     isTagged = gWork.getNeedsTagging();
+    initKeyValueDesc(gWork.getKeyDesc(), gWork.getTagToValueDesc());
+  }
+
+  protected void initKeyValueDesc(TableDesc keyDesc, List<TableDesc> valueDescs) {
+    int tagLen = valueDescs.size();
+    rowObjectInspector = new ObjectInspector[tagLen];
     try {
-      keyTableDesc = gWork.getKeyDesc();
-      inputKeyDeserializer = (SerDe) ReflectionUtils.newInstance(keyTableDesc
+      keyTableDesc = keyDesc;
+      inputKeyDeserializer = ReflectionUtils.newInstance(keyTableDesc
           .getDeserializerClass(), null);
       inputKeyDeserializer.initialize(null, keyTableDesc.getProperties());
-      keyObjectInspector = inputKeyDeserializer.getObjectInspector();
-      valueTableDesc = new TableDesc[gWork.getTagToValueDesc().size()];
-      for (int tag = 0; tag < gWork.getTagToValueDesc().size(); tag++) {
+      ObjectInspector keyObjectInspector = inputKeyDeserializer.getObjectInspector();
+
+      valueTableDesc = new TableDesc[valueDescs.size()];
+      ObjectInspector[] valueObjectInspector = new ObjectInspector[tagLen];
+      for (int tag = 0; tag < valueDescs.size(); tag++) {
         // We should initialize the SerDe with the TypeInfo when available.
-        valueTableDesc[tag] = gWork.getTagToValueDesc().get(tag);
+        valueTableDesc[tag] = valueDescs.get(tag);
         inputValueDeserializer[tag] = (SerDe) ReflectionUtils.newInstance(
             valueTableDesc[tag].getDeserializerClass(), null);
         inputValueDeserializer[tag].initialize(null, valueTableDesc[tag]
             .getProperties());
-        valueObjectInspector[tag] = inputValueDeserializer[tag]
-            .getObjectInspector();
+
+        valueObjectInspector[tag] = inputValueDeserializer[tag].getObjectInspector();
 
         ArrayList<ObjectInspector> ois = new ArrayList<ObjectInspector>();
         ois.add(keyObjectInspector);
