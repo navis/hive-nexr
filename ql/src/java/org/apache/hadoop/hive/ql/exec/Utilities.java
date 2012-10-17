@@ -1731,7 +1731,7 @@ public final class Utilities {
     }
   }
 
-  public static Object getInputSummaryLock = new Object();
+  public static final Object getInputSummaryLock = new Object();
 
   /**
    * Calculate the total size of input files.
@@ -1992,12 +1992,19 @@ public final class Utilities {
   }
 
   public static void setColumnNameList(JobConf jobConf, Operator op) {
+    setColumnNameList(jobConf, op, false);
+  }
+
+  public static void setColumnNameList(JobConf jobConf, Operator op, boolean excludeVCs) {
     RowSchema rowSchema = op.getSchema();
     if (rowSchema == null) {
       return;
     }
     StringBuilder columnNames = new StringBuilder();
     for (ColumnInfo colInfo : rowSchema.getSignature()) {
+      if (excludeVCs && colInfo.getIsVirtualCol()) {
+        continue;
+      }
       if (columnNames.length() > 0) {
         columnNames.append(",");
       }
@@ -2008,12 +2015,19 @@ public final class Utilities {
   }
 
   public static void setColumnTypeList(JobConf jobConf, Operator op) {
+    setColumnTypeList(jobConf, op, false);
+  }
+
+  public static void setColumnTypeList(JobConf jobConf, Operator op, boolean excludeVCs) {
     RowSchema rowSchema = op.getSchema();
     if (rowSchema == null) {
       return;
     }
     StringBuilder columnTypes = new StringBuilder();
     for (ColumnInfo colInfo : rowSchema.getSignature()) {
+      if (excludeVCs && colInfo.getIsVirtualCol()) {
+        continue;
+      }
       if (columnTypes.length() > 0) {
         columnTypes.append(",");
       }
