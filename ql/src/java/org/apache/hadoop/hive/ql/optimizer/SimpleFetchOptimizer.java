@@ -18,8 +18,19 @@
 
 package org.apache.hadoop.hive.ql.optimizer;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.ContentSummary;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.exec.FetchTask;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
@@ -35,14 +46,17 @@ import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.exec.TaskFactory;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.hooks.ReadEntity;
+import org.apache.hadoop.hive.ql.io.ContentSummaryInputFormat;
+import org.apache.hadoop.hive.ql.io.HiveInputFormat;
+import org.apache.hadoop.hive.ql.metadata.EstimatableStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.ql.metadata.HiveStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.Partition;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.optimizer.ppr.PartitionPruner;
 import org.apache.hadoop.hive.ql.parse.ParseContext;
 import org.apache.hadoop.hive.ql.parse.PrunedPartitionList;
 import org.apache.hadoop.hive.ql.parse.QB;
-import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.parse.SplitSample;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
@@ -51,14 +65,8 @@ import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.PartitionDesc;
 import org.apache.hadoop.hive.ql.plan.PlanUtils;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import org.apache.hadoop.mapred.InputFormat;
+import org.apache.hadoop.mapred.JobConf;
 
 /**
  * Tries to convert simple fetch query to single fetch task, which fetches rows directly
@@ -72,42 +80,39 @@ public class SimpleFetchOptimizer {
   static final int MINIMAL = 0;
 
   // single sourced select only (no CTAS or insert)
-  // no join, no groupby, no distinct, no lateral view, no subq
-  // not analyze command
+  // no join, no groupby, no distinct, no lateral view, no subq/analyze command
   static final int MORE = 1;
 
-  // convert TSs to pseudo MR tasks
+  // execute query in pseudo MR mode. converts top level TS to FetchTask
   static final int ALL = 2;
 
   private final Log LOG = LogFactory.getLog(SimpleFetchOptimizer.class.getName());
 
-  public boolean transform(ParseContext pctx, int mode) throws SemanticException {
+  public boolean transform(ParseContext pctx, int mode) throws Exception {
     Map<String, Operator<? extends OperatorDesc>> topOps = pctx.getTopOps();
     if (mode != ALL && topOps.size() != 1) {
       return false;
     }
-    List<Task<?>> tasks = new ArrayList<Task<?>>();
+    List<FetchData> datas = new ArrayList<FetchData>();
     for (Map.Entry<String, Operator<? extends OperatorDesc>> entry : topOps.entrySet()) {
       String alias = entry.getKey();
       Operator topOp = entry.getValue();
       if (!(topOp instanceof TableScanOperator)) {
         return false;
       }
-      try {
-        Task<?> task = optimize(pctx, alias, (TableScanOperator) topOp, mode);
-        if (task == null) {
-          return false;
-        }
-        tasks.add(task);
-      } catch (HiveException e) {
-        // Has to use full name to make sure it does not conflict with
-        // org.apache.commons.lang.StringUtils
-        LOG.error(org.apache.hadoop.util.StringUtils.stringifyException(e));
-        if (e instanceof SemanticException) {
-          throw (SemanticException) e;
-        }
-        throw new SemanticException(e.getMessage(), e);
+      TableScanOperator tableScan = (TableScanOperator) topOp;
+      FetchData data = checkTree(pctx, alias, tableScan, mode);
+      if (data == null) {
+        return false;
       }
+      datas.add(data);
+    }
+    if (mode == ALL && !checkThreshold(datas, pctx)) {
+      return false;
+    }
+    List<Task<?>> tasks = new ArrayList<Task<?>>();
+    for (FetchData data : datas) {
+      tasks.add(data.convertToTask(pctx, mode));
     }
     if (mode != ALL) {
       pctx.setFetchTask((FetchTask) tasks.get(0));
@@ -119,25 +124,23 @@ public class SimpleFetchOptimizer {
     return true;
   }
 
-  // returns non-null FetchTask instance when succeeded
-  private Task<?> optimize(ParseContext pctx, String alias, TableScanOperator source, int mode)
-      throws HiveException {
-    FetchData fetch = checkTree(pctx, alias, source, mode);
-    if (fetch != null) {
-      int limit = pctx.getQB().getParseInfo().getOuterQueryLimit();
-      FetchWork fetchWork = fetch.convertToWork();
-
-      @SuppressWarnings("unchecked")
-      FetchTask fetchTask = (FetchTask) TaskFactory.get(fetchWork, pctx.getConf());
-      fetchWork.setSink(fetch.completed(pctx, fetchWork, mode));
-      fetchWork.setSource(source);
-      fetchWork.setLimit(limit);
-      return fetchTask;
+  private boolean checkThreshold(List<FetchData> datas, ParseContext pctx) throws Exception {
+    long threshold = HiveConf.getLongVar(pctx.getConf(),
+        HiveConf.ConfVars.HIVEFETCHTASKCONVERSIONTHRESHOLD);
+    if (threshold < 0) {
+      return true;
     }
-    return null;
+    long remaining = threshold;
+    for (FetchData data : datas) {
+      remaining -= data.getLength(pctx, remaining);
+      if (remaining < 0) {
+        LOG.info("Threshold " + remaining + " exceeded for pseudoMR mode");
+        return false;
+      }
+    }
+    return true;
   }
 
-  // all we can handle is LimitOperator, FilterOperator SelectOperator and final FS
   private FetchData checkTree(ParseContext pctx, String alias, TableScanOperator ts, int mode)
       throws HiveException {
     QB qb = pctx.getQB();
@@ -155,7 +158,7 @@ public class SimpleFetchOptimizer {
       return null;
     }
     if (!table.isPartitioned()) {
-      return checkOperators(new FetchData(table, splitSample), ts, mode, false);
+      return checkOperators(new FetchData(table, ts, splitSample), ts, mode, false);
     }
 
     boolean bypassFilter = false;
@@ -167,12 +170,14 @@ public class SimpleFetchOptimizer {
       PrunedPartitionList pruned = pctx.getPrunedPartitions(alias, ts);
       if (mode != MINIMAL || pruned.getUnknownPartns().isEmpty()) {
         bypassFilter &= pruned.getUnknownPartns().isEmpty();
-        return checkOperators(new FetchData(pruned, splitSample), ts, mode, bypassFilter);
+        FetchData fetch = new FetchData(table, ts, pruned, splitSample);
+        return checkOperators(fetch, ts, mode, bypassFilter);
       }
     }
     return null;
   }
 
+  // all we can handle is LimitOperator, FilterOperator SelectOperator and final FS
   private FetchData checkOperators(FetchData fetch, TableScanOperator ts, int mode,
       boolean bypassFilter) {
     if (mode == ALL) {
@@ -212,6 +217,7 @@ public class SimpleFetchOptimizer {
   private class FetchData {
 
     private final Table table;
+    private final TableScanOperator scanOp;
     private final SplitSample splitSample;
     private final PrunedPartitionList partsList;
     private final HashSet<ReadEntity> inputs = new HashSet<ReadEntity>();
@@ -219,21 +225,35 @@ public class SimpleFetchOptimizer {
     // this is always non-null when query is converted to MORE more fetch
     private Operator<?> fileSink;
 
-    private FetchData(Table table, SplitSample splitSample) {
+    private FetchData(Table table, TableScanOperator scanOp, SplitSample splitSample) {
       this.table = table;
+      this.scanOp = scanOp;
       this.partsList = null;
       this.splitSample = splitSample;
     }
 
-    private FetchData(PrunedPartitionList partsList, SplitSample splitSample) {
-      this.table = null;
+    private FetchData(Table table, TableScanOperator scanOp, PrunedPartitionList partsList,
+        SplitSample splitSample) {
+      this.table = table;
+      this.scanOp = scanOp;
       this.partsList = partsList;
       this.splitSample = splitSample;
     }
 
+      @SuppressWarnings("unchecked")
+    private Task<?> convertToTask(ParseContext pctx, int mode) throws HiveException {
+      int limit = pctx.getQB().getParseInfo().getOuterQueryLimit();
+      FetchWork fetchWork = convertToWork();
+      FetchTask fetchTask = (FetchTask) TaskFactory.get(fetchWork, pctx.getConf());
+      fetchWork.setSink(completed(pctx, fetchWork, mode));
+      fetchWork.setSource(scanOp);
+      fetchWork.setLimit(limit);
+      return fetchTask;
+    }
+
     private FetchWork convertToWork() throws HiveException {
       inputs.clear();
-      if (table != null) {
+      if (!table.isPartitioned()) {
         inputs.add(new ReadEntity(table));
         String path = table.getPath().toString();
         FetchWork work = new FetchWork(path, Utilities.getTableDesc(table));
@@ -292,6 +312,50 @@ public class SimpleFetchOptimizer {
       }
       fileSink = found.iterator().next();
       return true;
+    }
+
+   private long getLength(ParseContext pctx, long remaining) throws Exception {
+     long length = calculateLength(pctx, remaining);
+     if (splitSample != null) {
+       return (long) (length * splitSample.getPercent() / 100D);
+     }
+     return length;
+   }
+
+    private long calculateLength(ParseContext pctx, long remaining) throws Exception {
+      JobConf jobConf = new JobConf(pctx.getConf());
+      Utilities.setColumnNameList(jobConf, scanOp, true);
+      Utilities.setColumnTypeList(jobConf, scanOp, true);
+
+      HiveStorageHandler handler = table.getStorageHandler();
+      if (handler instanceof EstimatableStorageHandler) {
+        EstimatableStorageHandler estimator = (EstimatableStorageHandler) handler;
+        TableDesc tableDesc = Utilities.getTableDesc(table);
+        PlanUtils.configureInputJobPropertiesForStorageHandler(tableDesc);
+        Utilities.copyTableJobPropertiesToConf(tableDesc, jobConf);
+        return estimator.estimate(jobConf, scanOp, remaining).getTotalLength();
+      }
+      if (!table.isPartitioned()) {
+        Path path = table.getPath();
+        return getLength(jobConf, path, table.getInputFormatClass());
+      }
+      long total = 0;
+      for (Partition partition : partsList.getNotDeniedPartns()) {
+        Path path = partition.getPartitionPath();
+        total += getLength(jobConf, path, partition.getInputFormatClass());
+      }
+      return total;
+    }
+
+    private long getLength(JobConf conf, Path path, Class<? extends InputFormat> clazz) throws IOException {
+      ContentSummary summary;
+      if (ContentSummaryInputFormat.class.isAssignableFrom(clazz)) {
+        InputFormat input = HiveInputFormat.getInputFormatFromCache(clazz, conf);
+        summary = ((ContentSummaryInputFormat)input).getContentSummary(path, conf);
+      } else {
+        summary = path.getFileSystem(conf).getContentSummary(path);
+      }
+      return summary.getLength();
     }
   }
 

@@ -22,6 +22,8 @@ import static org.apache.hadoop.hive.ql.optimizer.SimpleFetchOptimizer.ALL;
 import static org.apache.hadoop.hive.ql.optimizer.SimpleFetchOptimizer.MINIMAL;
 import static org.apache.hadoop.hive.ql.optimizer.SimpleFetchOptimizer.MORE;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.ql.parse.ParseContext;
@@ -29,13 +31,24 @@ import org.apache.hadoop.hive.ql.parse.SemanticException;
 
 public class FetchConversionOptimizer implements Transform {
 
+  private final Log LOG = LogFactory.getLog(FetchConversionOptimizer.class.getName());
   private final SimpleFetchOptimizer optimizer = new SimpleFetchOptimizer();
 
   public ParseContext transform(ParseContext pctx) throws SemanticException {
     int conversion = getConversionMode(pctx);
     for (int mode = MINIMAL; mode <= conversion; mode++) {
-      if (optimizer.transform(pctx, mode)) {
-        break;
+      try {
+        if (optimizer.transform(pctx, mode)) {
+          break;
+        }
+      } catch (Exception e) {
+        // Has to use full name to make sure it does not conflict with
+        // org.apache.commons.lang.StringUtils
+        LOG.error(org.apache.hadoop.util.StringUtils.stringifyException(e));
+        if (e instanceof SemanticException) {
+          throw (SemanticException) e;
+        }
+        throw new SemanticException(e.getMessage(), e);
       }
     }
     return pctx;
