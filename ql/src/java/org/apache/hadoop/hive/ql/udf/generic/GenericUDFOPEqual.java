@@ -85,4 +85,8 @@ public class GenericUDFOPEqual extends GenericUDFBaseCompare {
     return result;
   }
 
+  @Override
+  public GenericUDF negate() {
+    return new GenericUDFOPNotEqual();
+  }
 }
