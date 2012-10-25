@@ -88,6 +88,7 @@ public class GenericUDFBridge extends GenericUDF implements Serializable {
     this.udfName = udfName;
   }
 
+  @Override
   public String getUdfName() {
     return udfName;
   }

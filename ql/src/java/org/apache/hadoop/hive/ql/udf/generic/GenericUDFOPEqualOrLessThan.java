@@ -93,5 +93,14 @@ public class GenericUDFOPEqualOrLessThan extends GenericUDFBaseCompare {
     return result;
   }
 
+  @Override
+  public GenericUDF flip() {
+    return new GenericUDFOPEqualOrGreaterThan();
+  }
+
+  @Override
+  public GenericUDF negate() {
+    return new GenericUDFOPGreaterThan();
+  }
 }
 

@@ -56,4 +56,8 @@ public class GenericUDFOPNotNull extends GenericUDF {
     return children[0] + " is not null";
   }
 
+  @Override
+  public GenericUDF negate() {
+    return new GenericUDFOPNull();
+  }
 }

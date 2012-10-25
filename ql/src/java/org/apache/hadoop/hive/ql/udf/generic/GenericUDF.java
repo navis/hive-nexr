@@ -163,4 +163,18 @@ public abstract class GenericUDF {
    */
   public abstract String getDisplayString(String[] children);
 
+  /**
+   * Some functions are affeted by order of arguments (comparisons, for example)
+   */
+  public GenericUDF flip() {
+    return this;
+  }
+
+  public GenericUDF negate() {
+    throw new UnsupportedOperationException("negate");
+  }
+
+  public String getUdfName() {
+    return getClass().getName();
+  }
 }
