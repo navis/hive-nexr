@@ -772,9 +772,9 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
       props = partDesc.getProperties();
       outFileFormat = partDesc.getOutputFileFormatClass();
       nonNative = partDesc.getTableDesc().isNonNative();
-      oneRow = partDesc.getInputFileFormatClass() == OneNullRowInputFormat.class;
     } else {
-      TableDesc tableDesc = work.getAliasToPartnInfo().get(alias).getTableDesc();
+      PartitionDesc partDesc = work.getAliasToPartnInfo().get(alias);
+      TableDesc tableDesc = partDesc.getTableDesc();
       props = tableDesc.getProperties();
       outFileFormat = tableDesc.getOutputFileFormatClass();
       nonNative = tableDesc.isNonNative();
