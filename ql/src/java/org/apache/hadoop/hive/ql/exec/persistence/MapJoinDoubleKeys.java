@@ -181,4 +181,9 @@ public class MapJoinDoubleKeys extends AbstractMapJoinKey {
     }
     return false;
   }
+
+  @Override
+  public Object[] toArray() {
+    return new Object[]{obj1, obj2};
+  }
 }

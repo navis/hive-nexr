@@ -159,4 +159,8 @@ public class MapJoinObjectKey  extends AbstractMapJoinKey {
 
   }
 
+  @Override
+  public Object[] toArray() {
+    return obj;
+  }
 }

@@ -602,11 +602,6 @@ public class SMBMapJoinOperator extends AbstractMapJoinOperator<SMBJoinDesc> imp
     return "MAPJOIN";
   }
 
-  @Override
-  public OperatorType getType() {
-    return OperatorType.MAPJOIN;
-  }
-
   // returns rows from possibly multiple bucket files of small table in ascending order
   // by utilizing primary queue (borrowed from hadoop)
   // elements of queue (Integer) are index to FetchOperator[] (segments)

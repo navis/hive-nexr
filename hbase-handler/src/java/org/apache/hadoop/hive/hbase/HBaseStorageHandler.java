@@ -34,6 +34,7 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hive.hbase.HBaseSerDe.ColumnMapping;
 import org.apache.hadoop.hive.metastore.HiveMetaHook;
@@ -43,8 +44,10 @@ import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.ql.index.IndexPredicateAnalyzer;
 import org.apache.hadoop.hive.ql.index.IndexSearchCondition;
+import org.apache.hadoop.hive.ql.io.RandomReader;
 import org.apache.hadoop.hive.ql.metadata.DefaultStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.HiveStoragePredicateHandler;
+import org.apache.hadoop.hive.ql.metadata.RandomAccessibleHandler;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.serde2.Deserializer;
@@ -60,7 +63,7 @@ import org.apache.hadoop.util.StringUtils;
  * HBase.
  */
 public class HBaseStorageHandler extends DefaultStorageHandler
-  implements HiveMetaHook, HiveStoragePredicateHandler {
+  implements HiveMetaHook, HiveStoragePredicateHandler, RandomAccessibleHandler<Result> {
 
   final static public String DEFAULT_PREFIX = "default.";
 
@@ -338,5 +341,9 @@ public class HBaseStorageHandler extends DefaultStorageHandler
       searchConditions);
     decomposedPredicate.residualPredicate = residualPredicate;
     return decomposedPredicate;
+  }
+
+  public RandomReader<Result> createRandomAccessor(JobConf jobConf) throws IOException {
+    return HiveHBaseTableInputFormat.createRandomAccessor(jobConf);
   }
 }

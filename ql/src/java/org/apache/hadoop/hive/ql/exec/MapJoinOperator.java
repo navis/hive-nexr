@@ -18,8 +18,6 @@
 
 package org.apache.hadoop.hive.ql.exec;
 
-import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,98 +27,46 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.ql.exec.HashTableSinkOperator.HashTableSinkObjectCtx;
 import org.apache.hadoop.hive.ql.exec.persistence.AbstractMapJoinKey;
 import org.apache.hadoop.hive.ql.exec.persistence.HashMapWrapper;
 import org.apache.hadoop.hive.ql.exec.persistence.MapJoinObjectValue;
-import org.apache.hadoop.hive.ql.exec.persistence.MapJoinRowContainer;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.MapJoinDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
-import org.apache.hadoop.hive.ql.plan.api.OperatorType;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
-import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils.ObjectInspectorCopyOption;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.util.ReflectionUtils;
 
-/**
- * Map side Join operator implementation.
- */
-public class MapJoinOperator extends AbstractMapJoinOperator<MapJoinDesc> implements Serializable {
-  private static final long serialVersionUID = 1L;
+public class MapJoinOperator extends MachingJoinOperator<MapJoinDesc> {
+
   private static final Log LOG = LogFactory.getLog(MapJoinOperator.class.getName());
 
-
-  protected transient Map<Byte, HashMapWrapper<AbstractMapJoinKey, MapJoinObjectValue>> mapJoinTables;
-
-  private static final transient String[] FATAL_ERR_MSG = {
-      null, // counter value 0 means no error
-      "Mapside join exceeds available memory. "
-          + "Please try removing the mapjoin hint."};
-
-  protected transient Map<Byte, MapJoinRowContainer<ArrayList<Object>>> rowContainerMap;
-  transient int metadataKeyTag;
-  transient int[] metadataValueTag;
-  transient boolean hashTblInitedOnce;
-  private int bigTableAlias;
-
-  public MapJoinOperator() {
-  }
-
-  public MapJoinOperator(AbstractMapJoinOperator<? extends MapJoinDesc> mjop) {
-    super(mjop);
-  }
+  private transient Map<Byte, HashMapWrapper<AbstractMapJoinKey, MapJoinObjectValue>> mapJoinTables;
 
   @Override
   protected void initializeOp(Configuration hconf) throws HiveException {
-
     super.initializeOp(hconf);
-
-    metadataValueTag = new int[numAliases];
-    for (int pos = 0; pos < numAliases; pos++) {
-      metadataValueTag[pos] = -1;
-    }
-
-    metadataKeyTag = -1;
-    bigTableAlias = order[posBigTable];
-
     mapJoinTables = new HashMap<Byte, HashMapWrapper<AbstractMapJoinKey, MapJoinObjectValue>>();
-    rowContainerMap = new HashMap<Byte, MapJoinRowContainer<ArrayList<Object>>>();
-    // initialize the hash tables for other tables
     for (int pos = 0; pos < numAliases; pos++) {
-      if (pos == posBigTable) {
-        continue;
+      if (pos != posBigTable) {
+        mapJoinTables.put(Byte.valueOf((byte) pos),
+            new HashMapWrapper<AbstractMapJoinKey, MapJoinObjectValue>());
       }
-
-      HashMapWrapper<AbstractMapJoinKey, MapJoinObjectValue> hashTable = new HashMapWrapper<AbstractMapJoinKey, MapJoinObjectValue>();
-
-      mapJoinTables.put(Byte.valueOf((byte) pos), hashTable);
-      MapJoinRowContainer<ArrayList<Object>> rowContainer = new MapJoinRowContainer<ArrayList<Object>>();
-      rowContainerMap.put(Byte.valueOf((byte) pos), rowContainer);
     }
-
-    hashTblInitedOnce = false;
   }
 
-  @Override
-  protected void fatalErrorMessage(StringBuilder errMsg, long counterCode) {
-    errMsg.append("Operator " + getOperatorId() + " (id=" + id + "): "
-        + FATAL_ERR_MSG[(int) counterCode]);
-  }
-
-  public void generateMapMetaData() throws HiveException, SerDeException {
+  private void generateMapMetaData() throws HiveException, SerDeException {
     // generate the meta data for key
     // index for key is -1
     TableDesc keyTableDesc = conf.getKeyTblDesc();
     SerDe keySerializer = (SerDe) ReflectionUtils.newInstance(keyTableDesc.getDeserializerClass(),
         null);
     keySerializer.initialize(null, keyTableDesc.getProperties());
-    MapJoinMetaData.put(Integer.valueOf(metadataKeyTag), new HashTableSinkObjectCtx(
+    MapJoinMetaData.put(Integer.valueOf(metadataKeyTag), new HashTableSinkOperator.HashTableSinkObjectCtx(
         ObjectInspectorUtils.getStandardObjectInspector(keySerializer.getObjectInspector(),
-            ObjectInspectorCopyOption.WRITABLE), keySerializer, keyTableDesc, hconf));
+            ObjectInspectorUtils.ObjectInspectorCopyOption.WRITABLE), keySerializer, keyTableDesc, hconf));
 
     // index for values is just alias
     for (int tag = 0; tag < order.length; tag++) {
@@ -141,9 +87,9 @@ public class MapJoinOperator extends AbstractMapJoinOperator<MapJoinDesc> implem
           null);
       valueSerDe.initialize(null, valueTableDesc.getProperties());
 
-      MapJoinMetaData.put(Integer.valueOf(alias), new HashTableSinkObjectCtx(ObjectInspectorUtils
+      MapJoinMetaData.put(Integer.valueOf(alias), new HashTableSinkOperator.HashTableSinkObjectCtx(ObjectInspectorUtils
           .getStandardObjectInspector(valueSerDe.getObjectInspector(),
-              ObjectInspectorCopyOption.WRITABLE), valueSerDe, valueTableDesc, hconf));
+              ObjectInspectorUtils.ObjectInspectorCopyOption.WRITABLE), valueSerDe, valueTableDesc, hconf));
     }
   }
 
@@ -198,6 +144,14 @@ public class MapJoinOperator extends AbstractMapJoinOperator<MapJoinDesc> implem
     }
   }
 
+  protected void handleFirstRow() throws HiveException, SerDeException {
+    generateMapMetaData();
+  }
+
+  protected MapJoinObjectValue getValueFor(AbstractMapJoinKey key, Byte pos) {
+    return mapJoinTables.get(pos).get(key);
+  }
+
   // Load the hash table
   @Override
   public void cleanUpInputFileChangedOp() throws HiveException {
@@ -207,7 +161,6 @@ public class MapJoinOperator extends AbstractMapJoinOperator<MapJoinDesc> implem
         generateMapMetaData();
         firstRow = false;
       }
-
       loadHashTable();
     } catch (SerDeException e) {
       e.printStackTrace();
@@ -216,75 +169,7 @@ public class MapJoinOperator extends AbstractMapJoinOperator<MapJoinDesc> implem
   }
 
   @Override
-  public void processOp(Object row, int tag) throws HiveException {
-
-    try {
-      if (firstRow) {
-        // generate the map metadata
-        generateMapMetaData();
-        firstRow = false;
-      }
-
-      // get alias
-      alias = order[tag];
-      // alias = (byte)tag;
-
-      if ((lastAlias == null) || (!lastAlias.equals(alias))) {
-        nextSz = joinEmitInterval;
-      }
-
-      // compute keys and values as StandardObjects
-      AbstractMapJoinKey key = JoinUtil.computeMapJoinKeys(row, joinKeys.get(alias),
-          joinKeysObjectInspectors.get(alias));
-      ArrayList<Object> value = JoinUtil.computeValues(row, joinValues.get(alias),
-          joinValuesObjectInspectors.get(alias), joinFilters.get(alias), joinFilterObjectInspectors
-              .get(alias), filterMap == null ? null : filterMap[alias]);
-
-
-      // Add the value to the ArrayList
-      storage.get((byte) tag).add(value);
-
-      for (Byte pos : order) {
-        if (pos.intValue() != tag) {
-
-          MapJoinObjectValue o = mapJoinTables.get(pos).get(key);
-          MapJoinRowContainer<ArrayList<Object>> rowContainer = rowContainerMap.get(pos);
-
-          // there is no join-value or join-key has all null elements
-          if (o == null || key.hasAnyNulls(nullsafes)) {
-            if (noOuterJoin) {
-              storage.put(pos, emptyList);
-            } else {
-              storage.put(pos, dummyObjVectors[pos.intValue()]);
-            }
-          } else {
-            rowContainer.reset(o.getObj());
-            storage.put(pos, rowContainer);
-          }
-        }
-      }
-
-      // generate the output records
-      checkAndGenObject();
-
-      // done with the row
-      storage.get((byte) tag).clear();
-
-      for (Byte pos : order) {
-        if (pos.intValue() != tag) {
-          storage.put(pos, null);
-        }
-      }
-
-    } catch (SerDeException e) {
-      e.printStackTrace();
-      throw new HiveException(e);
-    }
-  }
-
-  @Override
   public void closeOp(boolean abort) throws HiveException {
-
     if (mapJoinTables != null) {
       for (HashMapWrapper<?, ?> hashTable : mapJoinTables.values()) {
         hashTable.close();
@@ -303,12 +188,7 @@ public class MapJoinOperator extends AbstractMapJoinOperator<MapJoinDesc> implem
     return getOperatorName();
   }
 
-  static public String getOperatorName() {
+  public static String getOperatorName() {
     return "MAPJOIN";
-  }
-
-  @Override
-  public OperatorType getType() {
-    return OperatorType.MAPJOIN;
   }
 }

@@ -25,6 +25,7 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.optimizer.index.RewriteGBUsingIndex;
 import org.apache.hadoop.hive.ql.optimizer.lineage.Generator;
 import org.apache.hadoop.hive.ql.optimizer.pcr.PartitionConditionRemover;
+import org.apache.hadoop.hive.ql.optimizer.physical.LookupJoinOptimizer;
 import org.apache.hadoop.hive.ql.optimizer.ppr.PartitionPruner;
 import org.apache.hadoop.hive.ql.optimizer.unionproc.UnionProcessor;
 import org.apache.hadoop.hive.ql.parse.ParseContext;
@@ -74,6 +75,7 @@ public class Optimizer {
       if(HiveConf.getBoolVar(hiveConf, HiveConf.ConfVars.HIVEOPTSORTMERGEBUCKETMAPJOIN)) {
         transformations.add(new SortedMergeBucketMapJoinOptimizer());
       }
+      transformations.add(new LookupJoinOptimizer());
     }
     transformations.add(new UnionProcessor());
     transformations.add(new JoinReorder());

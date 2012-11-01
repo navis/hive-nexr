@@ -19,6 +19,8 @@
 package org.apache.hadoop.hive.ql.exec.persistence;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.hadoop.hive.ql.metadata.HiveException;
@@ -86,14 +88,23 @@ public class MapJoinRowContainer<Row> extends AbstractRowContainer<Row> {
     this.list = list;
   }
 
+  @SuppressWarnings("unchecked")
   public void reset(MapJoinRowContainer<Object[]> other) throws HiveException {
     list.clear();
     Object[] obj;
     for (obj = other.first(); obj != null; obj = other.next()) {
       ArrayList<Object> ele = new ArrayList(obj.length);
-      for (int i = 0; i < obj.length; i++) {
-        ele.add(obj[i]);
-      }
+      Collections.addAll(ele, obj);
+      list.add((Row) ele);
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  public void reset(List<Object[]> other) throws HiveException {
+    list.clear();
+    for (Object[] obj : other) {
+      ArrayList<Object> ele = new ArrayList(Arrays.asList(obj));
+      Collections.addAll(ele, obj);
       list.add((Row) ele);
     }
   }

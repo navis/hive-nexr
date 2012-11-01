@@ -153,6 +153,39 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
     }
   }
 
+  public boolean find(Object[] key, ArrayList<String> res) throws IOException, CommandNeedRetryException {
+    sink.reset(res);
+    try {
+      int rowsRet = work.getLeastNumRows();
+      if (rowsRet <= 0) {
+        rowsRet = work.getLimit() >= 0 ? Math.min(work.getLimit() - totalRows, maxRows) : maxRows;
+      }
+      if (rowsRet <= 0) {
+        fetch.clearFetchContext();
+        return false;
+      }
+      boolean fetched = false;
+      while (sink.getNumRows() < rowsRet) {
+        if (!fetch.pushRow()) {
+          if (work.getLeastNumRows() > 0) {
+            throw new CommandNeedRetryException();
+          }
+          return fetched;
+        }
+        fetched = true;
+      }
+      return true;
+    } catch (CommandNeedRetryException e) {
+      throw e;
+    } catch (IOException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new IOException(e);
+    } finally {
+      totalRows += sink.getNumRows();
+    }
+  }
+
   @Override
   public StageType getType() {
     return StageType.FETCH;

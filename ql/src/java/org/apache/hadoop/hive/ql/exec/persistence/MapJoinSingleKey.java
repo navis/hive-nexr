@@ -145,6 +145,10 @@ public class MapJoinSingleKey extends AbstractMapJoinKey {
     return false;
   }
 
+  @Override
+  public Object[] toArray() {
+    return new Object[]{obj};
+  }
 
 
 }

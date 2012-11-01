@@ -16,35 +16,14 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hive.ql.exec.persistence;
+package org.apache.hadoop.hive.ql.metadata;
 
-import java.io.Externalizable;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
-/**
- * Map Join Object used for both key.
- */
-public abstract class AbstractMapJoinKey implements Externalizable {
+import org.apache.hadoop.hive.ql.io.RandomReader;
+import org.apache.hadoop.mapred.JobConf;
 
-  protected static int metadataTag = -1;
+public interface RandomAccessibleHandler<V> {
 
-  public AbstractMapJoinKey() {
-  }
-
-  @Override
-  public abstract boolean equals(Object o);
-
-  @Override
-  public abstract int hashCode();
-
-  public abstract void readExternal(ObjectInput in) throws IOException, ClassNotFoundException;
-
-  public abstract void writeExternal(ObjectOutput out) throws IOException;
-
-  public abstract boolean hasAnyNulls(boolean[] nullsafes);
-
-  public abstract Object[] toArray();
-
+  RandomReader<V> createRandomAccessor(JobConf jobConf) throws IOException;
 }

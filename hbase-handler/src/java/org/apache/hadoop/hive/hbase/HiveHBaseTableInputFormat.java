@@ -21,12 +21,17 @@ package org.apache.hadoop.hive.hbase;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.NavigableSet;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
@@ -41,6 +46,7 @@ import org.apache.hadoop.hive.ql.exec.ExprNodeConstantEvaluator;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.index.IndexPredicateAnalyzer;
 import org.apache.hadoop.hive.ql.index.IndexSearchCondition;
+import org.apache.hadoop.hive.ql.io.RandomReader;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.TableScanDesc;
@@ -54,6 +60,7 @@ import org.apache.hadoop.hive.serde2.io.ShortWritable;
 import org.apache.hadoop.hive.serde2.lazy.LazyUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.PrimitiveCategory;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.io.BooleanWritable;
 import org.apache.hadoop.io.FloatWritable;
@@ -88,76 +95,14 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
 
     HBaseSplit hbaseSplit = (HBaseSplit) split;
     TableSplit tableSplit = hbaseSplit.getSplit();
-    String hbaseTableName = jobConf.get(HBaseSerDe.HBASE_TABLE_NAME);
-    setHTable(new HTable(HBaseConfiguration.create(jobConf), Bytes.toBytes(hbaseTableName)));
-    String hbaseColumnsMapping = jobConf.get(HBaseSerDe.HBASE_COLUMNS_MAPPING);
-    List<Integer> readColIDs = ColumnProjectionUtils.getReadColumnIDs(jobConf);
-    List<ColumnMapping> columnsMapping = null;
+    setHTable(getHTable(jobConf));
 
-    try {
-      columnsMapping = HBaseSerDe.parseColumnsMapping(hbaseColumnsMapping);
-    } catch (SerDeException e) {
-      throw new IOException(e);
-    }
-
-    if (columnsMapping.size() < readColIDs.size()) {
-      throw new IOException("Cannot read more columns than the given table contains.");
-    }
-
-    boolean addAll = (readColIDs.size() == 0);
-    Scan scan = new Scan();
-    boolean empty = true;
-
-    if (!addAll) {
-      for (int i : readColIDs) {
-        ColumnMapping colMap = columnsMapping.get(i);
-        if (colMap.hbaseRowKey) {
-          continue;
-        }
-
-        if (colMap.qualifierName == null) {
-          scan.addFamily(colMap.familyNameBytes);
-        } else {
-          scan.addColumn(colMap.familyNameBytes, colMap.qualifierNameBytes);
-        }
-
-        empty = false;
-      }
-    }
-
-    // The HBase table's row key maps to a Hive table column. In the corner case when only the
-    // row key column is selected in Hive, the HBase Scan will be empty i.e. no column family/
-    // column qualifier will have been added to the scan. We arbitrarily add at least one column
-    // to the HBase scan so that we can retrieve all of the row keys and return them as the Hive
-    // tables column projection.
-    if (empty) {
-      for (int i = 0; i < columnsMapping.size(); i++) {
-        ColumnMapping colMap = columnsMapping.get(i);
-        if (colMap.hbaseRowKey) {
-          continue;
-        }
-
-        if (colMap.qualifierName == null) {
-          scan.addFamily(colMap.familyNameBytes);
-        } else {
-          scan.addColumn(colMap.familyNameBytes, colMap.qualifierNameBytes);
-        }
-
-        if (!addAll) {
-          break;
-        }
-      }
-    }
+    List<ColumnMapping> columnsMapping = getColumnsMapping(jobConf);
+    Scan scan = createScanner(jobConf, columnsMapping);
 
     // If Hive's optimizer gave us a filter to process, convert it to the
     // HBase scan form now.
-    int iKey = -1;
-
-    try {
-      iKey = HBaseSerDe.getRowKeyColumnOffset(columnsMapping);
-    } catch (SerDeException e) {
-      throw new IOException(e);
-    }
+    int iKey = getKeyIndex(columnsMapping);
 
     tableSplit = convertFilter(jobConf, scan, tableSplit, iKey,
       getStorageFormatOfKey(columnsMapping.get(iKey).mappingSpec,
@@ -224,6 +169,82 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
         return next;
       }
     };
+  }
+
+  private static HTable getHTable(JobConf jobConf) throws IOException {
+    String hbaseTableName = jobConf.get(HBaseSerDe.HBASE_TABLE_NAME);
+    return new HTable(HBaseConfiguration.create(jobConf), Bytes.toBytes(hbaseTableName));
+  }
+
+  private static List<ColumnMapping> getColumnsMapping(JobConf jobConf) throws IOException {
+    String hbaseColumnsMapping = jobConf.get(HBaseSerDe.HBASE_COLUMNS_MAPPING);
+    try {
+      return HBaseSerDe.parseColumnsMapping(hbaseColumnsMapping);
+    } catch (SerDeException e) {
+      throw new IOException(e);
+    }
+  }
+
+  private static Scan createScanner(JobConf jobConf, List<ColumnMapping> columnsMapping)
+      throws IOException {
+    List<Integer> readColIDs = ColumnProjectionUtils.getReadColumnIDs(jobConf);
+    if (columnsMapping.size() < readColIDs.size()) {
+      throw new IOException("Cannot read more columns than the given table contains.");
+    }
+
+    boolean addAll = (readColIDs.size() == 0);
+    Scan scan = new Scan();
+    boolean empty = true;
+
+    if (!addAll) {
+      for (int i : readColIDs) {
+        ColumnMapping colMap = columnsMapping.get(i);
+        if (colMap.hbaseRowKey) {
+          continue;
+        }
+
+        if (colMap.qualifierName == null) {
+          scan.addFamily(colMap.familyNameBytes);
+        } else {
+          scan.addColumn(colMap.familyNameBytes, colMap.qualifierNameBytes);
+        }
+
+        empty = false;
+      }
+    }
+
+    // The HBase table's row key maps to a Hive table column. In the corner case when only the
+    // row key column is selected in Hive, the HBase Scan will be empty i.e. no column family/
+    // column qualifier will have been added to the scan. We arbitrarily add at least one column
+    // to the HBase scan so that we can retrieve all of the row keys and return them as the Hive
+    // tables column projection.
+    if (empty) {
+      for (int i = 0; i < columnsMapping.size(); i++) {
+        ColumnMapping colMap = columnsMapping.get(i);
+        if (colMap.hbaseRowKey) {
+          continue;
+        }
+
+        if (colMap.qualifierName == null) {
+          scan.addFamily(colMap.familyNameBytes);
+        } else {
+          scan.addColumn(colMap.familyNameBytes, colMap.qualifierNameBytes);
+        }
+
+        if (!addAll) {
+          break;
+        }
+      }
+    }
+    return scan;
+  }
+
+  private static int getKeyIndex(List<ColumnMapping> columnsMapping) throws IOException {
+    try {
+      return HBaseSerDe.getRowKeyColumnOffset(columnsMapping);
+    } catch (SerDeException e) {
+      throw new IOException(e);
+    }
   }
 
   /**
@@ -331,44 +352,43 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
     return tableSplit;
   }
 
-    private byte[] getConstantVal(Object writable, PrimitiveObjectInspector poi,
-        boolean isKeyBinary) throws IOException{
+  private static byte[] getConstantVal(Object writable, PrimitiveObjectInspector poi,
+      boolean isKeyBinary) throws IOException{
 
-        if (!isKeyBinary){
-          // Key is stored in text format. Get bytes representation of constant also of
-          // text format.
-          byte[] startRow;
-          ByteStream.Output serializeStream = new ByteStream.Output();
-          LazyUtils.writePrimitiveUTF8(serializeStream, writable, poi, false, (byte) 0, null);
-          startRow = new byte[serializeStream.getCount()];
-          System.arraycopy(serializeStream.getData(), 0, startRow, 0, serializeStream.getCount());
-          return startRow;
-        }
+    if (!isKeyBinary){
+      // Key is stored in text format. Get bytes representation of constant also of
+      // text format.
+      byte[] startRow;
+      ByteStream.Output serializeStream = new ByteStream.Output();
+      LazyUtils.writePrimitiveUTF8(serializeStream, writable, poi, false, (byte) 0, null);
+      startRow = new byte[serializeStream.getCount()];
+      System.arraycopy(serializeStream.getData(), 0, startRow, 0, serializeStream.getCount());
+      return startRow;
+    }
 
-        PrimitiveCategory pc = poi.getPrimitiveCategory();
-        switch (poi.getPrimitiveCategory()) {
-        case INT:
-            return Bytes.toBytes(((IntWritable)writable).get());
-        case BOOLEAN:
-            return Bytes.toBytes(((BooleanWritable)writable).get());
-        case LONG:
-            return Bytes.toBytes(((LongWritable)writable).get());
-        case FLOAT:
-            return Bytes.toBytes(((FloatWritable)writable).get());
-        case DOUBLE:
-            return Bytes.toBytes(((DoubleWritable)writable).get());
-        case SHORT:
-            return Bytes.toBytes(((ShortWritable)writable).get());
-        case STRING:
-            return Bytes.toBytes(((Text)writable).toString());
-        case BYTE:
-            return Bytes.toBytes(((ByteWritable)writable).get());
+    PrimitiveCategory pc = poi.getPrimitiveCategory();
+    switch (poi.getPrimitiveCategory()) {
+      case INT:
+        return Bytes.toBytes(((IntWritable)writable).get());
+      case BOOLEAN:
+        return Bytes.toBytes(((BooleanWritable)writable).get());
+      case LONG:
+        return Bytes.toBytes(((LongWritable)writable).get());
+      case FLOAT:
+        return Bytes.toBytes(((FloatWritable)writable).get());
+      case DOUBLE:
+        return Bytes.toBytes(((DoubleWritable)writable).get());
+      case SHORT:
+        return Bytes.toBytes(((ShortWritable)writable).get());
+      case STRING:
+        return Bytes.toBytes(((Text)writable).toString());
+      case BYTE:
+        return Bytes.toBytes(((ByteWritable)writable).get());
 
-        default:
-          throw new IOException("Type not supported " + pc);
-        }
-      }
-
+      default:
+        throw new IOException("Type not supported " + pc);
+    }
+  }
 
   private byte[] getNextBA(byte[] current){
     // startRow is inclusive while stopRow is exclusive,
@@ -484,10 +504,10 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
     return results;
   }
 
-  private boolean getStorageFormatOfKey(String spec, String defaultFormat) throws IOException{
+  public static boolean getStorageFormatOfKey(String spec, String defaultFormat) throws IOException{
 
     String[] mapInfo = spec.split("#");
-    boolean tblLevelDefault = "binary".equalsIgnoreCase(defaultFormat) ? true : false;
+    boolean tblLevelDefault = "binary".equalsIgnoreCase(defaultFormat);
 
     switch (mapInfo.length) {
     case 1:
@@ -506,5 +526,53 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
     default:
       throw new IOException("Malformed string: " + spec);
     }
+  }
+
+  public static RandomReader<Result> createRandomAccessor(JobConf jobConf) throws IOException {
+    final HTable htable = getHTable(jobConf);
+    final List<ColumnMapping> mappings = getColumnsMapping(jobConf);
+
+    ColumnMapping key = mappings.get(getKeyIndex(mappings));
+    final boolean keyBinary = getStorageFormatOfKey(mappings.get(getKeyIndex(mappings)).mappingSpec,
+      jobConf.get(HBaseSerDe.HBASE_TABLE_DEFAULT_STORAGE_TYPE, "string"));
+
+    final Scan scanner = createScanner(jobConf, mappings);
+    return new RandomReader<Result>() {
+
+      private PrimitiveObjectInspector inspector;
+
+      public Result[] read(Object[] key) throws IOException {
+        assert key.length == 1;
+        if (inspector == null) {
+          inspector = PrimitiveObjectInspectorFactory.getPrimitiveObjectInspectorFromClass(key[0].getClass());
+        }
+        byte[] rowKey = HiveHBaseTableInputFormat.getConstantVal(key[0], inspector, keyBinary);
+        Result result = htable.get(toGet(scanner, rowKey));
+
+        Result[] values = new Result[result.size()];
+        for (int i = 0; i < result.size(); i++) {
+          values[i] = new Result(new KeyValue[] { result.raw()[i]});
+        }
+        return values;
+      }
+    };
+  }
+
+  private static Get toGet(Scan scanner, byte[] row) throws IOException {
+    Get get = new Get(row);
+    if (scanner.getFamilyMap() != null) {
+      for (Map.Entry<byte [], NavigableSet<byte []>> entry : scanner.getFamilyMap().entrySet()) {
+        byte[] family = entry.getKey();
+        Set<byte []> qualifiers = entry.getValue();
+        if (qualifiers == null) {
+          get.addFamily(family);
+        } else {
+          for (byte [] qualifier : qualifiers) {
+            get.addColumn(family, qualifier);
+          }
+        }
+      }
+    }
+    return get;
   }
 }
