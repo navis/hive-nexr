@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hive.ql.optimizer;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -49,8 +50,8 @@ public class JoinReorder implements Transform {
    * @return The estimated size - 0 (no streamed tables), 1 (streamed tables in
    *         subtree) or 2 (a streamed table)
    */
-  private int getOutputSize(Operator<? extends OperatorDesc> operator,
-      Set<String> bigTables) {
+  private static int getOutputSize(Operator<? extends OperatorDesc> operator,
+      Collection<String> bigTables) {
     // If a join operator contains a big subtree, there is a chance that its
     // output is also big, so the output size is 1 (medium)
     if (operator instanceof JoinOperator) {
@@ -113,21 +114,8 @@ public class JoinReorder implements Transform {
    *          Set of all big tables
    */
   private void reorder(JoinOperator joinOp, Set<String> bigTables) {
+    int biggestPos = getBiggestPos(joinOp, bigTables);
     int count = joinOp.getParentOperators().size();
-
-    // Find the biggest reduce sink
-    int biggestPos = count - 1;
-    int biggestSize = getOutputSize(
-        joinOp.getParentOperators().get(biggestPos), bigTables);
-    for (int i = 0; i < count - 1; i++) {
-      int currSize = getOutputSize(joinOp.getParentOperators().get(i),
-          bigTables);
-      if (currSize > biggestSize) {
-        biggestSize = currSize;
-        biggestPos = i;
-      }
-    }
-
     // Reorder tags if need be
     if (biggestPos != (count - 1)) {
       Byte[] tagOrder = joinOp.getConf().getTagOrder();
@@ -141,6 +129,21 @@ public class JoinReorder implements Transform {
       ((ReduceSinkOperator) joinOp.getParentOperators().get(count - 1))
           .getConf().setTag(biggestPos);
     }
+  }
+
+  public static int getBiggestPos(JoinOperator joinOp, Collection<String> bigTables) {
+    int count = joinOp.getParentOperators().size();
+    // Find the biggest reduce sink
+    int biggestPos = count - 1;
+    int biggestSize = getOutputSize(joinOp.getParentOperators().get(biggestPos), bigTables);
+    for (int i = 0; i < count - 1; i++) {
+      int currSize = getOutputSize(joinOp.getParentOperators().get(i), bigTables);
+      if (currSize > biggestSize) {
+        biggestSize = currSize;
+        biggestPos = i;
+      }
+    }
+    return biggestPos;
   }
 
   /**

@@ -110,6 +110,7 @@ public class ReduceSinkDesc extends AbstractOperatorDesc {
 
   // Write type, since this needs to calculate buckets differently for updates and deletes
   private AcidUtils.Operation writeType;
+  private SkewContext skewContext;
 
   // whether we'll enforce the sort order of the RS
   private transient boolean enforceSort = false;
@@ -432,5 +433,14 @@ public class ReduceSinkDesc extends AbstractOperatorDesc {
 
   public void setEnforceSort(boolean isDeduplicated) {
     this.enforceSort = isDeduplicated;
+  }
+
+  @Explain(displayName = "Explicit Skew Context")
+  public SkewContext getSkewContext() {
+    return skewContext;
+  }
+
+  public void setSkewContext(SkewContext skewContext) {
+    this.skewContext = skewContext;
   }
 }

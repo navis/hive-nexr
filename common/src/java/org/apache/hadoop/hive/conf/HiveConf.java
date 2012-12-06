@@ -1163,6 +1163,8 @@ public class HiveConf extends Configuration {
         "If the skew information is correctly stored in the metadata, hive.optimize.skewjoin.compiletime\n" +
         "would change the query plan to take care of it, and hive.optimize.skewjoin will be a no-op."),
 
+    HIVE_OPTIMIZE_INLINE_SKEWJOIN("hive.optimize.inline.skewjoin", false, "Enable inline skew join."),
+
     // Indexes
     HIVEOPTINDEXFILTER_COMPACT_MINSIZE("hive.optimize.index.filter.compact.minsize", (long) 5 * 1024 * 1024 * 1024,
         "Minimum size (in bytes) of the inputs on which a compact index is automatically used."), // 5G

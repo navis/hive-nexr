@@ -1,0 +1,1 @@
+FAILED: SemanticException [Error 10300]: Skew expression (key = 0) is not found in join condition

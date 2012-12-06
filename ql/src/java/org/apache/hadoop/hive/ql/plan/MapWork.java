@@ -37,6 +37,7 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.OperatorUtils;
+import org.apache.hadoop.hive.ql.exec.ReduceSinkOperator;
 import org.apache.hadoop.hive.ql.optimizer.physical.BucketingSortingCtx.BucketCol;
 import org.apache.hadoop.hive.ql.optimizer.physical.BucketingSortingCtx.SortCol;
 import org.apache.hadoop.hive.ql.parse.SplitSample;
@@ -583,5 +584,29 @@ public class MapWork extends BaseWork {
 
   public void setMapAliases(List<String> mapAliases) {
     this.mapAliases = mapAliases;
+  }
+
+  public boolean isUseInlineSkewContext() {
+    for (Operator<?> operator : aliasToWork.values()) {
+      if (isUseInlineSkewContext(operator)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean isUseInlineSkewContext(Operator<?> operator) {
+    if (operator instanceof ReduceSinkOperator &&
+        ((ReduceSinkOperator)operator).getConf().getSkewContext() != null) {
+      return true;
+    }
+    if (operator.getChildOperators() != null && !operator.getChildOperators().isEmpty()) {
+      for (Operator<?> child : operator.getChildOperators()) {
+        if (isUseInlineSkewContext(child)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }

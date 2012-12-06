@@ -86,7 +86,7 @@ fromClause
 joinSource
 @init { gParent.pushMsg("join source", state); }
 @after { gParent.popMsg(state); }
-    : fromSource ( joinToken^ fromSource ( KW_ON! expression {$joinToken.start.getType() != COMMA}? )? )*
+    : fromSource ( joinToken^ fromSource ( KW_ON! expression (skewExpression)? {$joinToken.start.getType() != COMMA}? )? )*
     | uniqueJoinToken^ uniqueJoinSource (COMMA! uniqueJoinSource)+
     ;
 
@@ -120,6 +120,26 @@ joinToken
     | KW_RIGHT (KW_OUTER)? KW_JOIN -> TOK_RIGHTOUTERJOIN
     | KW_FULL  (KW_OUTER)? KW_JOIN -> TOK_FULLOUTERJOIN
     | KW_LEFT KW_SEMI KW_JOIN      -> TOK_LEFTSEMIJOIN
+    ;
+
+skewExpression
+@init { gParent.msgs.push("skew expression"); }
+@after { gParent.msgs.pop(); }
+    : KW_SKEWED KW_ON LPAREN skewKeyExprs RPAREN -> ^(TOK_SKEW skewKeyExprs);
+
+skewKeyExprs
+@init { gParent.msgs.push("skew key expression list"); }
+@after { gParent.msgs.pop(); }
+    :
+    skewKeyExpr (COMMA skewKeyExpr)* -> ^(TOK_EXPLIST skewKeyExpr+)
+    ;
+
+skewKeyExpr
+@init { gParent.msgs.push("skew key expression"); }
+@after { gParent.msgs.pop(); }
+    :
+    expression (KW_CLUSTER KW_BY numerator=Number KW_PERCENT)?
+    -> ^(TOK_SKEW_EXPR expression $numerator?)
     ;
 
 lateralView

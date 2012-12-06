@@ -56,6 +56,12 @@ public class QBJoinTree implements Serializable, Cloneable {
   // join conditions
   private transient ArrayList<ArrayList<ASTNode>> expressions;
 
+  // skew conditions
+  private transient ArrayList<ASTNode> skewExprs;
+
+  // skew percentage for a skew group, -1 for one partition
+  private transient ArrayList<Integer> skewClusters;
+
   // key index to nullsafe join flag
   private ArrayList<Boolean> nullsafes;
 
@@ -418,6 +424,11 @@ public class QBJoinTree implements Serializable, Cloneable {
     cloned.setRightAliases(rightAliases == null ? null : rightAliases.clone());
     cloned.setStreamAliases(streamAliases == null ? null : new ArrayList<String>(streamAliases));
 
+    if (skewExprs != null && skewClusters != null) {
+      cloned.setSkewExprs(new ArrayList<ASTNode>(skewExprs));
+      cloned.setSkewClusters(new ArrayList<Integer>(skewClusters));
+    }
+
     // clone postJoinFilters
     for (ASTNode filter : postJoinFilters) {
       cloned.getPostJoinFilters().add(filter);
@@ -428,5 +439,26 @@ public class QBJoinTree implements Serializable, Cloneable {
     }
 
     return cloned;
+  }
+
+  public void setSkewExprs(ArrayList<ASTNode> skewExprs) {
+    this.skewExprs = skewExprs;
+  }
+
+  public ArrayList<ASTNode> getSkewExprs() {
+    return skewExprs;
+  }
+
+  public ArrayList<Integer> getSkewClusters() {
+    return skewClusters;
+  }
+
+  public void setSkewClusters(ArrayList<Integer> skewClusters) {
+    this.skewClusters = skewClusters;
+  }
+
+  public void clearSkewContexts() {
+    skewExprs = null;
+    skewClusters = null;
   }
 }

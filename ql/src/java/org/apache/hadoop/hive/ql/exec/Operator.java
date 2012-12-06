@@ -947,7 +947,7 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
    * Initialize an array of ExprNodeEvaluator and return the result
    * ObjectInspectors.
    */
-  protected static ObjectInspector[] initEvaluators(ExprNodeEvaluator[] evals,
+  public static ObjectInspector[] initEvaluators(ExprNodeEvaluator[] evals,
       ObjectInspector rowInspector) throws HiveException {
     ObjectInspector[] result = new ObjectInspector[evals.length];
     for (int i = 0; i < evals.length; i++) {
@@ -960,7 +960,7 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
    * Initialize an array of ExprNodeEvaluator from start, for specified length
    * and return the result ObjectInspectors.
    */
-  protected static ObjectInspector[] initEvaluators(ExprNodeEvaluator[] evals,
+  public static ObjectInspector[] initEvaluators(ExprNodeEvaluator[] evals,
       int start, int length,
       ObjectInspector rowInspector) throws HiveException {
     ObjectInspector[] result = new ObjectInspector[length];

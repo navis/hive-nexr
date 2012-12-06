@@ -430,6 +430,13 @@ public enum ErrorMsg {
 
   DROP_NATIVE_FUNCTION(10301, "Cannot drop native function"),
 
+  SKEWEXPR_HAS_NO_TABLEALIAS(10298, "Failed to find alias for skew expression"),
+  SKEWEXPR_IS_NOT_BOOLEAN_TYPE(10299,
+      "Skew expression {0} has {1} type, which should be a boolean type", true),
+  SKEWEXPR_IS_NOT_FOUND_IN_JOIN_CONDITION(10300,
+      "Skew expression {0} is not found in join condition", true),
+  SUM_OF_SKEW_CLUSTER_SIZE_IS_TOO_BIG(10301, "Sum of skew cluster size is too big."),
+
   //========================== 20000 range starts here ========================//
   SCRIPT_INIT_ERROR(20000, "Unable to initialize custom script."),
   SCRIPT_IO_ERROR(20001, "An error occurred while reading or writing to your custom script. "

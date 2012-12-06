@@ -33,6 +33,7 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDescUtils;
 import org.apache.hadoop.hive.ql.plan.ReduceSinkDesc;
+import org.apache.hadoop.hive.ql.plan.SkewContext;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.plan.api.OperatorType;
 import org.apache.hadoop.hive.serde2.SerDeException;
@@ -74,7 +75,9 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
   }
 
   private static final long serialVersionUID = 1L;
-  private static final MurmurHash hash = (MurmurHash) MurmurHash.getInstance();
+
+  private static final MurmurHash MURMUR = (MurmurHash) MurmurHash.getInstance();
+  private static final int RANDOM_SEED = 12345;
 
   private transient ObjectInspector[] partitionObjectInspectors;
   private transient ObjectInspector[] bucketObjectInspectors;
@@ -106,6 +109,9 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
    * Evaluators for bucketing columns. This is used to compute bucket number.
    */
   protected transient ExprNodeEvaluator[] bucketEval = null;
+
+  protected transient SkewContext skewContext;
+
   // TODO: we use MetadataTypedColumnsetSerDe for now, till DynamicSerDe is ready
   protected transient Serializer keySerializer;
   protected transient boolean keyIsText;
@@ -154,6 +160,7 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
 
   @Override
   protected void initializeOp(Configuration hconf) throws HiveException {
+    conf.setNumReducers(hconf.getInt("mapred.reduce.tasks", -1));
     try {
 
       numRows = 0;
@@ -177,6 +184,10 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
       int i = 0;
       for (ExprNodeDesc e : keys) {
         keyEval[i++] = ExprNodeEvaluatorFactory.get(e);
+      }
+      skewContext = conf.getSkewContext();
+      if (skewContext != null) {
+        skewContext.initialize();
       }
 
       numDistributionKeys = conf.getNumDistributionKeys();
@@ -326,6 +337,10 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
         if (bucketEval != null) {
           bucketObjectInspectors = initEvaluators(bucketEval, rowInspector);
         }
+        if (skewContext != null &&
+            !skewContext.initializeKey(keyWritable, rowInspector, conf.getNumReducers())) {
+          skewContext = null; // disable
+        }
         int numKeys = numDistinctExprs > 0 ? numDistinctExprs : 1;
         int keyLen = numDistinctExprs > 0 ? numDistributionKeys + 1 : numDistributionKeys;
         cachedKeys = new Object[numKeys][keyLen];
@@ -452,10 +467,15 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
   }
 
   protected final int computeMurmurHash(HiveKey firstKey) {
-    return hash.hash(firstKey.getBytes(), firstKey.getDistKeyLength(), 0);
+    return MURMUR.hash(firstKey.getBytes(), firstKey.getDistKeyLength(), 0);
   }
 
   private int computeHashCode(Object row, int buckNum) throws HiveException {
+
+    if (skewContext != null && skewContext.evaluateSkew(row, keyWritable)) {
+      keyWritable.setHashCode(skewContext.isDriver(keyWritable) ? nextRandom() : -1);
+      return 0;
+    }
     // Evaluate the HashCode
     int keyHashCode = 0;
     if (partitionEval.length == 0) {
@@ -465,10 +485,7 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
       // For acid operations make sure to send all records with the same key to the same
       // FileSinkOperator, as the RecordUpdater interface can't manage multiple writers for a file.
       if (conf.getWriteType() == AcidUtils.Operation.NOT_ACID) {
-        if (random == null) {
-          random = new Random(12345);
-        }
-        keyHashCode = random.nextInt();
+        keyHashCode = nextRandom();
       } else {
         keyHashCode = 1;
       }
@@ -499,6 +516,13 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
     return false;
   }
 
+  protected int nextRandom() {
+    if (random == null) {
+      random = new Random(RANDOM_SEED);
+    }
+    return random.nextInt();
+  }
+
   // Serialize the keys and append the tag
   protected HiveKey toHiveKey(Object obj, int tag, Integer distLength) throws SerDeException {
     BinaryComparable key = (BinaryComparable)keySerializer.serialize(obj, keyObjectInspector);
@@ -520,7 +544,7 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
     collect(keyWritable, valueWritable);
   }
 
-  protected void collect(BytesWritable keyWritable, Writable valueWritable) throws IOException {
+  protected void collect(HiveKey keyWritable, Writable valueWritable) throws IOException {
     // Since this is a terminal operator, update counters explicitly -
     // forward is not called
     if (null != out) {
@@ -531,7 +555,7 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
           LOG.info(toString() + ": records written - " + numRows);
         }
       }
-      out.collect(keyWritable, valueWritable);
+      keyWritable.collect(out, valueWritable);
     }
   }
 

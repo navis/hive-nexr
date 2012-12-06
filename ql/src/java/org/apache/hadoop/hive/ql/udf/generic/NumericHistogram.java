@@ -309,4 +309,12 @@ public class NumericHistogram {
   public int getNumBins() {
     return bins == null ? 0 : bins.size();
   }
+
+  public double[][] publish() {
+    double[][] published = new double[nusedbins][];
+    for (int i = 0; i < published.length; i++) {
+      published[i] = new double[] {bins.get(i).x, bins.get(i).y};
+    }
+    return published;
+  }
 }

@@ -171,6 +171,7 @@ import org.apache.hadoop.hive.ql.plan.PlanUtils;
 import org.apache.hadoop.hive.ql.plan.ReduceSinkDesc;
 import org.apache.hadoop.hive.ql.plan.ScriptDesc;
 import org.apache.hadoop.hive.ql.plan.SelectDesc;
+import org.apache.hadoop.hive.ql.plan.SkewContext;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.plan.TableScanDesc;
 import org.apache.hadoop.hive.ql.plan.UDTFDesc;
@@ -1012,7 +1013,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
   @SuppressWarnings("nls")
   private void processJoin(QB qb, ASTNode join) throws SemanticException {
     int numChildren = join.getChildCount();
-    if ((numChildren != 2) && (numChildren != 3)
+    if ((numChildren != 2) && (numChildren != 3) && (numChildren != 4)
         && join.getToken().getType() != HiveParser.TOK_UNIQUEJOIN) {
       throw new SemanticException(generateErrorMessage(join,
           "Join with multiple children"));
@@ -7569,11 +7570,101 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     joinOp.getConf().setQBJoinTreeProps(joinTree);
     joinContext.put(joinOp, joinTree);
 
+    ArrayList<ASTNode> skewExprs = joinTree.getSkewExprs();
+    if (skewExprs != null && !skewExprs.isEmpty()) {
+      handleSkews(joinTree, srcOps);
+    }
+
     Operator op = joinOp;
     for(ASTNode condn : joinTree.getPostJoinFilters() ) {
       op = genFilterPlan(qb, condn, op);
     }
     return op;
+  }
+
+  // using transitivity of join condition, make cluster expression for other aliases
+  // by replacing part of skew expression with join counterpart.
+  private boolean handleSkews(QBJoinTree joinTree, Operator[] srcOps) throws SemanticException {
+    ArrayList<ASTNode> skewExprs = joinTree.getSkewExprs();
+
+    // for each group, there is one driving alias.
+    // keys from driving alias are randomly distributed to reducers in the group,
+    // but those from other aliases are copied to all reducers in the group.
+    ArrayList<Boolean>[] skewDrivers = new ArrayList[srcOps.length];
+    ArrayList<ExprNodeDesc>[] skewKeysExprs = new ArrayList[srcOps.length];
+    for (int i = 0; i < skewExprs.size(); i++) {
+      int srcPos = candidate(skewExprs.get(i), joinTree.getBaseSrc());
+      if (srcPos < 0) {
+        // there is no table reference, which means it's possibly a constant expression
+        throw new SemanticException(ErrorMsg.SKEWEXPR_HAS_NO_TABLEALIAS.getMsg(
+            skewExprs.get(i).toStringTree()));
+      }
+      ReduceSinkOperator driver = (ReduceSinkOperator)srcOps[srcPos];
+      List<ExprNodeDesc> sources = driver.getConf().getKeyCols();
+
+      RowResolver rr = opParseCtx.get(driver.getParentOperators().get(0)).getRowResolver();
+      ExprNodeDesc skewKey = genExprNodeDesc(skewExprs.get(i), rr);
+      // skew condition should return boolean type
+      if (!skewKey.getTypeString().equals("boolean")) {
+        throw new SemanticException(ErrorMsg.SKEWEXPR_IS_NOT_BOOLEAN_TYPE.format(
+            skewKey.getExprString(), skewKey.getTypeString()));
+      }
+      for (int pos = 0; pos < srcOps.length; pos++) {
+        if (skewKeysExprs[pos] == null) {
+          skewKeysExprs[pos] = new ArrayList<ExprNodeDesc>();
+          skewDrivers[pos] = new ArrayList<Boolean>();
+        }
+        skewDrivers[pos].add(pos == srcPos);
+        if (pos == srcPos) {
+          skewKeysExprs[pos].add(skewKey);
+          continue;
+        }
+        ReduceSinkOperator input = (ReduceSinkOperator)srcOps[pos];
+        List<ExprNodeDesc> targets = input.getConf().getKeyCols();
+        ExprNodeDesc replaced = ExprNodeDescUtils.replace(skewKey, sources, targets);
+        if (replaced == null) {
+          throw new SemanticException(ErrorMsg.SKEWEXPR_IS_NOT_FOUND_IN_JOIN_CONDITION.format(
+            skewKey.getExprString()));
+        }
+        skewKeysExprs[pos].add(replaced);
+      }
+    }
+    // hand over skew context to all RSs for the join
+    for (int pos = 0; pos < srcOps.length; pos++) {
+      SkewContext context = new SkewContext();
+      context.setSkewKeys(skewKeysExprs[pos]);
+      context.setSkewDrivers(skewDrivers[pos]);
+      context.setSkewClusters(joinTree.getSkewClusters());
+      ((ReduceSinkOperator) srcOps[pos]).getConf().setSkewContext(context);
+    }
+    return true;
+  }
+
+  // returns first table alias for candidate
+  private int candidate(ASTNode node, String[] aliases) {
+    int candidate = -1;
+    if (node.getToken().getType() == HiveParser.TOK_TABLE_OR_COL) {
+      String table = node.getChild(0).getText().toLowerCase();
+      candidate = indexOf(unescapeIdentifier(table), aliases);
+    }
+    if (candidate < 0 && node.getChildCount() > 0) {
+      for (Node child : node.getChildren()) {
+        candidate = candidate((ASTNode)child, aliases);
+        if (candidate >= 0) {
+          return candidate;
+        }
+      }
+    }
+    return candidate;
+  }
+
+  private int indexOf(String target, String[] sources) {
+    for (int i = 0; i < sources.length; i++) {
+      if (target.equals(sources[i])) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   /**
@@ -8125,8 +8216,15 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     filtersForPushing.add(new ArrayList<ASTNode>());
     joinTree.setFiltersForPushing(filtersForPushing);
 
+    ASTNode skewCond;
     ASTNode joinCond = (ASTNode) joinParseTree.getChild(2);
     ArrayList<String> leftSrc = new ArrayList<String>();
+    if (joinCond != null && joinCond.getToken().getType() == HiveParser.TOK_SKEW) {
+      skewCond = joinCond;
+      joinCond = null;
+    } else {
+      skewCond = (ASTNode) joinParseTree.getChild(3);
+    }
     parseJoinCondition(joinTree, joinCond, leftSrc, aliasToOpInfo);
     if (leftSrc.size() == 1) {
       joinTree.setLeftAlias(leftSrc.get(0));
@@ -8166,6 +8264,33 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       if ((conf.getVar(HiveConf.ConfVars.HIVE_EXECUTION_ENGINE).equals("tez")) == false) {
         parseStreamTables(joinTree, qb);
       }
+    }
+
+    // extract explain skews for inner join (not sure for outer join if it's possible)
+    if (skewCond != null && condn[0].getJoinType() == JoinType.INNER) {
+      ASTNode exprList = (ASTNode) skewCond.getChild(0);
+      assert exprList.getToken().getType() == HiveParser.TOK_EXPLIST;
+      ArrayList<Integer> skewCluster = new ArrayList<Integer>();
+      ArrayList<ASTNode> skewExpressions = new ArrayList<ASTNode>();
+
+      int percentsum = 0;
+      for (int i = 0; i < exprList.getChildCount(); i++) {
+        ASTNode child = (ASTNode) exprList.getChild(i);
+        skewExpressions.add((ASTNode) child.getChild(0));
+        if (child.getChildCount() > 1) {
+          String numerator = unescapeIdentifier(child.getChild(1).getText());
+          int percent = Double.valueOf(numerator).intValue();
+          skewCluster.add(percent);
+          percentsum += percent;
+        } else {
+          skewCluster.add(-1);
+        }
+      }
+      if (percentsum >= 100) {
+        throw new SemanticException(ErrorMsg.SUM_OF_SKEW_CLUSTER_SIZE_IS_TOO_BIG.getMsg());
+      }
+      joinTree.setSkewExprs(skewExpressions);
+      joinTree.setSkewClusters(skewCluster);
     }
 
     return joinTree;
@@ -8359,6 +8484,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       }
       target.setMapAliases(mapAliases);
     }
+
+    // not yet supports merging skew context
+    node.clearSkewContexts();
+    target.clearSkewContexts();
   }
 
   private ObjectPair<Integer, int[]> findMergePos(QBJoinTree node, QBJoinTree target) {

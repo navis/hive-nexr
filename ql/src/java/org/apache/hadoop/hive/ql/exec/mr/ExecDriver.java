@@ -63,6 +63,7 @@ import org.apache.hadoop.hive.ql.io.HiveFileFormatUtils;
 import org.apache.hadoop.hive.ql.io.HiveKey;
 import org.apache.hadoop.hive.ql.io.HiveOutputFormatImpl;
 import org.apache.hadoop.hive.ql.io.IOPrepareCache;
+import org.apache.hadoop.hive.ql.io.SkewedKeyPartitioner;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
 import org.apache.hadoop.hive.ql.plan.MapWork;
@@ -238,11 +239,15 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
     job.setMapOutputKeyClass(HiveKey.class);
     job.setMapOutputValueClass(BytesWritable.class);
 
-    try {
-      job.setPartitionerClass((Class<? extends Partitioner>) (Class.forName(HiveConf.getVar(job,
-          HiveConf.ConfVars.HIVEPARTITIONER))));
-    } catch (ClassNotFoundException e) {
-      throw new RuntimeException(e.getMessage(), e);
+    if (mWork.isUseInlineSkewContext()) {
+      job.setPartitionerClass(SkewedKeyPartitioner.class);
+    } else {
+      try {
+        job.setPartitionerClass((Class<? extends Partitioner>) (Class.forName(HiveConf.getVar(job,
+            HiveConf.ConfVars.HIVEPARTITIONER))));
+      } catch (ClassNotFoundException e) {
+        throw new RuntimeException(e.getMessage(), e);
+      }
     }
 
     if (mWork.getNumMapTasks() != null) {
