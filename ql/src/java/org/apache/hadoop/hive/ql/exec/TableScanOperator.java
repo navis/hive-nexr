@@ -60,6 +60,9 @@ public class TableScanOperator extends Operator<TableScanDesc> implements
   private transient Stat currentStat;
   private transient Map<String, Stat> stats;
 
+  private transient int rowLimit = -1;
+  private transient int currCount = 0;
+
   public TableDesc getTableDesc() {
     return tableDesc;
   }
@@ -77,6 +80,10 @@ public class TableScanOperator extends Operator<TableScanDesc> implements
    **/
   @Override
   public void processOp(Object row, int tag) throws HiveException {
+    if (rowLimit >= 0 && currCount++ >= rowLimit) {
+      setDone(true);
+      return;
+    }
     if (conf != null && conf.isGatherStats()) {
       gatherStats(row);
     }
@@ -169,6 +176,7 @@ public class TableScanOperator extends Operator<TableScanDesc> implements
     if (conf == null) {
       return;
     }
+    rowLimit = conf.getRowLimit();
     if (!conf.isGatherStats()) {
       return;
     }
