@@ -24,16 +24,21 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.ServerUtils;
 import org.apache.hadoop.hive.common.LogUtils;
 import org.apache.hadoop.hive.common.LogUtils.LogInitializationException;
@@ -134,6 +139,13 @@ public class HiveServer extends ThriftHive {
       SessionState session = new SessionState(conf);
       SessionState.start(session);
       setupSessionIO(session);
+    }
+
+    /**
+     * Create temporary handler for initializing server session
+     */
+    private HiveServerHandler(SessionState session) throws MetaException {
+      super(HiveServer.class.getName(), session.getConf());
     }
 
     private void setupSessionIO(SessionState session) {
@@ -650,23 +662,40 @@ public class HiveServer extends ThriftHive {
    *
    */
   public static class ThriftHiveProcessorFactory extends TProcessorFactory {
-    private final HiveConf conf;
 
-    public ThriftHiveProcessorFactory(TProcessor processor, HiveConf conf) {
+    private final SessionState serverSession;
+    private final boolean registerServerResources;
+
+    public ThriftHiveProcessorFactory(TProcessor processor, SessionState serverSession,
+        boolean registerServerResources) {
       super(processor);
-      this.conf = conf;
+      this.serverSession = serverSession;
+      this.registerServerResources = registerServerResources;
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public TProcessor getProcessor(TTransport trans) {
       try {
-        Iface handler = new HiveServerHandler(new HiveConf(conf));
-        return new ThriftHive.Processor(handler);
+        HiveServerHandler handler = new HiveServerHandler(new HiveConf(serverSession.getConf()));
+        if (registerServerResources) {
+          for (SessionState.ResourceType resourceType : SessionState.ResourceType.values()) {
+            addResources(resourceType);
+          }
+        }
+        return new ThriftHive.Processor<HiveServerHandler>(handler);
       } catch (Exception e) {
         HiveServerHandler.LOG.warn("Failed to get processor by exception " + e, e);
         trans.close();
         throw new RuntimeException(e);
+      }
+    }
+
+    private void addResources(SessionState.ResourceType resourceType) {
+      Set<String> resources = serverSession.list_resource(resourceType, null);
+      if (resources != null && !resources.isEmpty()) {
+        for (String resource : resources) {
+          SessionState.get().add_resource(resourceType, resource);
+        }
       }
     }
   }
@@ -678,10 +707,13 @@ public class HiveServer extends ThriftHive {
   static public class HiveServerCli extends CommonCliOptions {
     private static final String OPTION_MAX_WORKER_THREADS = "maxWorkerThreads";
     private static final String OPTION_MIN_WORKER_THREADS = "minWorkerThreads";
+    private static final String OPTION_USE_SERVER_RESOURCES = "useServerResources";
 
     public int port = DEFAULT_HIVE_SERVER_PORT;
     public int minWorkerThreads = DEFAULT_MIN_WORKER_THREADS;
     public int maxWorkerThreads = DEFAULT_MAX_WORKER_THREADS;
+    public boolean registerServerResources = false;
+    public String[] initFiles = null;
 
     @SuppressWarnings("static-access")
     public HiveServerCli() {
@@ -694,6 +726,13 @@ public class HiveServer extends ThriftHive {
           .withDescription("Hive Server port number, default:"
               + DEFAULT_HIVE_SERVER_PORT)
           .create('p'));
+
+      // -i <init-query-file>
+      OPTIONS.addOption(OptionBuilder
+          .hasArg()
+          .withArgName("filename")
+          .withDescription("Initialization SQL file for hive server")
+          .create('i'));
 
       // min worker thread count
       OPTIONS.addOption(OptionBuilder
@@ -710,6 +749,14 @@ public class HiveServer extends ThriftHive {
           .withDescription("maximum number of worker threads, default:"
               + DEFAULT_MAX_WORKER_THREADS)
           .create());
+
+      // -u use server resources
+      OPTIONS.addOption(OptionBuilder
+          .withLongOpt(OPTION_USE_SERVER_RESOURCES)
+          .withDescription("whether client inherits resources registered to hive server, default:"
+              + "false")
+          .create('u'));
+
     }
 
     @Override
@@ -741,6 +788,9 @@ public class HiveServer extends ThriftHive {
           port = Integer.parseInt(hivePort);
         }
       }
+
+      initFiles = commandLine.getOptionValues('i');
+
       if (commandLine.hasOption(OPTION_MIN_WORKER_THREADS)) {
         minWorkerThreads = Integer.parseInt(
             commandLine.getOptionValue(OPTION_MIN_WORKER_THREADS));
@@ -748,6 +798,9 @@ public class HiveServer extends ThriftHive {
       if (commandLine.hasOption(OPTION_MAX_WORKER_THREADS)) {
         maxWorkerThreads = Integer.parseInt(
             commandLine.getOptionValue(OPTION_MAX_WORKER_THREADS));
+      }
+      if (commandLine.hasOption('r') || commandLine.hasOption(OPTION_USE_SERVER_RESOURCES)) {
+        registerServerResources = true;
       }
     }
   }
@@ -784,8 +837,13 @@ public class HiveServer extends ThriftHive {
         conf.set((String) item.getKey(), (String) item.getValue());
       }
 
+      SessionState serverSession = SessionState.start(conf);
+      if (cli.initFiles != null && cli.initFiles.length > 0) {
+        initialize(conf, cli.initFiles, cli.isVerbose());
+      }
+
       ThriftHiveProcessorFactory hfactory =
-        new ThriftHiveProcessorFactory(null, conf);
+        new ThriftHiveProcessorFactory(null, serverSession, cli.registerServerResources);
 
       TThreadPoolServer.Args sargs = new TThreadPoolServer.Args(serverTransport)
         .processorFactory(hfactory)
@@ -810,6 +868,76 @@ public class HiveServer extends ThriftHive {
       server.serve();
     } catch (Exception x) {
       x.printStackTrace();
+    }
+  }
+
+  // load initialization scripts for hive server
+  private static void initialize(HiveConf conf, String[] initFiles, boolean verbose)
+      throws Exception {
+    Iface handler = new HiveServerHandler(SessionState.get());
+    for (String initFile : initFiles) {
+      for (String query : loadScript(conf, initFile)) {
+        if (verbose) {
+          System.err.println("Executing : " + query);
+        }
+        handler.execute(query);
+        for (String result : handler.fetchAll()) {
+          if (verbose) {
+            System.err.println(result);
+          }
+        }
+        handler.clean();
+      }
+    }
+  }
+
+  // load script file and split query by ending ';'
+  private static List<String> loadScript(HiveConf conf, String initFile) throws Exception {
+    Path path;
+    FileSystem fs;
+    if (new URI(initFile).getScheme() == null) {
+      path = new Path("file://" + new File(initFile).getAbsolutePath());
+      fs = FileSystem.getLocal(conf);
+    } else {
+      path = new Path(initFile);
+      fs = path.getFileSystem(conf);
+    }
+    if (!fs.exists(path)) {
+      throw new IllegalArgumentException("Init script " + path + " does not exist");
+    }
+    BufferedReader reader = new BufferedReader(new InputStreamReader(fs.open(path)));
+
+    try {
+      List<String> result = new ArrayList<String>();
+
+      String line;
+      StringBuilder builder = new StringBuilder();
+      while ((line = reader.readLine()) != null) {
+        String trimed = line.trim();
+        if (trimed.isEmpty()) {
+          continue;
+        }
+        // if new query is not started, line starting with '--' will be ignored
+        if (builder.length() == 0 && trimed.startsWith("--")) {
+          continue;
+        }
+        if (trimed.endsWith(";")) {
+          builder.append(line.substring(0, line.lastIndexOf(';')));
+          result.add(builder.toString());
+          builder.setLength(0);
+        } else {
+          builder.append(line);
+        }
+      }
+      if (builder.toString().trim().length() != 0) {
+        // some dummy string is remained
+        throw new IllegalArgumentException("Invalid end of script");
+      }
+      return result;
+    } catch (Throwable e) {
+      throw new IllegalArgumentException("Failed to load script file " + path, e);
+    } finally {
+      org.apache.hadoop.io.IOUtils.closeStream(reader);
     }
   }
 }
