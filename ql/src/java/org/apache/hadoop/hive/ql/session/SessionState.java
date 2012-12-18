@@ -41,6 +41,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.ql.HiveDriverRunHookContext;
 import org.apache.hadoop.hive.ql.MapRedStats;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.history.HiveHistory;
@@ -133,6 +134,7 @@ public class SessionState {
    * Lineage state.
    */
   LineageState ls;
+  private HiveDriverRunHookContext hookContext;
 
   /**
    * Get the lineage state stored in this session.
@@ -306,6 +308,14 @@ public class SessionState {
     String userid = System.getProperty("user.name");
     return userid + "_" + ManagementFactory.getRuntimeMXBean().getName() + "_"
         + DATE_FORMAT.format(new Date());
+  }
+
+  public void setHookContext(HiveDriverRunHookContext hookContext) {
+    this.hookContext = hookContext;
+  }
+
+  public HiveDriverRunHookContext getHookContext() {
+    return hookContext;
   }
 
   /**
