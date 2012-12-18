@@ -27,6 +27,52 @@ module ThriftHive
       return
     end
 
+    def executeTransient(query)
+      send_executeTransient(query)
+      recv_executeTransient()
+    end
+
+    def send_executeTransient(query)
+      send_message('executeTransient', ExecuteTransient_args, :query => query)
+    end
+
+    def recv_executeTransient()
+      result = receive_message(ExecuteTransient_result)
+      raise result.ex unless result.ex.nil?
+      return
+    end
+
+    def compile(query)
+      send_compile(query)
+      return recv_compile()
+    end
+
+    def send_compile(query)
+      send_message('compile', Compile_args, :query => query)
+    end
+
+    def recv_compile()
+      result = receive_message(Compile_result)
+      return result.success unless result.success.nil?
+      raise result.ex unless result.ex.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'compile failed: unknown result')
+    end
+
+    def run()
+      send_run()
+      recv_run()
+    end
+
+    def send_run()
+      send_message('run', Run_args)
+    end
+
+    def recv_run()
+      result = receive_message(Run_result)
+      raise result.ex unless result.ex.nil?
+      return
+    end
+
     def fetchOne()
       send_fetchOne()
       return recv_fetchOne()
@@ -169,6 +215,39 @@ module ThriftHive
       write_result(result, oprot, 'execute', seqid)
     end
 
+    def process_executeTransient(seqid, iprot, oprot)
+      args = read_args(iprot, ExecuteTransient_args)
+      result = ExecuteTransient_result.new()
+      begin
+        @handler.executeTransient(args.query)
+      rescue ::HiveServerException => ex
+        result.ex = ex
+      end
+      write_result(result, oprot, 'executeTransient', seqid)
+    end
+
+    def process_compile(seqid, iprot, oprot)
+      args = read_args(iprot, Compile_args)
+      result = Compile_result.new()
+      begin
+        result.success = @handler.compile(args.query)
+      rescue ::HiveServerException => ex
+        result.ex = ex
+      end
+      write_result(result, oprot, 'compile', seqid)
+    end
+
+    def process_run(seqid, iprot, oprot)
+      args = read_args(iprot, Run_args)
+      result = Run_result.new()
+      begin
+        @handler.run()
+      rescue ::HiveServerException => ex
+        result.ex = ex
+      end
+      write_result(result, oprot, 'run', seqid)
+    end
+
     def process_fetchOne(seqid, iprot, oprot)
       args = read_args(iprot, FetchOne_args)
       result = FetchOne_result.new()
@@ -274,6 +353,103 @@ module ThriftHive
   end
 
   class Execute_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    EX = 1
+
+    FIELDS = {
+      EX => {:type => ::Thrift::Types::STRUCT, :name => 'ex', :class => ::HiveServerException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class ExecuteTransient_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    QUERY = 1
+
+    FIELDS = {
+      QUERY => {:type => ::Thrift::Types::STRING, :name => 'query'}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class ExecuteTransient_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    EX = 1
+
+    FIELDS = {
+      EX => {:type => ::Thrift::Types::STRUCT, :name => 'ex', :class => ::HiveServerException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Compile_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    QUERY = 1
+
+    FIELDS = {
+      QUERY => {:type => ::Thrift::Types::STRING, :name => 'query'}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Compile_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+    EX = 1
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::STRUCT, :name => 'success', :class => ::QueryPlan},
+      EX => {:type => ::Thrift::Types::STRUCT, :name => 'ex', :class => ::HiveServerException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Run_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+
+    FIELDS = {
+
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Run_result
     include ::Thrift::Struct, ::Thrift::Struct_Union
     EX = 1
 

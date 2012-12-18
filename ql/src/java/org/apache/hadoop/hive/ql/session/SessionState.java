@@ -40,6 +40,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.ql.HiveDriverRunHookContext;
 import org.apache.hadoop.hive.ql.MapRedStats;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.exec.Utilities;
@@ -132,6 +133,7 @@ public class SessionState {
    * Lineage state.
    */
   LineageState ls;
+  private HiveDriverRunHookContext hookContext;
 
   /**
    * Get the lineage state stored in this session.
@@ -321,6 +323,14 @@ public class SessionState {
         + String.format("%1$4d%2$02d%3$02d%4$02d%5$02d", gc.get(Calendar.YEAR),
         gc.get(Calendar.MONTH) + 1, gc.get(Calendar.DAY_OF_MONTH), gc
         .get(Calendar.HOUR_OF_DAY), gc.get(Calendar.MINUTE));
+  }
+
+  public void setHookContext(HiveDriverRunHookContext hookContext) {
+    this.hookContext = hookContext;
+  }
+
+  public HiveDriverRunHookContext getHookContext() {
+    return hookContext;
   }
 
   /**

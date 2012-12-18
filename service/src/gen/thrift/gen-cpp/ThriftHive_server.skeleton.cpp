@@ -27,6 +27,21 @@ class ThriftHiveHandler : virtual public ThriftHiveIf {
     printf("execute\n");
   }
 
+  void executeTransient(const std::string& query) {
+    // Your implementation goes here
+    printf("executeTransient\n");
+  }
+
+  void compile( ::Apache::Hadoop::Hive::QueryPlan& _return, const std::string& query) {
+    // Your implementation goes here
+    printf("compile\n");
+  }
+
+  void run() {
+    // Your implementation goes here
+    printf("run\n");
+  }
+
   void fetchOne(std::string& _return) {
     // Your implementation goes here
     printf("fetchOne\n");

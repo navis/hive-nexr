@@ -29,6 +29,7 @@ import org.apache.hadoop.hive.common.ServerUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Schema;
+import org.apache.hadoop.hive.ql.plan.api.Query;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.dynamic_type.DynamicSerDe;
 import org.apache.hadoop.io.BytesWritable;
@@ -421,4 +422,25 @@ public class TestHiveServer extends TestCase {
     assertFalse("Scratch dir is available after startup", fs.exists(scratchDirPath));
   }
 
+  public void testAsyncExecute() throws Exception {
+    try {
+      client.execute("set hive.support.concurrency = false");
+      client.execute("drop table " + tableName);
+    } catch (Exception ex) {
+    }
+    client.execute("create table " + tableName + " (key int, value string)");
+
+    client.execute("select * from " + tableName);
+    Query plan1 = client.getQueryPlan().getQueries().get(0);
+    assertTrue(plan1.isDone());
+    Query plan2 = client.compile("select * from " + tableName).getQueries().get(0);
+    assertFalse(plan2.isDone());
+
+    assertEquals(plan1.getStageGraph(), plan2.getStageGraph());
+
+    client.executeTransient("set some.variable=true");
+    client.run();
+
+    assertTrue(client.getQueryPlan().getQueries().get(0).isDone());
+  }
 }
