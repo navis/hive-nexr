@@ -58,6 +58,12 @@ service ThriftHive extends hive_metastore.ThriftHiveMetastore {
   # Execute a query. Takes a HiveQL string
   void execute(1:string query) throws(1:HiveServerException ex)
 
+  void executeTransient(1:string query) throws(1:HiveServerException ex)
+
+  queryplan.QueryPlan compile(1:string query) throws(1:HiveServerException ex)
+
+  void run() throws(1:HiveServerException ex)
+
   # Fetch one row. This row is the serialized form
   # of the result of the query
   string fetchOne() throws(1:HiveServerException ex)

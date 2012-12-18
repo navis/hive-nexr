@@ -43,6 +43,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.JavaUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
+import org.apache.hadoop.hive.ql.HiveDriverRunHookContext;
 import org.apache.hadoop.hive.ql.MapRedStats;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.exec.tez.TezSessionPoolManager;
@@ -166,6 +167,7 @@ public class SessionState {
    * Lineage state.
    */
   LineageState ls;
+  private HiveDriverRunHookContext hookContext;
 
   private PerfLogger perfLogger;
 
@@ -463,6 +465,14 @@ public class SessionState {
 
   public void setLastCommand(String lastCommand) {
     this.lastCommand = lastCommand;
+  }
+
+  public void setHookContext(HiveDriverRunHookContext hookContext) {
+    this.hookContext = hookContext;
+  }
+
+  public HiveDriverRunHookContext getHookContext() {
+    return hookContext;
   }
 
   /**

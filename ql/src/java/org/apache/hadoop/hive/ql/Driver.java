@@ -39,7 +39,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.hive.common.ValidTxnList;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
-import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -867,17 +866,7 @@ public class Driver implements CommandProcessor {
   @Override
   public CommandProcessorResponse run(String command)
       throws CommandNeedRetryException {
-    return run(command, false);
-  }
-
-  public CommandProcessorResponse run()
-      throws CommandNeedRetryException {
-    return run(null, true);
-  }
-
-  public CommandProcessorResponse run(String command, boolean alreadyCompiled)
-        throws CommandNeedRetryException {
-    CommandProcessorResponse cpr = runInternal(command, alreadyCompiled);
+    CommandProcessorResponse cpr = runInternal(command);
     if(cpr.getResponseCode() == 0) {
       return cpr;
     }
@@ -954,8 +943,15 @@ public class Driver implements CommandProcessor {
     return ret;
   }
 
-  private CommandProcessorResponse runInternal(String command, boolean alreadyCompiled)
-      throws CommandNeedRetryException {
+  private CommandProcessorResponse runInternal(String command) throws CommandNeedRetryException {
+    CommandProcessorResponse ret = compileAndRespond(command);
+    if (ret.getResponseCode() == 0) {
+      return executePlan();
+    }
+    return ret;
+  }
+
+  public CommandProcessorResponse compileCommand(String command) {
     errorMessage = null;
     SQLState = null;
     downstreamError = null;
@@ -965,13 +961,14 @@ public class Driver implements CommandProcessor {
     }
 
     HiveDriverRunHookContext hookContext = new HiveDriverRunHookContextImpl(conf, command);
+    SessionState.get().setHookContext(hookContext);
     // Get all the driver run hooks and pre-execute them.
     List<HiveDriverRunHook> driverRunHooks;
     try {
       driverRunHooks = getHooks(HiveConf.ConfVars.HIVE_DRIVER_RUN_HOOKS,
           HiveDriverRunHook.class);
       for (HiveDriverRunHook driverRunHook : driverRunHooks) {
-          driverRunHook.preDriverRun(hookContext);
+        driverRunHook.preDriverRun(hookContext);
       }
     } catch (Exception e) {
       errorMessage = "FAILED: Hive Internal Error: " + Utilities.getNameMessage(e);
@@ -986,6 +983,15 @@ public class Driver implements CommandProcessor {
     PerfLogger perfLogger = PerfLogger.getPerfLogger(true);
     perfLogger.PerfLogBegin(CLASS_NAME, PerfLogger.DRIVER_RUN);
     perfLogger.PerfLogBegin(CLASS_NAME, PerfLogger.TIME_TO_SUBMIT);
+
+    int ret = compileInternal(command);
+    if (ret != 0) {
+      return new CommandProcessorResponse(ret, errorMessage, SQLState);
+    }
+    return new CommandProcessorResponse(ret);
+  }
+
+  public CommandProcessorResponse executePlan() throws CommandNeedRetryException {
 
     int ret;
     boolean requireLock = false;
@@ -1003,13 +1009,8 @@ public class Driver implements CommandProcessor {
       return new CommandProcessorResponse(ret, errorMessage, SQLState);
     }
     ret = recordValidTxns();
-    if (ret != 0) return new CommandProcessorResponse(ret, errorMessage, SQLState);
-
-    if (!alreadyCompiled) {
-      ret = compileInternal(command);
-      if (ret != 0) {
+    if (ret != 0) {
         return new CommandProcessorResponse(ret, errorMessage, SQLState);
-      }
     }
 
     // the reason that we set the txn manager for the cxt here is because each
@@ -1077,13 +1078,17 @@ public class Driver implements CommandProcessor {
       return new CommandProcessorResponse(12, errorMessage, SQLState);
     }
 
+    PerfLogger perfLogger = PerfLogger.getPerfLogger(true);
     perfLogger.PerfLogEnd(CLASS_NAME, PerfLogger.DRIVER_RUN);
     perfLogger.close(LOG, plan);
 
     // Take all the driver run hooks and post-execute them.
+    HiveDriverRunHookContext hookContext = SessionState.get().getHookContext();
+    List<HiveDriverRunHook> driverRunHooks;
     try {
+      driverRunHooks = getHooks(HiveConf.ConfVars.HIVE_DRIVER_RUN_HOOKS, HiveDriverRunHook.class);
       for (HiveDriverRunHook driverRunHook : driverRunHooks) {
-          driverRunHook.postDriverRun(hookContext);
+        driverRunHook.postDriverRun(hookContext);
       }
     } catch (Exception e) {
       errorMessage = "FAILED: Hive Internal Error: " + Utilities.getNameMessage(e);

@@ -62,8 +62,6 @@ import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportFactory;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import com.facebook.fb303.fb_status;
 
 /**
@@ -218,6 +216,114 @@ public class HiveServer extends ThriftHive {
       if (ret != 0) {
         throw new HiveServerException("Query returned non-zero code: " + ret
             + ", cause: " + errorMessage, ret, SQLState);
+      }
+    }
+
+    @Override
+    public void executeTransient(String cmd) throws HiveServerException, TException {
+      HiveServerHandler.LOG.info("Running the transient query: " + cmd);
+      SessionState session = SessionState.get();
+
+      String cmd_trimmed = cmd.trim();
+      String[] tokens = cmd_trimmed.split("\\s");
+      String cmd_1 = cmd_trimmed.substring(tokens[0].length()).trim();
+
+      int ret = 0;
+      String errorMessage = "";
+      String SQLState = null;
+
+      try {
+        CommandProcessor proc = CommandProcessorFactory.get(tokens[0]);
+        if (proc == null) {
+          return;
+        }
+        if (proc instanceof Driver) {
+          throw new HiveServerException("accepts transient commands only", -10000, null);
+        }
+        CommandProcessorResponse response = proc.run(cmd_1);
+
+        ret = response.getResponseCode();
+        SQLState = response.getSQLState();
+        errorMessage = response.getErrorMessage();
+      } catch (Exception e) {
+        HiveServerException ex = new HiveServerException();
+        ex.setMessage("Error running query: " + e.toString());
+        ex.setErrorCode(ret == 0? -10000: ret);
+        throw ex;
+      }
+
+      if (ret != 0) {
+        throw new HiveServerException("Query returned non-zero code: " + ret
+            + ", cause: " + errorMessage, ret, SQLState);
+      }
+    }
+
+    @Override
+    public QueryPlan compile(String cmd) throws HiveServerException, TException {
+      HiveServerHandler.LOG.info("Compiling the query: " + cmd);
+      SessionState session = SessionState.get();
+
+      String cmd_trimmed = cmd.trim();
+      String[] tokens = cmd_trimmed.split("\\s");
+
+      CommandProcessorResponse response;
+      try {
+        CommandProcessor proc = CommandProcessorFactory.get(tokens[0]);
+        if (proc == null) {
+          return new QueryPlan();
+        }
+
+        if (proc instanceof Driver) {
+          isHiveQuery = true;
+          driver = (Driver) proc;
+          response = driver.compileCommand(cmd);
+        } else {
+          isHiveQuery = false;
+          driver = null;
+          // need to reset output for each non-Hive query
+          setupSessionIO(session);
+          String cmd_1 = cmd_trimmed.substring(tokens[0].length()).trim();
+          response = proc.run(cmd_1);
+        }
+      } catch (Exception e) {
+        HiveServerException ex = new HiveServerException();
+        ex.setMessage("Error running query: " + e.toString());
+        ex.setErrorCode(-10000);
+        throw ex;
+      }
+      if (response.getResponseCode() != 0) {
+        int ret = response.getResponseCode();
+        String errorMessage = response.getErrorMessage();
+        String SQLState = response.getSQLState();
+        throw new HiveServerException("Query returned non-zero code: " + ret
+            + ", cause: " + errorMessage, ret, SQLState);
+      }
+      return getQueryPlan();
+    }
+
+    @Override
+    public void run() throws HiveServerException, TException {
+      if (isHiveQuery && driver != null) {
+        CommandProcessorResponse response;
+        try {
+          // In Hive server mode, we are not able to retry in the FetchTask
+          // case, when calling fetch quueries since execute() has returned.
+          // For now, we disable the test attempts.
+          driver.setTryCount(Integer.MAX_VALUE);
+          response = driver.executePlan();
+        } catch (Exception e) {
+          HiveServerException ex = new HiveServerException();
+          ex.setMessage("Error running query: " + e.toString());
+          ex.setErrorCode(-10000);
+          throw ex;
+        }
+        int ret = response.getResponseCode();
+        String SQLState = response.getSQLState();
+        String errorMessage = response.getErrorMessage();
+        if (ret != 0) {
+          throw new HiveServerException("Query returned non-zero code: " + ret
+                  + ", cause: " + errorMessage, ret, SQLState);
+        }
       }
     }
 

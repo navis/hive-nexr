@@ -24,6 +24,9 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print ''
   print 'Functions:'
   print '  void execute(string query)'
+  print '  void executeTransient(string query)'
+  print '  QueryPlan compile(string query)'
+  print '  void run()'
   print '  string fetchOne()'
   print '   fetchN(i32 numRows)'
   print '   fetchAll()'
@@ -88,6 +91,24 @@ if cmd == 'execute':
     print 'execute requires 1 args'
     sys.exit(1)
   pp.pprint(client.execute(args[0],))
+
+elif cmd == 'executeTransient':
+  if len(args) != 1:
+    print 'executeTransient requires 1 args'
+    sys.exit(1)
+  pp.pprint(client.executeTransient(args[0],))
+
+elif cmd == 'compile':
+  if len(args) != 1:
+    print 'compile requires 1 args'
+    sys.exit(1)
+  pp.pprint(client.compile(args[0],))
+
+elif cmd == 'run':
+  if len(args) != 0:
+    print 'run requires 0 args'
+    sys.exit(1)
+  pp.pprint(client.run())
 
 elif cmd == 'fetchOne':
   if len(args) != 0:
