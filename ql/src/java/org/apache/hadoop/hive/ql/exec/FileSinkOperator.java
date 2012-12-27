@@ -54,7 +54,9 @@ import org.apache.hadoop.hive.ql.plan.FileSinkDesc;
 import org.apache.hadoop.hive.ql.plan.FileSinkDesc.DPSortState;
 import org.apache.hadoop.hive.ql.plan.ListBucketingCtx;
 import org.apache.hadoop.hive.ql.plan.PlanUtils;
+import org.apache.hadoop.hive.ql.plan.SamplingContext;
 import org.apache.hadoop.hive.ql.plan.SkewedColumnPositionPair;
+import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.plan.api.OperatorType;
 import org.apache.hadoop.hive.ql.stats.StatsCollectionTaskIndependent;
 import org.apache.hadoop.hive.ql.stats.StatsPublisher;
@@ -105,6 +107,7 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
   protected transient int maxPartitions;
   protected transient ListBucketingCtx lbCtx;
   protected transient boolean isSkewedStoredAsSubDirectories;
+
   protected transient boolean statsCollectRawDataSize;
   protected transient boolean[] statsFromRecordWriter;
   protected transient boolean isCollectRWStats;
@@ -123,6 +126,8 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
   public static enum Counter {
     RECORDS_OUT
   }
+
+  private transient RandomSampler sampler;
 
   /**
    * RecordWriter.
@@ -414,6 +419,18 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
         // bucket is the second field in the record id
         bucketField = recIdInspector.getAllStructFieldRefs().get(1);
         bucketInspector = (IntObjectInspector)bucketField.getFieldObjectInspector();
+      } else if (getConf().getSamplingContext() != null) {
+        SamplingContext context = getConf().getSamplingContext();
+        List<ExprNodeDesc> keys = context.getSamplingKeys();
+        ExprNodeEvaluator[] evals = new ExprNodeEvaluator[keys.size()];
+        for (int i = 0; i < evals.length; i++) {
+          evals[i] = ExprNodeEvaluatorFactory.get(keys.get(i));
+        }
+        StructObjectInspector keyOI = initEvaluatorsAndReturnStruct(evals, inputObjInspectors[0]);
+        TableDesc tableDesc = context.getTableInfo();
+        Serializer serializer = (Serializer) tableDesc.getDeserializerClass().newInstance();
+        serializer.initialize(null, tableDesc.getProperties());
+        sampler = new RandomSampler(evals, keyOI, serializer, context.getSamplingNum());
       }
 
       numRows = 0;
@@ -688,7 +705,7 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
       }
 
       rowOutWriters = fpaths.outWriters;
-      // check if all record writers implement statistics. if atleast one RW
+      // check if all record writers implement statistics. if at least one RW
       // doesn't implement stats interface we will fallback to conventional way
       // of gathering stats
       isCollectRWStats = areAllTrue(statsFromRecordWriter);
@@ -714,6 +731,9 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
       // pass the row rather than recordValue.
       if (conf.getWriteType() == AcidUtils.Operation.NOT_ACID) {
         rowOutWriters[writerOffset].write(recordValue);
+        if (sampler != null) {
+          sampler.sampling(row, (StructObjectInspector) inputObjInspectors[0]);
+        }
       } else if (conf.getWriteType() == AcidUtils.Operation.INSERT) {
         fpaths.updaters[writerOffset].insert(conf.getTransactionId(), row);
       } else {
@@ -746,6 +766,7 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
           throw new HiveException("Unknown write type " + conf.getWriteType().toString());
         }
       }
+
     } catch (IOException e) {
       throw new HiveException(e);
     } catch (SerDeException e) {
@@ -1012,6 +1033,15 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
 
         if (isNativeTable) {
           fsp.commit(fs);
+        }
+      }
+      if (sampler != null) {
+        // directly commit to spec path
+        String fileName = ".sampling_" + Utilities.getTaskId(hconf);
+        try {
+          sampler.publish(jc, new Path(specPath, fileName));
+        } catch (IOException e) {
+          throw new HiveException(e);
         }
       }
       // Only publish stats if this operator's flag was set to gather stats

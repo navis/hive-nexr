@@ -1029,11 +1029,17 @@ public final class GenMapRedUtils {
     TableDesc tt_desc = PlanUtils.getIntermediateFileTableDesc(PlanUtils
         .getFieldSchemasFromRowSchema(parent.getSchema(), "temporarycol"));
 
-    // Create the temporary file, its corresponding FileSinkOperaotr, and
+    // Create the temporary file, its corresponding FileSinkOperator, and
     // its corresponding TableScanOperator.
     TableScanOperator tableScanOp =
         createTemporaryFile(parent, op, taskTmpDir, tt_desc, parseCtx);
 
+    if (childTask instanceof MapRedTask && op.getConf().getSamplingContext() != null) {
+      // move sampling context of RS to FS and mark MapredTask to use prev sampling
+      desc.setSamplingContext(op.getConf().getSamplingContext());
+      op.getConf().setSamplingContext(null);
+      ((MapRedTask)childTask).getWork().getMapWork().setSamplingType(MapWork.SAMPLING_ON_PREV_MR);
+    }
     Map<Operator<? extends OperatorDesc>, GenMapRedCtx> mapCurrCtx =
         opProcCtx.getMapCurrCtx();
     mapCurrCtx.put(tableScanOp, new GenMapRedCtx(childTask, null));

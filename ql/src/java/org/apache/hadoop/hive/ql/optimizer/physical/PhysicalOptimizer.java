@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.ql.optimizer.SamplingOptimizer;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 
 /**

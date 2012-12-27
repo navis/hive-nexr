@@ -55,7 +55,7 @@ public class SamplingOptimizer implements PhysicalPlanResolver {
         continue;
       }
       ReduceSinkOperator child =
-          OperatorUtils.findSingleOperator(operator, ReduceSinkOperator.class);
+          OperatorUtils.findSoleChild(operator, ReduceSinkOperator.class);
       if (child == null ||
           child.getConf().getNumReducers() != 1 || !child.getConf().getPartitionCols().isEmpty()) {
         continue;

@@ -86,6 +86,7 @@ public class FileSinkDesc extends AbstractOperatorDesc {
   private int maxStatsKeyPrefixLength = -1;
 
   private boolean statsCollectRawDataSize;
+  private SamplingContext samplingContext;
 
   // Record what type of write this is.  Default is non-ACID (ie old style).
   private AcidUtils.Operation writeType = AcidUtils.Operation.NOT_ACID;
@@ -148,7 +149,7 @@ public class FileSinkDesc extends AbstractOperatorDesc {
     ret.setDpSortState(dpSortState);
     ret.setWriteType(writeType);
     ret.setTransactionId(txnId);
-    return (Object) ret;
+    return ret;
   }
 
   @Explain(displayName = "directory", normalExplain = false)
@@ -447,5 +448,14 @@ public class FileSinkDesc extends AbstractOperatorDesc {
 
   public void setTable(Table table) {
     this.table = table;
+  }
+
+  @Explain(displayName = "Sampling Context")
+  public SamplingContext getSamplingContext() {
+    return samplingContext;
+  }
+
+  public void setSamplingContext(SamplingContext sampling) {
+    this.samplingContext = sampling;
   }
 }

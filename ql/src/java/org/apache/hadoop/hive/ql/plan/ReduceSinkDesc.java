@@ -115,6 +115,10 @@ public class ReduceSinkDesc extends AbstractOperatorDesc {
   private transient boolean enforceSort = false;
 
   private static transient Log LOG = LogFactory.getLog(ReduceSinkDesc.class);
+
+  // context holder for new parent FS
+  private transient SamplingContext samplingContext;
+
   public ReduceSinkDesc() {
   }
 
@@ -432,5 +436,13 @@ public class ReduceSinkDesc extends AbstractOperatorDesc {
 
   public void setEnforceSort(boolean isDeduplicated) {
     this.enforceSort = isDeduplicated;
+  }
+
+  public void setSamplingContext(SamplingContext samplingContext) {
+    this.samplingContext = samplingContext;
+  }
+
+  public SamplingContext getSamplingContext() {
+    return samplingContext;
   }
 }

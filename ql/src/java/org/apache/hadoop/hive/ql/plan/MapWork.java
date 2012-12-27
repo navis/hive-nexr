@@ -98,6 +98,7 @@ public class MapWork extends BaseWork {
 
   //use sampled partitioning
   private int samplingType;
+  private TableDesc samplingDesc;
 
   public static final int SAMPLING_ON_PREV_MR = 1;  // todo HIVE-3841
   public static final int SAMPLING_ON_START = 2;    // sampling on task running
@@ -497,6 +498,15 @@ public class MapWork extends BaseWork {
   public String getSamplingTypeString() {
     return samplingType == 1 ? "SAMPLING_ON_PREV_MR" :
         samplingType == 2 ? "SAMPLING_ON_START" : null;
+  }
+
+  public void setSamplingDesc(TableDesc samplingDesc) {
+    this.samplingDesc = samplingDesc;
+  }
+
+  @Explain(displayName = "Sampling Table", normalExplain = false)
+  public TableDesc getSamplingDesc() {
+    return samplingDesc;
   }
 
   @Override

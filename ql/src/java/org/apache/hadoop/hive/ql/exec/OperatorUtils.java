@@ -19,6 +19,7 @@
 package org.apache.hadoop.hive.ql.exec;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -278,5 +279,52 @@ public class OperatorUtils {
       ops = allParent;
     }
     return resultMap.build();
+  }
+
+  private static final List<Class<?>> FORWARD = Arrays.<Class<?>>asList(
+      SelectOperator.class, ForwardOperator.class, FilterOperator.class);
+
+  public static <T> T findSoleInheritee(Operator<?> current, Class<T> target) {
+    return findSoleInheritee(current, FORWARD, target);
+  }
+
+  public static <T> T findSoleInheritee(Operator<?> current, List<Class<?>> allowed, Class<T> target) {
+    if (current == null || target.isInstance(current)) {
+      return (T) current;
+    }
+    if (allowed != null && !allowed.contains(current.getClass())) {
+      return null;
+    }
+    Operator<?> parent = getSoleParent(current);
+    return parent != null ? findSoleInheritee(parent, allowed, target) : null;
+  }
+
+  public static Operator<?> getSoleParent(Operator<?> current) {
+    if (current.getParentOperators() != null && current.getParentOperators().size() == 1) {
+      return current.getParentOperators().get(0);
+    }
+    return null;
+  }
+
+  public static <T> T findSoleHeir(Operator<?> current, Class<T> target) {
+    return findSoleHeir(current, FORWARD, target);
+  }
+
+  public static <T> T findSoleHeir(Operator<?> current, List<Class<?>> allowed, Class<T> target) {
+    if (current == null || target.isInstance(current)) {
+      return (T) current;
+    }
+    if (allowed != null && !allowed.contains(current.getClass())) {
+      return null;
+    }
+    Operator<?> child = getSoleChild(current);
+    return child != null ? findSoleHeir(child, allowed, target) : null;
+  }
+
+  public static Operator<?> getSoleChild(Operator<?> current) {
+    if (current.getChildOperators() != null && current.getChildOperators().size() == 1) {
+      return current.getChildOperators().get(0);
+    }
+    return null;
   }
 }
