@@ -149,6 +149,19 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
       }
     }
 
+    String scanCache = jobConf.get(HBaseSerDe.HBASE_SCAN_CACHE);
+    if (scanCache != null) {
+      scan.setCaching(Integer.valueOf(scanCache));
+    }
+    String scanCacheBlocks = jobConf.get(HBaseSerDe.HBASE_SCAN_CACHEBLOCKS);
+    if (scanCacheBlocks != null) {
+      scan.setCacheBlocks(Boolean.valueOf(scanCacheBlocks));
+    }
+    String scanBatch = jobConf.get(HBaseSerDe.HBASE_SCAN_BATCH);
+    if (scanBatch != null) {
+      scan.setBatch(Integer.valueOf(scanBatch));
+    }
+
     setScan(scan);
     Job job = new Job(jobConf);
     TaskAttemptContext tac = ShimLoader.getHadoopShims().newTaskAttemptContext(
