@@ -35,7 +35,6 @@ import org.apache.hadoop.hbase.mapred.TableMapReduceUtil;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormatBase;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Writables;
 import org.apache.hadoop.hive.hbase.HBaseSerDe.ColumnMapping;
 import org.apache.hadoop.hive.ql.exec.ExprNodeConstantEvaluator;
 import org.apache.hadoop.hive.ql.exec.Utilities;
@@ -76,12 +75,12 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
  * such as column pruning and filter pushdown.
  */
 public class HiveHBaseTableInputFormat extends TableInputFormatBase
-    implements InputFormat<ImmutableBytesWritable, Result> {
+    implements InputFormat<ImmutableBytesWritable, HBaseResult> {
 
   static final Log LOG = LogFactory.getLog(HiveHBaseTableInputFormat.class);
 
   @Override
-  public RecordReader<ImmutableBytesWritable, Result> getRecordReader(
+  public RecordReader<ImmutableBytesWritable, HBaseResult> getRecordReader(
     InputSplit split,
     JobConf jobConf,
     final Reporter reporter) throws IOException {
@@ -170,7 +169,7 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
     final org.apache.hadoop.mapreduce.RecordReader<ImmutableBytesWritable, Result>
     recordReader = createRecordReader(tableSplit, tac);
 
-    return new RecordReader<ImmutableBytesWritable, Result>() {
+    return new RecordReader<ImmutableBytesWritable, HBaseResult>() {
 
       @Override
       public void close() throws IOException {
@@ -183,8 +182,8 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
       }
 
       @Override
-      public Result createValue() {
-        return new Result();
+      public HBaseResult createValue() {
+        return new HBaseResult();
       }
 
       @Override
@@ -194,34 +193,27 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
 
       @Override
       public float getProgress() throws IOException {
-        float progress = 0.0F;
-
         try {
-          progress = recordReader.getProgress();
+          return recordReader.getProgress();
         } catch (InterruptedException e) {
           throw new IOException(e);
         }
-
-        return progress;
       }
 
       @Override
-      public boolean next(ImmutableBytesWritable rowKey, Result value) throws IOException {
-
-        boolean next = false;
-
+      public boolean next(ImmutableBytesWritable rowKey, HBaseResult value) throws IOException {
         try {
-          next = recordReader.nextKeyValue();
-
-          if (next) {
-            rowKey.set(recordReader.getCurrentValue().getRow());
-            Writables.copyWritable(recordReader.getCurrentValue(), value);
+          if (recordReader.nextKeyValue()) {
+            Result result = recordReader.getCurrentValue();
+            rowKey.set(result.getRow());
+            value.setRowKey(result.getRow());
+            value.setValues(result.raw());
+            return true;
           }
         } catch (InterruptedException e) {
           throw new IOException(e);
         }
-
-        return next;
+        return false;
       }
     };
   }

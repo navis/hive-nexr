@@ -21,10 +21,9 @@ package org.apache.hadoop.hive.hbase;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableMap;
-import java.util.Map.Entry;
 
-import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
 import org.apache.hadoop.hive.serde2.lazy.LazyMap;
@@ -40,26 +39,28 @@ import org.apache.hadoop.io.Writable;
  */
 public class LazyHBaseCellMap extends LazyMap {
 
-  private Result result;
-  private byte [] columnFamilyBytes;
+  private transient KeyValue[] result;
+  private transient int index;
+
+  private transient ByteArrayRef bytesRef = new ByteArrayRef();
+
+  private byte[] columnFamilyBytes;
   private List<Boolean> binaryStorage;
 
   /**
    * Construct a LazyCellMap object with the ObjectInspector.
    * @param oi
    */
-  public LazyHBaseCellMap(LazyMapObjectInspector oi) {
+  public LazyHBaseCellMap(LazyMapObjectInspector oi,
+                          byte[] columnFamilyBytes, List<Boolean> binaryStorage) {
     super(oi);
-  }
-
-  public void init(
-      Result r,
-      byte [] columnFamilyBytes,
-      List<Boolean> binaryStorage) {
-
-    result = r;
     this.columnFamilyBytes = columnFamilyBytes;
     this.binaryStorage = binaryStorage;
+  }
+
+  public void init(KeyValue[] r, int index) {
+    this.result = r;
+    this.index = index;
     setParsed(false);
   }
 
@@ -70,40 +71,46 @@ public class LazyHBaseCellMap extends LazyMap {
       cachedMap.clear();
     }
 
-    NavigableMap<byte [], byte []> familyMap = result.getFamilyMap(columnFamilyBytes);
+    for (int i = index; i < result.length; i++) {
+      int rlength = result[i].getRowLength();
 
-    if (familyMap != null) {
+      int foffset = result[i].getFamilyOffset(rlength);
+      int flength = result[i].getFamilyLength(foffset);
+      if (!Bytes.equals(result[i].getBuffer(), foffset, flength,
+          columnFamilyBytes, 0, columnFamilyBytes.length)) {
+        break;
+      }
+      if (result[i].getValueLength() == 0) {
+        continue;
+      }
 
-      for (Entry<byte [], byte []> e : familyMap.entrySet()) {
-        // null values and values of zero length are not added to the cachedMap
-        if (e.getValue() == null || e.getValue().length == 0) {
-          continue;
-        }
+      bytesRef.setData(result[i].getBuffer());
 
-        LazyMapObjectInspector lazyMoi = getInspector();
+      int qoffset = result[i].getQualifierOffset(foffset);
+      int qlength = result[i].getQualifierLength(rlength, flength);
 
-        // Keys are always primitive
-        LazyPrimitive<? extends ObjectInspector, ? extends Writable> key =
+      LazyMapObjectInspector lazyMoi = getInspector();
+
+      // Keys are always primitive
+      LazyPrimitive<? extends ObjectInspector, ? extends Writable> key =
           LazyFactory.createLazyPrimitiveClass(
               (PrimitiveObjectInspector) lazyMoi.getMapKeyObjectInspector(),
               binaryStorage.get(0));
 
-        ByteArrayRef keyRef = new ByteArrayRef();
-        keyRef.setData(e.getKey());
-        key.init(keyRef, 0, keyRef.getData().length);
+      key.init(bytesRef, qoffset, qlength);
 
-        // Value
-        LazyObject<?> value =
+      int voffset = result[i].getValueOffset();
+      int vlength = result[i].getValueLength();
+
+      // Value
+      LazyObject<?> value =
           LazyFactory.createLazyObject(lazyMoi.getMapValueObjectInspector(),
               binaryStorage.get(1));
 
-        ByteArrayRef valueRef = new ByteArrayRef();
-        valueRef.setData(e.getValue());
-        value.init(valueRef, 0, valueRef.getData().length);
+      value.init(bytesRef, voffset, vlength);
 
-        // Put the key/value into the map
-        cachedMap.put(key.getObject(), value.getObject());
-      }
+      // Put the key/value into the map
+      cachedMap.put(key.getObject(), value.getObject());
     }
 
     setParsed(true);

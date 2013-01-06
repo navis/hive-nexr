@@ -20,9 +20,12 @@ package org.apache.hadoop.hive.hbase;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hive.hbase.HBaseSerDe.ColumnMapping;
 import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
@@ -32,7 +35,6 @@ import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazyMapObjectInspector
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazySimpleStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
-import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
 /**
  * LazyObject for storing an HBase row.  The field of an HBase row can be
@@ -40,28 +42,53 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
  */
 public class LazyHBaseRow extends LazyStruct {
 
+  private static final Comparator<KeyValue> FC = new Comparator<KeyValue>() {
+    public int compare(KeyValue o1, KeyValue o2) {
+      byte[] buf1 = o1.getBuffer();
+      byte[] buf2 = o2.getBuffer();
+
+      int rlen1 = o1.getRowLength();
+      int rlen2 = o2.getRowLength();
+
+      // skip row
+      int foffset1 = o1.getFamilyOffset(rlen1);
+      int foffset2 = o2.getFamilyOffset(rlen2);
+
+      int flen1 = o1.getFamilyLength(foffset1);
+      int flen2 = o2.getFamilyLength(foffset2);
+
+      int qlen1 = o1.getQualifierLength(rlen1, flen1);
+      int qlen2 = o2.getQualifierLength(rlen2, flen2);
+
+      return Bytes.compareTo(buf1, foffset1, flen1 + qlen1, buf2, foffset2, flen1 + qlen2);
+    }
+  };
+
   /**
    * The HBase columns mapping of the row.
    */
-  private Result result;
+  private transient byte[] row;
+  private transient KeyValue[] result;
+  private transient ByteArrayRef bytesRef = new ByteArrayRef();
+  private transient ArrayList<Object> cachedList;
+
   private List<ColumnMapping> columnsMapping;
-  private ArrayList<Object> cachedList;
 
   /**
    * Construct a LazyHBaseRow object with the ObjectInspector.
    */
-  public LazyHBaseRow(LazySimpleStructObjectInspector oi) {
+  public LazyHBaseRow(LazySimpleStructObjectInspector oi, List<ColumnMapping> columnsMapping) {
     super(oi);
+    this.columnsMapping = columnsMapping;
   }
 
   /**
    * Set the HBase row data(a Result writable) for this LazyStruct.
    * @see LazyHBaseRow#init(Result)
    */
-  public void init(Result r, List<ColumnMapping> columnsMapping) {
-
-    result = r;
-    this.columnsMapping = columnsMapping;
+  public void init(HBaseResult result) {
+    this.row = result.getRowKey();
+    this.result = result.getValues();
     setParsed(false);
   }
 
@@ -72,8 +99,7 @@ public class LazyHBaseRow extends LazyStruct {
   private void parse() {
 
     if (getFields() == null) {
-      List<? extends StructField> fieldRefs =
-        ((StructObjectInspector)getInspector()).getAllStructFieldRefs();
+      List<? extends StructField> fieldRefs = getInspector().getAllStructFieldRefs();
       LazyObject<? extends ObjectInspector> [] fields = new LazyObject<?>[fieldRefs.size()];
 
       for (int i = 0; i < fields.length; i++) {
@@ -82,7 +108,8 @@ public class LazyHBaseRow extends LazyStruct {
         if (colMap.qualifierName == null && !colMap.hbaseRowKey) {
           // a column family
           fields[i] = new LazyHBaseCellMap(
-              (LazyMapObjectInspector) fieldRefs.get(i).getFieldObjectInspector());
+              (LazyMapObjectInspector) fieldRefs.get(i).getFieldObjectInspector(),
+              colMap.familyNameBytes, colMap.binaryStorage);
           continue;
         }
 
@@ -134,33 +161,29 @@ public class LazyHBaseRow extends LazyStruct {
 
     if (!fieldsInited[fieldID]) {
       fieldsInited[fieldID] = true;
-      ByteArrayRef ref = null;
       ColumnMapping colMap = columnsMapping.get(fieldID);
 
       if (colMap.hbaseRowKey) {
-        ref = new ByteArrayRef();
-        ref.setData(result.getRow());
-      } else {
-        if (colMap.qualifierName == null) {
-          // it is a column family
-          // primitive type for Map<Key, Value> can be stored in binary format
-          ((LazyHBaseCellMap) fields[fieldID]).init(
-              result, colMap.familyNameBytes, colMap.binaryStorage);
-        } else {
-          // it is a column i.e. a column-family with column-qualifier
-          byte [] res = result.getValue(colMap.familyNameBytes, colMap.qualifierNameBytes);
-
-          if (res == null) {
-            return null;
-          } else {
-            ref = new ByteArrayRef();
-            ref.setData(res);
-          }
+        bytesRef.setData(row);
+        fields[fieldID].init(bytesRef, 0, row.length);
+      } else if (colMap.qualifierName == null) {
+        int index = Arrays.binarySearch(result, colMap.searchTerm, FC);
+        if (index < 0) {
+          index = -index - 1;
         }
-      }
-
-      if (ref != null) {
-        fields[fieldID].init(ref, 0, ref.getData().length);
+        // it is a column family
+        // primitive type for Map<Key, Value> can be stored in binary format
+        ((LazyHBaseCellMap) fields[fieldID]).init(result, index);
+      } else {
+        // it is a column i.e. a column-family with column-qualifier
+        int index = Arrays.binarySearch(result, colMap.searchTerm, FC);
+        if (index < 0) {
+          return null;
+        }
+        bytesRef.setData(result[index].getBuffer());
+        int voffset = result[index].getValueOffset();
+        int vlength = result[index].getValueLength();
+        fields[fieldID].init(bytesRef, voffset, vlength);
       }
     }
 

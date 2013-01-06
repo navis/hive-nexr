@@ -65,8 +65,6 @@ public class TestLazyHBaseObject extends TestCase {
       TypeInfoUtils.getTypeInfosFromTypeString("map<int,string>").get(0),
       new byte[]{(byte)1, (byte)2}, 0, nullSequence, false, (byte)0);
 
-    LazyHBaseCellMap b = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
-
     // Initialize a result
     List<KeyValue> kvs = new ArrayList<KeyValue>();
 
@@ -84,6 +82,7 @@ public class TestLazyHBaseObject extends TestCase {
         Bytes.toBytes("8"), Bytes.toBytes("abc")));
     kvs.add(new KeyValue(Bytes.toBytes("test-row"), Bytes.toBytes("cfc"),
         Bytes.toBytes("col3"), Bytes.toBytes("cfccol3")));
+    Collections.sort(kvs, KeyValue.COMPARATOR);
 
     Result r = new Result(kvs);
 
@@ -91,7 +90,9 @@ public class TestLazyHBaseObject extends TestCase {
     mapBinaryStorage.add(false);
     mapBinaryStorage.add(false);
 
-    b.init(r, "cfb".getBytes(), mapBinaryStorage);
+    LazyHBaseCellMap b = new LazyHBaseCellMap((LazyMapObjectInspector) oi,
+        "cfb".getBytes(), mapBinaryStorage);
+    b.init(kvs.toArray(new KeyValue[0]), 2);
 
     assertEquals(
       new Text("def"),
@@ -126,8 +127,6 @@ public class TestLazyHBaseObject extends TestCase {
       TypeInfoUtils.getTypeInfosFromTypeString("map<string,string>").get(0),
       new byte[]{(byte)'#', (byte)'\t'}, 0, nullSequence, false, (byte)0);
 
-    LazyHBaseCellMap b = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
-
     // Initialize a result
     List<KeyValue> kvs = new ArrayList<KeyValue>();
 
@@ -145,13 +144,15 @@ public class TestLazyHBaseObject extends TestCase {
         Bytes.toBytes("cfb"), Bytes.toBytes("8"), Bytes.toBytes("abc")));
     kvs.add(new KeyValue(Bytes.toBytes("test-row"),
         Bytes.toBytes("cfc"), Bytes.toBytes("col3"), Bytes.toBytes("cfccol3")));
+    Collections.sort(kvs, KeyValue.COMPARATOR);
 
-    Result r = new Result(kvs);
     List<Boolean> mapBinaryStorage = new ArrayList<Boolean>();
     mapBinaryStorage.add(false);
     mapBinaryStorage.add(false);
 
-    b.init(r, "cfb".getBytes(), mapBinaryStorage);
+    LazyHBaseCellMap b = new LazyHBaseCellMap((LazyMapObjectInspector) oi,
+        "cfb".getBytes(), mapBinaryStorage);
+    b.init(kvs.toArray(new KeyValue[0]), 2);
 
     assertEquals(
       new Text("d\tf"),
@@ -187,17 +188,19 @@ public class TestLazyHBaseObject extends TestCase {
     TypeInfo mapBinaryIntKeyValue = TypeInfoUtils.getTypeInfoFromTypeString("map<int,int>");
     ObjectInspector oi = LazyFactory.createLazyObjectInspector(
         mapBinaryIntKeyValue, new byte [] {(byte)1, (byte) 2}, 0, nullSequence, false, (byte) 0);
-    LazyHBaseCellMap hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
 
     List<KeyValue> kvs = new ArrayList<KeyValue>();
     byte [] rowKey = "row-key".getBytes();
     byte [] cfInt = "cf-int".getBytes();
     kvs.add(new KeyValue(rowKey, cfInt, Bytes.toBytes(1), Bytes.toBytes(1)));
-    Result result = new Result(kvs);
+
     List<Boolean> mapBinaryStorage = new ArrayList<Boolean>();
     mapBinaryStorage.add(true);
     mapBinaryStorage.add(true);
-    hbaseCellMap.init(result, cfInt, mapBinaryStorage);
+    LazyHBaseCellMap hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi,
+        cfInt, mapBinaryStorage);
+    hbaseCellMap.init(kvs.toArray(new KeyValue[0]), 0);
+
     IntWritable expectedIntValue = new IntWritable(1);
     LazyPrimitive<?, ?> lazyPrimitive =
       (LazyPrimitive<?, ?>) hbaseCellMap.getMapValueElement(expectedIntValue);
@@ -207,8 +210,8 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.clear();
     kvs.add(new KeyValue(
         rowKey, cfInt, Bytes.toBytes(Integer.MIN_VALUE), Bytes.toBytes(Integer.MIN_VALUE)));
-    result = new Result(kvs);
-    hbaseCellMap.init(result, cfInt, mapBinaryStorage);
+
+    hbaseCellMap.init(kvs.toArray(new KeyValue[0]), 0);
     expectedIntValue = new IntWritable(Integer.MIN_VALUE);
     lazyPrimitive =
       (LazyPrimitive<?, ?>) hbaseCellMap.getMapValueElement(expectedIntValue);
@@ -218,8 +221,8 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.clear();
     kvs.add(new KeyValue(
         rowKey, cfInt, Bytes.toBytes(Integer.MAX_VALUE), Bytes.toBytes(Integer.MAX_VALUE)));
-    result = new Result(kvs);
-    hbaseCellMap.init(result, cfInt, mapBinaryStorage);
+
+    hbaseCellMap.init(kvs.toArray(new KeyValue[0]), 0);
     expectedIntValue = new IntWritable(Integer.MAX_VALUE);
     lazyPrimitive =
       (LazyPrimitive<?, ?>) hbaseCellMap.getMapValueElement(expectedIntValue);
@@ -230,12 +233,13 @@ public class TestLazyHBaseObject extends TestCase {
       TypeInfoUtils.getTypeInfoFromTypeString("map<tinyint,tinyint>");
     oi = LazyFactory.createLazyObjectInspector(
         mapBinaryByteKeyValue, new byte [] {(byte) 1, (byte) 2}, 0, nullSequence, false, (byte) 0);
-    hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
     byte [] cfByte = "cf-byte".getBytes();
+    hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi, cfByte, mapBinaryStorage);
+
     kvs.clear();
     kvs.add(new KeyValue(rowKey, cfByte, new byte [] {(byte) 1}, new byte [] {(byte) 1}));
-    result = new Result(kvs);
-    hbaseCellMap.init(result, cfByte, mapBinaryStorage);
+
+    hbaseCellMap.init(kvs.toArray(new KeyValue[0]), 0);
     ByteWritable expectedByteValue = new ByteWritable((byte) 1);
     lazyPrimitive =
       (LazyPrimitive<?, ?>) hbaseCellMap.getMapValueElement(expectedByteValue);
@@ -245,8 +249,8 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.clear();
     kvs.add(new KeyValue(rowKey, cfByte, new byte [] {Byte.MIN_VALUE},
       new byte [] {Byte.MIN_VALUE}));
-    result = new Result(kvs);
-    hbaseCellMap.init(result, cfByte, mapBinaryStorage);
+
+    hbaseCellMap.init(kvs.toArray(new KeyValue[0]), 0);
     expectedByteValue = new ByteWritable(Byte.MIN_VALUE);
     lazyPrimitive =
       (LazyPrimitive<?, ?>) hbaseCellMap.getMapValueElement(expectedByteValue);
@@ -256,8 +260,8 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.clear();
     kvs.add(new KeyValue(rowKey, cfByte, new byte [] {Byte.MAX_VALUE},
       new byte [] {Byte.MAX_VALUE}));
-    result = new Result(kvs);
-    hbaseCellMap.init(result, cfByte, mapBinaryStorage);
+
+    hbaseCellMap.init(kvs.toArray(new KeyValue[0]), 0);
     expectedByteValue = new ByteWritable(Byte.MAX_VALUE);
     lazyPrimitive =
       (LazyPrimitive<?, ?>) hbaseCellMap.getMapValueElement(expectedByteValue);
@@ -268,12 +272,13 @@ public class TestLazyHBaseObject extends TestCase {
       TypeInfoUtils.getTypeInfoFromTypeString("map<smallint,smallint>");
     oi = LazyFactory.createLazyObjectInspector(
       mapBinaryShortKeyValue, new byte [] {(byte) 1, (byte) 2}, 0, nullSequence, false, (byte) 0);
-    hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
     byte [] cfShort = "cf-short".getBytes();
+    hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi, cfShort, mapBinaryStorage);
+
     kvs.clear();
     kvs.add(new KeyValue(rowKey, cfShort, Bytes.toBytes((short) 1), Bytes.toBytes((short) 1)));
-    result = new Result(kvs);
-    hbaseCellMap.init(result, cfShort, mapBinaryStorage);
+
+    hbaseCellMap.init(kvs.toArray(new KeyValue[0]), 0);
     ShortWritable expectedShortValue = new ShortWritable((short) 1);
     lazyPrimitive =
       (LazyPrimitive<?, ?>) hbaseCellMap.getMapValueElement(expectedShortValue);
@@ -283,8 +288,8 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.clear();
     kvs.add(new KeyValue(rowKey, cfShort, Bytes.toBytes(Short.MIN_VALUE),
       Bytes.toBytes(Short.MIN_VALUE)));
-    result = new Result(kvs);
-    hbaseCellMap.init(result, cfShort, mapBinaryStorage);
+
+    hbaseCellMap.init(kvs.toArray(new KeyValue[0]), 0);
     expectedShortValue = new ShortWritable(Short.MIN_VALUE);
     lazyPrimitive =
       (LazyPrimitive<?, ?>) hbaseCellMap.getMapValueElement(expectedShortValue);
@@ -294,8 +299,8 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.clear();
     kvs.add(new KeyValue(rowKey, cfShort, Bytes.toBytes(Short.MAX_VALUE),
       Bytes.toBytes(Short.MAX_VALUE)));
-    result = new Result(kvs);
-    hbaseCellMap.init(result, cfShort, mapBinaryStorage);
+
+    hbaseCellMap.init(kvs.toArray(new KeyValue[0]), 0);
     expectedShortValue = new ShortWritable(Short.MAX_VALUE);
     lazyPrimitive =
       (LazyPrimitive<?, ?>) hbaseCellMap.getMapValueElement(expectedShortValue);
@@ -306,12 +311,13 @@ public class TestLazyHBaseObject extends TestCase {
       TypeInfoUtils.getTypeInfoFromTypeString("map<bigint,bigint>");
     oi = LazyFactory.createLazyObjectInspector(
         mapBinaryLongKeyValue, new byte [] {(byte) 1, (byte) 2}, 0, nullSequence, false, (byte) 0);
-    hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
     byte [] cfLong = "cf-long".getBytes();
+    hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi, cfLong, mapBinaryStorage);
+
     kvs.clear();
     kvs.add(new KeyValue(rowKey, cfLong, Bytes.toBytes((long) 1), Bytes.toBytes((long) 1)));
-    result = new Result(kvs);
-    hbaseCellMap.init(result, cfLong, mapBinaryStorage);
+
+    hbaseCellMap.init(kvs.toArray(new KeyValue[0]), 0);
     LongWritable expectedLongValue = new LongWritable(1);
     lazyPrimitive =
       (LazyPrimitive<?, ?>) hbaseCellMap.getMapValueElement(expectedLongValue);
@@ -321,8 +327,8 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.clear();
     kvs.add(new KeyValue(rowKey, cfLong, Bytes.toBytes(Long.MIN_VALUE),
       Bytes.toBytes(Long.MIN_VALUE)));
-    result = new Result(kvs);
-    hbaseCellMap.init(result, cfLong, mapBinaryStorage);
+
+    hbaseCellMap.init(kvs.toArray(new KeyValue[0]), 0);
     expectedLongValue = new LongWritable(Long.MIN_VALUE);
     lazyPrimitive =
       (LazyPrimitive<?, ?>) hbaseCellMap.getMapValueElement(expectedLongValue);
@@ -332,8 +338,8 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.clear();
     kvs.add(new KeyValue(rowKey, cfLong, Bytes.toBytes(Long.MAX_VALUE),
       Bytes.toBytes(Long.MAX_VALUE)));
-    result = new Result(kvs);
-    hbaseCellMap.init(result, cfLong, mapBinaryStorage);
+
+    hbaseCellMap.init(kvs.toArray(new KeyValue[0]), 0);
     expectedLongValue = new LongWritable(Long.MAX_VALUE);
     lazyPrimitive =
       (LazyPrimitive<?, ?>) hbaseCellMap.getMapValueElement(expectedLongValue);
@@ -345,13 +351,14 @@ public class TestLazyHBaseObject extends TestCase {
     oi = LazyFactory.createLazyObjectInspector(
         mapBinaryFloatKeyValue, new byte [] {(byte) 1, (byte) 2}, 0, nullSequence, false,
         (byte) 0);
-    hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
     byte [] cfFloat = "cf-float".getBytes();
+    hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi, cfFloat, mapBinaryStorage);
+
     kvs.clear();
     kvs.add(new KeyValue(rowKey, cfFloat, Bytes.toBytes((float) 1.0F),
       Bytes.toBytes((float) 1.0F)));
-    result = new Result(kvs);
-    hbaseCellMap.init(result, cfFloat, mapBinaryStorage);
+
+    hbaseCellMap.init(kvs.toArray(new KeyValue[0]), 0);
     FloatWritable expectedFloatValue = new FloatWritable(1.0F);
     lazyPrimitive =
       (LazyPrimitive<?, ?>) hbaseCellMap.getMapValueElement(expectedFloatValue);
@@ -361,8 +368,8 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.clear();
     kvs.add(new KeyValue(rowKey, cfFloat, Bytes.toBytes((float) Float.MIN_VALUE),
       Bytes.toBytes((float) Float.MIN_VALUE)));
-    result = new Result(kvs);
-    hbaseCellMap.init(result, cfFloat, mapBinaryStorage);
+
+    hbaseCellMap.init(kvs.toArray(new KeyValue[0]), 0);
     expectedFloatValue = new FloatWritable(Float.MIN_VALUE);
     lazyPrimitive =
       (LazyPrimitive<?, ?>) hbaseCellMap.getMapValueElement(expectedFloatValue);
@@ -372,8 +379,8 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.clear();
     kvs.add(new KeyValue(rowKey, cfFloat, Bytes.toBytes((float) Float.MAX_VALUE),
       Bytes.toBytes((float) Float.MAX_VALUE)));
-    result = new Result(kvs);
-    hbaseCellMap.init(result, cfFloat, mapBinaryStorage);
+
+    hbaseCellMap.init(kvs.toArray(new KeyValue[0]), 0);
     expectedFloatValue = new FloatWritable(Float.MAX_VALUE);
     lazyPrimitive =
       (LazyPrimitive<?, ?>) hbaseCellMap.getMapValueElement(expectedFloatValue);
@@ -385,12 +392,12 @@ public class TestLazyHBaseObject extends TestCase {
     oi = LazyFactory.createLazyObjectInspector(
         mapBinaryDoubleKeyValue, new byte [] {(byte) 1, (byte) 2}, 0, nullSequence, false,
         (byte) 0);
-    hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
     byte [] cfDouble = "cf-double".getBytes();
+    hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi, cfDouble, mapBinaryStorage);
     kvs.clear();
     kvs.add(new KeyValue(rowKey, cfDouble, Bytes.toBytes(1.0), Bytes.toBytes(1.0)));
-    result = new Result(kvs);
-    hbaseCellMap.init(result, cfDouble, mapBinaryStorage);
+
+    hbaseCellMap.init(kvs.toArray(new KeyValue[0]), 0);
     DoubleWritable expectedDoubleValue = new DoubleWritable(1.0);
     lazyPrimitive =
       (LazyPrimitive<?, ?>) hbaseCellMap.getMapValueElement(expectedDoubleValue);
@@ -400,8 +407,8 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.clear();
     kvs.add(new KeyValue(rowKey, cfDouble, Bytes.toBytes(Double.MIN_VALUE),
       Bytes.toBytes(Double.MIN_VALUE)));
-    result = new Result(kvs);
-    hbaseCellMap.init(result, cfDouble, mapBinaryStorage);
+
+    hbaseCellMap.init(kvs.toArray(new KeyValue[0]), 0);
     expectedDoubleValue = new DoubleWritable(Double.MIN_VALUE);
     lazyPrimitive =
       (LazyPrimitive<?, ?>) hbaseCellMap.getMapValueElement(expectedDoubleValue);
@@ -411,8 +418,8 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.clear();
     kvs.add(new KeyValue(rowKey, cfDouble, Bytes.toBytes(Double.MAX_VALUE),
       Bytes.toBytes(Double.MAX_VALUE)));
-    result = new Result(kvs);
-    hbaseCellMap.init(result, cfDouble, mapBinaryStorage);
+
+    hbaseCellMap.init(kvs.toArray(new KeyValue[0]), 0);
     expectedDoubleValue = new DoubleWritable(Double.MAX_VALUE);
     lazyPrimitive =
       (LazyPrimitive<?, ?>) hbaseCellMap.getMapValueElement(expectedDoubleValue);
@@ -424,12 +431,12 @@ public class TestLazyHBaseObject extends TestCase {
     oi = LazyFactory.createLazyObjectInspector(
         mapBinaryBooleanKeyValue, new byte [] {(byte) 1, (byte) 2}, 0, nullSequence, false,
         (byte) 0);
-    hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
     byte [] cfBoolean = "cf-boolean".getBytes();
+    hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi, cfBoolean, mapBinaryStorage);
     kvs.clear();
     kvs.add(new KeyValue(rowKey, cfBoolean, Bytes.toBytes(false), Bytes.toBytes(false)));
-    result = new Result(kvs);
-    hbaseCellMap.init(result, cfBoolean, mapBinaryStorage);
+
+    hbaseCellMap.init(kvs.toArray(new KeyValue[0]), 0);
     BooleanWritable expectedBooleanValue = new BooleanWritable(false);
     lazyPrimitive =
       (LazyPrimitive<?, ?>) hbaseCellMap.getMapValueElement(expectedBooleanValue);
@@ -438,8 +445,8 @@ public class TestLazyHBaseObject extends TestCase {
 
     kvs.clear();
     kvs.add(new KeyValue(rowKey, cfBoolean, Bytes.toBytes(true), Bytes.toBytes(true)));
-    result = new Result(kvs);
-    hbaseCellMap.init(result, cfBoolean, mapBinaryStorage);
+
+    hbaseCellMap.init(kvs.toArray(new KeyValue[0]), 0);
     expectedBooleanValue = new BooleanWritable(true);
     lazyPrimitive =
       (LazyPrimitive<?, ?>) hbaseCellMap.getMapValueElement(expectedBooleanValue);
@@ -481,7 +488,7 @@ public class TestLazyHBaseObject extends TestCase {
     ObjectInspector oi = LazyFactory.createLazyStructInspector(fieldNames,
       fieldTypeInfos, new byte[] {' ', ':', '='},
       nullSequence, false, false, (byte)0);
-    LazyHBaseRow o = new LazyHBaseRow((LazySimpleStructObjectInspector) oi);
+    LazyHBaseRow o = new LazyHBaseRow((LazySimpleStructObjectInspector) oi, columnsMapping);
 
     List<KeyValue> kvs = new ArrayList<KeyValue>();
 
@@ -494,8 +501,9 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.add(new KeyValue(Bytes.toBytes("test-row"),
         Bytes.toBytes("cfb"), Bytes.toBytes("d"), Bytes.toBytes("hi")));
 
-    Result r = new Result(kvs);
-    o.init(r, columnsMapping);
+    KeyValue[] values = kvs.toArray(new KeyValue[0]);
+    HBaseResult r = new HBaseResult(values[0].getRow(), values);
+    o.init(r);
 
     assertEquals(
       ("{'key':'test-row','a':123,'b':['a','b','c'],"
@@ -508,8 +516,9 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.add(new KeyValue(Bytes.toBytes("test-row"),
         Bytes.toBytes("cfb"), Bytes.toBytes("c"), Bytes.toBytes("d=e:f=g")));
 
-    r = new Result(kvs);
-    o.init(r, columnsMapping);
+    values = kvs.toArray(new KeyValue[0]);
+    r = new HBaseResult(values[0].getRow(), values);
+    o.init(r);
 
     assertEquals(
         ("{'key':'test-row','a':123,'b':null,"
@@ -524,8 +533,9 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.add(new KeyValue(Bytes.toBytes("test-row"),
         Bytes.toBytes("cfb"), Bytes.toBytes("d"), Bytes.toBytes("no")));
 
-    r = new Result(kvs);
-    o.init(r, columnsMapping);
+    values = kvs.toArray(new KeyValue[0]);
+    r = new HBaseResult(values[0].getRow(), values);
+    o.init(r);
 
     assertEquals(
         ("{'key':'test-row','a':null,'b':['a'],"
@@ -538,8 +548,9 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.add(new KeyValue(Bytes.toBytes("test-row"),
         Bytes.toBytes("cfb"), Bytes.toBytes("d"), Bytes.toBytes("no")));
 
-    r = new Result(kvs);
-    o.init(r, columnsMapping);
+    values = kvs.toArray(new KeyValue[0]);
+    r = new HBaseResult(values[0].getRow(), values);
+    o.init(r);
 
     assertEquals(
       ("{'key':'test-row','a':null,'b':['','a','',''],"
@@ -556,8 +567,9 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.add(new KeyValue(Bytes.toBytes("test-row"),
         Bytes.toBytes("cfb"), Bytes.toBytes("d"), Bytes.toBytes("")));
 
-    r = new Result(kvs);
-    o.init(r, columnsMapping);
+    values = kvs.toArray(new KeyValue[0]);
+    r = new HBaseResult(values[0].getRow(), values);
+    o.init(r);
 
     assertEquals(
       "{'key':'test-row','a':123,'b':[],'c':{},'d':''}".replace("'", "\""),
@@ -601,7 +613,7 @@ public class TestLazyHBaseObject extends TestCase {
       fieldTypeInfos,
       new byte[] {' ', ':', '='},
       nullSequence, false, false, (byte) 0);
-    LazyHBaseRow o = new LazyHBaseRow((LazySimpleStructObjectInspector) oi);
+    LazyHBaseRow o = new LazyHBaseRow((LazySimpleStructObjectInspector) oi, columnsMapping);
 
     List<KeyValue> kvs = new ArrayList<KeyValue>();
     kvs.add(new KeyValue(Bytes.toBytes("test-row"),
@@ -615,8 +627,9 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.add(new KeyValue(Bytes.toBytes("test-row"),
         Bytes.toBytes("cfc"), Bytes.toBytes("d"), Bytes.toBytes("hi")));
 
-    Result r = new Result(kvs);
-    o.init(r, columnsMapping);
+    KeyValue[] values = kvs.toArray(new KeyValue[0]);
+    HBaseResult r = new HBaseResult(values[0].getRow(), values);
+    o.init(r);
 
     assertEquals(
       ("{'key':'test-row','a':123,'b':['a','b','c'],"
@@ -631,8 +644,9 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.add(new KeyValue(Bytes.toBytes("test-row"),
         Bytes.toBytes("cfb"), Bytes.toBytes("f"), Bytes.toBytes("g")));
 
-    r = new Result(kvs);
-    o.init(r, columnsMapping);
+    values = kvs.toArray(new KeyValue[0]);
+    r = new HBaseResult(values[0].getRow(), values);
+    o.init(r);
 
     assertEquals(
       ("{'key':'test-row','a':123,'b':null,"
@@ -647,8 +661,9 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.add(new KeyValue(Bytes.toBytes("test-row"),
         Bytes.toBytes("cfc"), Bytes.toBytes("d"), Bytes.toBytes("no")));
 
-    r = new Result(kvs);
-    o.init(r, columnsMapping);
+    values = kvs.toArray(new KeyValue[0]);
+    r = new HBaseResult(values[0].getRow(), values);
+    o.init(r);
 
     assertEquals(
       ("{'key':'test-row','a':null,'b':['a'],"
@@ -661,8 +676,9 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.add(new KeyValue(Bytes.toBytes("test-row"),
         Bytes.toBytes("cfc"), Bytes.toBytes("d"), Bytes.toBytes("no")));
 
-    r = new Result(kvs);
-    o.init(r, columnsMapping);
+    values = kvs.toArray(new KeyValue[0]);
+    r = new HBaseResult(values[0].getRow(), values);
+    o.init(r);
 
     assertEquals(
       ("{'key':'test-row','a':null,'b':['','a','',''],"
@@ -677,8 +693,9 @@ public class TestLazyHBaseObject extends TestCase {
     kvs.add(new KeyValue(Bytes.toBytes("test-row"),
         Bytes.toBytes("cfc"), Bytes.toBytes("d"), Bytes.toBytes("")));
 
-    r = new Result(kvs);
-    o.init(r, columnsMapping);
+    values = kvs.toArray(new KeyValue[0]);
+    r = new HBaseResult(values[0].getRow(), values);
+    o.init(r);
 
     assertEquals(
       "{'key':'test-row','a':123,'b':[],'c':{},'d':''}".replace("'", "\""),
@@ -723,7 +740,7 @@ public class TestLazyHBaseObject extends TestCase {
       LazyFactory.createLazyStructInspector(fieldNames, fieldTypeInfos,
           new byte [] {' ', ':', '='}, nullSequence, false, false, (byte) 0);
 
-    LazyHBaseRow o = new LazyHBaseRow((LazySimpleStructObjectInspector) oi);
+    LazyHBaseRow o = new LazyHBaseRow((LazySimpleStructObjectInspector) oi, columnsMapping);
 
     byte [] rowKey = "row-key".getBytes();
     List<KeyValue> kvs = new ArrayList<KeyValue>();
@@ -774,8 +791,10 @@ public class TestLazyHBaseObject extends TestCase {
     }
 
     Collections.sort(kvs, KeyValue.COMPARATOR);
-    Result result = new Result(kvs);
-    o.init(result, columnsMapping);
+    KeyValue[] values = kvs.toArray(new KeyValue[0]);
+    HBaseResult r = new HBaseResult(values[0].getRow(), values);
+    o.init(r);
+
     List<? extends StructField> fieldRefs = ((StructObjectInspector) oi).getAllStructFieldRefs();
 
 

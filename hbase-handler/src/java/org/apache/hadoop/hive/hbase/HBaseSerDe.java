@@ -27,8 +27,8 @@ import java.util.Properties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.ByteStream;
@@ -124,7 +124,7 @@ public class HBaseSerDe implements SerDe {
         serdeParams.getEscapeChar());
 
     cachedHBaseRow = new LazyHBaseRow(
-      (LazySimpleStructObjectInspector) cachedObjectInspector);
+      (LazySimpleStructObjectInspector) cachedObjectInspector, columnsMapping);
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("HBaseSerDe initialized with : columnNames = "
@@ -194,9 +194,13 @@ public class HBaseSerDe implements SerDe {
         if (parts.length == 2) {
           columnMapping.qualifierName = parts[1];
           columnMapping.qualifierNameBytes = Bytes.toBytes(parts[1]);
+          columnMapping.searchTerm = KeyValue.createFirstOnRow(new byte[0],
+              columnMapping.familyNameBytes, columnMapping.qualifierNameBytes);
         } else {
           columnMapping.qualifierName = null;
           columnMapping.qualifierNameBytes = null;
+          columnMapping.searchTerm = KeyValue.createFirstOnRow(new byte[0],
+              columnMapping.familyNameBytes, new byte[0]);
         }
       }
 
@@ -412,6 +416,7 @@ public class HBaseSerDe implements SerDe {
     List<Boolean> binaryStorage;
     boolean hbaseRowKey;
     String mappingSpec;
+    KeyValue searchTerm;
   }
 
   private void initHBaseSerDeParameters(
@@ -502,11 +507,11 @@ public class HBaseSerDe implements SerDe {
   @Override
   public Object deserialize(Writable result) throws SerDeException {
 
-    if (!(result instanceof Result)) {
+    if (!(result instanceof HBaseResult)) {
       throw new SerDeException(getClass().getName() + ": expects Result!");
     }
 
-    cachedHBaseRow.init((Result) result, columnsMapping);
+    cachedHBaseRow.init((HBaseResult) result);
 
     return cachedHBaseRow;
   }
