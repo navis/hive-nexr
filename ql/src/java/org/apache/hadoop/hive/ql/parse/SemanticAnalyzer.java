@@ -7742,7 +7742,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       }
     }
 
-    if (rootTasks.isEmpty()) {
+    usingPseudoMR = !rootTasks.isEmpty();
+    if (!usingPseudoMR) {
       createMRTasks(mvTask, fetchTask);
     }
 
@@ -7813,7 +7814,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         return null;
       }
       ListSinkOperator sink = ((FetchTask) task).getWork().getSink();
-      if (sink == null || prev != null && prev != sink) {
+      if (sink == null) {
+        continue;
+      }
+      if (prev != null && prev != sink) {
         return null;
       }
       prev = sink;

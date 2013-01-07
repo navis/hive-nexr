@@ -42,7 +42,6 @@ import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.ReduceSinkOperator;
 import org.apache.hadoop.hive.ql.exec.SelectOperator;
 import org.apache.hadoop.hive.ql.exec.TableScanOperator;
-import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.exec.TaskFactory;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.hooks.ReadEntity;
@@ -57,6 +56,7 @@ import org.apache.hadoop.hive.ql.optimizer.ppr.PartitionPruner;
 import org.apache.hadoop.hive.ql.parse.ParseContext;
 import org.apache.hadoop.hive.ql.parse.PrunedPartitionList;
 import org.apache.hadoop.hive.ql.parse.QB;
+import org.apache.hadoop.hive.ql.parse.QBExpr;
 import org.apache.hadoop.hive.ql.parse.SplitSample;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
@@ -110,12 +110,12 @@ public class SimpleFetchOptimizer {
     if (mode == ALL && !checkThreshold(datas, pctx)) {
       return false;
     }
-    List<Task<?>> tasks = new ArrayList<Task<?>>();
+    List<FetchTask> tasks = new ArrayList<FetchTask>();
     for (FetchData data : datas) {
       tasks.add(data.convertToTask(pctx, mode));
     }
     if (mode != ALL) {
-      pctx.setFetchTask((FetchTask) tasks.get(0));
+      pctx.setFetchTask(tasks.get(0));
     } else {
       prepareReducers(topOps.values());
       pctx.getRootTasks().addAll(tasks);
@@ -153,7 +153,30 @@ public class SimpleFetchOptimizer {
       return null;
     }
 
-    Table table = qb.getMetaData().getAliasToTable().get(alias);
+
+    String[] subqIDs = alias.split(":");
+    for (int i = 0 ; i < subqIDs.length - 1; i++) {
+      String subqID = subqIDs[i];
+      boolean subquery1 = subqID.endsWith("-subquery1");
+      boolean subquery2 = subqID.endsWith("-subquery2");
+      if (subquery1 || subquery2) {
+        int index = subqID.lastIndexOf("-subquery");
+        subqID = subqID.substring(0, index);
+        if (subqID.equals("null")) {
+          continue;
+        }
+      }
+      QBExpr qbexpr = qb.getSubqForAlias(subqID);
+      if (qbexpr.getOpcode() == QBExpr.Opcode.NULLOP) {
+        qb = qbexpr.getQB();
+      } else if (subquery1) {
+        qb = qbexpr.getQBExpr1().getQB();
+      } else if (subquery2) {
+        qb = qbexpr.getQBExpr2().getQB();
+      }
+    }
+    String tableName = subqIDs[subqIDs.length - 1];
+    Table table = qb.getMetaData().getAliasToTable().get(tableName);
     if (table == null) {
       return null;
     }
@@ -241,7 +264,7 @@ public class SimpleFetchOptimizer {
     }
 
       @SuppressWarnings("unchecked")
-    private Task<?> convertToTask(ParseContext pctx, int mode) throws HiveException {
+    private FetchTask convertToTask(ParseContext pctx, int mode) throws HiveException {
       int limit = pctx.getQB().getParseInfo().getOuterQueryLimit();
       FetchWork fetchWork = convertToWork();
       FetchTask fetchTask = (FetchTask) TaskFactory.get(fetchWork, pctx.getConf());
