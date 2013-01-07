@@ -96,7 +96,7 @@ select distinct key, value from src limit 10;
 explain select * from src join src src2 on src.key=src2.key limit 10;
 select * from src join src src2 on src.key=src2.key limit 10;
 
--- negative, subq (todo)
+-- subq
 explain select a.* from (select * from src) a limit 10;
 select a.* from (select * from src) a limit 10;
 
@@ -119,3 +119,7 @@ select distinct key, value from src limit 10;
 -- join
 explain select * from src join src src2 on src.key=src2.key limit 10;
 select * from src join src src2 on src.key=src2.key limit 10;
+
+-- subq
+explain select a.* from (select * from src) a limit 10;
+select a.* from (select * from src) a limit 10;

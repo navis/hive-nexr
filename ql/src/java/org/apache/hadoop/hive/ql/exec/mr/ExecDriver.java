@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
@@ -474,11 +475,14 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
     try {
       if (rj != null) {
         if (mWork.getAliasToWork() != null) {
-          for (Operator<? extends OperatorDesc> op : mWork.getAliasToWork().values()) {
+          Set<Operator<?>> topOps = OperatorUtils.findTopOps(mWork.getAliasToWork().values());
+          for (Operator<? extends OperatorDesc> op : topOps) {
             op.jobClose(job, success);
           }
         }
         if (rWork != null) {
+          // reducer is linked to ReducerOperators
+          rWork.getReducer().setParentOperators(null);
           rWork.getReducer().jobClose(job, success);
         }
       }

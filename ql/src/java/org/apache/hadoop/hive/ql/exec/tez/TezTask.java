@@ -32,10 +32,10 @@ import javax.security.auth.login.LoginException;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.DriverContext;
 import org.apache.hadoop.hive.ql.exec.Operator;
+import org.apache.hadoop.hive.ql.exec.OperatorUtils;
 import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.log.PerfLogger;
@@ -331,8 +331,8 @@ public class TezTask extends Task<TezWork> {
   int close(TezWork work, int rc) {
     try {
       List<BaseWork> ws = work.getAllWork();
-      for (BaseWork w: ws) {
-        for (Operator<?> op: w.getAllOperators()) {
+      for (BaseWork w : ws) {
+        for (Operator<?> op: OperatorUtils.findTopOps(w.getAllRootOperators())) {
           op.jobClose(conf, rc == 0);
         }
       }

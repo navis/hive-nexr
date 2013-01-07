@@ -109,7 +109,7 @@ public abstract class TaskCompiler {
 
       LoadFileDesc loadFileDesc = loadFileWork.get(0);
 
-      FetchWork fetch = null;
+      FetchWork fetch;
       ListSinkOperator listSink = getCommonListSink(rootTasks);
       if (listSink != null) {
         fetch = new FetchWork(listSink);
@@ -128,10 +128,8 @@ public abstract class TaskCompiler {
         fetch.setSink(pCtx.getFetchSink());
       }
 
-      if (fetch != null) {
-        fetch.setLimit(qb.getParseInfo().getOuterQueryLimit());
-        pCtx.setFetchTask((FetchTask) TaskFactory.get(fetch, conf));
-      }
+      fetch.setLimit(qb.getParseInfo().getOuterQueryLimit());
+      pCtx.setFetchTask((FetchTask) TaskFactory.get(fetch, conf));
 
       // For the FetchTask, the limit optimization requires we fetch all the rows
       // in memory and count how many rows we get. It's not practical if the
@@ -380,7 +378,7 @@ public abstract class TaskCompiler {
   protected abstract void setInputFormat(Task<? extends Serializable> rootTask);
 
   /*
-   * Called to generate the taks tree from the parse context/operator tree
+   * Called to generate the task tree from the parse context/operator tree
    */
   protected abstract void generateTaskTree(List<Task<? extends Serializable>> rootTasks, ParseContext pCtx,
       List<Task<MoveWork>> mvTask, Set<ReadEntity> inputs, Set<WriteEntity> outputs) throws SemanticException;

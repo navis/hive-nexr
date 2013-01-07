@@ -282,8 +282,12 @@ public class FetchWork implements Serializable {
     return pseudoMR;
   }
 
-  public boolean isPseudoMRListFetch() {
+  public boolean isPseudoMRListPull() {
     return pseudoMR && source == null;
+  }
+
+  public boolean isPseudoMRListPush() {
+    return pseudoMR && source != null;
   }
 
   public void setPseudoMR(boolean pseudoMR) {

@@ -1,0 +1,1335 @@
+PREHOOK: query: -- sub-query
+explain
+select * from (select * from src where key > 450) a join (select * from src where key > 450) b on a.key=b.key
+PREHOOK: type: QUERY
+POSTHOOK: query: -- sub-query
+explain
+select * from (select * from src where key > 450) a join (select * from src where key > 450) b on a.key=b.key
+POSTHOOK: type: QUERY
+STAGE DEPENDENCIES:
+  Stage-0 is a root stage
+  Stage-1 is a root stage
+  Stage-2 is a root stage
+
+STAGE PLANS:
+  Stage: Stage-0
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        TableScan
+          alias: src
+          Statistics: Num rows: 29 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
+          Filter Operator
+            predicate: (key > 450) (type: boolean)
+            Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+            Select Operator
+              expressions: key (type: string), value (type: string)
+              outputColumnNames: _col0, _col1
+              Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+              Reduce Output Operator
+                key expressions: _col0 (type: string)
+                sort order: +
+                Map-reduce partition columns: _col0 (type: string)
+                Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+                value expressions: _col0 (type: string), _col1 (type: string)
+                Join Operator
+                  condition map:
+                       Inner Join 0 to 1
+                  condition expressions:
+                    0 {VALUE._col0} {VALUE._col1}
+                    1 {VALUE._col0} {VALUE._col1}
+                  outputColumnNames: _col0, _col1, _col2, _col3
+                  Statistics: Num rows: 9 Data size: 1983 Basic stats: COMPLETE Column stats: NONE
+                  Select Operator
+                    expressions: _col0 (type: string), _col1 (type: string), _col2 (type: string), _col3 (type: string)
+                    outputColumnNames: _col0, _col1, _col2, _col3
+                    Statistics: Num rows: 9 Data size: 1983 Basic stats: COMPLETE Column stats: NONE
+                    File Output Operator
+                      compressed: false
+                      Statistics: Num rows: 9 Data size: 1983 Basic stats: COMPLETE Column stats: NONE
+                      table:
+                          input format: org.apache.hadoop.mapred.TextInputFormat
+                          output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+                          serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+      pseudoMR: push
+
+  Stage: Stage-1
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        TableScan
+          alias: src
+          Statistics: Num rows: 29 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
+          Filter Operator
+            predicate: (key > 450) (type: boolean)
+            Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+            Select Operator
+              expressions: key (type: string), value (type: string)
+              outputColumnNames: _col0, _col1
+              Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+              Reduce Output Operator
+                key expressions: _col0 (type: string)
+                sort order: +
+                Map-reduce partition columns: _col0 (type: string)
+                Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+                value expressions: _col0 (type: string), _col1 (type: string)
+                Join Operator
+                  condition map:
+                       Inner Join 0 to 1
+                  condition expressions:
+                    0 {VALUE._col0} {VALUE._col1}
+                    1 {VALUE._col0} {VALUE._col1}
+                  outputColumnNames: _col0, _col1, _col2, _col3
+                  Statistics: Num rows: 9 Data size: 1983 Basic stats: COMPLETE Column stats: NONE
+                  Select Operator
+                    expressions: _col0 (type: string), _col1 (type: string), _col2 (type: string), _col3 (type: string)
+                    outputColumnNames: _col0, _col1, _col2, _col3
+                    Statistics: Num rows: 9 Data size: 1983 Basic stats: COMPLETE Column stats: NONE
+                    File Output Operator
+                      compressed: false
+                      Statistics: Num rows: 9 Data size: 1983 Basic stats: COMPLETE Column stats: NONE
+                      table:
+                          input format: org.apache.hadoop.mapred.TextInputFormat
+                          output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+                          serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+      pseudoMR: push
+
+  Stage: Stage-2
+    Fetch Operator
+      limit: -1
+
+PREHOOK: query: select * from (select * from src where key > 450) a join (select * from src where key > 450) b on a.key=b.key
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: select * from (select * from src where key > 450) a join (select * from src where key > 450) b on a.key=b.key
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+452	val_452	452	val_452
+453	val_453	453	val_453
+454	val_454	454	val_454
+454	val_454	454	val_454
+454	val_454	454	val_454
+454	val_454	454	val_454
+454	val_454	454	val_454
+454	val_454	454	val_454
+454	val_454	454	val_454
+454	val_454	454	val_454
+454	val_454	454	val_454
+455	val_455	455	val_455
+457	val_457	457	val_457
+458	val_458	458	val_458
+458	val_458	458	val_458
+458	val_458	458	val_458
+458	val_458	458	val_458
+459	val_459	459	val_459
+459	val_459	459	val_459
+459	val_459	459	val_459
+459	val_459	459	val_459
+460	val_460	460	val_460
+462	val_462	462	val_462
+462	val_462	462	val_462
+462	val_462	462	val_462
+462	val_462	462	val_462
+463	val_463	463	val_463
+463	val_463	463	val_463
+463	val_463	463	val_463
+463	val_463	463	val_463
+466	val_466	466	val_466
+466	val_466	466	val_466
+466	val_466	466	val_466
+466	val_466	466	val_466
+466	val_466	466	val_466
+466	val_466	466	val_466
+466	val_466	466	val_466
+466	val_466	466	val_466
+466	val_466	466	val_466
+467	val_467	467	val_467
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+470	val_470	470	val_470
+472	val_472	472	val_472
+475	val_475	475	val_475
+477	val_477	477	val_477
+478	val_478	478	val_478
+478	val_478	478	val_478
+478	val_478	478	val_478
+478	val_478	478	val_478
+479	val_479	479	val_479
+480	val_480	480	val_480
+480	val_480	480	val_480
+480	val_480	480	val_480
+480	val_480	480	val_480
+480	val_480	480	val_480
+480	val_480	480	val_480
+480	val_480	480	val_480
+480	val_480	480	val_480
+480	val_480	480	val_480
+481	val_481	481	val_481
+482	val_482	482	val_482
+483	val_483	483	val_483
+484	val_484	484	val_484
+485	val_485	485	val_485
+487	val_487	487	val_487
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+490	val_490	490	val_490
+491	val_491	491	val_491
+492	val_492	492	val_492
+492	val_492	492	val_492
+492	val_492	492	val_492
+492	val_492	492	val_492
+493	val_493	493	val_493
+494	val_494	494	val_494
+495	val_495	495	val_495
+496	val_496	496	val_496
+497	val_497	497	val_497
+498	val_498	498	val_498
+498	val_498	498	val_498
+498	val_498	498	val_498
+498	val_498	498	val_498
+498	val_498	498	val_498
+498	val_498	498	val_498
+498	val_498	498	val_498
+498	val_498	498	val_498
+498	val_498	498	val_498
+PREHOOK: query: -- union all
+explain
+select * from (select * from src a where key < 100 union all select * from src b where key > 400 ) c
+PREHOOK: type: QUERY
+POSTHOOK: query: -- union all
+explain
+select * from (select * from src a where key < 100 union all select * from src b where key > 400 ) c
+POSTHOOK: type: QUERY
+STAGE DEPENDENCIES:
+  Stage-0 is a root stage
+  Stage-1 is a root stage
+  Stage-2 is a root stage
+
+STAGE PLANS:
+  Stage: Stage-0
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        TableScan
+          alias: b
+          Statistics: Num rows: 29 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
+          Filter Operator
+            predicate: (key > 400) (type: boolean)
+            Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+            Select Operator
+              expressions: key (type: string), value (type: string)
+              outputColumnNames: _col0, _col1
+              Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+              Union
+                Statistics: Num rows: 18 Data size: 3606 Basic stats: COMPLETE Column stats: NONE
+                Select Operator
+                  expressions: _col0 (type: string), _col1 (type: string)
+                  outputColumnNames: _col0, _col1
+                  Statistics: Num rows: 18 Data size: 3606 Basic stats: COMPLETE Column stats: NONE
+                  File Output Operator
+                    compressed: false
+                    Statistics: Num rows: 18 Data size: 3606 Basic stats: COMPLETE Column stats: NONE
+                    table:
+                        input format: org.apache.hadoop.mapred.TextInputFormat
+                        output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+                        serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+      pseudoMR: push
+
+  Stage: Stage-1
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        TableScan
+          alias: a
+          Statistics: Num rows: 29 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
+          Filter Operator
+            predicate: (key < 100) (type: boolean)
+            Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+            Select Operator
+              expressions: key (type: string), value (type: string)
+              outputColumnNames: _col0, _col1
+              Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+              Union
+                Statistics: Num rows: 18 Data size: 3606 Basic stats: COMPLETE Column stats: NONE
+                Select Operator
+                  expressions: _col0 (type: string), _col1 (type: string)
+                  outputColumnNames: _col0, _col1
+                  Statistics: Num rows: 18 Data size: 3606 Basic stats: COMPLETE Column stats: NONE
+                  File Output Operator
+                    compressed: false
+                    Statistics: Num rows: 18 Data size: 3606 Basic stats: COMPLETE Column stats: NONE
+                    table:
+                        input format: org.apache.hadoop.mapred.TextInputFormat
+                        output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+                        serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+      pseudoMR: push
+
+  Stage: Stage-2
+    Fetch Operator
+      limit: -1
+
+PREHOOK: query: select * from (select * from src a where key < 100 union all select * from src b where key > 400 ) c
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: select * from (select * from src a where key < 100 union all select * from src b where key > 400 ) c
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+409	val_409
+484	val_484
+401	val_401
+406	val_406
+429	val_429
+469	val_469
+495	val_495
+403	val_403
+417	val_417
+430	val_430
+446	val_446
+459	val_459
+482	val_482
+413	val_413
+494	val_494
+466	val_466
+417	val_417
+489	val_489
+439	val_439
+475	val_475
+455	val_455
+438	val_438
+489	val_489
+427	val_427
+498	val_498
+437	val_437
+469	val_469
+459	val_459
+430	val_430
+404	val_404
+489	val_489
+466	val_466
+411	val_411
+463	val_463
+431	val_431
+496	val_496
+468	val_468
+454	val_454
+418	val_418
+404	val_404
+436	val_436
+469	val_469
+468	val_468
+481	val_481
+457	val_457
+409	val_409
+470	val_470
+413	val_413
+490	val_490
+419	val_419
+435	val_435
+401	val_401
+452	val_452
+497	val_497
+402	val_402
+472	val_472
+498	val_498
+430	val_430
+489	val_489
+458	val_458
+492	val_492
+449	val_449
+453	val_453
+468	val_468
+485	val_485
+487	val_487
+480	val_480
+401	val_401
+438	val_438
+467	val_467
+432	val_432
+469	val_469
+463	val_463
+466	val_466
+403	val_403
+483	val_483
+406	val_406
+409	val_409
+406	val_406
+401	val_401
+424	val_424
+431	val_431
+454	val_454
+478	val_478
+431	val_431
+424	val_424
+480	val_480
+438	val_438
+414	val_414
+491	val_491
+439	val_439
+479	val_479
+417	val_417
+444	val_444
+429	val_429
+443	val_443
+478	val_478
+468	val_468
+493	val_493
+460	val_460
+480	val_480
+462	val_462
+406	val_406
+454	val_454
+401	val_401
+421	val_421
+407	val_407
+462	val_462
+492	val_492
+498	val_498
+458	val_458
+469	val_469
+448	val_448
+414	val_414
+477	val_477
+403	val_403
+86	val_86
+27	val_27
+98	val_98
+66	val_66
+37	val_37
+15	val_15
+82	val_82
+17	val_17
+0	val_0
+57	val_57
+20	val_20
+92	val_92
+47	val_47
+72	val_72
+4	val_4
+35	val_35
+54	val_54
+51	val_51
+65	val_65
+83	val_83
+12	val_12
+67	val_67
+84	val_84
+58	val_58
+8	val_8
+24	val_24
+42	val_42
+0	val_0
+96	val_96
+26	val_26
+51	val_51
+43	val_43
+95	val_95
+98	val_98
+85	val_85
+77	val_77
+0	val_0
+87	val_87
+15	val_15
+72	val_72
+90	val_90
+19	val_19
+10	val_10
+5	val_5
+58	val_58
+35	val_35
+95	val_95
+11	val_11
+34	val_34
+42	val_42
+78	val_78
+76	val_76
+41	val_41
+30	val_30
+64	val_64
+76	val_76
+74	val_74
+69	val_69
+33	val_33
+70	val_70
+5	val_5
+2	val_2
+35	val_35
+80	val_80
+44	val_44
+53	val_53
+90	val_90
+12	val_12
+5	val_5
+70	val_70
+24	val_24
+70	val_70
+83	val_83
+26	val_26
+67	val_67
+18	val_18
+9	val_9
+18	val_18
+97	val_97
+84	val_84
+28	val_28
+37	val_37
+90	val_90
+97	val_97
+PREHOOK: query: -- lateral view
+EXPLAIN
+SELECT * FROM src LATERAL VIEW explode(array(key, value)) myTable AS myCol where key > 450
+PREHOOK: type: QUERY
+POSTHOOK: query: -- lateral view
+EXPLAIN
+SELECT * FROM src LATERAL VIEW explode(array(key, value)) myTable AS myCol where key > 450
+POSTHOOK: type: QUERY
+STAGE DEPENDENCIES:
+  Stage-0 is a root stage
+  Stage-1 is a root stage
+
+STAGE PLANS:
+  Stage: Stage-0
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        TableScan
+          alias: src
+          Statistics: Num rows: 29 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
+          Filter Operator
+            predicate: (key > 450) (type: boolean)
+            Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+            Lateral View Forward
+              Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+              Select Operator
+                expressions: key (type: string), value (type: string)
+                outputColumnNames: key, value
+                Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+                Lateral View Join Operator
+                  outputColumnNames: _col0, _col1, _col4
+                  Statistics: Num rows: 18 Data size: 3606 Basic stats: COMPLETE Column stats: NONE
+                  Select Operator
+                    expressions: _col0 (type: string), _col1 (type: string), _col4 (type: string)
+                    outputColumnNames: _col0, _col1, _col2
+                    Statistics: Num rows: 18 Data size: 3606 Basic stats: COMPLETE Column stats: NONE
+                    File Output Operator
+                      compressed: false
+                      Statistics: Num rows: 18 Data size: 3606 Basic stats: COMPLETE Column stats: NONE
+                      table:
+                          input format: org.apache.hadoop.mapred.TextInputFormat
+                          output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+                          serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+              Select Operator
+                expressions: array(key,value) (type: array<string>)
+                outputColumnNames: _col0
+                Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+                UDTF Operator
+                  Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+                  function name: explode
+                  Lateral View Join Operator
+                    outputColumnNames: _col0, _col1, _col4
+                    Statistics: Num rows: 18 Data size: 3606 Basic stats: COMPLETE Column stats: NONE
+                    Select Operator
+                      expressions: _col0 (type: string), _col1 (type: string), _col4 (type: string)
+                      outputColumnNames: _col0, _col1, _col2
+                      Statistics: Num rows: 18 Data size: 3606 Basic stats: COMPLETE Column stats: NONE
+                      File Output Operator
+                        compressed: false
+                        Statistics: Num rows: 18 Data size: 3606 Basic stats: COMPLETE Column stats: NONE
+                        table:
+                            input format: org.apache.hadoop.mapred.TextInputFormat
+                            output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+                            serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+      pseudoMR: push
+
+  Stage: Stage-1
+    Fetch Operator
+      limit: -1
+
+PREHOOK: query: SELECT * FROM src LATERAL VIEW explode(array(key, value)) myTable AS myCol where key > 450
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: SELECT * FROM src LATERAL VIEW explode(array(key, value)) myTable AS myCol where key > 450
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+484	val_484	484
+484	val_484	val_484
+469	val_469	469
+469	val_469	val_469
+495	val_495	495
+495	val_495	val_495
+459	val_459	459
+459	val_459	val_459
+482	val_482	482
+482	val_482	val_482
+494	val_494	494
+494	val_494	val_494
+466	val_466	466
+466	val_466	val_466
+489	val_489	489
+489	val_489	val_489
+475	val_475	475
+475	val_475	val_475
+455	val_455	455
+455	val_455	val_455
+489	val_489	489
+489	val_489	val_489
+498	val_498	498
+498	val_498	val_498
+469	val_469	469
+469	val_469	val_469
+459	val_459	459
+459	val_459	val_459
+489	val_489	489
+489	val_489	val_489
+466	val_466	466
+466	val_466	val_466
+463	val_463	463
+463	val_463	val_463
+496	val_496	496
+496	val_496	val_496
+468	val_468	468
+468	val_468	val_468
+454	val_454	454
+454	val_454	val_454
+469	val_469	469
+469	val_469	val_469
+468	val_468	468
+468	val_468	val_468
+481	val_481	481
+481	val_481	val_481
+457	val_457	457
+457	val_457	val_457
+470	val_470	470
+470	val_470	val_470
+490	val_490	490
+490	val_490	val_490
+452	val_452	452
+452	val_452	val_452
+497	val_497	497
+497	val_497	val_497
+472	val_472	472
+472	val_472	val_472
+498	val_498	498
+498	val_498	val_498
+489	val_489	489
+489	val_489	val_489
+458	val_458	458
+458	val_458	val_458
+492	val_492	492
+492	val_492	val_492
+453	val_453	453
+453	val_453	val_453
+468	val_468	468
+468	val_468	val_468
+485	val_485	485
+485	val_485	val_485
+487	val_487	487
+487	val_487	val_487
+480	val_480	480
+480	val_480	val_480
+467	val_467	467
+467	val_467	val_467
+469	val_469	469
+469	val_469	val_469
+463	val_463	463
+463	val_463	val_463
+466	val_466	466
+466	val_466	val_466
+483	val_483	483
+483	val_483	val_483
+454	val_454	454
+454	val_454	val_454
+478	val_478	478
+478	val_478	val_478
+480	val_480	480
+480	val_480	val_480
+491	val_491	491
+491	val_491	val_491
+479	val_479	479
+479	val_479	val_479
+478	val_478	478
+478	val_478	val_478
+468	val_468	468
+468	val_468	val_468
+493	val_493	493
+493	val_493	val_493
+460	val_460	460
+460	val_460	val_460
+480	val_480	480
+480	val_480	val_480
+462	val_462	462
+462	val_462	val_462
+454	val_454	454
+454	val_454	val_454
+462	val_462	462
+462	val_462	val_462
+492	val_492	492
+492	val_492	val_492
+498	val_498	498
+498	val_498	val_498
+458	val_458	458
+458	val_458	val_458
+469	val_469	469
+469	val_469	val_469
+477	val_477	477
+477	val_477	val_477
+PREHOOK: query: -- sub-query
+explain
+select * from (select * from src where key > 450) a join (select * from src where key > 450) b on a.key=b.key
+PREHOOK: type: QUERY
+POSTHOOK: query: -- sub-query
+explain
+select * from (select * from src where key > 450) a join (select * from src where key > 450) b on a.key=b.key
+POSTHOOK: type: QUERY
+STAGE DEPENDENCIES:
+  Stage-0 is a root stage
+  Stage-1 is a root stage
+  Stage-2 is a root stage
+
+STAGE PLANS:
+  Stage: Stage-0
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        TableScan
+          alias: src
+          Statistics: Num rows: 29 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
+          Filter Operator
+            predicate: (key > 450) (type: boolean)
+            Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+            Select Operator
+              expressions: key (type: string), value (type: string)
+              outputColumnNames: _col0, _col1
+              Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+              Reduce Output Operator
+                key expressions: _col0 (type: string)
+                sort order: +
+                Map-reduce partition columns: _col0 (type: string)
+                Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+                value expressions: _col0 (type: string), _col1 (type: string)
+                Join Operator
+                  condition map:
+                       Inner Join 0 to 1
+                  condition expressions:
+                    0 {VALUE._col0} {VALUE._col1}
+                    1 {VALUE._col0} {VALUE._col1}
+                  outputColumnNames: _col0, _col1, _col2, _col3
+                  Statistics: Num rows: 9 Data size: 1983 Basic stats: COMPLETE Column stats: NONE
+                  Select Operator
+                    expressions: _col0 (type: string), _col1 (type: string), _col2 (type: string), _col3 (type: string)
+                    outputColumnNames: _col0, _col1, _col2, _col3
+                    Statistics: Num rows: 9 Data size: 1983 Basic stats: COMPLETE Column stats: NONE
+                    ListSink
+      pseudoMR: push
+
+  Stage: Stage-1
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        TableScan
+          alias: src
+          Statistics: Num rows: 29 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
+          Filter Operator
+            predicate: (key > 450) (type: boolean)
+            Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+            Select Operator
+              expressions: key (type: string), value (type: string)
+              outputColumnNames: _col0, _col1
+              Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+              Reduce Output Operator
+                key expressions: _col0 (type: string)
+                sort order: +
+                Map-reduce partition columns: _col0 (type: string)
+                Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+                value expressions: _col0 (type: string), _col1 (type: string)
+                Join Operator
+                  condition map:
+                       Inner Join 0 to 1
+                  condition expressions:
+                    0 {VALUE._col0} {VALUE._col1}
+                    1 {VALUE._col0} {VALUE._col1}
+                  outputColumnNames: _col0, _col1, _col2, _col3
+                  Statistics: Num rows: 9 Data size: 1983 Basic stats: COMPLETE Column stats: NONE
+                  Select Operator
+                    expressions: _col0 (type: string), _col1 (type: string), _col2 (type: string), _col3 (type: string)
+                    outputColumnNames: _col0, _col1, _col2, _col3
+                    Statistics: Num rows: 9 Data size: 1983 Basic stats: COMPLETE Column stats: NONE
+                    ListSink
+      pseudoMR: push
+
+  Stage: Stage-2
+    Fetch Operator
+      limit: -1
+      pseudoMR: pull
+
+PREHOOK: query: select * from (select * from src where key > 450) a join (select * from src where key > 450) b on a.key=b.key
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: select * from (select * from src where key > 450) a join (select * from src where key > 450) b on a.key=b.key
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+452	val_452	452	val_452
+453	val_453	453	val_453
+454	val_454	454	val_454
+454	val_454	454	val_454
+454	val_454	454	val_454
+454	val_454	454	val_454
+454	val_454	454	val_454
+454	val_454	454	val_454
+454	val_454	454	val_454
+454	val_454	454	val_454
+454	val_454	454	val_454
+455	val_455	455	val_455
+457	val_457	457	val_457
+458	val_458	458	val_458
+458	val_458	458	val_458
+458	val_458	458	val_458
+458	val_458	458	val_458
+459	val_459	459	val_459
+459	val_459	459	val_459
+459	val_459	459	val_459
+459	val_459	459	val_459
+460	val_460	460	val_460
+462	val_462	462	val_462
+462	val_462	462	val_462
+462	val_462	462	val_462
+462	val_462	462	val_462
+463	val_463	463	val_463
+463	val_463	463	val_463
+463	val_463	463	val_463
+463	val_463	463	val_463
+466	val_466	466	val_466
+466	val_466	466	val_466
+466	val_466	466	val_466
+466	val_466	466	val_466
+466	val_466	466	val_466
+466	val_466	466	val_466
+466	val_466	466	val_466
+466	val_466	466	val_466
+466	val_466	466	val_466
+467	val_467	467	val_467
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+468	val_468	468	val_468
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+469	val_469	469	val_469
+470	val_470	470	val_470
+472	val_472	472	val_472
+475	val_475	475	val_475
+477	val_477	477	val_477
+478	val_478	478	val_478
+478	val_478	478	val_478
+478	val_478	478	val_478
+478	val_478	478	val_478
+479	val_479	479	val_479
+480	val_480	480	val_480
+480	val_480	480	val_480
+480	val_480	480	val_480
+480	val_480	480	val_480
+480	val_480	480	val_480
+480	val_480	480	val_480
+480	val_480	480	val_480
+480	val_480	480	val_480
+480	val_480	480	val_480
+481	val_481	481	val_481
+482	val_482	482	val_482
+483	val_483	483	val_483
+484	val_484	484	val_484
+485	val_485	485	val_485
+487	val_487	487	val_487
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+489	val_489	489	val_489
+490	val_490	490	val_490
+491	val_491	491	val_491
+492	val_492	492	val_492
+492	val_492	492	val_492
+492	val_492	492	val_492
+492	val_492	492	val_492
+493	val_493	493	val_493
+494	val_494	494	val_494
+495	val_495	495	val_495
+496	val_496	496	val_496
+497	val_497	497	val_497
+498	val_498	498	val_498
+498	val_498	498	val_498
+498	val_498	498	val_498
+498	val_498	498	val_498
+498	val_498	498	val_498
+498	val_498	498	val_498
+498	val_498	498	val_498
+498	val_498	498	val_498
+498	val_498	498	val_498
+PREHOOK: query: -- union all
+explain
+select * from src a where key < 50 union all select * from src b where key > 450
+PREHOOK: type: QUERY
+POSTHOOK: query: -- union all
+explain
+select * from src a where key < 50 union all select * from src b where key > 450
+POSTHOOK: type: QUERY
+STAGE DEPENDENCIES:
+  Stage-0 is a root stage
+  Stage-1 is a root stage
+  Stage-2 is a root stage
+
+STAGE PLANS:
+  Stage: Stage-0
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        TableScan
+          alias: a
+          Statistics: Num rows: 29 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
+          Filter Operator
+            predicate: (key < 50) (type: boolean)
+            Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+            Select Operator
+              expressions: key (type: string), value (type: string)
+              outputColumnNames: _col0, _col1
+              Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+              Union
+                Statistics: Num rows: 18 Data size: 3606 Basic stats: COMPLETE Column stats: NONE
+                Select Operator
+                  expressions: _col0 (type: string), _col1 (type: string)
+                  outputColumnNames: _col0, _col1
+                  Statistics: Num rows: 18 Data size: 3606 Basic stats: COMPLETE Column stats: NONE
+                  ListSink
+      pseudoMR: push
+
+  Stage: Stage-1
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        TableScan
+          alias: b
+          Statistics: Num rows: 29 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
+          Filter Operator
+            predicate: (key > 450) (type: boolean)
+            Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+            Select Operator
+              expressions: key (type: string), value (type: string)
+              outputColumnNames: _col0, _col1
+              Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+              Union
+                Statistics: Num rows: 18 Data size: 3606 Basic stats: COMPLETE Column stats: NONE
+                Select Operator
+                  expressions: _col0 (type: string), _col1 (type: string)
+                  outputColumnNames: _col0, _col1
+                  Statistics: Num rows: 18 Data size: 3606 Basic stats: COMPLETE Column stats: NONE
+                  ListSink
+      pseudoMR: push
+
+  Stage: Stage-2
+    Fetch Operator
+      limit: -1
+      pseudoMR: pull
+
+PREHOOK: query: select * from src a where key < 50 union all select * from src b where key > 450
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: select * from src a where key < 50 union all select * from src b where key > 450
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+27	val_27
+37	val_37
+15	val_15
+17	val_17
+0	val_0
+20	val_20
+47	val_47
+4	val_4
+35	val_35
+12	val_12
+8	val_8
+24	val_24
+42	val_42
+0	val_0
+26	val_26
+43	val_43
+0	val_0
+15	val_15
+19	val_19
+10	val_10
+5	val_5
+35	val_35
+11	val_11
+34	val_34
+42	val_42
+41	val_41
+30	val_30
+33	val_33
+5	val_5
+2	val_2
+35	val_35
+44	val_44
+12	val_12
+5	val_5
+24	val_24
+26	val_26
+18	val_18
+9	val_9
+18	val_18
+28	val_28
+37	val_37
+484	val_484
+469	val_469
+495	val_495
+459	val_459
+482	val_482
+494	val_494
+466	val_466
+489	val_489
+475	val_475
+455	val_455
+489	val_489
+498	val_498
+469	val_469
+459	val_459
+489	val_489
+466	val_466
+463	val_463
+496	val_496
+468	val_468
+454	val_454
+469	val_469
+468	val_468
+481	val_481
+457	val_457
+470	val_470
+490	val_490
+452	val_452
+497	val_497
+472	val_472
+498	val_498
+489	val_489
+458	val_458
+492	val_492
+453	val_453
+468	val_468
+485	val_485
+487	val_487
+480	val_480
+467	val_467
+469	val_469
+463	val_463
+466	val_466
+483	val_483
+454	val_454
+478	val_478
+480	val_480
+491	val_491
+479	val_479
+478	val_478
+468	val_468
+493	val_493
+460	val_460
+480	val_480
+462	val_462
+454	val_454
+462	val_462
+492	val_492
+498	val_498
+458	val_458
+469	val_469
+477	val_477
+PREHOOK: query: -- lateral view
+EXPLAIN
+SELECT * FROM src LATERAL VIEW explode(array(key, value)) myTable AS myCol where key > 450
+PREHOOK: type: QUERY
+POSTHOOK: query: -- lateral view
+EXPLAIN
+SELECT * FROM src LATERAL VIEW explode(array(key, value)) myTable AS myCol where key > 450
+POSTHOOK: type: QUERY
+STAGE DEPENDENCIES:
+  Stage-0 is a root stage
+  Stage-1 is a root stage
+
+STAGE PLANS:
+  Stage: Stage-0
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        TableScan
+          alias: src
+          Statistics: Num rows: 29 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
+          Filter Operator
+            predicate: (key > 450) (type: boolean)
+            Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+            Lateral View Forward
+              Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+              Select Operator
+                expressions: key (type: string), value (type: string)
+                outputColumnNames: key, value
+                Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+                Lateral View Join Operator
+                  outputColumnNames: _col0, _col1, _col4
+                  Statistics: Num rows: 18 Data size: 3606 Basic stats: COMPLETE Column stats: NONE
+                  Select Operator
+                    expressions: _col0 (type: string), _col1 (type: string), _col4 (type: string)
+                    outputColumnNames: _col0, _col1, _col2
+                    Statistics: Num rows: 18 Data size: 3606 Basic stats: COMPLETE Column stats: NONE
+                    ListSink
+              Select Operator
+                expressions: array(key,value) (type: array<string>)
+                outputColumnNames: _col0
+                Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+                UDTF Operator
+                  Statistics: Num rows: 9 Data size: 1803 Basic stats: COMPLETE Column stats: NONE
+                  function name: explode
+                  Lateral View Join Operator
+                    outputColumnNames: _col0, _col1, _col4
+                    Statistics: Num rows: 18 Data size: 3606 Basic stats: COMPLETE Column stats: NONE
+                    Select Operator
+                      expressions: _col0 (type: string), _col1 (type: string), _col4 (type: string)
+                      outputColumnNames: _col0, _col1, _col2
+                      Statistics: Num rows: 18 Data size: 3606 Basic stats: COMPLETE Column stats: NONE
+                      ListSink
+      pseudoMR: push
+
+  Stage: Stage-1
+    Fetch Operator
+      limit: -1
+      pseudoMR: pull
+
+PREHOOK: query: SELECT * FROM src LATERAL VIEW explode(array(key, value)) myTable AS myCol where key > 450
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: SELECT * FROM src LATERAL VIEW explode(array(key, value)) myTable AS myCol where key > 450
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+484	val_484	484
+484	val_484	val_484
+469	val_469	469
+469	val_469	val_469
+495	val_495	495
+495	val_495	val_495
+459	val_459	459
+459	val_459	val_459
+482	val_482	482
+482	val_482	val_482
+494	val_494	494
+494	val_494	val_494
+466	val_466	466
+466	val_466	val_466
+489	val_489	489
+489	val_489	val_489
+475	val_475	475
+475	val_475	val_475
+455	val_455	455
+455	val_455	val_455
+489	val_489	489
+489	val_489	val_489
+498	val_498	498
+498	val_498	val_498
+469	val_469	469
+469	val_469	val_469
+459	val_459	459
+459	val_459	val_459
+489	val_489	489
+489	val_489	val_489
+466	val_466	466
+466	val_466	val_466
+463	val_463	463
+463	val_463	val_463
+496	val_496	496
+496	val_496	val_496
+468	val_468	468
+468	val_468	val_468
+454	val_454	454
+454	val_454	val_454
+469	val_469	469
+469	val_469	val_469
+468	val_468	468
+468	val_468	val_468
+481	val_481	481
+481	val_481	val_481
+457	val_457	457
+457	val_457	val_457
+470	val_470	470
+470	val_470	val_470
+490	val_490	490
+490	val_490	val_490
+452	val_452	452
+452	val_452	val_452
+497	val_497	497
+497	val_497	val_497
+472	val_472	472
+472	val_472	val_472
+498	val_498	498
+498	val_498	val_498
+489	val_489	489
+489	val_489	val_489
+458	val_458	458
+458	val_458	val_458
+492	val_492	492
+492	val_492	val_492
+453	val_453	453
+453	val_453	val_453
+468	val_468	468
+468	val_468	val_468
+485	val_485	485
+485	val_485	val_485
+487	val_487	487
+487	val_487	val_487
+480	val_480	480
+480	val_480	val_480
+467	val_467	467
+467	val_467	val_467
+469	val_469	469
+469	val_469	val_469
+463	val_463	463
+463	val_463	val_463
+466	val_466	466
+466	val_466	val_466
+483	val_483	483
+483	val_483	val_483
+454	val_454	454
+454	val_454	val_454
+478	val_478	478
+478	val_478	val_478
+480	val_480	480
+480	val_480	val_480
+491	val_491	491
+491	val_491	val_491
+479	val_479	479
+479	val_479	val_479
+478	val_478	478
+478	val_478	val_478
+468	val_468	468
+468	val_468	val_468
+493	val_493	493
+493	val_493	val_493
+460	val_460	460
+460	val_460	val_460
+480	val_480	480
+480	val_480	val_480
+462	val_462	462
+462	val_462	val_462
+454	val_454	454
+454	val_454	val_454
+462	val_462	462
+462	val_462	val_462
+492	val_492	492
+492	val_492	val_492
+498	val_498	498
+498	val_498	val_498
+458	val_458	458
+458	val_458	val_458
+469	val_469	469
+469	val_469	val_469
+477	val_477	477
+477	val_477	val_477

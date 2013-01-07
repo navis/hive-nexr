@@ -24,11 +24,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.base.Predicate;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.ql.exec.NodeUtils.Function;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.mapred.OutputCollector;
+
+import javax.annotation.Nullable;
 
 public class OperatorUtils {
 
@@ -62,6 +65,59 @@ public class OperatorUtils {
       }
     }
     return found;
+  }
+
+  public static Set<Operator<?>> findOperators(Collection<Operator<?>> start,
+      OperatorPredicate predicate) {
+    for (Operator<?> operator : start) {
+      findOperators(operator, predicate);
+    }
+    return predicate.found;
+  }
+
+  public static Set<Operator<?>> findOperators(Operator<?> start, OperatorPredicate predicate) {
+    if (predicate.visit(start)) {
+      return predicate.found;
+    }
+    if (start.getNumParent() > 0) {
+      for (Operator<?> parent : start.getParentOperators()) {
+        findOperators(parent, predicate);
+      }
+    }
+    if (start.getNumChild() > 0) {
+      for (Operator<?> child : start.getChildOperators()) {
+        findOperators(child, predicate);
+      }
+    }
+    return predicate.found;
+  }
+
+  public static abstract class OperatorPredicate implements Predicate<Operator<?>> {
+    final Class<?> clazz = getClass();
+    final Set<Operator<?>> visited = new HashSet<Operator<?>>();
+    final Set<Operator<?>> found = new HashSet<Operator<?>>();
+    private boolean visit(Operator<?> operator) {
+      boolean already = !visited.add(operator);
+      if (!already && apply(operator)) {
+        found.add(operator);
+      }
+      return already;
+    }
+    @Override
+    public boolean equals(@Nullable Object object) {
+      return clazz.isInstance(object);
+    }
+  }
+
+  public static Set<Operator<?>> findTopOps(Collection<Operator<?>> start) {
+  Set<Operator<?>> topOps = OperatorUtils.findOperators(start,
+      new OperatorUtils.OperatorPredicate() {
+        @Override
+        public boolean apply(@Nullable Operator<?> input) {
+          return input != null && input.getNumParent() == 0;
+        }
+      });
+    return topOps;
   }
 
   public static <T> Set<T> findOperatorsUpstream(Operator<?> start, Class<T> clazz) {

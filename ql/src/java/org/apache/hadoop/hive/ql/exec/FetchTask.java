@@ -76,8 +76,8 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
   }
 
   protected void initializeSource() throws Exception {
-    if (work.isPseudoMRListFetch()) {
-      sink = work.getSink();
+    if (work.isPseudoMRListPull()) {
+      sink = work.getSink();  // nothing to do
       return;
     }
     if (!work.isPseudoMR()) {
@@ -93,12 +93,10 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
       HiveInputFormat.pushFilters(job, ts);
     }
     sink = work.getSink();
-    if (work.isPseudoMR()) {
-      setupTmpDir(source, job, new HashSet<Operator>());
-      if (sink != null) {
-        sink.reset(new ArrayList());
-      }
+    if (work.isPseudoMR() && sink != null) {
+      sink.reset(new ArrayList());  // list push
     }
+    setupTmpDir(source, job, new HashSet<Operator>());
     fetch = new FetchOperator(work, job, source, getVirtualColumns(source));
     source.initialize(conf, new ObjectInspector[]{fetch.getOutputObjectInspector()});
     totalRows = 0;
@@ -186,7 +184,7 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
 
   public boolean fetch(List res) throws IOException, CommandNeedRetryException {
     try {
-      return work.isPseudoMRListFetch() ? fetchFromList(res) : fetchAndPush(res);
+      return work.isPseudoMRListPull() ? fetchFromList(res) : fetchAndPush(res);
     } catch (CommandNeedRetryException e) {
       throw e;
     } catch (IOException e) {

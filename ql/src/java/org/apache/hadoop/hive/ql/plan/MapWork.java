@@ -307,8 +307,10 @@ public class MapWork extends BaseWork {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public void replaceRoots(Map<Operator<?>, Operator<?>> replacementMap) {
-    LinkedHashMap<String, Operator<?>> newAliasToWork = new LinkedHashMap<String, Operator<?>>();
+    LinkedHashMap<String, Operator<? extends OperatorDesc>> newAliasToWork =
+        new LinkedHashMap<String, Operator<? extends OperatorDesc>>();
 
     for (Map.Entry<String, Operator<?>> entry: aliasToWork.entrySet()) {
       newAliasToWork.put(entry.getKey(), replacementMap.get(entry.getValue()));

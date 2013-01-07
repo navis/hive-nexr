@@ -82,6 +82,8 @@ public class QueryPlan implements Serializable {
   private FetchTask fetchTask;
   private final List<ReducerTimeStatsPerJob> reducerTimeStatsPerJobList;
 
+  private boolean usingPseudoMR;
+
   private HashSet<ReadEntity> inputs;
   /**
    * Note: outputs are not all determined at compile time.
@@ -119,9 +121,9 @@ public class QueryPlan implements Serializable {
   public QueryPlan(String queryString, BaseSemanticAnalyzer sem, Long startTime) {
     this.queryString = queryString;
 
-    rootTasks = new ArrayList<Task<? extends Serializable>>();
-    this.reducerTimeStatsPerJobList = new ArrayList<ReducerTimeStatsPerJob>();
-    rootTasks.addAll(sem.getRootTasks());
+    rootTasks = new ArrayList<Task<? extends Serializable>>(sem.getRootTasks());
+    reducerTimeStatsPerJobList = new ArrayList<ReducerTimeStatsPerJob>();
+    usingPseudoMR = isPseudoMR(sem.getRootTasks());
     fetchTask = sem.getFetchTask();
     // Note that inputs and outputs can be changed when the query gets executed
     inputs = sem.getInputs();
@@ -137,6 +139,15 @@ public class QueryPlan implements Serializable {
     query.putToQueryAttributes("queryString", this.queryString);
     queryProperties = sem.getQueryProperties();
     queryStartTime = startTime;
+  }
+
+  private boolean isPseudoMR(List<Task<? extends Serializable>> tasks) {
+    for (Task task : tasks) {
+      if (!(task instanceof FetchTask) || !((FetchTask)task).getWork().isPseudoMR()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public String getQueryStr() {
@@ -857,5 +868,9 @@ public class QueryPlan implements Serializable {
 
   public void setQueryStartTime(Long queryStartTime) {
     this.queryStartTime = queryStartTime;
+  }
+
+  public boolean isUsingPseudoMR() {
+    return usingPseudoMR;
   }
 }

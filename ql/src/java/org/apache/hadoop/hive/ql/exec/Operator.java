@@ -110,17 +110,6 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
     seqId.set(0);
   }
 
-  /**
-   * Create an operator with a reporter.
-   *
-   * @param reporter
-   *          Used to report progress of certain operators.
-   */
-  public Operator(Reporter reporter) {
-    this();
-    this.reporter = reporter;
-  }
-
   public void setChildOperators(
       List<Operator<? extends OperatorDesc>> childOperators) {
     if (childOperators == null) {
@@ -586,15 +575,15 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
       return;
     }
 
-    if (hashReducer != null && !hashReducer.flush()) {
-      // not all of the reducers are finished yet
-      return;
-    }
-
     // set state as CLOSE as long as all parents are closed
     // state == CLOSE doesn't mean all children are also in state CLOSE
     state = State.CLOSE;
     LOG.info(id + " finished. closing... ");
+
+    if (hashReducer != null) {
+      hashReducer.flush();
+      hashReducer = null;
+    }
 
     // call the operator specific close routine
     closeOp(abort);
@@ -644,11 +633,11 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
   public void jobClose(Configuration conf, boolean success)
       throws HiveException {
     // JobClose has already been performed on this operator
-    if (jobCloseDone) {
+    if (jobCloseDone || !allParentsAreJobClosed()) {
       return;
     }
 
-    if (hashReducer != null && !hashReducer.isFinished()) {
+    if (hashReducer != null) {
       return;
     }
 
@@ -660,6 +649,17 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
         op.jobClose(conf, success);
       }
     }
+  }
+
+  private boolean allParentsAreJobClosed() {
+    if (parentOperators != null) {
+      for (Operator<? extends OperatorDesc> parent : parentOperators) {
+        if (parent != null && !parent.jobCloseDone) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   /**

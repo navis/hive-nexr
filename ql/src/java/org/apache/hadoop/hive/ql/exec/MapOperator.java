@@ -377,8 +377,6 @@ public class MapOperator extends Operator<MapWork> implements Serializable, Clon
           MapOpCtx opCtx = initObjectInspector(hconf, inp, convertedOI);
           opCtxMap.put(inp, opCtx);
 
-          op.setParentOperators(new ArrayList<Operator<? extends OperatorDesc>>());
-          op.getParentOperators().add(this);
           // check for the operators who will process rows coming to this Map
           // Operator
           if (!onepath.toUri().relativize(fpath.toUri()).equals(fpath.toUri())) {
@@ -386,6 +384,7 @@ public class MapOperator extends Operator<MapWork> implements Serializable, Clon
             childrenOpToOpCtxMap.put(op, opCtx);
             LOG.info("dump " + op.getName() + " "
                 + opCtxMap.get(inp).rowObjectInspector.getTypeName());
+            op.setParentOperators(Arrays.<Operator<? extends OperatorDesc>>asList(this));
           }
           current = opCtx;  // just need for TestOperators.testMapOperator
         }
