@@ -589,11 +589,6 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
       return;
     }
 
-    if (hashReducer != null && !hashReducer.flush()) {
-      // not all of the reducers are finished yet
-      return;
-    }
-
     // set state as CLOSE as long as all parents are closed
     // state == CLOSE doesn't mean all children are also in state CLOSE
     state = State.CLOSE;
@@ -606,6 +601,11 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
     }
 
     LOG.info(id + " forwarded " + cntr + " rows");
+
+    if (hashReducer != null) {
+      hashReducer.flush();
+      hashReducer = null;
+    }
 
     // call the operator specific close routine
     closeOp(abort);
@@ -657,7 +657,7 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
       return;
     }
 
-    if (hashReducer != null && !hashReducer.isFinished()) {
+    if (hashReducer != null) {
       return;
     }
 

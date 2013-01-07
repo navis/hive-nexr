@@ -29,7 +29,6 @@ import java.util.Stack;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.Warehouse;
 import org.apache.hadoop.hive.metastore.api.MetaException;
-import org.apache.hadoop.hive.ql.DriverContext;
 import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.TableScanOperator;
@@ -197,9 +196,7 @@ public class GenMRTableScan1 implements NodeProcessor {
     statsWork.setPartialScanAnalyzeCommand(true);
 
     // partial scan task
-    DriverContext driverCxt = new DriverContext();
     Task<PartialScanWork> psTask = TaskFactory.get(scanWork, parseCtx.getConf());
-    psTask.initialize(parseCtx.getConf(), null, driverCxt);
     psTask.setWork(scanWork);
 
     // task dependency

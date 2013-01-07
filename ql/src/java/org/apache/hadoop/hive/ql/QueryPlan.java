@@ -72,6 +72,8 @@ public class QueryPlan implements Serializable {
   private FetchTask fetchTask;
   private final List<ReducerTimeStatsPerJob> reducerTimeStatsPerJobList;
 
+  private boolean usingPseudoMR;
+
   private HashSet<ReadEntity> inputs;
   /**
    * Note: outputs are not all determined at compile time.
@@ -112,6 +114,7 @@ public class QueryPlan implements Serializable {
     rootTasks = new ArrayList<Task<? extends Serializable>>();
     this.reducerTimeStatsPerJobList = new ArrayList<ReducerTimeStatsPerJob>();
     rootTasks.addAll(sem.getRootTasks());
+    usingPseudoMR = sem.isUsingPseudoMR();
     fetchTask = sem.getFetchTask();
     // Note that inputs and outputs can be changed when the query gets executed
     inputs = sem.getInputs();
@@ -878,5 +881,9 @@ public class QueryPlan implements Serializable {
 
   public void setQueryStartTime(Long queryStartTime) {
     this.queryStartTime = queryStartTime;
+  }
+
+  public boolean isUsingPseudoMR() {
+    return usingPseudoMR;
   }
 }

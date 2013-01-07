@@ -84,6 +84,8 @@ public abstract class BaseSemanticAnalyzer {
   protected HashMap<String, String> idToTableNameMap;
   protected QueryProperties queryProperties;
 
+  protected boolean usingPseudoMR;
+
   public static int HIVE_COLUMN_ORDER_ASC = 1;
   public static int HIVE_COLUMN_ORDER_DESC = 0;
 
@@ -1100,4 +1102,7 @@ public abstract class BaseSemanticAnalyzer {
     return storedAsDirs;
   }
 
+  public boolean isUsingPseudoMR() {
+    return usingPseudoMR;
+  }
 }
