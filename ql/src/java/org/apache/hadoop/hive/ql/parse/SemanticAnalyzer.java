@@ -9283,6 +9283,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       setColumnAccessInfo(columnAccessAnalyzer.analyzeColumnAccess());
     }
 
+    usingPseudoMR = !rootTasks.isEmpty();
+
     if (!ctx.getExplainLogical()) {
       // At this point we have the complete operator tree
       // from which we want to create the map-reduce plan

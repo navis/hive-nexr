@@ -17,7 +17,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class HashReducer extends ExecReducer implements OutputCollector<HiveKey, Writable> {
 
@@ -25,7 +24,7 @@ public class HashReducer extends ExecReducer implements OutputCollector<HiveKey,
   private final List<TableDesc> valueDescs;
   private final TreeMap<HiveKey, List<byte[]>> tree;
 
-  private final AtomicInteger remaining;
+  private boolean flushed;
 
   @SuppressWarnings("unchecked")
   public HashReducer(Operator<?> reducer, ReduceSinkOperator rs) {
@@ -33,7 +32,6 @@ public class HashReducer extends ExecReducer implements OutputCollector<HiveKey,
     this.isTagged = reducer instanceof CommonJoinOperator;
     this.keyDesc = rs.getConf().getKeySerializeInfo();
     this.valueDescs = new ArrayList<TableDesc>();
-    this.remaining = new AtomicInteger();
     this.tree = new TreeMap<HiveKey, List<byte[]>>(new HiveKey.Comparator());
     this.oc = this;
   }
@@ -44,11 +42,14 @@ public class HashReducer extends ExecReducer implements OutputCollector<HiveKey,
       valueDescs.add(null);
     }
     valueDescs.set(tag, rs.getConf().getValueSerializeInfo());
-    remaining.set(valueDescs.size());
   }
 
   public boolean isInitialized() {
     return memoryMXBean != null;
+  }
+
+  public boolean isFlushed() {
+    return flushed;
   }
 
   @Override
@@ -73,20 +74,7 @@ public class HashReducer extends ExecReducer implements OutputCollector<HiveKey,
     }
   }
 
-  // op closed. return true if all reducers have finished
-  public boolean flush() throws HiveException {
-    int counter = remaining.decrementAndGet();
-    if (counter == 0) {
-      startReducing();
-    }
-    return counter < 0;
-  }
-
-  public boolean isFinished() {
-    return remaining.get() < 0;
-  }
-
-  private void startReducing() throws HiveException {
+  public void flush() throws HiveException {
     BytesIterator iterator = new BytesIterator();
     try {
       for (Map.Entry<HiveKey, List<byte[]>> entry : tree.entrySet()) {
@@ -99,6 +87,7 @@ public class HashReducer extends ExecReducer implements OutputCollector<HiveKey,
       abort = true;
       throw new HiveException(e);
     } finally {
+      flushed = true;
       tree.clear();
       close();
     }

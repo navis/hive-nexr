@@ -435,6 +435,16 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
   }
 
   @Override
+  public void startGroup() throws HiveException {
+    // nothing
+  }
+
+  @Override
+  public void endGroup() throws HiveException {
+    // nothing
+  }
+
+  @Override
   protected void closeOp(boolean abort) throws HiveException {
     if (!abort) {
       reducerHash.flush();

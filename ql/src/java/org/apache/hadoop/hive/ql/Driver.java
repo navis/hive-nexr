@@ -1224,6 +1224,11 @@ public class Driver implements CommandProcessor {
       SessionState.get().setStackTraces(new HashMap<String, List<List<String>>>());
       SessionState.get().setLocalMapRedErrors(new HashMap<String, List<String>>());
 
+      if (plan.isUsingPseudoMR()) {
+        for (Task<? extends Serializable> tsk : plan.getRootTasks()) {
+          tsk.initialize(conf, plan, driverCxt);
+        }
+      }
       // Add root Tasks to runnable
       for (Task<? extends Serializable> tsk : plan.getRootTasks()) {
         // This should never happen, if it does, it's a bug with the potential to produce
@@ -1464,7 +1469,9 @@ public class Driver implements CommandProcessor {
       cxt.incCurJobNo(1);
       console.printInfo("Launching Job " + cxt.getCurJobNo() + " out of " + jobs);
     }
-    tsk.initialize(conf, plan, cxt);
+    if (!tsk.getInitialized()) {
+      tsk.initialize(conf, plan, cxt);
+    }
     TaskResult tskRes = new TaskResult();
     TaskRunner tskRun = new TaskRunner(tsk, tskRes);
 

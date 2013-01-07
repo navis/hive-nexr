@@ -338,19 +338,20 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
   @SuppressWarnings("unchecked")
   public void initialize(Configuration hconf, ObjectInspector[] inputOIs)
       throws HiveException {
+    if (!areAllParentsInitialized()) {
+      return;
+    }
+
+    if (hashReducer != null && !hashReducer.isInitialized()) {
+      hashReducer.configure(new JobConf(hconf));
+      return;
+    }
+
     if (state == State.INIT) {
       return;
     }
 
     this.configuration = hconf;
-
-    if (!areAllParentsInitialized()) {
-      return;
-    }
-    if (hashReducer != null && !hashReducer.isInitialized()) {
-      hashReducer.configure(new JobConf(hconf));
-      return;
-    }
 
     LOG.info("Initializing Self " + id + " " + getName());
 
@@ -576,18 +577,17 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
   // since it is called by its parents' main thread, so no
   // more than 1 thread should call this close() function.
   public void close(boolean abort) throws HiveException {
-
-    if (state == State.CLOSE) {
-      return;
-    }
-
     // check if all parents are finished
     if (!allInitializedParentsAreClosed()) {
       return;
     }
 
-    if (hashReducer != null && !hashReducer.flush()) {
-      // not all of the reducers are finished yet
+    if (hashReducer != null && !hashReducer.isFlushed()) {
+      hashReducer.flush();
+      hashReducer = null;
+    }
+
+    if (state == State.CLOSE) {
       return;
     }
 
@@ -648,7 +648,7 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
       return;
     }
 
-    if (hashReducer != null && !hashReducer.isFinished()) {
+    if (hashReducer != null) {
       return;
     }
 

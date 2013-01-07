@@ -114,20 +114,6 @@ public class ExecReducer extends MapReduceBase implements Reducer {
     jc = job;
 
     configureJob(job);
-
-    // initialize reduce operator tree
-    try {
-      l4j.info(reducer.dump(0));
-      reducer.initialize(jc, rowObjectInspector);
-    } catch (Throwable e) {
-      abort = true;
-      if (e instanceof OutOfMemoryError) {
-        // Don't create a new object if we are already out of memory
-        throw (OutOfMemoryError) e;
-      } else {
-        throw new RuntimeException("Reduce operator initialization failed", e);
-      }
-    }
   }
 
   protected void configureJob(JobConf job) {

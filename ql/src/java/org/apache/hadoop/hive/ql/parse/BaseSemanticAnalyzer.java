@@ -21,8 +21,6 @@ package org.apache.hadoop.hive.ql.parse;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.sql.Date;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -49,7 +47,6 @@ import org.apache.hadoop.hive.ql.QueryProperties;
 import org.apache.hadoop.hive.ql.exec.ExprNodeEvaluatorFactory;
 import org.apache.hadoop.hive.ql.exec.FetchTask;
 import org.apache.hadoop.hive.ql.exec.Task;
-import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.hooks.LineageInfo;
 import org.apache.hadoop.hive.ql.hooks.ReadEntity;
 import org.apache.hadoop.hive.ql.hooks.WriteEntity;
@@ -103,6 +100,8 @@ public abstract class BaseSemanticAnalyzer {
   protected Context ctx;
   protected HashMap<String, String> idToTableNameMap;
   protected QueryProperties queryProperties;
+
+  protected boolean usingPseudoMR;
 
   public static int HIVE_COLUMN_ORDER_ASC = 1;
   public static int HIVE_COLUMN_ORDER_DESC = 0;
@@ -1365,5 +1364,9 @@ public abstract class BaseSemanticAnalyzer {
 
   protected String toMessage(ErrorMsg message, Object detail) {
     return detail == null ? message.getMsg() : message.getMsg(detail.toString());
+  }
+
+  public boolean isUsingPseudoMR() {
+    return usingPseudoMR;
   }
 }
