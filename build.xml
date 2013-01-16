@@ -1181,6 +1181,28 @@
           </artifact:install>
         </then>
       </elseif>
+      <elseif>
+        <equals arg1="${mvn.publish.repo}" arg2="nexr-snapshot"/>
+        <then>
+          <artifact:deploy
+              file="${mvn.jar.dir}/hive-${hive.project}-${version}.jar">
+            <pom refid="hive.project.pom" />
+          <remoteRepository id="${mvn.deploy.nexr.snapshot.id}" url="${mvn.deploy.nexr.snapshot.url}"/>
+          </artifact:deploy>
+        </then>
+      </elseif>
+      <elseif>
+        <equals arg1="${mvn.publish.repo}" arg2="nexr-release"/>
+        <then>
+          <artifact:deploy
+              file="${mvn.jar.dir}/hive-${hive.project}-${version}.jar">
+            <pom refid="hive.project.pom" />
+            <remoteRepository id="${mvn.deploy.nexr.release.id}" url="${mvn.deploy.nexr.release.url}">
+              <authentication username="admin" password="qa-nexus$#@!"/>
+            </remoteRepository>
+          </artifact:deploy>
+        </then>
+      </elseif>
       <else>
         <artifact:deploy
             file="${mvn.jar.dir}/hive-${hive.project}-${version}.jar">
