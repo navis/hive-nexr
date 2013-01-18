@@ -6791,4 +6791,179 @@ void swap(TRenewDelegationTokenResp &a, TRenewDelegationTokenResp &b) {
   swap(a.status, b.status);
 }
 
+const char* TCompileRes::ascii_fingerprint = "0109DD9AF87F9C16A0392FEEF0301D54";
+const uint8_t TCompileRes::binary_fingerprint[16] = {0x01,0x09,0xDD,0x9A,0xF8,0x7F,0x9C,0x16,0xA0,0x39,0x2F,0xEE,0xF0,0x30,0x1D,0x54};
+
+uint32_t TCompileRes::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+  bool isset_status = false;
+  bool isset_operationHandle = false;
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->status.read(iprot);
+          isset_status = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 2:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->operationHandle.read(iprot);
+          isset_operationHandle = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 3:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->queryPlan.read(iprot);
+          this->__isset.queryPlan = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  if (!isset_status)
+    throw TProtocolException(TProtocolException::INVALID_DATA);
+  if (!isset_operationHandle)
+    throw TProtocolException(TProtocolException::INVALID_DATA);
+  return xfer;
+}
+
+uint32_t TCompileRes::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  xfer += oprot->writeStructBegin("TCompileRes");
+
+  xfer += oprot->writeFieldBegin("status", ::apache::thrift::protocol::T_STRUCT, 1);
+  xfer += this->status.write(oprot);
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldBegin("operationHandle", ::apache::thrift::protocol::T_STRUCT, 2);
+  xfer += this->operationHandle.write(oprot);
+  xfer += oprot->writeFieldEnd();
+
+  if (this->__isset.queryPlan) {
+    xfer += oprot->writeFieldBegin("queryPlan", ::apache::thrift::protocol::T_STRUCT, 3);
+    xfer += this->queryPlan.write(oprot);
+    xfer += oprot->writeFieldEnd();
+  }
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+void swap(TCompileRes &a, TCompileRes &b) {
+  using ::std::swap;
+  swap(a.status, b.status);
+  swap(a.operationHandle, b.operationHandle);
+  swap(a.queryPlan, b.queryPlan);
+  swap(a.__isset, b.__isset);
+}
+
+const char* TRunReq::ascii_fingerprint = "A9814AAA9B38DC20E9E64AA8FF529EC3";
+const uint8_t TRunReq::binary_fingerprint[16] = {0xA9,0x81,0x4A,0xAA,0x9B,0x38,0xDC,0x20,0xE9,0xE6,0x4A,0xA8,0xFF,0x52,0x9E,0xC3};
+
+uint32_t TRunReq::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+  bool isset_sessionHandle = false;
+  bool isset_operationHandle = false;
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->sessionHandle.read(iprot);
+          isset_sessionHandle = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 2:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->operationHandle.read(iprot);
+          isset_operationHandle = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  if (!isset_sessionHandle)
+    throw TProtocolException(TProtocolException::INVALID_DATA);
+  if (!isset_operationHandle)
+    throw TProtocolException(TProtocolException::INVALID_DATA);
+  return xfer;
+}
+
+uint32_t TRunReq::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  xfer += oprot->writeStructBegin("TRunReq");
+
+  xfer += oprot->writeFieldBegin("sessionHandle", ::apache::thrift::protocol::T_STRUCT, 1);
+  xfer += this->sessionHandle.write(oprot);
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldBegin("operationHandle", ::apache::thrift::protocol::T_STRUCT, 2);
+  xfer += this->operationHandle.write(oprot);
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+void swap(TRunReq &a, TRunReq &b) {
+  using ::std::swap;
+  swap(a.sessionHandle, b.sessionHandle);
+  swap(a.operationHandle, b.operationHandle);
+}
+
 }}}}} // namespace

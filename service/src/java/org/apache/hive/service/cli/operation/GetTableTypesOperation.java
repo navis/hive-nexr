@@ -54,7 +54,7 @@ public class GetTableTypesOperation extends MetadataOperation {
    * @see org.apache.hive.service.cli.Operation#run()
    */
   @Override
-  public void run() throws HiveSQLException {
+  public void run(boolean async) throws HiveSQLException {
     setState(OperationState.RUNNING);
     try {
       for (TableType type : TableType.values()) {

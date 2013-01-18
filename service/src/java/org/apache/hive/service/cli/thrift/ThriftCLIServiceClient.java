@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hive.service.auth.HiveAuthFactory;
+import org.apache.hive.service.CompileResult;
 import org.apache.hive.service.cli.CLIServiceClient;
 import org.apache.hive.service.cli.FetchOrientation;
 import org.apache.hive.service.cli.GetInfoType;
@@ -159,7 +160,54 @@ public class ThriftCLIServiceClient extends CLIServiceClient {
   }
 
   /* (non-Javadoc)
-   * @see org.apache.hive.service.cli.ICLIService#getTypeInfo(org.apache.hive.service.cli.SessionHandle)
+   * @see org.apache.hive.service.sql.SQLServiceClient#compileStatement(org.apache.hive.service.sql.SessionHandle, java.lang.String, java.util.Map)
+   */
+  @Override
+  public CompileResult compileStatement(SessionHandle sessionHandle, String statement, Map<String, String> confOverlay) throws HiveSQLException {
+    try {
+      TExecuteStatementReq req = new TExecuteStatementReq(sessionHandle.toTSessionHandle(), statement);
+      req.setConfOverlay(confOverlay);
+      TCompileRes resp = cliService.Compile(req);
+      checkStatus(resp.getStatus());
+      return new CompileResult(resp.getOperationHandle(), resp.getQueryPlan());
+    } catch (HiveSQLException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new HiveSQLException(e);
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.apache.hive.service.sql.SQLServiceClient#runStatement(org.apache.hive.service.sql.SessionHandle, org.apache.hive.service.sql.SessionHandle.OperationHandle)
+   */
+  @Override
+  public void runStatement(SessionHandle sessionHandle, OperationHandle opHandle) throws HiveSQLException {
+    try {
+      TRunReq req = new TRunReq(sessionHandle.toTSessionHandle(), opHandle.toTOperationHandle());
+      checkStatus(cliService.Run(req));
+    } catch (HiveSQLException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new HiveSQLException(e);
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.apache.hive.service.sql.SQLServiceClient#executeTransient(org.apache.hive.service.sql.SessionHandle, java.lang.String, java.util.Map)
+   */
+  @Override
+  public void executeTransient(SessionHandle sessionHandle, String statement, Map<String, String> confOverlay) throws HiveSQLException {
+    try {
+      TExecuteStatementReq req = new TExecuteStatementReq(sessionHandle.toTSessionHandle(), statement);
+      req.setConfOverlay(confOverlay);
+      checkStatus(cliService.ExecuteTransient(req));
+    } catch (Exception e) {
+      throw new HiveSQLException(e);
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.apache.hive.service.sql.ISQLService#getTypeInfo(org.apache.hive.service.sql.SessionHandle)
    */
   @Override
   public OperationHandle getTypeInfo(SessionHandle sessionHandle) throws HiveSQLException {

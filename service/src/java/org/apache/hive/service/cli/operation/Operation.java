@@ -43,16 +43,14 @@ public abstract class Operation {
   public static final long DEFAULT_FETCH_MAX_ROWS = 100;
   protected boolean hasResultSet;
   protected volatile HiveSQLException operationException;
-  protected final boolean runAsync;
   protected volatile Future<?> backgroundHandle;
 
   protected static final EnumSet<FetchOrientation> DEFAULT_FETCH_ORIENTATION_SET =
       EnumSet.of(FetchOrientation.FETCH_NEXT,FetchOrientation.FETCH_FIRST);
 
-  protected Operation(HiveSession parentSession, OperationType opType, boolean runInBackground) {
+  protected Operation(HiveSession parentSession, OperationType opType) {
     super();
     this.parentSession = parentSession;
-    this.runAsync = runInBackground;
     this.opHandle = new OperationHandle(opType, parentSession.getProtocolVersion());
   }
 
@@ -62,10 +60,6 @@ public abstract class Operation {
 
   protected void setBackgroundHandle(Future<?> backgroundHandle) {
     this.backgroundHandle = backgroundHandle;
-  }
-
-  public boolean shouldRunAsync() {
-    return runAsync;
   }
 
   public void setConfiguration(HiveConf configuration) {
@@ -137,7 +131,7 @@ public abstract class Operation {
     return OperationState.ERROR.equals(state);
   }
 
-  public abstract void run() throws HiveSQLException;
+  public abstract void run(boolean async) throws HiveSQLException;
 
   // TODO: make this abstract and implement in subclasses.
   public void cancel() throws HiveSQLException {

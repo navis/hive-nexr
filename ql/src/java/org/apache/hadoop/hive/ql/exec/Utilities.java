@@ -376,24 +376,21 @@ public final class Utilities {
   }
 
   public static void setWorkflowAdjacencies(Configuration conf, QueryPlan plan) {
-    try {
-      Graph stageGraph = plan.getQueryPlan().getStageGraph();
-      if (stageGraph == null) {
+    Graph stageGraph = plan.getQueryPlan().getStageGraph();
+    if (stageGraph == null) {
+      return;
+    }
+    List<Adjacency> adjList = stageGraph.getAdjacencyList();
+    if (adjList == null) {
+      return;
+    }
+    for (Adjacency adj : adjList) {
+      List<String> children = adj.getChildren();
+      if (children == null || children.isEmpty()) {
         return;
       }
-      List<Adjacency> adjList = stageGraph.getAdjacencyList();
-      if (adjList == null) {
-        return;
-      }
-      for (Adjacency adj : adjList) {
-        List<String> children = adj.getChildren();
-        if (children == null || children.isEmpty()) {
-          return;
-        }
-        conf.setStrings("mapreduce.workflow.adjacency."+adj.getNode(),
-            children.toArray(new String[children.size()]));
-      }
-    } catch (IOException e) {
+      conf.setStrings("mapreduce.workflow.adjacency."+adj.getNode(),
+          children.toArray(new String[children.size()]));
     }
   }
 

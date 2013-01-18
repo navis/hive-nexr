@@ -32,8 +32,8 @@ public abstract class ExecuteStatementOperation extends Operation {
   protected Map<String, String> confOverlay = new HashMap<String, String>();
 
   public ExecuteStatementOperation(HiveSession parentSession, String statement,
-      Map<String, String> confOverlay, boolean runInBackground) {
-    super(parentSession, OperationType.EXECUTE_STATEMENT, runInBackground);
+      Map<String, String> confOverlay) {
+    super(parentSession, OperationType.EXECUTE_STATEMENT);
     this.statement = statement;
     setConfOverlay(confOverlay);
   }
@@ -43,7 +43,7 @@ public abstract class ExecuteStatementOperation extends Operation {
   }
 
   public static ExecuteStatementOperation newExecuteStatementOperation(
-      HiveSession parentSession, String statement, Map<String, String> confOverlay, boolean runAsync)
+      HiveSession parentSession, String statement, Map<String, String> confOverlay)
           throws HiveSQLException {
     String[] tokens = statement.trim().split("\\s+");
     CommandProcessor processor = null;
@@ -53,7 +53,7 @@ public abstract class ExecuteStatementOperation extends Operation {
       throw new HiveSQLException(e.getMessage(), e.getSQLState(), e);
     }
     if (processor == null) {
-      return new SQLOperation(parentSession, statement, confOverlay, runAsync);
+      return new SQLOperation(parentSession, statement, confOverlay);
     }
     return new HiveCommandOperation(parentSession, statement, processor, confOverlay);
   }

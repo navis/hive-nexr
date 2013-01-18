@@ -20,7 +20,6 @@ package org.apache.hive.jdbc;
 
 import java.net.URI;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -48,6 +47,7 @@ public class Utils {
   private static final String URI_JDBC_PREFIX = "jdbc:";
 
   public static class JdbcConnectionParams {
+    private String scheme;
     private String host = null;
     private int port;
     private String dbName = DEFAULT_DATABASE;
@@ -59,6 +59,9 @@ public class Utils {
     public JdbcConnectionParams() {
     }
 
+    public String getScheme() {
+      return scheme;
+    }
     public String getHost() {
       return host;
     }
@@ -81,6 +84,9 @@ public class Utils {
       return sessionVars;
     }
 
+    public void setScheme(String scheme) {
+      this.scheme = scheme;
+    }
     public void setHost(String host) {
       this.host = host;
     }
@@ -142,8 +148,6 @@ public class Utils {
    * @return
    */
   public static JdbcConnectionParams parseURL(String uri) throws IllegalArgumentException {
-    JdbcConnectionParams connParams = new JdbcConnectionParams();
-
     if (!uri.startsWith(URL_PREFIX)) {
       throw new IllegalArgumentException("Bad URL format: Missing prefix " + URL_PREFIX);
     }
@@ -151,6 +155,7 @@ public class Utils {
     // For URLs with no other configuration
     // Don't parse them, but set embedded mode as true
     if (uri.equalsIgnoreCase(URL_PREFIX)) {
+      JdbcConnectionParams connParams = new JdbcConnectionParams();
       connParams.setEmbeddedMode(true);
       return connParams;
     }
@@ -167,6 +172,13 @@ public class Utils {
            + ". Are you missing a '/' after the hostname ?");
     }
 
+    String uriPart = uri.substring(URI_JDBC_PREFIX.length());
+    return parseURI(URI.create(uriPart));
+  }
+
+  public static JdbcConnectionParams parseURI(URI jdbcURI) {
+    JdbcConnectionParams connParams = new JdbcConnectionParams();
+    connParams.setScheme(jdbcURI.getScheme());
     connParams.setHost(jdbcURI.getHost());
     if (connParams.getHost() == null) {
       connParams.setEmbeddedMode(true);

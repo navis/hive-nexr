@@ -75,7 +75,7 @@ public class TableSchema {
 
 
   public TTableSchema toTTableSchema() {
-    TTableSchema tTableSchema = new TTableSchema();
+    TTableSchema tTableSchema = new TTableSchema(new ArrayList<TColumnDesc>());
     for (ColumnDescriptor col : columns) {
       tTableSchema.addToColumns(col.toTColumnDesc());
     }

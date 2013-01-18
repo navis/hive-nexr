@@ -39,7 +39,6 @@ import org.apache.thrift.TProcessorFactory;
 import org.apache.thrift.transport.TSSLTransportFactory;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TSocket;
-import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
 import org.slf4j.Logger;
@@ -206,17 +205,17 @@ public class HiveAuthFactory {
     }
   }
 
-  public static TTransport getSocketTransport(String host, int port, int loginTimeout)
+  public static TSocket getSocketTransport(String host, int port, int loginTimeout)
       throws TTransportException {
     return new TSocket(host, port, loginTimeout);
   }
 
-  public static TTransport getSSLSocket(String host, int port, int loginTimeout)
+  public static TSocket getSSLSocket(String host, int port, int loginTimeout)
       throws TTransportException {
     return TSSLTransportFactory.getClientSocket(host, port, loginTimeout);
   }
 
-  public static TTransport getSSLSocket(String host, int port, int loginTimeout,
+  public static TSocket getSSLSocket(String host, int port, int loginTimeout,
       String trustStorePath, String trustStorePassWord) throws TTransportException {
     TSSLTransportFactory.TSSLTransportParameters params =
         new TSSLTransportFactory.TSSLTransportParameters();

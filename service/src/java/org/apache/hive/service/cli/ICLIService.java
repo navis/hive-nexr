@@ -20,7 +20,7 @@ package org.apache.hive.service.cli;
 import java.util.List;
 import java.util.Map;
 
-
+import org.apache.hive.service.CompileResult;
 
 
 import org.apache.hive.service.auth.HiveAuthFactory;
@@ -48,6 +48,18 @@ public interface ICLIService {
   public abstract OperationHandle executeStatementAsync(SessionHandle sessionHandle,
       String statement, Map<String, String> confOverlay)
           throws HiveSQLException;
+
+  public abstract CompileResult compileStatement(SessionHandle sessionHandle, String statement,
+      Map<String, String> confOverlay)
+      throws HiveSQLException;
+
+  public abstract void runStatement(SessionHandle sessionHandle,
+      OperationHandle opHandle)
+      throws HiveSQLException;
+
+  public abstract void executeTransient(SessionHandle sessionHandle, String statement,
+      Map<String, String> confOverlay)
+      throws HiveSQLException;
 
   public abstract OperationHandle getTypeInfo(SessionHandle sessionHandle)
       throws HiveSQLException;

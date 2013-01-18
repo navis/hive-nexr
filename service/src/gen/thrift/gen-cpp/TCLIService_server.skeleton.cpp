@@ -117,6 +117,21 @@ class TCLIServiceHandler : virtual public TCLIServiceIf {
     printf("RenewDelegationToken\n");
   }
 
+  void Compile(TCompileRes& _return, const TExecuteStatementReq& req) {
+    // Your implementation goes here
+    printf("Compile\n");
+  }
+
+  void Run(TStatus& _return, const TRunReq& req) {
+    // Your implementation goes here
+    printf("Run\n");
+  }
+
+  void ExecuteTransient(TStatus& _return, const TExecuteStatementReq& req) {
+    // Your implementation goes here
+    printf("ExecuteTransient\n");
+  }
+
 };
 
 int main(int argc, char **argv) {

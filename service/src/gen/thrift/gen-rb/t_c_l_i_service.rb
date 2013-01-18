@@ -296,6 +296,51 @@ module TCLIService
       raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'RenewDelegationToken failed: unknown result')
     end
 
+    def Compile(req)
+      send_Compile(req)
+      return recv_Compile()
+    end
+
+    def send_Compile(req)
+      send_message('Compile', Compile_args, :req => req)
+    end
+
+    def recv_Compile()
+      result = receive_message(Compile_result)
+      return result.success unless result.success.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'Compile failed: unknown result')
+    end
+
+    def Run(req)
+      send_Run(req)
+      return recv_Run()
+    end
+
+    def send_Run(req)
+      send_message('Run', Run_args, :req => req)
+    end
+
+    def recv_Run()
+      result = receive_message(Run_result)
+      return result.success unless result.success.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'Run failed: unknown result')
+    end
+
+    def ExecuteTransient(req)
+      send_ExecuteTransient(req)
+      return recv_ExecuteTransient()
+    end
+
+    def send_ExecuteTransient(req)
+      send_message('ExecuteTransient', ExecuteTransient_args, :req => req)
+    end
+
+    def recv_ExecuteTransient()
+      result = receive_message(ExecuteTransient_result)
+      return result.success unless result.success.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'ExecuteTransient failed: unknown result')
+    end
+
   end
 
   class Processor
@@ -432,6 +477,27 @@ module TCLIService
       result = RenewDelegationToken_result.new()
       result.success = @handler.RenewDelegationToken(args.req)
       write_result(result, oprot, 'RenewDelegationToken', seqid)
+    end
+
+    def process_Compile(seqid, iprot, oprot)
+      args = read_args(iprot, Compile_args)
+      result = Compile_result.new()
+      result.success = @handler.Compile(args.req)
+      write_result(result, oprot, 'Compile', seqid)
+    end
+
+    def process_Run(seqid, iprot, oprot)
+      args = read_args(iprot, Run_args)
+      result = Run_result.new()
+      result.success = @handler.Run(args.req)
+      write_result(result, oprot, 'Run', seqid)
+    end
+
+    def process_ExecuteTransient(seqid, iprot, oprot)
+      args = read_args(iprot, ExecuteTransient_args)
+      result = ExecuteTransient_result.new()
+      result.success = @handler.ExecuteTransient(args.req)
+      write_result(result, oprot, 'ExecuteTransient', seqid)
     end
 
   end
@@ -1036,6 +1102,102 @@ module TCLIService
 
     FIELDS = {
       SUCCESS => {:type => ::Thrift::Types::STRUCT, :name => 'success', :class => ::TRenewDelegationTokenResp}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Compile_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    REQ = 1
+
+    FIELDS = {
+      REQ => {:type => ::Thrift::Types::STRUCT, :name => 'req', :class => ::TExecuteStatementReq}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Compile_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::STRUCT, :name => 'success', :class => ::TCompileRes}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Run_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    REQ = 1
+
+    FIELDS = {
+      REQ => {:type => ::Thrift::Types::STRUCT, :name => 'req', :class => ::TRunReq}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Run_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::STRUCT, :name => 'success', :class => ::TStatus}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class ExecuteTransient_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    REQ = 1
+
+    FIELDS = {
+      REQ => {:type => ::Thrift::Types::STRUCT, :name => 'req', :class => ::TExecuteStatementReq}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class ExecuteTransient_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::STRUCT, :name => 'success', :class => ::TStatus}
     }
 
     def struct_fields; FIELDS; end

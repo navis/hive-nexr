@@ -49,7 +49,7 @@ import org.apache.hive.service.cli.session.HiveSession;
 public class HiveCommandOperation extends ExecuteStatementOperation {
   private CommandProcessorResponse response;
   private CommandProcessor commandProcessor;
-  private TableSchema resultSchema = null;
+  private TableSchema resultSchema;
 
   /**
    * For processors other than Hive queries (Driver), they output to session.out (a temp file)
@@ -60,7 +60,7 @@ public class HiveCommandOperation extends ExecuteStatementOperation {
 
   protected HiveCommandOperation(HiveSession parentSession, String statement,
       CommandProcessor commandProcessor, Map<String, String> confOverlay) {
-    super(parentSession, statement, confOverlay, false);
+    super(parentSession, statement, confOverlay);
     this.commandProcessor = commandProcessor;
     setupSessionIO(parentSession.getSessionState());
   }
@@ -99,7 +99,7 @@ public class HiveCommandOperation extends ExecuteStatementOperation {
    * @see org.apache.hive.service.cli.operation.Operation#run()
    */
   @Override
-  public void run() throws HiveSQLException {
+  public void run(boolean async) throws HiveSQLException {
     setState(OperationState.RUNNING);
     try {
       String command = getStatement().trim();

@@ -42,6 +42,9 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print '  TGetDelegationTokenResp GetDelegationToken(TGetDelegationTokenReq req)'
   print '  TCancelDelegationTokenResp CancelDelegationToken(TCancelDelegationTokenReq req)'
   print '  TRenewDelegationTokenResp RenewDelegationToken(TRenewDelegationTokenReq req)'
+  print '  TCompileRes Compile(TExecuteStatementReq req)'
+  print '  TStatus Run(TRunReq req)'
+  print '  TStatus ExecuteTransient(TExecuteStatementReq req)'
   print ''
   sys.exit(0)
 
@@ -206,6 +209,24 @@ elif cmd == 'RenewDelegationToken':
     print 'RenewDelegationToken requires 1 args'
     sys.exit(1)
   pp.pprint(client.RenewDelegationToken(eval(args[0]),))
+
+elif cmd == 'Compile':
+  if len(args) != 1:
+    print 'Compile requires 1 args'
+    sys.exit(1)
+  pp.pprint(client.Compile(eval(args[0]),))
+
+elif cmd == 'Run':
+  if len(args) != 1:
+    print 'Run requires 1 args'
+    sys.exit(1)
+  pp.pprint(client.Run(eval(args[0]),))
+
+elif cmd == 'ExecuteTransient':
+  if len(args) != 1:
+    print 'ExecuteTransient requires 1 args'
+    sys.exit(1)
+  pp.pprint(client.ExecuteTransient(eval(args[0]),))
 
 else:
   print 'Unrecognized method %s' % cmd

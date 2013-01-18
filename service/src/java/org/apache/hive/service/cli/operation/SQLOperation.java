@@ -19,7 +19,6 @@
 package org.apache.hive.service.cli.operation;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.security.PrivilegedExceptionAction;
 import java.sql.SQLException;
@@ -31,14 +30,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.ql.CommandNeedRetryException;
 import org.apache.hadoop.hive.ql.Driver;
-import org.apache.hadoop.hive.ql.exec.ExplainTask;
-import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.ql.QueryPlan;
 import org.apache.hadoop.hive.ql.parse.VariableSubstitution;
 import org.apache.hadoop.hive.ql.processors.CommandProcessorResponse;
 import org.apache.hadoop.hive.ql.session.SessionState;
@@ -53,6 +50,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hive.service.cli.ColumnDescriptor;
 import org.apache.hive.service.cli.FetchOrientation;
 import org.apache.hive.service.cli.HiveSQLException;
 import org.apache.hive.service.cli.OperationState;
@@ -70,14 +68,21 @@ public class SQLOperation extends ExecuteStatementOperation {
   private Driver driver = null;
   private CommandProcessorResponse response;
   private TableSchema resultSchema = null;
-  private Schema mResultSchema = null;
   private SerDe serde = null;
   private boolean fetchStarted = false;
 
-  public SQLOperation(HiveSession parentSession, String statement, Map<String,
-      String> confOverlay, boolean runInBackground) {
+  public SQLOperation(HiveSession parentSession, String statement,
+      Map<String, String> confOverlay) {
     // TODO: call setRemoteUser in ExecuteStatementOperation or higher.
-    super(parentSession, statement, confOverlay, runInBackground);
+    super(parentSession, statement, confOverlay);
+  }
+
+  public QueryPlan compile() throws HiveSQLException {
+    return prepare(getParentSession().getHiveConf());
+  }
+
+  public void execute() throws HiveSQLException {
+    runInternal(getParentSession().getHiveConf());
   }
 
   /***
@@ -85,7 +90,7 @@ public class SQLOperation extends ExecuteStatementOperation {
    * @param sqlOperationConf
    * @throws HiveSQLException
    */
-  public void prepare(HiveConf sqlOperationConf) throws HiveSQLException {
+  private QueryPlan prepare(HiveConf sqlOperationConf) throws HiveSQLException {
     setState(OperationState.RUNNING);
 
     try {
@@ -102,30 +107,17 @@ public class SQLOperation extends ExecuteStatementOperation {
             + response.getErrorMessage(), response.getSQLState(), response.getResponseCode());
       }
 
-      mResultSchema = driver.getSchema();
-
+      Schema mResultSchema = driver.getSchema();
       // hasResultSet should be true only if the query has a FetchTask
       // "explain" is an exception for now
-      if(driver.getPlan().getFetchTask() != null) {
-        //Schema has to be set
-        if (mResultSchema == null || !mResultSchema.isSetFieldSchemas()) {
-          throw new HiveSQLException("Error compiling query: Schema and FieldSchema " +
-              "should be set when query plan has a FetchTask");
-        }
+      if (mResultSchema != null && mResultSchema.isSetFieldSchemas()) {
         resultSchema = new TableSchema(mResultSchema);
         setHasResultSet(true);
       } else {
+        resultSchema = new TableSchema();
         setHasResultSet(false);
       }
-      // Set hasResultSet true if the plan has ExplainTask
-      // TODO explain should use a FetchTask for reading
-      for (Task<? extends Serializable> task: driver.getPlan().getRootTasks()) {
-        if (task.getClass() == ExplainTask.class) {
-          resultSchema = new TableSchema(mResultSchema);
-          setHasResultSet(true);
-          break;
-        }
-      }
+      return driver.getPlan();
     } catch (HiveSQLException e) {
       setState(OperationState.ERROR);
       throw e;
@@ -166,11 +158,12 @@ public class SQLOperation extends ExecuteStatementOperation {
   }
 
   @Override
-  public void run() throws HiveSQLException {
+  public void run(boolean async) throws HiveSQLException {
     setState(OperationState.PENDING);
-    final HiveConf opConfig = getConfigForOperation();
+
+    final HiveConf opConfig = getConfigForOperation(async);
     prepare(opConfig);
-    if (!shouldRunAsync()) {
+    if (!async) {
       runInternal(opConfig);
     } else {
       final SessionState parentSessionState = SessionState.get();
@@ -243,11 +236,9 @@ public class SQLOperation extends ExecuteStatementOperation {
 
   private void cleanup(OperationState state) throws HiveSQLException {
     setState(state);
-    if (shouldRunAsync()) {
-      Future<?> backgroundHandle = getBackgroundHandle();
-      if (backgroundHandle != null) {
-        backgroundHandle.cancel(true);
-      }
+    Future<?> backgroundHandle = getBackgroundHandle();
+    if (backgroundHandle != null) {
+      backgroundHandle.cancel(true);
     }
     if (driver != null) {
       driver.close();
@@ -274,9 +265,6 @@ public class SQLOperation extends ExecuteStatementOperation {
   @Override
   public TableSchema getResultSetSchema() throws HiveSQLException {
     assertState(OperationState.FINISHED);
-    if (resultSchema == null) {
-      resultSchema = new TableSchema(driver.getSchema());
-    }
     return resultSchema;
   }
 
@@ -361,7 +349,7 @@ public class SQLOperation extends ExecuteStatementOperation {
       return serde;
     }
     try {
-      List<FieldSchema> fieldSchemas = mResultSchema.getFieldSchemas();
+      List<ColumnDescriptor> fieldSchemas = resultSchema.getColumnDescriptors();
       StringBuilder namesSb = new StringBuilder();
       StringBuilder typesSb = new StringBuilder();
 
@@ -372,7 +360,7 @@ public class SQLOperation extends ExecuteStatementOperation {
             typesSb.append(",");
           }
           namesSb.append(fieldSchemas.get(pos).getName());
-          typesSb.append(fieldSchemas.get(pos).getType());
+          typesSb.append(fieldSchemas.get(pos).getTypeName());
         }
       }
       String names = namesSb.toString();
@@ -407,10 +395,10 @@ public class SQLOperation extends ExecuteStatementOperation {
    * @return new configuration
    * @throws HiveSQLException
    */
-  private HiveConf getConfigForOperation() throws HiveSQLException {
+  private HiveConf getConfigForOperation(boolean async) throws HiveSQLException {
     HiveConf sqlOperationConf = getParentSession().getHiveConf();
-    if (!getConfOverlay().isEmpty() || shouldRunAsync()) {
-      // clone the partent session config for this query
+    if (!getConfOverlay().isEmpty() || async) {
+      // clone the parent session config for this query
       sqlOperationConf = new HiveConf(sqlOperationConf);
 
       // apply overlay query specific settings, if any

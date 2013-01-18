@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -41,6 +42,7 @@ import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hive.service.CompileResult;
 import org.apache.hive.service.CompositeService;
 import org.apache.hive.service.ServiceException;
 import org.apache.hive.service.auth.HiveAuthFactory;
@@ -228,6 +230,29 @@ public class CLIService extends CompositeService implements ICLIService {
     return opHandle;
   }
 
+  @Override
+  public CompileResult compileStatement(SessionHandle sessionHandle, String statement, Map<String, String> confOverlay)
+      throws HiveSQLException {
+    CompileResult result = sessionManager.getSession(sessionHandle)
+        .compileStatement(statement, confOverlay);
+    LOG.info(sessionHandle + ": compileStatement()");
+    return result;
+  }
+
+  @Override
+  public void runStatement(SessionHandle sessionHandle, OperationHandle opHandle) throws HiveSQLException {
+    sessionManager.getSession(sessionHandle)
+        .runStatement(opHandle);
+    LOG.info(sessionHandle + ": runStatement()");
+  }
+
+  @Override
+  public void executeTransient(SessionHandle sessionHandle, String statement, Map<String, String> confOverlay) throws HiveSQLException {
+    sessionManager.getSession(sessionHandle)
+        .executeTransient(statement, confOverlay);
+    LOG.info(sessionHandle + ": executeTransient()");
+  }
+
   /* (non-Javadoc)
    * @see org.apache.hive.service.cli.ICLIService#executeStatementAsync(org.apache.hive.service.cli.SessionHandle,
    *  java.lang.String, java.util.Map)
@@ -343,11 +368,12 @@ public class CLIService extends CompositeService implements ICLIService {
      * (duration: HIVE_SERVER2_LONG_POLLING_TIMEOUT).
      * However, if the background operation is complete, we return immediately.
      */
-    if (operation.shouldRunAsync()) {
+    Future<?> backgroundHandle = operation.getBackgroundHandle();
+    if (backgroundHandle != null) {
       long timeout = operation.getParentSession().getHiveConf().getLongVar(
           HiveConf.ConfVars.HIVE_SERVER2_LONG_POLLING_TIMEOUT);
       try {
-        operation.getBackgroundHandle().get(timeout, TimeUnit.MILLISECONDS);
+        backgroundHandle.get(timeout, TimeUnit.MILLISECONDS);
       } catch (TimeoutException e) {
         // No Op, return to the caller since long polling timeout has expired
         LOG.trace(opHandle + ": Long polling timed out");
