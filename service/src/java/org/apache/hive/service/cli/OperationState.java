@@ -70,6 +70,10 @@ public enum OperationState {
       }
       break;
     case FINISHED:
+      switch (newState) {
+      case RUNNING:
+        return;
+      }
     case CANCELED:
     case ERROR:
       if (OperationState.CLOSED.equals(newState)) {
@@ -78,7 +82,8 @@ public enum OperationState {
     default:
       // fall-through
     }
-    throw new HiveSQLException("Illegal Operation state transition");
+    throw new HiveSQLException("Illegal Operation state transition " +
+        "from " + oldState + " to " + newState);
   }
 
   public void validateTransition(OperationState newState)

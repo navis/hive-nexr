@@ -52,6 +52,10 @@ public class RowSet {
     this.startOffset = startOffset;
   }
 
+  public List<Row> getRows() {
+    return rows;
+  }
+
   public RowSet addRow(Row row) {
     rows.add(row);
     return this;

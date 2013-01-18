@@ -18,7 +18,6 @@
 
 package org.apache.hive.service.cli.session;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -35,8 +33,10 @@ import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.ql.history.HiveHistory;
+import org.apache.hadoop.hive.ql.plan.api.Query;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hive.common.util.HiveVersionInfo;
+import org.apache.hive.service.CompileResult;
 import org.apache.hive.service.cli.FetchOrientation;
 import org.apache.hive.service.cli.GetInfoType;
 import org.apache.hive.service.cli.GetInfoValue;
@@ -53,7 +53,9 @@ import org.apache.hive.service.cli.operation.GetSchemasOperation;
 import org.apache.hive.service.cli.operation.GetTableTypesOperation;
 import org.apache.hive.service.cli.operation.GetTypeInfoOperation;
 import org.apache.hive.service.cli.operation.MetadataOperation;
+import org.apache.hive.service.cli.operation.Operation;
 import org.apache.hive.service.cli.operation.OperationManager;
+import org.apache.hive.service.cli.operation.SQLOperation;
 
 /**
  * HiveSession
@@ -182,6 +184,54 @@ public class HiveSessionImpl implements HiveSession {
       OperationHandle opHandle = operation.getHandle();
       opHandleSet.add(opHandle);
       return opHandle;
+    } finally {
+      release();
+    }
+  }
+
+  public CompileResult compileStatement(String statement, Map<String, String> confOverlay)
+      throws HiveSQLException {
+    acquire();
+    try {
+      OperationManager manager = getOperationManager();
+      ExecuteStatementOperation operation = manager
+          .newExecuteStatementOperation(this, statement, confOverlay);
+      Query queryPlan = null;
+      if (operation instanceof SQLOperation) {
+        queryPlan = ((SQLOperation)operation).compile();
+      } else {
+        operation.run();
+      }
+      return new CompileResult(operation.getHandle().toTOperationHandle(), queryPlan);
+    } finally {
+      release();
+    }
+  }
+
+  public void runStatement(OperationHandle opHandle) throws HiveSQLException {
+    acquire();
+    try {
+      Operation operation = getOperationManager().getOperation(opHandle);
+      if (operation instanceof SQLOperation) {
+        ((SQLOperation)operation).execute();
+      }
+    } finally {
+      release();
+    }
+  }
+
+  public void executeTransient(String statement, Map<String, String> confOverlay)
+      throws HiveSQLException {
+    acquire();
+    try {
+      ExecuteStatementOperation operation = getOperationManager()
+          .newExecuteStatementOperation(this, statement, confOverlay);
+      try {
+        assert !(operation instanceof SQLOperation);
+        operation.run();
+      } finally {
+        getOperationManager().closeOperation(operation.getHandle());
+      }
     } finally {
       release();
     }

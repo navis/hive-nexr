@@ -165,4 +165,86 @@ public class ColumnValue {
     return new TColumnValue(tColumnValue);
   }
 
+
+
+  private Boolean getBooleanValue(TBoolValue tBoolValue) {
+    if (tBoolValue.isSetValue()) {
+      return tBoolValue.isValue();
+    }
+    return null;
+  }
+
+  private Byte getByteValue(TByteValue tByteValue) {
+    if (tByteValue.isSetValue()) {
+      return tByteValue.getValue();
+    }
+    return null;
+  }
+
+  private Short getShortValue(TI16Value tI16Value) {
+    if (tI16Value.isSetValue()) {
+      return tI16Value.getValue();
+    }
+    return null;
+  }
+
+  private Integer getIntegerValue(TI32Value tI32Value) {
+    if (tI32Value.isSetValue()) {
+      return tI32Value.getValue();
+    }
+    return null;
+  }
+
+  private Long getLongValue(TI64Value tI64Value) {
+    if (tI64Value.isSetValue()) {
+      return tI64Value.getValue();
+    }
+    return null;
+  }
+
+  private Double getDoubleValue(TDoubleValue tDoubleValue) {
+    if (tDoubleValue.isSetValue()) {
+      return tDoubleValue.getValue();
+    }
+    return null;
+  }
+
+  private String getStringValue(TStringValue tStringValue) {
+    if (tStringValue.isSetValue()) {
+      return tStringValue.getValue();
+    }
+    return null;
+  }
+
+  private Timestamp getTimestampValue(TStringValue tStringValue) {
+    if (tStringValue.isSetValue()) {
+      return Timestamp.valueOf(tStringValue.getValue());
+    }
+    return null;
+  }
+
+  public Object getColumnValue(Type columnType) throws Exception {
+    switch (columnType) {
+    case BOOLEAN_TYPE:
+      return getBooleanValue(tColumnValue.getBoolVal());
+    case TINYINT_TYPE:
+      return getByteValue(tColumnValue.getByteVal());
+    case SMALLINT_TYPE:
+      return getShortValue(tColumnValue.getI16Val());
+    case INT_TYPE:
+      return getIntegerValue(tColumnValue.getI32Val());
+    case BIGINT_TYPE:
+      return getLongValue(tColumnValue.getI64Val());
+    case FLOAT_TYPE:
+      return getDoubleValue(tColumnValue.getDoubleVal());
+    case DOUBLE_TYPE:
+      return getDoubleValue(tColumnValue.getDoubleVal());
+    case STRING_TYPE:
+      return getStringValue(tColumnValue.getStringVal());
+    case TIMESTAMP_TYPE:
+      return getTimestampValue(tColumnValue.getStringVal());
+    default:
+      throw new IllegalArgumentException("Unrecognized column type:" + columnType);
+    }
+  }
 }

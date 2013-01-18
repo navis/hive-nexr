@@ -48,6 +48,7 @@ public class Utils {
   private static final String URI_JDBC_PREFIX = "jdbc:";
 
   public static class JdbcConnectionParams {
+    private String scheme;
     private String host = null;
     private int port;
     private String dbName = DEFAULT_DATABASE;
@@ -59,6 +60,9 @@ public class Utils {
     public JdbcConnectionParams() {
     }
 
+    public String getScheme() {
+      return scheme;
+    }
     public String getHost() {
       return host;
     }
@@ -81,6 +85,9 @@ public class Utils {
       return sessionVars;
     }
 
+    public void setScheme(String scheme) {
+      this.scheme = scheme;
+    }
     public void setHost(String host) {
       this.host = host;
     }
@@ -179,19 +186,23 @@ public class Utils {
    * @return
    */
   public static JdbcConnectionParams parseURL(String uri) throws IllegalArgumentException {
-    JdbcConnectionParams connParams = new JdbcConnectionParams();
-
     if (!uri.startsWith(URL_PREFIX)) {
       throw new IllegalArgumentException("Bad URL format");
     }
 
     // Don't parse URL with no other configuration.
     if (uri.equalsIgnoreCase(URL_PREFIX)) {
+      JdbcConnectionParams connParams = new JdbcConnectionParams();
       connParams.setEmbeddedMode(true);
       return connParams;
     }
-    URI jdbcURI = URI.create(uri.substring(URI_JDBC_PREFIX.length()));
+    String uriPart = uri.substring(URI_JDBC_PREFIX.length());
+    return parseURI(URI.create(uriPart));
+  }
 
+  public static JdbcConnectionParams parseURI(URI jdbcURI) {
+    JdbcConnectionParams connParams = new JdbcConnectionParams();
+    connParams.setScheme(jdbcURI.getScheme());
     connParams.setHost(jdbcURI.getHost());
     if (connParams.getHost() == null) {
       connParams.setEmbeddedMode(true);
@@ -208,7 +219,7 @@ public class Utils {
 
     // dbname and session settings
     String sessVars = jdbcURI.getPath();
-    if ((sessVars == null) || sessVars.isEmpty()) {
+    if (sessVars == null || sessVars.isEmpty()) {
       connParams.setDbName(DEFAULT_DATABASE);
     } else {
       // removing leading '/' returned by getPath()

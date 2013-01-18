@@ -35,6 +35,8 @@
 namespace java org.apache.hive.service.cli.thrift
 namespace cpp apache.hive.service.cli.thrift
 
+include "ql/if/queryplan.thrift"
+
 // List of protocol versions. A new token should be
 // added to the end of this list every time a change is made.
 enum TProtocolVersion {
@@ -961,6 +963,17 @@ struct TFetchResultsResp {
   3: optional TRowSet results
 }
 
+struct TCompileRes {
+  1: required TStatus status
+  2: required TOperationHandle operationHandle
+  3: optional queryplan.Query queryPlan
+}
+
+struct TRunReq {
+  1: required TSessionHandle sessionHandle
+  2: required TOperationHandle operationHandle
+}
+
 service TCLIService {
 
   TOpenSessionResp OpenSession(1:TOpenSessionReq req);
@@ -986,7 +999,7 @@ service TCLIService {
   TGetFunctionsResp GetFunctions(1:TGetFunctionsReq req);
 
   TGetOperationStatusResp GetOperationStatus(1:TGetOperationStatusReq req);
-  
+
   TCancelOperationResp CancelOperation(1:TCancelOperationReq req);
 
   TCloseOperationResp CloseOperation(1:TCloseOperationReq req);
@@ -994,4 +1007,10 @@ service TCLIService {
   TGetResultSetMetadataResp GetResultSetMetadata(1:TGetResultSetMetadataReq req);
   
   TFetchResultsResp FetchResults(1:TFetchResultsReq req);
+
+  TCompileRes Compile(1:TExecuteStatementReq req);
+
+  TStatus Run(1:TRunReq req);
+
+  TStatus ExecuteTransient(1:TExecuteStatementReq req);
 }
