@@ -5,6 +5,8 @@
 #
 
 require 'thrift'
+require 'queryplan_types'
+
 
 module TProtocolVersion
   HIVE_CLI_SERVICE_PROTOCOL_V1 = 0
@@ -1401,6 +1403,49 @@ class TFetchResultsResp
 
   def validate
     raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field status is unset!') unless @status
+  end
+
+  ::Thrift::Struct.generate_accessors self
+end
+
+class TCompileRes
+  include ::Thrift::Struct, ::Thrift::Struct_Union
+  STATUS = 1
+  QUERYPLAN = 2
+  OPERATIONHANDLE = 3
+
+  FIELDS = {
+    STATUS => {:type => ::Thrift::Types::STRUCT, :name => 'status', :class => ::TStatus},
+    QUERYPLAN => {:type => ::Thrift::Types::STRUCT, :name => 'queryPlan', :class => ::Query},
+    OPERATIONHANDLE => {:type => ::Thrift::Types::STRUCT, :name => 'operationHandle', :class => ::TOperationHandle}
+  }
+
+  def struct_fields; FIELDS; end
+
+  def validate
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field status is unset!') unless @status
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field queryPlan is unset!') unless @queryPlan
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field operationHandle is unset!') unless @operationHandle
+  end
+
+  ::Thrift::Struct.generate_accessors self
+end
+
+class TRunReq
+  include ::Thrift::Struct, ::Thrift::Struct_Union
+  SESSIONHANDLE = 1
+  OPERATIONHANDLE = 2
+
+  FIELDS = {
+    SESSIONHANDLE => {:type => ::Thrift::Types::STRUCT, :name => 'sessionHandle', :class => ::TSessionHandle},
+    OPERATIONHANDLE => {:type => ::Thrift::Types::STRUCT, :name => 'operationHandle', :class => ::TOperationHandle}
+  }
+
+  def struct_fields; FIELDS; end
+
+  def validate
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field sessionHandle is unset!') unless @sessionHandle
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field operationHandle is unset!') unless @operationHandle
   end
 
   ::Thrift::Struct.generate_accessors self

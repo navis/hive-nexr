@@ -27,6 +27,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hive.service.AbstractService;
+import org.apache.hive.service.CompileResult;
 import org.apache.hive.service.auth.HiveAuthFactory;
 import org.apache.hive.service.cli.FetchOrientation;
 import org.apache.hive.service.cli.GetInfoType;
@@ -358,6 +359,51 @@ public class ThriftCLIService extends AbstractService implements TCLIService.Ifa
     return resp;
   }
 
+  @Override
+  public TCompileRes Compile(TExecuteStatementReq req) throws TException {
+    TCompileRes resp = new TCompileRes();
+    try {
+      SessionHandle sessionHandle = new SessionHandle(req.getSessionHandle());
+      String statement = req.getStatement();
+      Map<String, String> confOverlay = req.getConfOverlay();
+      CompileResult result =
+          sqlService.compileStatement(sessionHandle, statement, confOverlay);
+      resp.setOperationHandle(result.getHandle());
+      resp.setQueryPlan(result.getPlan());
+      resp.setStatus(OK_STATUS);
+    } catch (Exception e) {
+      e.printStackTrace();
+      resp.setStatus(HiveSQLException.toTStatus(e));
+    }
+    return resp;
+  }
+
+  @Override
+  public TStatus Run(TRunReq req) throws TException {
+    try {
+      SessionHandle sessionHandle = new SessionHandle(req.getSessionHandle());
+      OperationHandle operationHandle = new OperationHandle(req.getOperationHandle());
+      sqlService.runStatement(sessionHandle, operationHandle);
+      return OK_STATUS;
+    } catch (Exception e) {
+      e.printStackTrace();
+      return HiveSQLException.toTStatus(e);
+    }
+  }
+
+  @Override
+  public TStatus ExecuteTransient(TExecuteStatementReq req) throws TException {
+    try {
+      SessionHandle sessionHandle = new SessionHandle(req.getSessionHandle());
+      String statement = req.getStatement();
+      Map<String, String> confOverlay = req.getConfOverlay();
+      sqlService.executeTransient(sessionHandle, statement, confOverlay);
+      return OK_STATUS;
+    } catch (Exception e) {
+      e.printStackTrace();
+      return HiveSQLException.toTStatus(e);
+    }
+  }
 
   @Override
   public void run() {

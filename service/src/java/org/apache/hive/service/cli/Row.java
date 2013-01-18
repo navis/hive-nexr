@@ -48,6 +48,10 @@ public class Row {
     }
   }
 
+  public List<ColumnValue> getValues() {
+    return values;
+  }
+
   public Row addColumnValue(ColumnValue value) {
     values.add(value);
     return this;
