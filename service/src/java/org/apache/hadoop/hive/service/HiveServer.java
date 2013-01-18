@@ -288,7 +288,7 @@ public class HiveServer extends ThriftHive {
         if (proc instanceof Driver) {
           isHiveQuery = true;
           driver = (Driver) proc;
-          response = driver.compileCommand(cmd);
+          response = driver.compileCommand(cmd, false);
         } else {
           isHiveQuery = false;
           driver = null;
@@ -322,7 +322,7 @@ public class HiveServer extends ThriftHive {
           // case, when calling fetch quueries since execute() has returned.
           // For now, we disable the test attempts.
           driver.setTryCount(Integer.MAX_VALUE);
-          response = driver.executePlan();
+          response = driver.executePlan(false);
         } catch (Exception e) {
           HiveServerException ex = new HiveServerException();
           ex.setMessage("Error running query: " + e.toString());

@@ -39,8 +39,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
-import javax.security.sasl.SaslException;
-
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hive.service.auth.KerberosSaslHelper;
 import org.apache.hive.service.auth.PlainSaslHelper;
@@ -53,10 +51,8 @@ import org.apache.hive.service.cli.thrift.TProtocolVersion;
 import org.apache.hive.service.cli.thrift.TSessionHandle;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
-import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
-import org.apache.thrift.transport.TTransportException;
 
 /**
  * HiveConnection.
@@ -77,11 +73,27 @@ public class HiveConnection implements java.sql.Connection {
   private SQLWarning warningChain = null;
   private TSessionHandle sessHandle = null;
   private final List<TProtocolVersion> supportedProtocols = new LinkedList<TProtocolVersion>();
+
+  public HiveConnection() {}
+
   /**
    * TODO: - parse uri (use java.net.URI?).
    */
   public HiveConnection(String uri, Properties info) throws SQLException {
-    Utils.JdbcConnectionParams connParams = Utils.parseURL(uri);
+    try {
+      initialize(Utils.parseURL(uri), info);
+    } catch (Exception e) {
+      try {
+        close();
+      } catch (SQLException e1) {
+        // ignore
+      }
+      throw new SQLException("Could not establish connection to "
+                  + uri + ": " + e.getMessage(), " 08S01", e);
+    }
+  }
+
+  public void initialize(Utils.JdbcConnectionParams connParams, Properties info) throws Exception {
     if (connParams.isEmbeddedMode()) {
       client = new EmbeddedThriftCLIService();
     } else {
@@ -92,15 +104,16 @@ public class HiveConnection implements java.sql.Connection {
             connParams.getSessionVars().put(HIVE_AUTH_PASSWD, info.getProperty(HIVE_AUTH_PASSWD));
         }
       }
-
-      openTransport(uri, connParams.getHost(), connParams.getPort(), connParams.getSessionVars());
+      transport = openTransport(connParams);
+      client = new TCLIService.Client(new TBinaryProtocol(transport));
     }
 
     // currently only V1 is supported
     supportedProtocols.add(TProtocolVersion.HIVE_CLI_SERVICE_PROTOCOL_V1);
 
     // open client session
-    openSession(uri);
+    sessHandle = openSession(supportedProtocols);
+    isClosed = false;
 
     configureConnection(connParams);
   }
@@ -122,66 +135,48 @@ public class HiveConnection implements java.sql.Connection {
     }
   }
 
-  private void openTransport(String uri, String host, int port, Map<String, String> sessConf )
-      throws SQLException {
-    transport = new TSocket(host, port);
+  private TTransport openTransport(Utils.JdbcConnectionParams connParams)
+      throws Exception {
+    TTransport transport = new TSocket(connParams.getHost(), connParams.getPort());
 
+    Map<String, String> sessConf = connParams.getSessionVars();
     // handle secure connection if specified
     if (!sessConf.containsKey(HIVE_AUTH_TYPE)
-        || !sessConf.get(HIVE_AUTH_TYPE).equals(HIVE_AUTH_SIMPLE)){
-      try {
-        if (sessConf.containsKey(HIVE_AUTH_PRINCIPAL)) {
-          transport = KerberosSaslHelper.getKerberosTransport(
-                  sessConf.get(HIVE_AUTH_PRINCIPAL), host, transport);
-        } else {
-          String userName = sessConf.get(HIVE_AUTH_USER);
-          if ((userName == null) || userName.isEmpty()) {
-            userName = HIVE_ANONYMOUS_USER;
-          }
-          String passwd = sessConf.get(HIVE_AUTH_PASSWD);
-          if ((passwd == null) || passwd.isEmpty()) {
-            passwd = HIVE_ANONYMOUS_PASSWD;
-          }
-          transport = PlainSaslHelper.getPlainTransport(userName, passwd, transport);
+      || !sessConf.get(HIVE_AUTH_TYPE).equals(HIVE_AUTH_SIMPLE)){
+      if (sessConf.containsKey(HIVE_AUTH_PRINCIPAL)) {
+        transport = KerberosSaslHelper.getKerberosTransport(
+          sessConf.get(HIVE_AUTH_PRINCIPAL), connParams.getHost(), transport);
+      } else {
+        String userName = sessConf.get(HIVE_AUTH_USER);
+        if ((userName == null) || userName.isEmpty()) {
+          userName = HIVE_ANONYMOUS_USER;
         }
-      } catch (SaslException e) {
-        throw new SQLException("Could not establish secure connection to "
-                  + uri + ": " + e.getMessage(), " 08S01");
+        String passwd = sessConf.get(HIVE_AUTH_PASSWD);
+        if ((passwd == null) || passwd.isEmpty()) {
+          passwd = HIVE_ANONYMOUS_PASSWD;
+        }
+        transport = PlainSaslHelper.getPlainTransport(userName, passwd, transport);
       }
     }
-
-    TProtocol protocol = new TBinaryProtocol(transport);
-    client = new TCLIService.Client(protocol);
-    try {
-      transport.open();
-    } catch (TTransportException e) {
-      e.printStackTrace();
-      throw new SQLException("Could not establish connection to "
-          + uri + ": " + e.getMessage(), " 08S01");
-    }
+    transport.open();
+    return transport;
   }
 
-    private void openSession(String uri) throws SQLException {
-      TOpenSessionReq openReq = new TOpenSessionReq();
+  private TSessionHandle openSession(List<TProtocolVersion> supported) throws Exception {
+    TOpenSessionReq openReq = new TOpenSessionReq();
 
-      // set the session configuration
-      // openReq.setConfiguration(null);
+    // set the session configuration
+    // openReq.setConfiguration(null);
 
-      try {
-        TOpenSessionResp openResp = client.OpenSession(openReq);
+    TOpenSessionResp openResp = client.OpenSession(openReq);
 
-        // validate connection
-        Utils.verifySuccess(openResp.getStatus());
-        if (!supportedProtocols.contains(openResp.getServerProtocolVersion())) {
-          throw new TException("Unsupported Hive2 protocol");
-        }
-        sessHandle = openResp.getSessionHandle();
-      } catch (TException e) {
-        throw new SQLException("Could not establish connection to "
-            + uri + ": " + e.getMessage(), " 08S01");
-      }
-      isClosed = false;
+    // validate connection
+    Utils.verifySuccess(openResp.getStatus());
+    if (!supportedProtocols.contains(openResp.getServerProtocolVersion())) {
+      throw new TException("Unsupported Hive2 protocol");
     }
+    return openResp.getSessionHandle();
+  }
 
   /*
    * (non-Javadoc)
@@ -200,16 +195,20 @@ public class HiveConnection implements java.sql.Connection {
    */
 
   public void close() throws SQLException {
-    if (!isClosed) {
-      TCloseSessionReq closeReq = new TCloseSessionReq(sessHandle);
-      try {
+    try {
+      if (!isClosed) {
+        TCloseSessionReq closeReq = new TCloseSessionReq(sessHandle);
         client.CloseSession(closeReq);
-      } catch (TException e) {
-        throw new SQLException("Error while cleaning up the server resources", e);
-      } finally {
-        isClosed = true;
-        if (transport != null) {
+      }
+    } catch (TException e) {
+      throw new SQLException("Error while cleaning up the server resources", e);
+    } finally {
+      isClosed = true;
+      if (transport != null) {
+        try {
           transport.close();
+        } catch (Exception e) {
+          // ignore
         }
       }
     }
@@ -740,4 +739,15 @@ public class HiveConnection implements java.sql.Connection {
     throw new SQLException("Method not supported");
   }
 
+  public TTransport getTransport() {
+    return transport;
+  }
+
+  public TCLIService.Iface getClient() {
+    return client;
+  }
+
+  public TSessionHandle getSessHandle() {
+    return sessHandle;
+  }
 }

@@ -115,7 +115,7 @@ public class BitmapIndexHandler extends TableBasedIndexHandler {
     HiveConf queryConf = new HiveConf(pctx.getConf(), BitmapIndexHandler.class);
     HiveConf.setBoolVar(queryConf, HiveConf.ConfVars.COMPRESSRESULT, false);
     Driver driver = new Driver(queryConf);
-    driver.compile(qlCommand.toString(), false);
+    driver.compile(qlCommand.toString(), false, false);
 
     queryContext.setIndexIntermediateFile(tmpFile);
     queryContext.addAdditionalSemanticInputs(driver.getPlan().getInputs());

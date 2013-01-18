@@ -32,6 +32,7 @@ import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.shims.ShimLoader;
+import org.apache.hive.service.CompileResult;
 import org.apache.hive.service.CompositeService;
 import org.apache.hive.service.ServiceException;
 import org.apache.hive.service.auth.HiveAuthFactory;
@@ -149,6 +150,29 @@ public class CLIService extends CompositeService implements ICLIService {
         .executeStatement(statement, confOverlay);
     LOG.info(sessionHandle + ": executeStatement()");
     return opHandle;
+  }
+
+  @Override
+  public CompileResult compileStatement(SessionHandle sessionHandle, String statement, Map<String, String> confOverlay)
+      throws HiveSQLException {
+    CompileResult result = sessionManager.getSession(sessionHandle)
+        .compileStatement(statement, confOverlay);
+    LOG.info(sessionHandle + ": compileStatement()");
+    return result;
+  }
+
+  @Override
+  public void runStatement(SessionHandle sessionHandle, OperationHandle opHandle) throws HiveSQLException {
+    sessionManager.getSession(sessionHandle)
+        .runStatement(opHandle);
+    LOG.info(sessionHandle + ": runStatement()");
+  }
+
+  @Override
+  public void executeTransient(SessionHandle sessionHandle, String statement, Map<String, String> confOverlay) throws HiveSQLException {
+    sessionManager.getSession(sessionHandle)
+        .executeTransient(statement, confOverlay);
+    LOG.info(sessionHandle + ": executeTransient()");
   }
 
   /* (non-Javadoc)

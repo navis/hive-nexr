@@ -157,7 +157,7 @@ public class IndexUpdater {
     sb.append(ps.toString());
     sb.append(" REBUILD");
     Driver driver = new Driver(this.conf);
-    driver.compile(sb.toString(), false);
+    driver.compile(sb.toString(), false, false);
     tasks.addAll(driver.getPlan().getRootTasks());
     inputs.addAll(driver.getPlan().getInputs());
   }

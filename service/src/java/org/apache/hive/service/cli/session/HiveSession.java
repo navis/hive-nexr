@@ -24,6 +24,7 @@ import java.util.Map;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hadoop.hive.ql.session.SessionState;
+import org.apache.hive.service.CompileResult;
 import org.apache.hive.service.cli.FetchOrientation;
 import org.apache.hive.service.cli.GetInfoType;
 import org.apache.hive.service.cli.GetInfoValue;
@@ -74,6 +75,14 @@ public interface HiveSession {
    */
   public OperationHandle executeStatement(String statement,
       Map<String, String> confOverlay) throws HiveSQLException;
+
+  public CompileResult compileStatement(String statement, Map<String, String> confOverlay)
+      throws HiveSQLException;
+
+  public void runStatement(OperationHandle opHandle) throws HiveSQLException;
+
+  public void executeTransient(String statement, Map<String, String> confOverlay)
+      throws HiveSQLException;
 
   /**
    * getTypeInfo operation handler

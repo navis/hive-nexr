@@ -30,7 +30,9 @@ import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.ql.CommandNeedRetryException;
 import org.apache.hadoop.hive.ql.Driver;
+import org.apache.hadoop.hive.ql.QueryPlan;
 import org.apache.hadoop.hive.ql.parse.VariableSubstitution;
+import org.apache.hadoop.hive.ql.plan.api.Query;
 import org.apache.hadoop.hive.ql.processors.CommandProcessorResponse;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.serde.serdeConstants;
@@ -74,25 +76,41 @@ public class SQLOperation extends ExecuteStatementOperation {
 
   @Override
   public void run() throws HiveSQLException {
+    compile();
+    execute();
+  }
+
+  public Query compile() throws HiveSQLException {
+    HiveConf hiveConf = getParentSession().getHiveConf();
     setState(OperationState.RUNNING);
-    String statement_trimmed = statement.trim();
-    String[] tokens = statement_trimmed.split("\\s");
-    String cmd_1 = statement_trimmed.substring(tokens[0].length()).trim();
-
-    int ret = 0;
-    String errorMessage = "";
-    String SQLState = null;
-
     try {
-      driver = new Driver(getParentSession().getHiveConf());
+      driver = new Driver(hiveConf);
       // In Hive server mode, we are not able to retry in the FetchTask
       // case, when calling fetch queries since execute() has returned.
       // For now, we disable the test attempts.
       driver.setTryCount(Integer.MAX_VALUE);
 
-      String subStatement = new VariableSubstitution().substitute(getParentSession().getHiveConf(), statement);
+      String subStatement = new VariableSubstitution().substitute(hiveConf, statement);
 
-      response = driver.run(subStatement);
+      response = driver.compileCommand(subStatement, false);
+      if (0 != response.getResponseCode()) {
+        throw new HiveSQLException("Error while processing statement: "
+            + response.getErrorMessage(), response.getSQLState(), response.getResponseCode());
+      }
+      Query query = getPlan().getQueryPlan();
+      setState(OperationState.FINISHED);
+      return query;
+    } catch (Exception e) {
+      setState(OperationState.ERROR);
+      throw new HiveSQLException("Error compiling query: " + e.toString(), e);
+    }
+  }
+
+  public void execute() throws HiveSQLException {
+    assert driver != null;
+    setState(OperationState.RUNNING);
+    try {
+      response = driver.executePlan(false);
       if (0 != response.getResponseCode()) {
         throw new HiveSQLException("Error while processing statement: "
             + response.getErrorMessage(), response.getSQLState(), response.getResponseCode());
@@ -105,14 +123,15 @@ public class SQLOperation extends ExecuteStatementOperation {
       } else {
         setHasResultSet(false);
       }
-    } catch (HiveSQLException e) {
-      setState(OperationState.ERROR);
-      throw e;
     } catch (Exception e) {
       setState(OperationState.ERROR);
-      throw new HiveSQLException("Error running query: " + e.toString());
+      throw new HiveSQLException("Error running query: " + e.toString(), e);
     }
     setState(OperationState.FINISHED);
+  }
+
+  public QueryPlan getPlan() {
+    return driver.getPlan();
   }
 
   @Override

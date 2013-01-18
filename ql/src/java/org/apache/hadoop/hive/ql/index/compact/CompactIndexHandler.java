@@ -184,7 +184,7 @@ public class CompactIndexHandler extends TableBasedIndexHandler {
     HiveConf queryConf = new HiveConf(pctx.getConf(), CompactIndexHandler.class);
     HiveConf.setBoolVar(queryConf, HiveConf.ConfVars.COMPRESSRESULT, false);
     Driver driver = new Driver(queryConf);
-    driver.compile(qlCommand.toString(), false);
+    driver.compile(qlCommand.toString(), false, false);
 
     if (pctx.getConf().getBoolVar(ConfVars.HIVE_INDEX_COMPACT_BINARY_SEARCH) && useSorted) {
       // For now, only works if the predicate is a single condition
