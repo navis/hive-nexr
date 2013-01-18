@@ -127,6 +127,9 @@ public class Driver implements CommandProcessor {
   private String errorMessage;
   private String SQLState;
 
+  private transient List<HiveDriverRunHook> driverRunHooks;
+  private transient HiveDriverRunHookContext hookContext;
+
   // A limit on the number of threads that can be launched
   private int maxthreads;
   private static final int SLEEP_TIME = 2000;
@@ -327,14 +330,18 @@ public class Driver implements CommandProcessor {
     }
   }
 
+  public int compile(String command) {
+    return compile(command, false, true);
+  }
+
   /**
    * Compile a new query. Any currently-planned query associated with this Driver is discarded.
    *
    * @param command
    *          The SQL query to compile.
    */
-  public int compile(String command) {
-    return compile(command, true);
+  public int compile(String command, boolean run) {
+    return compile(command, run, true);
   }
 
   /**
@@ -390,7 +397,7 @@ public class Driver implements CommandProcessor {
    * @param resetTaskIds Resets taskID counter if true.
    * @return 0 for ok
    */
-  public int compile(String command, boolean resetTaskIds) {
+  public int compile(String command, boolean run, boolean resetTaskIds) {
     PerfLogger perfLogger = PerfLogger.getPerfLogger();
     perfLogger.PerfLogBegin(LOG, PerfLogger.COMPILE);
 
@@ -444,7 +451,8 @@ public class Driver implements CommandProcessor {
       // validate the plan
       sem.validate();
 
-      plan = new QueryPlan(command, sem, perfLogger.getStartTime(PerfLogger.DRIVER_RUN));
+      long startTime = perfLogger.getStartTime(run ? PerfLogger.DRIVER_RUN : PerfLogger.COMPILE);
+      plan = new QueryPlan(command, sem, startTime);
 
       // test Only - serialize the query plan and deserialize it
       if ("true".equalsIgnoreCase(System.getProperty("test.serialize.qplan"))) {
@@ -864,25 +872,26 @@ public class Driver implements CommandProcessor {
   }
 
   public CommandProcessorResponse run(String command) throws CommandNeedRetryException {
-    CommandProcessorResponse ret = compileCommand(command);
-    if (ret.getResponseCode() == 0) {
-      return executePlan();
+    CommandProcessorResponse response = compileCommand(command, true);
+    if (response.getResponseCode() != 0) {
+      return response;
     }
-    return ret;
+    return executePlan(true);
   }
 
-  public CommandProcessorResponse compileCommand(String command) {
+  public CommandProcessorResponse compileCommand(String command, boolean run) {
     errorMessage = null;
     SQLState = null;
+
+    driverRunHooks = null;
+    hookContext = null;
 
     if (!validateConfVariables()) {
       return new CommandProcessorResponse(12, errorMessage, SQLState);
     }
 
-    HiveDriverRunHookContext hookContext = new HiveDriverRunHookContextImpl(conf, command);
-    SessionState.get().setHookContext(hookContext);
+    hookContext = new HiveDriverRunHookContextImpl(conf, command);
     // Get all the driver run hooks and pre-execute them.
-    List<HiveDriverRunHook> driverRunHooks;
     try {
       driverRunHooks = getHooks(HiveConf.ConfVars.HIVE_DRIVER_RUN_HOOKS, HiveDriverRunHook.class);
       for (HiveDriverRunHook driverRunHook : driverRunHooks) {
@@ -897,13 +906,15 @@ public class Driver implements CommandProcessor {
     }
 
     // Reset the perf logger
-    PerfLogger perfLogger = PerfLogger.getPerfLogger(true);
-    perfLogger.PerfLogBegin(LOG, PerfLogger.DRIVER_RUN);
-    perfLogger.PerfLogBegin(LOG, PerfLogger.TIME_TO_SUBMIT);
+    if (run) {
+      PerfLogger perfLogger = PerfLogger.getPerfLogger(true);
+      perfLogger.PerfLogBegin(LOG, PerfLogger.DRIVER_RUN);
+      perfLogger.PerfLogBegin(LOG, PerfLogger.TIME_TO_SUBMIT);
+    }
 
     int ret;
     synchronized (compileMonitor) {
-      ret = compile(command);
+      ret = compile(command, run);
     }
     if (ret != 0) {
       releaseLocks(ctx.getHiveLocks());
@@ -912,7 +923,7 @@ public class Driver implements CommandProcessor {
     return new CommandProcessorResponse(ret);
   }
 
-  public CommandProcessorResponse executePlan() throws CommandNeedRetryException {
+  public CommandProcessorResponse executePlan(boolean run) throws CommandNeedRetryException {
 
     int ret;
     boolean requireLock = false;
@@ -951,7 +962,7 @@ public class Driver implements CommandProcessor {
       }
     }
 
-    ret = execute();
+    ret = execute(run);
     if (ret != 0) {
       //if needRequireLock is false, the release here will do nothing because there is no lock
       releaseLocks(ctx.getHiveLocks());
@@ -961,8 +972,10 @@ public class Driver implements CommandProcessor {
     //if needRequireLock is false, the release here will do nothing because there is no lock
     releaseLocks(ctx.getHiveLocks());
 
-    PerfLogger perfLogger = PerfLogger.getPerfLogger();
-    perfLogger.PerfLogEnd(LOG, PerfLogger.DRIVER_RUN);
+    PerfLogger perfLogger = PerfLogger.getPerfLogger(true);
+    if (run) {
+      perfLogger.PerfLogEnd(LOG, PerfLogger.DRIVER_RUN);
+    }
     perfLogger.close(LOG, plan);
 
     // Take all the driver run hooks and post-execute them.
@@ -1057,7 +1070,7 @@ public class Driver implements CommandProcessor {
     return hooks;
   }
 
-  public int execute() throws CommandNeedRetryException {
+  public int execute(boolean run) throws CommandNeedRetryException {
     PerfLogger perfLogger = PerfLogger.getPerfLogger();
     perfLogger.PerfLogBegin(LOG, PerfLogger.DRIVER_EXECUTE);
 
@@ -1141,7 +1154,9 @@ public class Driver implements CommandProcessor {
         driverCxt.addToRunnable(tsk);
       }
 
-      perfLogger.PerfLogEnd(LOG, PerfLogger.TIME_TO_SUBMIT);
+      if (run) {
+        perfLogger.PerfLogEnd(LOG, PerfLogger.TIME_TO_SUBMIT);
+      }
       // Loop while you either have tasks running, or tasks queued up
       while (running.size() != 0 || runnable.peek() != null) {
         // Launch upto maxthreads tasks

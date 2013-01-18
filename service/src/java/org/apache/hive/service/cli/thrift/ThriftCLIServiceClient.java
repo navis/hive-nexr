@@ -18,19 +18,31 @@
 
 package org.apache.hive.service.cli.thrift;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hive.service.CompileResult;
+import org.apache.hive.service.auth.PlainSaslHelper;
 import org.apache.hive.service.cli.CLIServiceClient;
+import org.apache.hive.service.cli.ColumnDescriptor;
+import org.apache.hive.service.cli.ColumnValue;
 import org.apache.hive.service.cli.FetchOrientation;
 import org.apache.hive.service.cli.GetInfoType;
 import org.apache.hive.service.cli.GetInfoValue;
 import org.apache.hive.service.cli.HiveSQLException;
 import org.apache.hive.service.cli.OperationHandle;
 import org.apache.hive.service.cli.OperationState;
+import org.apache.hive.service.cli.Row;
 import org.apache.hive.service.cli.RowSet;
 import org.apache.hive.service.cli.SessionHandle;
 import org.apache.hive.service.cli.TableSchema;
+import org.apache.thrift.protocol.TBinaryProtocol;
+import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.transport.TSocket;
+import org.apache.thrift.transport.TTransport;
 
 /**
  * ThriftCLIServiceClient.
@@ -121,6 +133,53 @@ public class ThriftCLIServiceClient extends CLIServiceClient {
       return new OperationHandle(resp.getOperationHandle());
     } catch (HiveSQLException e) {
       throw e;
+    } catch (Exception e) {
+      throw new HiveSQLException(e);
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.apache.hive.service.sql.SQLServiceClient#compileStatement(org.apache.hive.service.sql.SessionHandle, java.lang.String, java.util.Map)
+   */
+  @Override
+  public CompileResult compileStatement(SessionHandle sessionHandle, String statement, Map<String, String> confOverlay) throws HiveSQLException {
+    try {
+      TExecuteStatementReq req = new TExecuteStatementReq(sessionHandle.toTSessionHandle(), statement);
+      req.setConfOverlay(confOverlay);
+      TCompileRes resp = sqlService.Compile(req);
+      checkStatus(resp.getStatus());
+      return new CompileResult(resp.getOperationHandle(), resp.getQueryPlan());
+    } catch (HiveSQLException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new HiveSQLException(e);
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.apache.hive.service.sql.SQLServiceClient#runStatement(org.apache.hive.service.sql.SessionHandle, org.apache.hive.service.sql.SessionHandle.OperationHandle)
+   */
+  @Override
+  public void runStatement(SessionHandle sessionHandle, OperationHandle opHandle) throws HiveSQLException {
+    try {
+      TRunReq req = new TRunReq(sessionHandle.toTSessionHandle(), opHandle.toTOperationHandle());
+      checkStatus(sqlService.Run(req));
+    } catch (HiveSQLException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new HiveSQLException(e);
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.apache.hive.service.sql.SQLServiceClient#executeTransient(org.apache.hive.service.sql.SessionHandle, java.lang.String, java.util.Map)
+   */
+  @Override
+  public void executeTransient(SessionHandle sessionHandle, String statement, Map<String, String> confOverlay) throws HiveSQLException {
+    try {
+      TExecuteStatementReq req = new TExecuteStatementReq(sessionHandle.toTSessionHandle(), statement);
+      req.setConfOverlay(confOverlay);
+      checkStatus(sqlService.ExecuteTransient(req));
     } catch (Exception e) {
       throw new HiveSQLException(e);
     }
@@ -360,5 +419,77 @@ public class ThriftCLIServiceClient extends CLIServiceClient {
   public RowSet fetchResults(OperationHandle opHandle) throws HiveSQLException {
     // TODO: set the correct default fetch size
     return fetchResults(opHandle, FetchOrientation.FETCH_NEXT, 10000);
+  }
+
+  public static void main(String[] args) throws Exception {
+
+    String host = "localhost";
+    int port = 10000;
+    if (args.length > 0) {
+      int index = args[0].indexOf(":");
+      if (index > 0) {
+        host = args[0].substring(0, index);
+        port = Integer.valueOf(args[0].substring(index + 1));
+      } else {
+        host = args[0];
+      }
+    }
+    TTransport transport = new TSocket(host, port);
+    transport = PlainSaslHelper.getPlainTransport("scott", "tiger", transport);
+    transport.open();
+    System.err.println("[ThriftCLIServiceClient/main] " + transport);
+
+    TProtocol protocol = new TBinaryProtocol(transport);
+    ThriftCLIServiceClient client = new ThriftCLIServiceClient(new TCLIService.Client(protocol));
+
+    SessionHandle session = client.openSession(null, null, null);
+    System.err.println("[ThriftCLIServiceClient/main] " + session);
+
+    String line;
+    BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+
+    while ((line = reader.readLine()) != null) {
+      if (line.trim().isEmpty()) {
+        continue;
+      }
+      System.err.println("[ThriftCLIServiceClient/main] " + line);
+      CompileResult result = client.compileStatement(session, line, null);
+      System.err.println("[ThriftCLIServiceClient/main] " + result.getHandle().toString());
+      System.err.println("[ThriftCLIServiceClient/main] " + result.getPlan().toString());
+
+      OperationHandle handle = new OperationHandle(result.getHandle());
+
+      client.executeTransient(session, "set navis", null);
+
+      client.runStatement(session, handle);
+      try {
+        TableSchema schema = client.getResultSetMetadata(new OperationHandle(result.getHandle()));
+        List<ColumnDescriptor> columnDescs = schema.getColumnDescriptors();
+
+        Iterator<Row> iterator = null;
+        while (true) {
+          if (iterator == null || !iterator.hasNext()) {
+            RowSet rowset = client.fetchResults(handle);
+            iterator = rowset.getRows().iterator();
+          }
+          if (!iterator.hasNext()) {
+            break;
+          }
+          Row next = iterator.next();
+          StringBuilder builder = new StringBuilder();
+          for (int i = 0; i < columnDescs.size(); i++) {
+            ColumnValue value = next.getValues().get(i);
+            Object eval = value.getColumnValue(columnDescs.get(i).getType());
+            if (builder.length() > 0) {
+              builder.append(" ");
+            }
+            builder.append(eval);
+          }
+          System.err.println("[ThriftCLIServiceClient/main] " + builder.toString());
+        }
+      } finally {
+        client.closeOperation(handle);
+      }
+    }
   }
 }
