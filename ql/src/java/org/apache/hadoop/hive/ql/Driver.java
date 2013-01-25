@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -1368,7 +1369,8 @@ public class Driver implements CommandProcessor {
       console.printInfo("Launching Job " + cxt.getCurJobNo() + " out of " + jobs);
     }
     if (!tsk.getInitialized()) {
-      tsk.initialize(conf, plan, cxt);
+      HiveConf converted = convertForStage(tsk.getId(), conf);
+      tsk.initialize(converted, plan, cxt);
     }
     TaskResult tskRes = new TaskResult();
     TaskRunner tskRun = new TaskRunner(tsk, tskRes);
@@ -1382,6 +1384,18 @@ public class Driver implements CommandProcessor {
     }
     running.put(tskRes, tskRun);
     return;
+  }
+
+  private HiveConf convertForStage(String stageId, HiveConf hiveConf) {
+    String prefix = (stageId + ".").toLowerCase();
+    HiveConf newConf = new HiveConf(hiveConf);
+    Properties changed = hiveConf.getChangedProperties();
+    for (String propName : changed.stringPropertyNames()) {
+      if (propName.startsWith(prefix)) {
+        newConf.set(propName.substring(prefix.length()), changed.getProperty(propName));
+      }
+    }
+    return newConf;
   }
 
   /**
