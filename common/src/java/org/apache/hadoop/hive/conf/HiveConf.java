@@ -454,6 +454,10 @@ public class HiveConf extends Configuration {
     // test mode in hive mode
     HIVETESTMODE("hive.test.mode", false),
     HIVETESTMODEPREFIX("hive.test.mode.prefix", "test_"),
+
+    HIVETESTMODESPLITSAMPLEPERCENT("hive.test.mode.splitsample.percent", -1f),
+    HIVETESTMODESPLITSAMPLEROWNUM("hive.test.mode.splitsample.rownum", ""),
+    HIVETESTMODESPLITSAMPLELENGTH("hive.test.mode.splitsample.length", ""),
     HIVETESTMODESAMPLEFREQ("hive.test.mode.samplefreq", 32),
     HIVETESTMODENOSAMPLE("hive.test.mode.nosamplelist", ""),
 

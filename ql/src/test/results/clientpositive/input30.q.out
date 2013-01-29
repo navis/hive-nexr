@@ -109,3 +109,51 @@ POSTHOOK: Input: default@tst_dest30
 #### A masked pattern was here ####
 POSTHOOK: Lineage: tst_dest30.a EXPRESSION [(src)src.null, ]
 18
+PREHOOK: query: insert overwrite table dest30
+select count(1) from src
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: default@tst_dest30
+POSTHOOK: query: insert overwrite table dest30
+select count(1) from src
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: default@tst_dest30
+POSTHOOK: Lineage: tst_dest30.a EXPRESSION [(src)src.null, ]
+POSTHOOK: Lineage: tst_dest30.a EXPRESSION [(src)src.null, ]
+PREHOOK: query: select * from tst_dest30
+PREHOOK: type: QUERY
+PREHOOK: Input: default@tst_dest30
+#### A masked pattern was here ####
+POSTHOOK: query: select * from tst_dest30
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@tst_dest30
+#### A masked pattern was here ####
+POSTHOOK: Lineage: tst_dest30.a EXPRESSION [(src)src.null, ]
+POSTHOOK: Lineage: tst_dest30.a EXPRESSION [(src)src.null, ]
+100
+PREHOOK: query: insert overwrite table dest30
+select count(1) from src
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: default@tst_dest30
+POSTHOOK: query: insert overwrite table dest30
+select count(1) from src
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: default@tst_dest30
+POSTHOOK: Lineage: tst_dest30.a EXPRESSION [(src)src.null, ]
+POSTHOOK: Lineage: tst_dest30.a EXPRESSION [(src)src.null, ]
+POSTHOOK: Lineage: tst_dest30.a EXPRESSION [(src)src.null, ]
+PREHOOK: query: select * from tst_dest30
+PREHOOK: type: QUERY
+PREHOOK: Input: default@tst_dest30
+#### A masked pattern was here ####
+POSTHOOK: query: select * from tst_dest30
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@tst_dest30
+#### A masked pattern was here ####
+POSTHOOK: Lineage: tst_dest30.a EXPRESSION [(src)src.null, ]
+POSTHOOK: Lineage: tst_dest30.a EXPRESSION [(src)src.null, ]
+POSTHOOK: Lineage: tst_dest30.a EXPRESSION [(src)src.null, ]
+500
