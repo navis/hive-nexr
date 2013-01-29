@@ -52,11 +52,6 @@ public class TableSample {
   private ArrayList<ASTNode> exprs;
 
   /**
-   * Flag to indicate that input files can be pruned.
-   */
-  private boolean inputPruning;
-
-  /**
    * Constructs the TableSample given the numerator, denominator and the list of
    * ON clause expressions.
    * 
@@ -134,24 +129,5 @@ public class TableSample {
    */
   public void setExprs(ArrayList<ASTNode> exprs) {
     this.exprs = exprs;
-  }
-
-  /**
-   * Gets the flag that indicates whether input pruning is possible.
-   * 
-   * @return boolean
-   */
-  public boolean getInputPruning() {
-    return inputPruning;
-  }
-
-  /**
-   * Sets the flag that indicates whether input pruning is possible or not.
-   * 
-   * @param inputPruning
-   *          true if input pruning is possible
-   */
-  public void setInputPruning(boolean inputPruning) {
-    this.inputPruning = inputPruning;
   }
 }

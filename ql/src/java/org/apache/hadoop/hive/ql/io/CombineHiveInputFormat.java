@@ -490,7 +490,7 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
         retLists.add(split);
         long splitgLength = split.getLength();
         if (size + splitgLength >= targetSize) {
-          LOG.info("Sample alias " + entry.getValue() + " using " + (i + 1) + "splits");
+          LOG.info("Sample alias " + entry.getValue() + " using " + (i + 1) + " splits");
           if (size + splitgLength > targetSize) {
             split.shrinkSplit(targetSize - size);
           }

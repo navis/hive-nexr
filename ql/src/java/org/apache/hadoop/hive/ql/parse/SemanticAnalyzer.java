@@ -526,14 +526,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       } else {
         assert type.getType() == HiveParser.TOK_LENGTH;
         assertCombineInputFormat(numerator, "Total Length");
-        long length = Integer.valueOf(value.substring(0, value.length() - 1));
-        char last = value.charAt(value.length() - 1);
-        if (last == 'k' || last == 'K') {
-          length <<= 10;
-        } else if (last == 'm' || last == 'M') {
-          length <<= 20;
-        } else if (last == 'g' || last == 'G') {
-          length <<= 30;
+        long length = toLength(value);
+        if (length < 0) {
+          throw new SemanticException(generateErrorMessage((ASTNode) numerator,
+              "Sampling Length should be greater than 0"));
         }
         int seedNum = conf.getIntVar(ConfVars.HIVESAMPLERANDOMNUM);
         sample = new SplitSample(length, seedNum);
@@ -556,12 +552,36 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     return alias;
   }
 
+  private long toLength(String value) {
+    if (value == null || value.isEmpty()) {
+      return -1;
+    }
+    if (Character.isDigit(value.charAt(value.length() - 1))) {
+      return Long.valueOf(value);
+    }
+    long length = Integer.valueOf(value.substring(0, value.length() - 1));
+    char last = value.charAt(value.length() - 1);
+    if (last == 'k' || last == 'K') {
+      length <<= 10;
+    } else if (last == 'm' || last == 'M') {
+      length <<= 20;
+    } else if (last == 'g' || last == 'G') {
+      length <<= 30;
+    }
+    return length;
+  }
+
   private void assertCombineInputFormat(Tree numerator, String message) throws SemanticException {
     String inputFormat = HiveConf.getVar(conf, HiveConf.ConfVars.HIVEINPUTFORMAT);
-    if (!inputFormat.equals(CombineHiveInputFormat.class.getName())) {
+    if (!checkCombineInputFormat()) {
       throw new SemanticException(generateErrorMessage((ASTNode) numerator,
           message + " sampling is not supported in " + inputFormat));
     }
+  }
+
+  private boolean checkCombineInputFormat() {
+    String inputFormat = HiveConf.getVar(conf, HiveConf.ConfVars.HIVEINPUTFORMAT);
+    return inputFormat.equals(CombineHiveInputFormat.class.getName());
   }
 
   private String processSubQuery(QB qb, ASTNode subq) throws SemanticException {
@@ -7270,9 +7290,6 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         colsEqual = (colsEqual && colFound);
       }
 
-      // Check if input can be pruned
-      ts.setInputPruning((sampleExprs == null || sampleExprs.size() == 0 || colsEqual));
-
       // check if input pruning is enough
       if ((sampleExprs == null || sampleExprs.size() == 0 || colsEqual)
           && (num == den || (den % numBuckets == 0 || numBuckets % den == 0))) {
@@ -7296,54 +7313,36 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
             samplePredicate, true),
             new RowSchema(rwsch.getColumnInfos()), top);
       }
-    } else {
-      boolean testMode = conf.getBoolVar(HiveConf.ConfVars.HIVETESTMODE);
-      if (testMode) {
-        String tabName = tab.getTableName();
+    } else if (needTestSampling(tab.getTableName())) {
+      if (!trySplitSampling(alias_id, (TableScanOperator) top)) {
+        int numBuckets = tab.getNumBuckets();
 
-        // has the user explicitly asked not to sample this table
-        String unSampleTblList = conf
-            .getVar(HiveConf.ConfVars.HIVETESTMODENOSAMPLE);
-        String[] unSampleTbls = unSampleTblList.split(",");
-        boolean unsample = false;
-        for (String unSampleTbl : unSampleTbls) {
-          if (tabName.equalsIgnoreCase(unSampleTbl)) {
-            unsample = true;
-          }
-        }
-
-        if (!unsample) {
-          int numBuckets = tab.getNumBuckets();
-
-          // If the input table is bucketed, choose the first bucket
-          if (numBuckets > 0) {
-            TableSample tsSample = new TableSample(1, numBuckets);
-            tsSample.setInputPruning(true);
-            qb.getParseInfo().setTabSample(alias, tsSample);
-            ExprNodeDesc samplePred = genSamplePredicate(tsSample, tab
-                .getBucketCols(), true, alias, rwsch, qb.getMetaData(), null);
-            tableOp = OperatorFactory
-                .getAndMakeChild(new FilterDesc(samplePred, true,
-                new sampleDesc(tsSample.getNumerator(), tsSample
+        // If the input table is bucketed, choose the first bucket
+        if (numBuckets > 0) {
+          TableSample tsSample = new TableSample(1, numBuckets);
+          qb.getParseInfo().setTabSample(alias, tsSample);
+          ExprNodeDesc samplePred = genSamplePredicate(tsSample, tab
+            .getBucketCols(), true, alias, rwsch, qb.getMetaData(), null);
+          tableOp = OperatorFactory
+            .getAndMakeChild(new FilterDesc(samplePred, true,
+              new sampleDesc(tsSample.getNumerator(), tsSample
                 .getDenominator(), tab.getBucketCols(), true)),
-                new RowSchema(rwsch.getColumnInfos()), top);
-            LOG.info("No need for sample filter");
-          } else {
-            // The table is not bucketed, add a dummy filter :: rand()
-            int freq = conf.getIntVar(HiveConf.ConfVars.HIVETESTMODESAMPLEFREQ);
-            TableSample tsSample = new TableSample(1, freq);
-            tsSample.setInputPruning(false);
-            qb.getParseInfo().setTabSample(alias, tsSample);
-            LOG.info("Need sample filter");
-            ExprNodeDesc randFunc = TypeCheckProcFactory.DefaultExprProcessor
-                .getFuncExprNodeDesc("rand", new ExprNodeConstantDesc(Integer
-                .valueOf(460476415)));
-            ExprNodeDesc samplePred = genSamplePredicate(tsSample, null, false,
-                alias, rwsch, qb.getMetaData(), randFunc);
-            tableOp = OperatorFactory.getAndMakeChild(new FilterDesc(
-                samplePred, true),
-                new RowSchema(rwsch.getColumnInfos()), top);
-          }
+              new RowSchema(rwsch.getColumnInfos()), top);
+          LOG.info("Using bucket sampling for " + alias_id);
+        } else {
+          // The table is not bucketed, add a dummy filter :: rand()
+          int freq = conf.getIntVar(HiveConf.ConfVars.HIVETESTMODESAMPLEFREQ);
+          TableSample tsSample = new TableSample(1, freq);
+          qb.getParseInfo().setTabSample(alias, tsSample);
+          LOG.info("Using hashed filter sampling for " + alias_id);
+          ExprNodeDesc randFunc = TypeCheckProcFactory.DefaultExprProcessor
+            .getFuncExprNodeDesc("rand", new ExprNodeConstantDesc(Integer
+              .valueOf(460476415)));
+          ExprNodeDesc samplePred = genSamplePredicate(tsSample, null, false,
+            alias, rwsch, qb.getMetaData(), randFunc);
+          tableOp = OperatorFactory.getAndMakeChild(new FilterDesc(
+            samplePred, true),
+            new RowSchema(rwsch.getColumnInfos()), top);
         }
       }
     }
@@ -7355,6 +7354,50 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     }
 
     return output;
+  }
+
+  private boolean needTestSampling(String tabName) {
+    if (!conf.getBoolVar(HiveConf.ConfVars.HIVETESTMODE)) {
+      return false;
+    }
+    // has the user explicitly asked not to sample this table
+    String unSampleTblList = conf.getVar(HiveConf.ConfVars.HIVETESTMODENOSAMPLE);
+    String[] unSampleTbls = unSampleTblList.split(",");
+    for (String unSampleTbl : unSampleTbls) {
+      if (tabName.equalsIgnoreCase(unSampleTbl)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private boolean trySplitSampling(String alias_id, TableScanOperator tsOp) {
+    boolean useCombine = checkCombineInputFormat()
+      && !conf.getBoolVar(ConfVars.HIVEENFORCESORTMERGEBUCKETMAPJOIN)
+      && !conf.getBoolVar(ConfVars.HIVEENFORCEBUCKETMAPJOIN)
+      && !conf.getBoolVar(ConfVars.HIVEOPTSORTMERGEBUCKETMAPJOIN)
+      && !conf.getBoolVar(ConfVars.HIVEOPTBUCKETMAPJOIN);
+    double percent = conf.getFloatVar(ConfVars.HIVETESTMODESPLITSAMPLEPERCENT);
+    if (useCombine && percent > 0 && percent < 100.0f) {
+      int seedNum = conf.getIntVar(ConfVars.HIVESAMPLERANDOMNUM);
+      nameToSplitSample.put(alias_id, new SplitSample(percent, seedNum));
+      LOG.info("Using percent split sampling for " + alias_id);
+      return true;
+    }
+    long rownum = toLength(conf.getVar(ConfVars.HIVETESTMODESPLITSAMPLEROWNUM));
+    if (rownum > 0 && rownum < Integer.MAX_VALUE) {
+      tsOp.getConf().setRowLimit((int) rownum);
+      LOG.info("Using rownum sampling for " + alias_id);
+      return true;
+    }
+    long length = toLength(conf.getVar(ConfVars.HIVETESTMODESPLITSAMPLELENGTH));
+    if (useCombine && length > 0) {
+      int seedNum = conf.getIntVar(ConfVars.HIVESAMPLERANDOMNUM);
+      nameToSplitSample.put(alias_id, new SplitSample(length, seedNum));
+      LOG.info("Using length split sampling for " + alias_id);
+      return true;
+    }
+    return false;
   }
 
   private boolean isSkewedCol(String alias, QB qb, String colName) {
