@@ -29,6 +29,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.plan.CreateTableDesc;
+import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 
 /**
  * Implementation of the query block.
@@ -87,6 +88,11 @@ public class QB {
    * for now a top level QB can have 1 where clause SQ predicate.
    */
   private QBSubQuery havingClauseSubQueryPredicate;
+
+  /**
+   * for parallel order by, result is bucketed on this exprs. fetch task merges on the run
+   */
+  private List<ExprNodeDesc> bucketKeys;
 
   // results
 
@@ -387,4 +393,11 @@ public class QB {
     return havingClauseSubQueryPredicate;
   }
 
+  public List<ExprNodeDesc> getBucketKeys() {
+    return bucketKeys;
+  }
+
+  public void setBucketKeys(List<ExprNodeDesc> bucketKeys) {
+    this.bucketKeys = bucketKeys;
+  }
 }

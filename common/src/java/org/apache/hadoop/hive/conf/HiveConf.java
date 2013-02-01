@@ -1428,6 +1428,13 @@ public class HiveConf extends Configuration {
 
     HIVEOUTERJOINSUPPORTSFILTERS("hive.outerjoin.supports.filters", true, ""),
 
+    HIVEPARALLELORDERBYBUCKETINGNUM("hive.parallel.orderby.bucketing.num", 0,
+        "Generally in hive, order by clause is executed by single reducer. But if the query is just for patching\n" +
+        "not for inserting into table or partition, fully ordered stream could be provided in fetch task by\n" +
+        "merging partially sorted streams from multiple reducers.\n" +
+        "This configuration means the number of reducers for the last MapReduce task for order by.\n" +
+        "-1 means it will be decided by usual calculation(based on hive.exec.reducers.bytes.per.reducer). 0 disables this."),
+
     HIVEFETCHTASKCONVERSION("hive.fetch.task.conversion", "more", new StringSet("none", "minimal", "more"),
         "Some select queries can be converted to single FETCH task minimizing latency.\n" +
         "Currently the query should be single sourced not having any subquery and should not have\n" +

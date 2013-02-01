@@ -276,7 +276,7 @@ public class ColumnStatsTask extends Task<ColumnStatsWork> implements Serializab
 
     List<ColumnStatistics> stats = new ArrayList<ColumnStatistics>();
     InspectableObject packedRow;
-    while ((packedRow = ftOp.getNextRow()) != null) {
+    while ((packedRow = ftOp.fetchRow()) != null) {
       if (packedRow.oi.getCategory() != ObjectInspector.Category.STRUCT) {
         throw new HiveException("Unexpected object type encountered while unpacking row");
       }

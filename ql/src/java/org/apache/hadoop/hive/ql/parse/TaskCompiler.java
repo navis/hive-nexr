@@ -123,6 +123,7 @@ public abstract class TaskCompiler {
 
       FetchWork fetch = new FetchWork(loadFileDesc.getSourcePath(),
                                       resultTab, qb.getParseInfo().getOuterQueryLimit());
+      fetch.setMergeKeys(qb.getBucketKeys());
       fetch.setSource(pCtx.getFetchSource());
       fetch.setSink(pCtx.getFetchSink());
 

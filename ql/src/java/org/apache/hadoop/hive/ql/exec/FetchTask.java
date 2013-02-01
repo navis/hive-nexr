@@ -36,7 +36,10 @@ import org.apache.hadoop.hive.ql.plan.FileSinkDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.plan.api.StageType;
 import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
+import org.apache.hadoop.hive.serde2.objectinspector.InspectableObject;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.util.StringUtils;
 
@@ -47,9 +50,8 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
   private static final long serialVersionUID = 1L;
 
   private int maxRows = 100;
-  private FetchOperator fetch;
-  private ListSinkOperator sink;
   private int totalRows;
+  private RowProcessor processor;
 
   private static transient final Log LOG = LogFactory.getLog(FetchTask.class);
 
@@ -75,10 +77,7 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
         // push down filters
         HiveInputFormat.pushFilters(job, ts);
       }
-      sink = work.getSink();
-      fetch = new FetchOperator(work, job, source, getVirtualColumns(source));
-      source.initialize(conf, new ObjectInspector[]{fetch.getOutputObjectInspector()});
-      totalRows = 0;
+      processor = createProcessor(work, conf, job);
 
     } catch (Exception e) {
       // Bail out ungracefully - we should never hit
@@ -86,6 +85,70 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
       LOG.error(StringUtils.stringifyException(e));
       throw new RuntimeException(e);
     }
+  }
+
+  private RowProcessor createProcessor(FetchWork work, HiveConf conf, JobConf job)
+      throws HiveException {
+    final Operator<?> source = work.getSource();
+
+    RowFetcher fetcher;
+    if (!work.isMergeFetcher()) {
+      fetcher = new FetchOperator(work, job, source, getVirtualColumns(source));
+    } else {
+      fetcher = new MergeSortingFetcher(work, job) {
+        private boolean initialized;
+        public int compare(List<Object> o1, List<Object> o2) {
+          return compareKeys(o1, o2);
+        }
+        @Override
+        public InspectableObject fetchRow() throws IOException, HiveException {
+          if (!initialized) {
+            // this is called in here because setupFetchContext() is called in Driver
+            // before executing plan
+            setupSegments(getPaths(fetchWork.getTblDir(), jobConf));
+            initialized = true;
+          }
+          return super.fetchRow();
+        }
+        @Override
+        public boolean pushRow() throws IOException, HiveException {
+          InspectableObject row = fetchRow();
+          if (row != null) {
+            source.processOp(row.o, 0);
+          } else {
+            source.flush();
+          }
+          return row != null;
+        }
+      };
+    }
+    source.initialize(conf, new ObjectInspector[]{fetcher.setupFetchContext()});
+    return new RowProcessor(fetcher, work.getSink());
+  }
+
+  private int compareKeys(List<Object> k1, List<Object> k2) {
+    int ret = k1.size() - k2.size();
+    if (ret != 0) {
+      return ret;
+    }
+    for (int i = 0; i < k1.size(); i++) {
+      WritableComparable key_1 = (WritableComparable) k1.get(i);
+      WritableComparable key_2 = (WritableComparable) k2.get(i);
+      if (key_1 == null && key_2 == null) {
+        return -1;
+      }
+      if (key_1 == null) {
+        return -1;
+      }
+      if (key_2 == null) {
+        return 1;
+      }
+      ret = WritableComparator.get(key_1.getClass()).compare(key_1, key_2);
+      if(ret != 0) {
+        return ret;
+      }
+    }
+    return ret;
   }
 
   private List<VirtualColumn> getVirtualColumns(Operator<?> ts) {
@@ -123,19 +186,19 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
   }
 
   public boolean fetch(List res) throws IOException, CommandNeedRetryException {
-    sink.reset(res);
+    processor.reset(res);
     int rowsRet = work.getLeastNumRows();
     if (rowsRet <= 0) {
       rowsRet = work.getLimit() >= 0 ? Math.min(work.getLimit() - totalRows, maxRows) : maxRows;
     }
     try {
-      if (rowsRet <= 0 || work.getLimit() == totalRows) {
-        fetch.clearFetchContext();
+        if (rowsRet <= 0 || work.getLimit() == totalRows) {
+        processor.clearFetchContext();
         return false;
       }
       boolean fetched = false;
-      while (sink.getNumRows() < rowsRet) {
-        if (!fetch.pushRow()) {
+      while (processor.getNumRows() < rowsRet) {
+        if (!processor.pushRow()) {
           if (work.getLeastNumRows() > 0) {
             throw new CommandNeedRetryException();
           }
@@ -151,7 +214,7 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
     } catch (Exception e) {
       throw new IOException(e);
     } finally {
-      totalRows += sink.getNumRows();
+      totalRows += processor.getNumRows();
     }
   }
 
@@ -175,8 +238,35 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
    * @throws HiveException
    */
   public void clearFetch() throws HiveException {
-    if (fetch != null) {
-      fetch.clearFetchContext();
+    if (processor != null) {
+      processor.clearFetchContext();
+    }
+  }
+
+  private class RowProcessor {
+
+    private final RowFetcher fetcher;
+    private final ListSinkOperator sink;
+
+    public RowProcessor(RowFetcher fetcher, ListSinkOperator sink) {
+      this.fetcher = fetcher;
+      this.sink = sink;
+    }
+
+    public void reset(List res) {
+      sink.reset(res);
+    }
+
+    public boolean pushRow() throws IOException, HiveException {
+      return fetcher.pushRow();
+    }
+
+    public int getNumRows() {
+      return sink.getNumRows();
+    }
+
+    public void clearFetchContext() throws HiveException {
+      fetcher.clearFetchContext();
     }
   }
 }

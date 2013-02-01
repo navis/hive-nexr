@@ -77,7 +77,7 @@ import org.apache.hive.common.util.AnnotationUtils;
 /**
  * FetchTask implementation.
  **/
-public class FetchOperator implements Serializable {
+public class FetchOperator implements RowFetcher, Serializable {
 
   static final Log LOG = LogFactory.getLog(FetchOperator.class.getName());
   static final LogHelper console = new LogHelper(LOG);
@@ -259,7 +259,7 @@ public class FetchOperator implements Serializable {
       }
       FileSystem fs = currPath.getFileSystem(job);
       if (fs.exists(currPath)) {
-        for (FileStatus fStat : listStatusUnderPath(fs, currPath)) {
+        for (FileStatus fStat : listStatusUnderPath(fs, currPath, job)) {
           if (fStat.getLen() > 0) {
             return true;
           }
@@ -420,6 +420,14 @@ public class FetchOperator implements Serializable {
     return row != null;
   }
 
+  public ObjectInspector setupFetchContext() throws HiveException {
+    return getOutputObjectInspector();
+  }
+
+  public InspectableObject fetchRow() throws IOException {
+    return getNextRow();
+  }
+
   protected void pushRow(InspectableObject row) throws HiveException {
     operator.processOp(row.o, 0);
   }
@@ -434,7 +442,7 @@ public class FetchOperator implements Serializable {
    * Get the next row. The fetch context is modified appropriately.
    *
    **/
-  public InspectableObject getNextRow() throws IOException {
+  private InspectableObject getNextRow() throws IOException {
     try {
       while (true) {
         boolean opNotEOF = true;
@@ -633,7 +641,7 @@ public class FetchOperator implements Serializable {
    *
    * @return list of file status entries
    */
-  private FileStatus[] listStatusUnderPath(FileSystem fs, Path p) throws IOException {
+  static FileStatus[] listStatusUnderPath(FileSystem fs, Path p, JobConf job) throws IOException {
     boolean recursive = HiveConf.getBoolVar(job, HiveConf.ConfVars.HADOOPMAPREDINPUTDIRRECURSIVE);
     // If this is in acid format always read it recursively regardless of what the jobconf says.
     if (!recursive && !AcidUtils.isAcid(p, job)) {

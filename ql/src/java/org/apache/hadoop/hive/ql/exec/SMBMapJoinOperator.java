@@ -20,7 +20,6 @@ package org.apache.hadoop.hive.ql.exec;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -30,7 +29,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hive.common.ObjectPair;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.exec.persistence.RowContainer;
 import org.apache.hadoop.hive.ql.io.HiveInputFormat;
@@ -48,7 +46,6 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.util.PriorityQueue;
 import org.apache.hadoop.util.ReflectionUtils;
 
 /**
@@ -550,7 +547,7 @@ public class SMBMapJoinOperator extends AbstractMapJoinOperator<SMBJoinDesc> imp
     Operator<? extends OperatorDesc> forwardOp =
         conf.getAliasToSink().get(table).getChildOperators().get(0);
     try {
-      InspectableObject row = mergeQueue.getNextRow();
+      InspectableObject row = mergeQueue.fetchRow();
       if (row == null) {
         fetchDone[tag] = true;
         return;
@@ -661,33 +658,29 @@ public class SMBMapJoinOperator extends AbstractMapJoinOperator<SMBJoinDesc> imp
   // returns rows from possibly multiple bucket files of small table in ascending order
   // by utilizing primary queue (borrowed from hadoop)
   // elements of queue (Integer) are index to FetchOperator[] (segments)
-  private class MergeQueue extends PriorityQueue<Integer> {
+  private class MergeQueue extends MergeSortingFetcher {
 
-    private final String alias;
-    private final FetchWork fetchWork;
-    private final JobConf jobConf;
-
-    // for keeping track of the number of elements read. just for debugging
-    transient int counter;
-
-    transient FetchOperator[] segments;
-    transient List<ExprNodeEvaluator> keyFields;
-    transient List<ObjectInspector> keyFieldOIs;
-    transient Operator<? extends OperatorDesc> forwardOp;
-    transient DummyStoreOperator sinkOp;
-
-    // index of FetchOperator which is providing smallest one
-    transient Integer currentMinSegment;
-    transient ObjectPair<List<Object>, InspectableObject>[] keys;
+    final String alias;
+    final Operator<? extends OperatorDesc> forwardOp;
+    final DummyStoreOperator sinkOp;
 
     public MergeQueue(String alias, FetchWork fetchWork, JobConf jobConf,
         Operator<? extends OperatorDesc> forwardOp,
         DummyStoreOperator sinkOp) {
+      super(fetchWork, jobConf);
       this.alias = alias;
-      this.fetchWork = fetchWork;
-      this.jobConf = jobConf;
       this.forwardOp = forwardOp;
       this.sinkOp = sinkOp;
+    }
+
+    public int compare(List<Object> o1, List<Object> o2) {
+      return compareKeys(o1, o2);
+    }
+
+    @Override
+    public ObjectInspector setupFetchContext() throws HiveException {
+      // all needed metadata is ready in JoinOperator. just use that.
+      throw new HiveException("not for SMBJoin");
     }
 
     // paths = bucket files of small table for current bucket file of big table
@@ -696,125 +689,51 @@ public class SMBMapJoinOperator extends AbstractMapJoinOperator<SMBJoinDesc> imp
     // all partitions in a table).
     // But if hive supports assigning bucket number for each partition, this can be vary
     public void setupContext(List<Path> paths) throws HiveException {
-      int segmentLen = paths.size();
       FetchOperator.setFetchOperatorContext(jobConf, fetchWork.getPartDir());
-      FetchOperator[] segments = segmentsForSize(segmentLen);
-      for (int i = 0 ; i < segmentLen; i++) {
-        Path path = paths.get(i);
-        if (segments[i] == null) {
-          segments[i] = new FetchOperator(fetchWork, new JobConf(jobConf));
-        }
-        segments[i].setupContext(Arrays.asList(path));
-      }
-      initialize(segmentLen);
-      for (int i = 0; i < segmentLen; i++) {
-        if (nextHive(i)) {
-          put(i);
-        }
-      }
-      counter = 0;
-    }
-
-    @SuppressWarnings("unchecked")
-    private FetchOperator[] segmentsForSize(int segmentLen) {
-      if (segments == null || segments.length < segmentLen) {
-        FetchOperator[] newSegments = new FetchOperator[segmentLen];
-        ObjectPair<List<Object>, InspectableObject>[] newKeys = new ObjectPair[segmentLen];
-        if (segments != null) {
-          System.arraycopy(segments, 0, newSegments, 0, segments.length);
-          System.arraycopy(keys, 0, newKeys, 0, keys.length);
-        }
-        segments = newSegments;
-        keys = newKeys;
-      }
-      return segments;
-    }
-
-    public void clearFetchContext() throws HiveException {
-      if (segments != null) {
-        for (FetchOperator op : segments) {
-          if (op != null) {
-            op.clearFetchContext();
-          }
-        }
-      }
+      setupSegments(paths);
     }
 
     @Override
-    protected boolean lessThan(Object a, Object b) {
-      return compareKeys(keys[(Integer) a].getFirst(), keys[(Integer)b].getFirst()) < 0;
-    }
-
-    public final InspectableObject getNextRow() throws IOException {
-      if (currentMinSegment != null) {
-        adjustPriorityQueue(currentMinSegment);
-      }
-      Integer current = top();
+    public InspectableObject fetchRow() throws IOException, HiveException {
+      InspectableObject current = super.fetchRow();
       if (current == null) {
         LOG.info("MergeQueue forwarded " + counter + " rows");
         return null;
       }
-      counter++;
-      return keys[currentMinSegment = current].getSecond();
+      return current;
     }
 
-    private void adjustPriorityQueue(Integer current) throws IOException {
-      if (nextIO(current)) {
-        adjustTop();  // sort
-      } else {
-        pop();
-      }
-    }
-
-    // wrapping for exception handling
-    private boolean nextHive(Integer current) throws HiveException {
-      try {
-        return next(current);
-      } catch (IOException e) {
-        throw new HiveException(e);
-      }
-    }
-
-    // wrapping for exception handling
-    private boolean nextIO(Integer current) throws IOException {
-      try {
-        return next(current);
-      } catch (HiveException e) {
-        throw new IOException(e);
-      }
+    @Override
+    public boolean pushRow() throws IOException, HiveException {
+      throw new HiveException("not for SMBJoin");
     }
 
     // return true if current min segment(FetchOperator) has next row
-    private boolean next(Integer current) throws IOException, HiveException {
+    @Override
+    protected final boolean next(int current) throws IOException, HiveException {
       if (keyFields == null) {
         byte tag = tagForAlias(alias);
         // joinKeys/joinKeysOI are initialized after making merge queue, so setup lazily at runtime
         keyFields = joinKeys[tag];
         keyFieldOIs = joinKeysObjectInspectors[tag];
       }
-      InspectableObject nextRow = segments[current].getNextRow();
-      while (nextRow != null) {
-        sinkOp.reset();
-        if (keys[current] == null) {
-          keys[current] = new ObjectPair<List<Object>, InspectableObject>();
-        }
+      return super.next(current);
+    }
 
+    @Override
+    protected InspectableObject readRow(int current) throws IOException, HiveException {
+      sinkOp.reset();
+      InspectableObject nextRow = readFromSegment(current);
+      for (; nextRow != null; nextRow = readFromSegment(current)) {
         // Pass the row though the operator tree. It is guaranteed that not more than 1 row can
         // be produced from a input row.
         forwardOp.processOp(nextRow.o, 0);
         nextRow = sinkOp.getResult();
-
-        // It is possible that the row got absorbed in the operator tree.
         if (nextRow.o != null) {
-          // todo this should be changed to be evaluated lazily, especially for single segment case
-          keys[current].setFirst(JoinUtil.computeKeys(nextRow.o, keyFields, keyFieldOIs));
-          keys[current].setSecond(nextRow);
-          return true;
+          return nextRow;
         }
-        nextRow = segments[current].getNextRow();
       }
-      keys[current] = null;
-      return false;
+      return null;
     }
   }
 

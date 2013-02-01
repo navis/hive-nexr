@@ -398,7 +398,7 @@ public class MapredLocalTask extends Task<MapredLocalWork> implements Serializab
       Operator<? extends OperatorDesc> forwardOp = work.getAliasToWork().get(alias);
       // walk through the operator tree
       while (!forwardOp.getDone()) {
-        InspectableObject row = fetchOp.getNextRow();
+        InspectableObject row = fetchOp.fetchRow();
         if (row == null) {
           break;
         }

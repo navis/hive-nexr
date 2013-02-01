@@ -7108,17 +7108,23 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       sortExprs = qb.getParseInfo().getSortByForClause(dest);
     }
 
+    boolean useBucketingForOrderby = false;
     if (sortExprs == null) {
       sortExprs = qb.getParseInfo().getOrderByForClause(dest);
       if (sortExprs != null) {
-        assert numReducers == 1;
-        // in strict mode, in the presence of order by, limit must be specified
-        Integer limit = qb.getParseInfo().getDestLimit(dest);
-        if (conf.getVar(HiveConf.ConfVars.HIVEMAPREDMODE).equalsIgnoreCase(
-            "strict")
+        if (qb.getIsQuery() && !qb.getParseInfo().getIsSubQ() && !qb.isAnalyzeRewrite()
+            && conf.getIntVar(ConfVars.HIVEPARALLELORDERBYBUCKETINGNUM) != 0) {
+          numReducers = conf.getIntVar(ConfVars.HIVEPARALLELORDERBYBUCKETINGNUM);
+          useBucketingForOrderby = true;
+        } else {
+          assert numReducers == 1;
+          // in strict mode, in the presence of order by, limit must be specified
+          Integer limit = qb.getParseInfo().getDestLimit(dest);
+          if (conf.getVar(HiveConf.ConfVars.HIVEMAPREDMODE).equalsIgnoreCase("strict")
             && limit == null) {
-          throw new SemanticException(generateErrorMessage(sortExprs,
+            throw new SemanticException(generateErrorMessage(sortExprs,
               ErrorMsg.NO_LIMIT_WITH_ORDERBY.getMsg()));
+          }
         }
       }
     }
@@ -7143,6 +7149,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         }
         ExprNodeDesc exprNode = genExprNodeDesc(cl, inputRR);
         sortCols.add(exprNode);
+      }
+      if (useBucketingForOrderby) {
+        qb.setBucketKeys(sortCols);
       }
     }
     return genReduceSinkPlan(input, partCols, sortCols, order.toString(), numReducers, Operation.NOT_ACID);

@@ -56,6 +56,8 @@ public class FetchWork implements Serializable {
   private transient List<List<Object>> rowsComputedFromStats;
   private transient StructObjectInspector statRowOI;
 
+  private List<ExprNodeDesc> mergeKeys;
+
   /**
    * Serialization Null Format for the serde used to fetch data.
    */
@@ -276,6 +278,23 @@ public class FetchWork implements Serializable {
 
   public SplitSample getSplitSample() {
     return splitSample;
+  }
+
+  public boolean isMergeFetcher() {
+    return mergeKeys != null && !mergeKeys.isEmpty();
+  }
+
+  public List<ExprNodeDesc> getMergeKeys() {
+    return mergeKeys;
+  }
+
+  @Explain(displayName = "Merge Keys")
+  public String getMergeKeysDesc() {
+    return mergeKeys == null ? null : PlanUtils.getExprListString(mergeKeys);
+  }
+
+  public void setMergeKeys(List<ExprNodeDesc> mergeKeys) {
+    this.mergeKeys = mergeKeys;
   }
 
   @Override
