@@ -42,3 +42,17 @@ explain
 select a.* from (select key from src where key > 490) a left outer join (select * from(select key from src union all select key from src) a where key > 450)b on a.key=b.key;
 select a.* from (select key from src where key > 490) a left outer join (select * from(select key from src union all select key from src) a where key > 450)b on a.key=b.key;
 
+set hive.fetch.task.conversion.insert=true;
+
+-- CTAS
+explain
+create table xy as select * from src order by key limit 100;
+create table xy as select * from src order by key limit 100;
+select * from xy;
+
+-- insert
+explain
+insert overwrite table xy select * from src order by key limit 100;
+insert overwrite table xy select * from src order by key limit 100;
+select * from xy;
+

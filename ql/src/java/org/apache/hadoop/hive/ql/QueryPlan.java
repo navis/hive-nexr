@@ -141,7 +141,7 @@ public class QueryPlan implements Serializable {
     queryStartTime = startTime;
   }
 
-  private boolean isPseudoMR(List<Task<? extends Serializable>> tasks) {
+  public static boolean isPseudoMR(List<Task<? extends Serializable>> tasks) {
     if (tasks.isEmpty()) {
       return false;
     }

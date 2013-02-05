@@ -33,9 +33,12 @@ import org.apache.hadoop.hive.metastore.Warehouse;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.ErrorMsg;
+import org.apache.hadoop.hive.ql.QueryPlan;
 import org.apache.hadoop.hive.ql.exec.ColumnStatsTask;
 import org.apache.hadoop.hive.ql.exec.FetchTask;
+import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
 import org.apache.hadoop.hive.ql.exec.ListSinkOperator;
+import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.StatsTask;
 import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.exec.TaskFactory;
@@ -199,6 +202,10 @@ public abstract class TaskCompiler {
       }
     }
 
+    if (QueryPlan.isPseudoMR(rootTasks) && !mvTask.isEmpty()) {
+      linkFileSink(rootTasks, mvTask);
+    }
+
     if (rootTasks.isEmpty()) {
       generateTaskTree(rootTasks, pCtx, mvTask, inputs, outputs);
 
@@ -275,6 +282,37 @@ public abstract class TaskCompiler {
       }
     }
   }
+
+  private void linkFileSink(List<Task<?>> rootTasks, List<Task<MoveWork>> mvTask) {
+    Set<FileSinkOperator> fss = new HashSet<FileSinkOperator>();
+    for (Task<?> task : rootTasks) {
+      assert task instanceof FetchTask;
+      Operator<?> source = ((FetchTask)task).getWork().getSource();
+      if (source != null) {
+        findChildren(source, FileSinkOperator.class, fss);
+      }
+    }
+    for (FileSinkOperator fs : fss) {
+      Task<MoveWork> target = GenMapRedUtils.findMoveTask(mvTask, fs);
+      if (target != null) {
+        for (Task<?> task : rootTasks) {
+          task.addDependentTask(target);
+        }
+      }
+    }
+  }
+
+  private <T> void findChildren(Operator<?> current, Class<T> target, Set<T> found) {
+    if (target.isInstance(current)) {
+      found.add((T) current);
+    }
+    if (current.getChildOperators() != null) {
+      for (Operator<?> child : current.getChildOperators()) {
+        findChildren(child, target, found);
+      }
+    }
+  }
+
 
   private ListSinkOperator getCommonListSink(List<Task<? extends Serializable>> rootTasks) {
     ListSinkOperator prev = null;

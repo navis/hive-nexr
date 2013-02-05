@@ -93,6 +93,9 @@ public class SimpleFetchOptimizer {
   private final Log LOG = LogFactory.getLog(SimpleFetchOptimizer.class.getName());
 
   public boolean transform(ParseContext pctx, int mode) throws SemanticException {
+    if (pctx.getQB().isAnalyze()) {
+      return false;
+    }
     FileSinkOperator fs = searchSoleFileSink(pctx);
     if (fs == null) {
       return false;
@@ -189,15 +192,18 @@ public class SimpleFetchOptimizer {
   private FetchData checkTree(ParseContext pctx, String alias, TableScanOperator ts, int mode)
       throws HiveException {
     QB qb = pctx.getQB();
-    if (qb.isAnalyze() || qb.isCTAS()) {
-      return null;
-    }
     SplitSample splitSample = pctx.getNameToSplitSample().get(alias);
     if (mode == MINIMAL &&
         (splitSample != null || !qb.isSimpleSelectQuery() || qb.hasTableSample(alias))) {
       return null;
     }
     if (mode == MORE && !qb.isSimpleSelectQuery()) {
+      return null;
+    }
+    boolean convertInsert = HiveConf.getBoolVar(pctx.getConf(),
+        HiveConf.ConfVars.HIVEFETCHTASKCONVERSIONINSERT);
+    boolean isQuery = qb.getIsQuery() && !qb.isCTAS();
+    if (mode == ALL && !isQuery && !convertInsert) {
       return null;
     }
 
