@@ -694,7 +694,7 @@ public class GenMRFileSink1 implements NodeProcessor {
     return cndTsk;
   }
 
-  private Task<MoveWork> findMoveTask(
+  public static Task<MoveWork> findMoveTask(
       List<Task<MoveWork>> mvTasks, FileSinkOperator fsOp) {
     // find the move task
     for (Task<MoveWork> mvTsk : mvTasks) {

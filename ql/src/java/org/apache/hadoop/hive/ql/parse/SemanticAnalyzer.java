@@ -7818,8 +7818,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       }
     }
 
-    usingPseudoMR = !rootTasks.isEmpty();
-    if (!usingPseudoMR) {
+    if (usingPseudoMR = !rootTasks.isEmpty()) {
+      if (!mvTask.isEmpty()) {
+        linkFileSink(rootTasks, mvTask);
+      }
+    } else {
       createMRTasks(mvTask, fetchTask);
     }
 
@@ -7879,6 +7882,36 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       List<ExecDriver> mrTasks = Utilities.getMRTasks(rootTasks);
       for (ExecDriver tsk : mrTasks) {
         tsk.setRetryCmdWhenFail(true);
+      }
+    }
+  }
+
+  private void linkFileSink(List<Task<?>> rootTasks, List<Task<MoveWork>> mvTask) {
+    Set<FileSinkOperator> fss = new HashSet<FileSinkOperator>();
+    for (Task<?> task : rootTasks) {
+      assert task instanceof FetchTask;
+      Operator<?> source = ((FetchTask)task).getWork().getSource();
+      if (source != null) {
+        findChildren(source, FileSinkOperator.class, fss);
+      }
+    }
+    for (FileSinkOperator fs : fss) {
+      Task<MoveWork> target = GenMRFileSink1.findMoveTask(mvTask, fs);
+      if (target != null) {
+        for (Task<?> task : rootTasks) {
+          task.addDependentTask(target);
+        }
+      }
+    }
+  }
+
+  private <T> void findChildren(Operator<?> current, Class<T> target, Set<T> found) {
+    if (target.isInstance(current)) {
+      found.add((T) current);
+    }
+    if (current.getChildOperators() != null) {
+      for (Operator<?> child : current.getChildOperators()) {
+        findChildren(child, target, found);
       }
     }
   }
