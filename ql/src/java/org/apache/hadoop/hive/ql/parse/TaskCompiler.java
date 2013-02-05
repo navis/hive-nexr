@@ -20,6 +20,7 @@ package org.apache.hadoop.hive.ql.parse;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -35,7 +36,10 @@ import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.exec.ColumnStatsTask;
 import org.apache.hadoop.hive.ql.exec.FetchTask;
+import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
 import org.apache.hadoop.hive.ql.exec.ListSinkOperator;
+import org.apache.hadoop.hive.ql.exec.Operator;
+import org.apache.hadoop.hive.ql.exec.OperatorUtils;
 import org.apache.hadoop.hive.ql.exec.StatsTask;
 import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.exec.TaskFactory;
@@ -70,6 +74,8 @@ public abstract class TaskCompiler {
   protected Hive db;
   protected LogHelper console;
   protected HiveConf conf;
+
+  protected boolean usingPseudoMR;
 
   public void init(HiveConf conf, LogHelper console, Hive db) {
     this.conf = conf;
@@ -203,13 +209,17 @@ public abstract class TaskCompiler {
       }
     }
 
-    if (rootTasks.isEmpty()) {
+    if (usingPseudoMR = !rootTasks.isEmpty()) {
+      if (!mvTask.isEmpty()) {
+        linkFileSink(rootTasks, mvTask);
+      }
+    } else {
       generateTaskTree(rootTasks, pCtx, mvTask, inputs, outputs);
 
-    /*
-     * If the query was the result of analyze table column compute statistics rewrite, create
-     * a column stats task instead of a fetch task to persist stats to the metastore.
-     */
+      /**
+       * If the query was the result of analyze table column compute statistics rewrite, create
+       * a column stats task instead of a fetch task to persist stats to the metastore.
+       */
       if (isCStats) {
         genColumnStatsTask(qb, loadTableWork, loadFileWork, rootTasks);
       }
@@ -276,6 +286,25 @@ public abstract class TaskCompiler {
       List<ExecDriver> mrTasks = Utilities.getMRTasks(rootTasks);
       for (ExecDriver tsk : mrTasks) {
         tsk.setRetryCmdWhenFail(true);
+      }
+    }
+  }
+
+  private void linkFileSink(List<Task<?>> rootTasks, List<Task<MoveWork>> mvTask) {
+    Set<FileSinkOperator> fss = Collections.emptySet();
+    for (Task<?> task : rootTasks) {
+      assert task instanceof FetchTask;
+      Operator<?> source = ((FetchTask)task).getWork().getSource();
+      if (source != null) {
+        fss = OperatorUtils.findOperators(source, FileSinkOperator.class);
+      }
+    }
+    for (FileSinkOperator fs : fss) {
+      Task<MoveWork> target = GenMapRedUtils.findMoveTask(mvTask, fs);
+      if (target != null) {
+        for (Task<?> task : rootTasks) {
+          task.addDependentTask(target);
+        }
       }
     }
   }
