@@ -67,7 +67,7 @@ public class HiveSessionImpl implements HiveSession {
   private String username;
   private final String password;
   private final Map<String, String> sessionConf = new HashMap<String, String>();
-  private final HiveConf hiveConf = new HiveConf();
+  private final HiveConf hiveConf;
   private final SessionState sessionState;
 
   private static final String FETCH_WORK_SERDE_CLASS =
@@ -80,7 +80,8 @@ public class HiveSessionImpl implements HiveSession {
   private IMetaStoreClient metastoreClient = null;
   private final Set<OperationHandle> opHandleSet = new HashSet<OperationHandle>();
 
-  public HiveSessionImpl(String username, String password, Map<String, String> sessionConf) {
+  public HiveSessionImpl(HiveConf hiveConf, String username, String password,
+      Map<String, String> sessionConf) {
     this.username = username;
     this.password = password;
 
@@ -92,7 +93,9 @@ public class HiveSessionImpl implements HiveSession {
     // set an explicit session name to control the download directory name
     hiveConf.set(ConfVars.HIVESESSIONID.varname,
         sessionHandle.getHandleIdentifier().toString());
-    sessionState = new SessionState(hiveConf);
+
+    this.hiveConf = hiveConf;
+    this.sessionState = new SessionState(hiveConf);
   }
 
   private SessionManager getSessionManager() {
