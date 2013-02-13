@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.junit.Test;
 
 import org.apache.hive.service.cli.OperationHandle;
@@ -36,7 +37,7 @@ public class TestHiveSession {
   @Test
   public void checkOperationClosing() throws Exception {
     OperationManager opMgr = new OperationManager();
-    HiveSession session = new HiveSessionImpl("user", "passw", null);
+    HiveSession session = new HiveSessionImpl(new HiveConf(), "user", "passw", null);
 
     session.setOperationManager(opMgr);
 
