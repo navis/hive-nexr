@@ -56,7 +56,7 @@ public class Session {
   private final String username;
   private final String password;
   private final Map<String, String> sessionConf = new HashMap<String, String>();
-  private final HiveConf hiveConf = new HiveConf();
+  private final HiveConf hiveConf;
   private final SessionState sessionState;
 
   private static final String FETCH_WORK_SERDE_CLASS =
@@ -66,15 +66,19 @@ public class Session {
   private OperationManager operationManager;
   private IMetaStoreClient metastoreClient = null;
 
-  public Session(String username, String password, Map<String, String> sessionConf) {
+  public Session(HiveConf hiveConf, String username, String password,
+       Map<String, String> sessionConf) {
     this.username = username;
     this.password = password;
 
     if (sessionConf != null) {
-      sessionConf.putAll(sessionConf);
+      for (Map.Entry<String, String> entry : sessionConf.entrySet()) {
+        hiveConf.set(entry.getKey(), entry.getValue());
+      }
     }
 
-    sessionState = new SessionState(hiveConf);
+    this.hiveConf = hiveConf;
+    this.sessionState = new SessionState(hiveConf);
   }
 
   private SessionManager getSessionManager() {

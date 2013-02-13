@@ -65,7 +65,7 @@ public class SessionManager extends CompositeService {
 
 
   public SessionHandle openSession(String username, String password, Map<String, String> sessionConf) {
-    Session session = new Session(username, password, sessionConf);
+    Session session = new Session(new HiveConf(hiveConf), username, password, sessionConf);
     session.setSessionManager(this);
     session.setOperationManager(operationManager);
     handleToSession.put(session.getSessionHandle(), session);

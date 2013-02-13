@@ -41,15 +41,19 @@ public class TableSchema {
   }
 
   public TableSchema(TTableSchema tTableSchema) {
-    for (TColumnDesc tColumnDesc : tTableSchema.getColumns()) {
-      columns.add(new ColumnDescriptor(tColumnDesc));
+    if (tTableSchema != null) {
+      for (TColumnDesc tColumnDesc : tTableSchema.getColumns()) {
+        columns.add(new ColumnDescriptor(tColumnDesc));
+      }
     }
   }
 
   public TableSchema(List<FieldSchema> fieldSchemas) {
-    int pos = 1;
-    for (FieldSchema field : fieldSchemas) {
-      columns.add(new ColumnDescriptor(field, pos++));
+    if (fieldSchemas != null) {
+      int pos = 1;
+      for (FieldSchema field : fieldSchemas) {
+        columns.add(new ColumnDescriptor(field, pos++));
+      }
     }
   }
 
