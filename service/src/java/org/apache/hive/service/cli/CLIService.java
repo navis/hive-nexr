@@ -46,6 +46,7 @@ import org.apache.hive.service.CompositeService;
 import org.apache.hive.service.ServiceException;
 import org.apache.hive.service.auth.HiveAuthFactory;
 import org.apache.hive.service.cli.operation.Operation;
+import org.apache.hive.service.cli.session.HiveSession;
 import org.apache.hive.service.cli.session.SessionManager;
 import org.apache.hive.service.cli.thrift.TProtocolVersion;
 
@@ -147,6 +148,10 @@ public class CLIService extends CompositeService implements ICLIService {
       metastoreClient.close();
     }
     super.stop();
+  }
+
+  public HiveSession openServerSession(boolean inheritToClient) throws HiveSQLException {
+    return sessionManager.openServerSession(inheritToClient);
   }
 
   public SessionHandle openSession(TProtocolVersion protocol, String username, String password,
