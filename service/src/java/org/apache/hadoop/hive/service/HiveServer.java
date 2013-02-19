@@ -892,7 +892,7 @@ public class HiveServer extends ThriftHive {
   }
 
   // load script file and split query by ending ';'
-  private static List<String> loadScript(HiveConf conf, String initFile) throws Exception {
+  public static List<String> loadScript(HiveConf conf, String initFile) throws Exception {
     Path path;
     FileSystem fs;
     if (new URI(initFile).getScheme() == null) {
