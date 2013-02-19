@@ -45,6 +45,7 @@ import org.apache.hive.service.CompositeService;
 import org.apache.hive.service.ServiceException;
 import org.apache.hive.service.auth.HiveAuthFactory;
 import org.apache.hive.service.cli.operation.Operation;
+import org.apache.hive.service.cli.session.HiveSession;
 import org.apache.hive.service.cli.session.SessionManager;
 import org.apache.hive.service.cli.thrift.TProtocolVersion;
 
@@ -162,6 +163,10 @@ public class CLIService extends CompositeService implements ICLIService {
         true, delegationToken);
     LOG.debug(sessionHandle + ": openSession()");
     return sessionHandle;
+  }
+
+  public HiveSession openServerSession(boolean inheritToClient) throws HiveSQLException {
+    return sessionManager.openServerSession(inheritToClient);
   }
 
   /* (non-Javadoc)

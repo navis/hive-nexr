@@ -20,6 +20,7 @@ package org.apache.hive.service.cli.session;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -47,6 +48,10 @@ import org.apache.hive.service.cli.thrift.TProtocolVersion;
 public class SessionManager extends CompositeService {
 
   private static final Log LOG = LogFactory.getLog(CompositeService.class);
+
+  private HiveSession serverSession;
+  private boolean inheritToClient;
+
   private HiveConf hiveConf;
   private final Map<SessionHandle, HiveSession> handleToSession =
       new ConcurrentHashMap<SessionHandle, HiveSession>();
@@ -137,7 +142,22 @@ public class SessionManager extends CompositeService {
     } catch (Exception e) {
       throw new HiveSQLException("Failed to execute session hooks", e);
     }
+    SessionState.start(session.getSessionState());
+    if (inheritToClient && serverSession != null) {
+      addResources(serverSession.getSessionState());
+    }
     return session.getSessionHandle();
+  }
+
+  private void addResources(SessionState serverSession) {
+    for (SessionState.ResourceType resourceType : SessionState.ResourceType.values()) {
+      Set<String> resources = serverSession.list_resource(resourceType, null);
+      if (resources != null && !resources.isEmpty()) {
+        for (String resource : resources) {
+          SessionState.get().add_resource(resourceType, resource);
+        }
+      }
+    }
   }
 
   public void closeSession(SessionHandle sessionHandle) throws HiveSQLException {
@@ -231,5 +251,13 @@ public class SessionManager extends CompositeService {
     return backgroundOperationPool.submit(r);
   }
 
+  public HiveSession openServerSession(boolean inheritToClient) throws HiveSQLException {
+    if (serverSession != null) {
+      return serverSession;
+    }
+    SessionHandle handle = openSession(null, null, null, null);
+    this.inheritToClient = inheritToClient;
+    return serverSession = handleToSession.get(handle);
+  }
 }
 

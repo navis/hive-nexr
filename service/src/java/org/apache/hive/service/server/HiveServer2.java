@@ -18,18 +18,25 @@
 
 package org.apache.hive.service.server;
 
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Properties;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.common.LogUtils;
-import org.apache.hadoop.hive.common.LogUtils.LogInitializationException;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.ql.exec.tez.TezSessionPoolManager;
-import org.apache.hadoop.hive.ql.exec.tez.TezSessionState;
+import org.apache.hadoop.hive.service.HiveServer;
 import org.apache.hive.common.util.HiveStringUtils;
 import org.apache.hive.service.CompositeService;
 import org.apache.hive.service.cli.CLIService;
 import org.apache.hive.service.cli.thrift.ThriftBinaryCLIService;
+import org.apache.hive.service.cli.OperationHandle;
+import org.apache.hive.service.cli.RowSet;
+import org.apache.hive.service.cli.SessionHandle;
+import org.apache.hive.service.cli.session.HiveSession;
 import org.apache.hive.service.cli.thrift.ThriftCLIService;
 import org.apache.hive.service.cli.thrift.ThriftHttpCLIService;
 
@@ -89,16 +96,25 @@ public class HiveServer2 extends CompositeService {
     }
   }
 
-  private static void startHiveServer2() throws Throwable {
+  private static void startHiveServer2(HiveServer.HiveServerCli cli) throws Throwable {
     long attempts = 0, maxAttempts = 1;
     while(true) {
       HiveConf hiveConf = new HiveConf();
+      Properties hiveconf = cli.addHiveconfToSystemProperties();
+      for (Map.Entry<Object, Object> item : hiveconf.entrySet()) {
+        hiveConf.set((String) item.getKey(), (String) item.getValue());
+      }
       maxAttempts = hiveConf.getLongVar(HiveConf.ConfVars.HIVE_SERVER2_MAX_START_ATTEMPTS);
       HiveServer2 server = null;
       try {
         server = new HiveServer2();
         server.init(hiveConf);
+
+        if (cli.initFiles != null && cli.initFiles.length > 0) {
+          server.initialize(cli.initFiles, cli.registerServerResources);
+        }
         server.start();
+
         if (hiveConf.getBoolVar(ConfVars.HIVE_SERVER2_TEZ_INITIALIZE_DEFAULT_SESSIONS)) {
           TezSessionPoolManager sessionPool = TezSessionPoolManager.getInstance();
           sessionPool.setupPool(hiveConf);
@@ -144,17 +160,33 @@ public class HiveServer2 extends CompositeService {
       LOG.debug(initLog4jMessage);
       
       HiveStringUtils.startupShutdownMessage(HiveServer2.class, args, LOG);
+      HiveServer.HiveServerCli cli = new HiveServer.HiveServerCli();
+      cli.parse(args);
       //log debug message from "oproc" after log4j initialize properly
       LOG.debug(oproc.getDebugMessage().toString());
-      startHiveServer2();
-    } catch (LogInitializationException e) {
-      LOG.error("Error initializing log: " + e.getMessage(), e);
-      System.exit(-1);
+      startHiveServer2(cli);
     } catch (Throwable t) {
       LOG.fatal("Error starting HiveServer2", t);
       System.exit(-1);
     }
   }
 
+  private void initialize(String[] initFiles, boolean inheritToClient) throws Exception {
+    HiveSession serverSession = cliService.openServerSession(inheritToClient);
+    SessionHandle session = serverSession.getSessionHandle();
+    for (String initFile : initFiles) {
+      for (String query : HiveServer.loadScript(getHiveConf(), initFile)) {
+        LOG.info("Executing : " + query);
+        OperationHandle operation = cliService.executeStatement(session, query, null);
+        if (operation.hasResultSet()) {
+          RowSet rowSet = cliService.fetchResults(operation);
+          for (Object[] row : rowSet) {
+            LOG.info("-- " + Arrays.toString(row));
+          }
+        }
+        cliService.closeOperation(operation);
+      }
+    }
+  }
 }
 
