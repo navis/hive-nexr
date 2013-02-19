@@ -29,6 +29,7 @@ import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hive.service.CompileResult;
 import org.apache.hive.service.CompositeService;
 import org.apache.hive.service.ServiceException;
+import org.apache.hive.service.cli.session.Session;
 import org.apache.hive.service.cli.session.SessionManager;
 
 /**
@@ -79,6 +80,9 @@ public class CLIService extends CompositeService implements ICLIService {
     super.stop();
   }
 
+  public Session openServerSession(boolean inheritToClient) throws HiveSQLException {
+    return sessionManager.openServerSession(inheritToClient);
+  }
 
   /* (non-Javadoc)
    * @see org.apache.hive.service.sql.ISQLService#openSession(java.lang.String, java.lang.String, java.util.Map)
