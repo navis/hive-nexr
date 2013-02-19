@@ -36,6 +36,7 @@ import org.apache.hive.service.CompileResult;
 import org.apache.hive.service.CompositeService;
 import org.apache.hive.service.ServiceException;
 import org.apache.hive.service.auth.HiveAuthFactory;
+import org.apache.hive.service.cli.session.HiveSession;
 import org.apache.hive.service.cli.session.SessionManager;
 
 /**
@@ -95,6 +96,9 @@ public class CLIService extends CompositeService implements ICLIService {
     super.stop();
   }
 
+  public HiveSession openServerSession(boolean inheritToClient) throws HiveSQLException {
+    return sessionManager.openServerSession(inheritToClient);
+  }
 
   /* (non-Javadoc)
    * @see org.apache.hive.service.cli.ICLIService#openSession(java.lang.String, java.lang.String, java.util.Map)
