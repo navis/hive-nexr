@@ -68,6 +68,9 @@ public class ReduceSinkDesc extends AbstractOperatorDesc {
 
   private int numReducers;
 
+  // context holder for new parent FS
+  private transient SamplingContext samplingContext;
+
   public ReduceSinkDesc() {
   }
 
@@ -234,5 +237,13 @@ public class ReduceSinkDesc extends AbstractOperatorDesc {
   public void setDistinctColumnIndices(
       List<List<Integer>> distinctColumnIndices) {
     this.distinctColumnIndices = distinctColumnIndices;
+  }
+
+  public void setSamplingContext(SamplingContext samplingContext) {
+    this.samplingContext = samplingContext;
+  }
+
+  public SamplingContext getSamplingContext() {
+    return samplingContext;
   }
 }

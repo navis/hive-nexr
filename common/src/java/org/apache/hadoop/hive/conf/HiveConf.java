@@ -521,7 +521,11 @@ public class HiveConf extends Configuration {
     HIVEOPTGROUPBY("hive.optimize.groupby", true), // optimize group by
     HIVEOPTBUCKETMAPJOIN("hive.optimize.bucketmapjoin", false), // optimize bucket map join
     HIVEOPTSORTMERGEBUCKETMAPJOIN("hive.optimize.bucketmapjoin.sortedmerge", false), // try to use sorted merge bucket map join
+
     HIVEOPTREDUCEDEDUPLICATION("hive.optimize.reducededuplication", true),
+    HIVESAMPLINGFORORDERBY("hive.optimize.sampling.orderby", false),
+    HIVESAMPLINGNUMBERFORORDERBY("hive.optimize.sampling.orderby.number", 1000),
+    HIVESAMPLINGPERCENTFORORDERBY("hive.optimize.sampling.orderby.percent", 0.1f),
     // whether to optimize union followed by select followed by filesink
     // It creates sub-directories in the final output, so should not be turned on in systems
     // where MAPREDUCE-1501 is not present

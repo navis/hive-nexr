@@ -94,6 +94,16 @@ public class MapredWork extends AbstractOperatorDesc {
 
   private transient boolean useBucketizedHiveInputFormat;
 
+  // if this is true, this means that this is the map reduce task which writes the final data,
+  // ignoring the optional merge task
+  private boolean finalMapRed = false;
+
+  // use sampled partitioning
+  private int samplingType;
+
+  public static final int USE_PREV_SAMPLING = 1;
+  public static final int DO_SAMPLING = 2;
+
   public MapredWork() {
     aliasToPartnInfo = new LinkedHashMap<String, PartitionDesc>();
   }
@@ -222,6 +232,22 @@ public class MapredWork extends AbstractOperatorDesc {
   public void setAliasToWork(
       final LinkedHashMap<String, Operator<? extends OperatorDesc>> aliasToWork) {
     this.aliasToWork = aliasToWork;
+  }
+
+  public ArrayList<String> getAliases() {
+    return new ArrayList<String>(aliasToWork.keySet());
+  }
+
+  public ArrayList<Operator<?>> getWorks() {
+    return new ArrayList<Operator<?>>(aliasToWork.values());
+  }
+
+  public ArrayList<String> getPaths() {
+    return new ArrayList<String>(pathToAliases.keySet());
+  }
+
+  public ArrayList<PartitionDesc> getPartitionDescs() {
+    return new ArrayList<PartitionDesc>(aliasToPartnInfo.values());
   }
 
   /**
@@ -543,5 +569,21 @@ public class MapredWork extends AbstractOperatorDesc {
 
   public void setUseBucketizedHiveInputFormat(boolean useBucketizedHiveInputFormat) {
     this.useBucketizedHiveInputFormat = useBucketizedHiveInputFormat;
+  }
+
+  public boolean isFinalMapRed() {
+    return finalMapRed;
+  }
+
+  public void setFinalMapRed(boolean finalMapRed) {
+    this.finalMapRed = finalMapRed;
+  }
+
+  public int getSamplingType() {
+    return samplingType;
+  }
+
+  public void setSamplingType(int samplingType) {
+    this.samplingType = samplingType;
   }
 }

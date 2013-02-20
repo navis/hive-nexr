@@ -20,10 +20,12 @@ package org.apache.hadoop.hive.ql.plan;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.hive.ql.exec.ExprNodeEvaluator;
 import org.apache.hadoop.hive.ql.exec.ExprNodeEvaluatorFactory;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
+import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.UDF;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFBridge;
@@ -167,5 +169,47 @@ public class ExprNodeDescUtils {
     } catch (Exception e) {
       return null;
     }
+  }
+
+  public static ExprNodeDesc backtrack(ExprNodeDesc origin, Operator<?> start, Operator<?> stop) {
+    if (origin instanceof ExprNodeConstantDesc || origin instanceof ExprNodeNullDesc) {
+      return origin;
+    }
+    Map<String, ExprNodeDesc> exprMapping =  start.getColumnExprMap();
+    if (origin instanceof ExprNodeColumnDesc) {
+      if (exprMapping != null && !exprMapping.isEmpty()) {
+        ExprNodeDesc source = exprMapping.get(((ExprNodeColumnDesc) origin).getColumn());
+        if (source == null) {
+          throw new IllegalStateException();
+        }
+        return forward(source, start, stop);
+      }
+      return forward(origin, start, stop);
+    }
+    if (origin instanceof ExprNodeGenericFuncDesc) {
+      ExprNodeGenericFuncDesc func = (ExprNodeGenericFuncDesc) origin.clone();
+      func.getChildren().clear();
+      for (ExprNodeDesc child : origin.getChildren()) {
+        func.getChildren().add(backtrack(child, start, stop));
+      }
+      return func;
+    }
+    if (origin instanceof ExprNodeFieldDesc) {
+      ExprNodeFieldDesc field = (ExprNodeFieldDesc) origin.clone();
+      field.getChildren().clear();
+      field.getChildren().add(backtrack(field.getDesc(), start, stop));
+      return field;
+    }
+    throw new IllegalStateException();
+  }
+
+  private static ExprNodeDesc forward(ExprNodeDesc origin, Operator<?> start, Operator<?> stop) {
+    if (start == stop || stop == null) {
+      return origin;
+    }
+    if (start.getParentOperators() == null || start.getParentOperators().size() != 1) {
+      throw new IllegalStateException();
+    }
+    return backtrack(origin, start.getParentOperators().get(0), stop);
   }
 }

@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.ql.optimizer.SamplingOptimizer;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 
 /**
@@ -58,6 +59,9 @@ public class PhysicalOptimizer {
     resolvers.add(new MapJoinResolver());
     if (hiveConf.getBoolVar(HiveConf.ConfVars.HIVEMETADATAONLYQUERIES)) {
       resolvers.add(new MetadataOnlyOptimizer());
+    }
+    if (hiveConf.getBoolVar(HiveConf.ConfVars.HIVESAMPLINGFORORDERBY)) {
+      resolvers.add(new SamplingOptimizer());
     }
   }
 

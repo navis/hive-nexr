@@ -64,7 +64,7 @@ public class CommonJoinResolver implements PhysicalPlanResolver {
 
     // get all the tasks nodes from root task
     ArrayList<Node> topNodes = new ArrayList<Node>();
-    topNodes.addAll(pctx.rootTasks);
+    topNodes.addAll(pctx.getRootTasks());
 
     // begin to walk through the task tree.
     ogw.startWalking(topNodes, null);

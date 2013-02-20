@@ -35,6 +35,7 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.exec.AbstractMapJoinOperator;
 import org.apache.hadoop.hive.ql.exec.JoinOperator;
+import org.apache.hadoop.hive.ql.exec.MapRedTask;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.OperatorFactory;
 import org.apache.hadoop.hive.ql.exec.ReduceSinkOperator;
@@ -1024,6 +1025,13 @@ public final class GenMapRedUtils {
           HiveConf.ConfVars.COMPRESSINTERMEDIATECODEC));
       desc.setCompressType(parseCtx.getConf().getVar(
           HiveConf.ConfVars.COMPRESSINTERMEDIATETYPE));
+    }
+    if (childTask instanceof MapRedTask && op instanceof ReduceSinkOperator &&
+        ((ReduceSinkOperator)op).getConf().getSamplingContext() != null) {
+      // move sampling context of RS to FS and mark MapredTask to use prev sampling
+      desc.setSamplingContext(((ReduceSinkOperator)op).getConf().getSamplingContext());
+      ((ReduceSinkOperator)op).getConf().setSamplingContext(null);
+      ((MapRedTask)childTask).getWork().setSamplingType(MapredWork.USE_PREV_SAMPLING);
     }
     Operator<? extends OperatorDesc> fs_op = putOpInsertMap(OperatorFactory
         .get(desc, parent.getSchema()), null, parseCtx);
