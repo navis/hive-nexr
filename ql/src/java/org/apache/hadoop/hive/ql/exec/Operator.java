@@ -975,6 +975,16 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
     return result;
   }
 
+  protected static StructObjectInspector initEvaluatorsAndReturnStruct(
+      ExprNodeEvaluator[] evals, ObjectInspector rowInspector) throws HiveException {
+    List<String> outputColNames = new ArrayList<String>();
+    for (int i = 0; i < evals.length; i++) {
+      outputColNames.add("_col" + i);
+    }
+    return initEvaluatorsAndReturnStruct(evals, outputColNames, rowInspector);
+  }
+
+
   /**
    * Initialize an array of ExprNodeEvaluator and put the return values into a
    * StructObjectInspector with integer field names.

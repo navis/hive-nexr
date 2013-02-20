@@ -61,6 +61,8 @@ public class FileSinkDesc extends AbstractOperatorDesc {
 
   private boolean statsReliable;
 
+  private SamplingContext samplingContext;
+
   public FileSinkDesc() {
   }
 
@@ -313,5 +315,14 @@ public class FileSinkDesc extends AbstractOperatorDesc {
 
   public void setLinkedFileSinkDesc(List<FileSinkDesc> linkedFileSinkDesc) {
     this.linkedFileSinkDesc = linkedFileSinkDesc;
+  }
+
+  @Explain(displayName = "Sampling Context")
+  public SamplingContext getSamplingContext() {
+    return samplingContext;
+  }
+
+  public void setSamplingContext(SamplingContext sampling) {
+    this.samplingContext = sampling;
   }
 }

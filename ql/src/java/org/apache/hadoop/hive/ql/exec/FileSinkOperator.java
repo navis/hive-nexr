@@ -44,6 +44,8 @@ import org.apache.hadoop.hive.ql.plan.DynamicPartitionCtx;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.FileSinkDesc;
 import org.apache.hadoop.hive.ql.plan.PlanUtils;
+import org.apache.hadoop.hive.ql.plan.SamplingContext;
+import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.plan.api.OperatorType;
 import org.apache.hadoop.hive.ql.stats.StatsPublisher;
 import org.apache.hadoop.hive.ql.stats.StatsSetupConst;
@@ -84,6 +86,8 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
   protected transient RecordWriter[] rowOutWriters; // row specific RecordWriters
   protected transient int maxPartitions;
   private transient boolean statsCollectRawDataSize;
+
+  private transient RandomSampler sampler;
 
   private static final transient String[] FATAL_ERR_MSG = {
       null, // counter value 0 means no error
@@ -365,6 +369,19 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
         // createBucketFiles(fsp);
         valToPaths.put("", fsp); // special entry for non-DP case
       }
+      SamplingContext context = getConf().getSamplingContext();
+      if (context != null) {
+        List<ExprNodeDesc> keys = context.getSamplingKeys();
+        ExprNodeEvaluator[] evals = new ExprNodeEvaluator[keys.size()];
+        for (int i = 0; i < evals.length; i++) {
+          evals[i] = ExprNodeEvaluatorFactory.get(keys.get(i));
+        }
+        StructObjectInspector keyOI = initEvaluatorsAndReturnStruct(evals, inputObjInspectors[0]);
+        TableDesc tableDesc = context.getTableInfo();
+        Serializer serializer = (Serializer) tableDesc.getDeserializerClass().newInstance();
+        serializer.initialize(null, tableDesc.getProperties());
+        sampler = new RandomSampler(evals, keyOI, serializer, context.getSamplingNum());
+      }
       initializeChildren(hconf);
     } catch (HiveException e) {
       throw e;
@@ -616,6 +633,9 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
         int idx = bucketMap.get(bucketNum);
         rowOutWriters[idx].write(recordValue);
       }
+      if (sampler != null) {
+        sampler.sampling(row, (StructObjectInspector) inputObjInspectors[0]);
+      }
     } catch (IOException e) {
       throw new HiveException(e);
     } catch (SerDeException e) {
@@ -745,6 +765,15 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
         fsp.closeWriters(abort);
         if (isNativeTable) {
           fsp.commit(fs);
+        }
+      }
+      if (sampler != null) {
+        // directly commit to spec path
+        String fileName = ".sampling_" + Utilities.getTaskId(hconf);
+        try {
+          sampler.publish(jc, new Path(specPath, fileName));
+        } catch (IOException e) {
+          throw new HiveException(e);
         }
       }
       // Only publish stats if this operator's flag was set to gather stats
