@@ -454,8 +454,8 @@ public class ThriftCLIServiceClient extends CLIServiceClient {
       }
       System.err.println("[ThriftCLIServiceClient/main] " + line);
       CompileResult result = client.compileStatement(session, line, null);
-      System.err.println("[ThriftCLIServiceClient/main] " + result.getHandle().toString());
-      System.err.println("[ThriftCLIServiceClient/main] " + result.getPlan().toString());
+      System.err.println("[ThriftCLIServiceClient/main] " + result.getHandle());
+      System.err.println("[ThriftCLIServiceClient/main] " + result.getPlan());
 
       OperationHandle handle = new OperationHandle(result.getHandle());
 

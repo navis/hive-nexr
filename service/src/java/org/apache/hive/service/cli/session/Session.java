@@ -160,11 +160,10 @@ public class Session {
       OperationManager manager = getOperationManager();
       ExecuteStatementOperation operation = manager
           .newExecuteStatementOperation(this, statement, confOverlay);
-      if (!(operation instanceof SQLOperation)) {
-        getOperationManager().closeOperation(operation.getHandle());
-        throw new HiveSQLException("Not SQL statement");
+      Query queryPlan = null;
+      if (operation instanceof SQLOperation) {
+        queryPlan = ((SQLOperation)operation).compile();
       }
-      Query queryPlan = ((SQLOperation)operation).compile();
       return new CompileResult(operation.getHandle().toTOperationHandle(), queryPlan);
     } finally {
       release();
@@ -175,8 +174,11 @@ public class Session {
     acquire();
     try {
       Operation operation = getOperationManager().getOperation(opHandle);
-      assert operation instanceof SQLOperation;
-      ((SQLOperation)operation).execute();
+      if (operation instanceof SQLOperation) {
+        ((SQLOperation)operation).execute();
+      } else {
+        operation.run();
+      }
     } finally {
       release();
     }

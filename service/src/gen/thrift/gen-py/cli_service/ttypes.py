@@ -5060,21 +5060,21 @@ class TCompileRes:
   """
   Attributes:
    - status
-   - queryPlan
    - operationHandle
+   - queryPlan
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRUCT, 'status', (TStatus, TStatus.thrift_spec), None, ), # 1
-    (2, TType.STRUCT, 'queryPlan', (queryplan.ttypes.Query, queryplan.ttypes.Query.thrift_spec), None, ), # 2
-    (3, TType.STRUCT, 'operationHandle', (TOperationHandle, TOperationHandle.thrift_spec), None, ), # 3
+    (2, TType.STRUCT, 'operationHandle', (TOperationHandle, TOperationHandle.thrift_spec), None, ), # 2
+    (3, TType.STRUCT, 'queryPlan', (queryplan.ttypes.Query, queryplan.ttypes.Query.thrift_spec), None, ), # 3
   )
 
-  def __init__(self, status=None, queryPlan=None, operationHandle=None,):
+  def __init__(self, status=None, operationHandle=None, queryPlan=None,):
     self.status = status
-    self.queryPlan = queryPlan
     self.operationHandle = operationHandle
+    self.queryPlan = queryPlan
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -5093,14 +5093,14 @@ class TCompileRes:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRUCT:
-          self.queryPlan = queryplan.ttypes.Query()
-          self.queryPlan.read(iprot)
+          self.operationHandle = TOperationHandle()
+          self.operationHandle.read(iprot)
         else:
           iprot.skip(ftype)
       elif fid == 3:
         if ftype == TType.STRUCT:
-          self.operationHandle = TOperationHandle()
-          self.operationHandle.read(iprot)
+          self.queryPlan = queryplan.ttypes.Query()
+          self.queryPlan.read(iprot)
         else:
           iprot.skip(ftype)
       else:
@@ -5117,13 +5117,13 @@ class TCompileRes:
       oprot.writeFieldBegin('status', TType.STRUCT, 1)
       self.status.write(oprot)
       oprot.writeFieldEnd()
-    if self.queryPlan is not None:
-      oprot.writeFieldBegin('queryPlan', TType.STRUCT, 2)
-      self.queryPlan.write(oprot)
-      oprot.writeFieldEnd()
     if self.operationHandle is not None:
-      oprot.writeFieldBegin('operationHandle', TType.STRUCT, 3)
+      oprot.writeFieldBegin('operationHandle', TType.STRUCT, 2)
       self.operationHandle.write(oprot)
+      oprot.writeFieldEnd()
+    if self.queryPlan is not None:
+      oprot.writeFieldBegin('queryPlan', TType.STRUCT, 3)
+      self.queryPlan.write(oprot)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
@@ -5131,8 +5131,6 @@ class TCompileRes:
   def validate(self):
     if self.status is None:
       raise TProtocol.TProtocolException(message='Required field status is unset!')
-    if self.queryPlan is None:
-      raise TProtocol.TProtocolException(message='Required field queryPlan is unset!')
     if self.operationHandle is None:
       raise TProtocol.TProtocolException(message='Required field operationHandle is unset!')
     return

@@ -5395,8 +5395,8 @@ void swap(TFetchResultsResp &a, TFetchResultsResp &b) {
   swap(a.__isset, b.__isset);
 }
 
-const char* TCompileRes::ascii_fingerprint = "D5F86EBDFC847E2842C49F301FBE4C03";
-const uint8_t TCompileRes::binary_fingerprint[16] = {0xD5,0xF8,0x6E,0xBD,0xFC,0x84,0x7E,0x28,0x42,0xC4,0x9F,0x30,0x1F,0xBE,0x4C,0x03};
+const char* TCompileRes::ascii_fingerprint = "0109DD9AF87F9C16A0392FEEF0301D54";
+const uint8_t TCompileRes::binary_fingerprint[16] = {0x01,0x09,0xDD,0x9A,0xF8,0x7F,0x9C,0x16,0xA0,0x39,0x2F,0xEE,0xF0,0x30,0x1D,0x54};
 
 uint32_t TCompileRes::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -5410,7 +5410,6 @@ uint32_t TCompileRes::read(::apache::thrift::protocol::TProtocol* iprot) {
   using ::apache::thrift::protocol::TProtocolException;
 
   bool isset_status = false;
-  bool isset_queryPlan = false;
   bool isset_operationHandle = false;
 
   while (true)
@@ -5431,16 +5430,16 @@ uint32_t TCompileRes::read(::apache::thrift::protocol::TProtocol* iprot) {
         break;
       case 2:
         if (ftype == ::apache::thrift::protocol::T_STRUCT) {
-          xfer += this->queryPlan.read(iprot);
-          isset_queryPlan = true;
+          xfer += this->operationHandle.read(iprot);
+          isset_operationHandle = true;
         } else {
           xfer += iprot->skip(ftype);
         }
         break;
       case 3:
         if (ftype == ::apache::thrift::protocol::T_STRUCT) {
-          xfer += this->operationHandle.read(iprot);
-          isset_operationHandle = true;
+          xfer += this->queryPlan.read(iprot);
+          this->__isset.queryPlan = true;
         } else {
           xfer += iprot->skip(ftype);
         }
@@ -5456,8 +5455,6 @@ uint32_t TCompileRes::read(::apache::thrift::protocol::TProtocol* iprot) {
 
   if (!isset_status)
     throw TProtocolException(TProtocolException::INVALID_DATA);
-  if (!isset_queryPlan)
-    throw TProtocolException(TProtocolException::INVALID_DATA);
   if (!isset_operationHandle)
     throw TProtocolException(TProtocolException::INVALID_DATA);
   return xfer;
@@ -5471,14 +5468,15 @@ uint32_t TCompileRes::write(::apache::thrift::protocol::TProtocol* oprot) const 
   xfer += this->status.write(oprot);
   xfer += oprot->writeFieldEnd();
 
-  xfer += oprot->writeFieldBegin("queryPlan", ::apache::thrift::protocol::T_STRUCT, 2);
-  xfer += this->queryPlan.write(oprot);
-  xfer += oprot->writeFieldEnd();
-
-  xfer += oprot->writeFieldBegin("operationHandle", ::apache::thrift::protocol::T_STRUCT, 3);
+  xfer += oprot->writeFieldBegin("operationHandle", ::apache::thrift::protocol::T_STRUCT, 2);
   xfer += this->operationHandle.write(oprot);
   xfer += oprot->writeFieldEnd();
 
+  if (this->__isset.queryPlan) {
+    xfer += oprot->writeFieldBegin("queryPlan", ::apache::thrift::protocol::T_STRUCT, 3);
+    xfer += this->queryPlan.write(oprot);
+    xfer += oprot->writeFieldEnd();
+  }
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -5487,8 +5485,9 @@ uint32_t TCompileRes::write(::apache::thrift::protocol::TProtocol* oprot) const 
 void swap(TCompileRes &a, TCompileRes &b) {
   using ::std::swap;
   swap(a.status, b.status);
-  swap(a.queryPlan, b.queryPlan);
   swap(a.operationHandle, b.operationHandle);
+  swap(a.queryPlan, b.queryPlan);
+  swap(a.__isset, b.__isset);
 }
 
 const char* TRunReq::ascii_fingerprint = "A9814AAA9B38DC20E9E64AA8FF529EC3";

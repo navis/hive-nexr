@@ -960,8 +960,8 @@ struct TFetchResultsResp {
 
 struct TCompileRes {
   1: required TStatus status
-  2: required queryplan.Query queryPlan
-  3: required TOperationHandle operationHandle
+  2: required TOperationHandle operationHandle
+  3: optional queryplan.Query queryPlan
 }
 
 struct TRunReq {

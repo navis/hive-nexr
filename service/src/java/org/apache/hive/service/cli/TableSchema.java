@@ -19,6 +19,7 @@
 package org.apache.hive.service.cli;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -31,6 +32,10 @@ import org.apache.hive.service.cli.thrift.TTableSchema;
  *
  */
 public class TableSchema {
+
+  public static final TableSchema DEFAULT_SCHEMA =
+      new TableSchema(Arrays.asList(new FieldSchema("output", "string", "")));
+
   private final List<ColumnDescriptor> columns = new ArrayList<ColumnDescriptor>();
 
   public TableSchema() {

@@ -3194,12 +3194,16 @@ class TFetchResultsResp {
 
 void swap(TFetchResultsResp &a, TFetchResultsResp &b);
 
+typedef struct _TCompileRes__isset {
+  _TCompileRes__isset() : queryPlan(false) {}
+  bool queryPlan;
+} _TCompileRes__isset;
 
 class TCompileRes {
  public:
 
-  static const char* ascii_fingerprint; // = "D5F86EBDFC847E2842C49F301FBE4C03";
-  static const uint8_t binary_fingerprint[16]; // = {0xD5,0xF8,0x6E,0xBD,0xFC,0x84,0x7E,0x28,0x42,0xC4,0x9F,0x30,0x1F,0xBE,0x4C,0x03};
+  static const char* ascii_fingerprint; // = "0109DD9AF87F9C16A0392FEEF0301D54";
+  static const uint8_t binary_fingerprint[16]; // = {0x01,0x09,0xDD,0x9A,0xF8,0x7F,0x9C,0x16,0xA0,0x39,0x2F,0xEE,0xF0,0x30,0x1D,0x54};
 
   TCompileRes() {
   }
@@ -3207,28 +3211,33 @@ class TCompileRes {
   virtual ~TCompileRes() throw() {}
 
   TStatus status;
-   ::Apache::Hadoop::Hive::Query queryPlan;
   TOperationHandle operationHandle;
+   ::Apache::Hadoop::Hive::Query queryPlan;
+
+  _TCompileRes__isset __isset;
 
   void __set_status(const TStatus& val) {
     status = val;
-  }
-
-  void __set_queryPlan(const  ::Apache::Hadoop::Hive::Query& val) {
-    queryPlan = val;
   }
 
   void __set_operationHandle(const TOperationHandle& val) {
     operationHandle = val;
   }
 
+  void __set_queryPlan(const  ::Apache::Hadoop::Hive::Query& val) {
+    queryPlan = val;
+    __isset.queryPlan = true;
+  }
+
   bool operator == (const TCompileRes & rhs) const
   {
     if (!(status == rhs.status))
       return false;
-    if (!(queryPlan == rhs.queryPlan))
-      return false;
     if (!(operationHandle == rhs.operationHandle))
+      return false;
+    if (__isset.queryPlan != rhs.__isset.queryPlan)
+      return false;
+    else if (__isset.queryPlan && !(queryPlan == rhs.queryPlan))
       return false;
     return true;
   }

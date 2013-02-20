@@ -48,7 +48,7 @@ import org.apache.hive.service.cli.session.Session;
 public abstract class HiveCommandOperation extends ExecuteStatementOperation {
   private CommandProcessorResponse response;
   private CommandProcessor commandProcessor;
-  private TableSchema resultSchema = null;
+  private TableSchema resultSchema;
 
   /**
    * For processors other than Hive queries (Driver), they output to session.out (a temp file)
@@ -106,7 +106,7 @@ public abstract class HiveCommandOperation extends ExecuteStatementOperation {
         resultSchema = new TableSchema(schema);
       } else {
         setHasResultSet(false);
-        resultSchema = new TableSchema();
+        resultSchema = TableSchema.DEFAULT_SCHEMA;
       }
     } catch (Exception e) {
       setState(OperationState.ERROR);

@@ -35,8 +35,8 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TCompileRes");
 
   private static final org.apache.thrift.protocol.TField STATUS_FIELD_DESC = new org.apache.thrift.protocol.TField("status", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-  private static final org.apache.thrift.protocol.TField QUERY_PLAN_FIELD_DESC = new org.apache.thrift.protocol.TField("queryPlan", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-  private static final org.apache.thrift.protocol.TField OPERATION_HANDLE_FIELD_DESC = new org.apache.thrift.protocol.TField("operationHandle", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+  private static final org.apache.thrift.protocol.TField OPERATION_HANDLE_FIELD_DESC = new org.apache.thrift.protocol.TField("operationHandle", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+  private static final org.apache.thrift.protocol.TField QUERY_PLAN_FIELD_DESC = new org.apache.thrift.protocol.TField("queryPlan", org.apache.thrift.protocol.TType.STRUCT, (short)3);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -45,14 +45,14 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
   }
 
   private TStatus status; // required
-  private org.apache.hadoop.hive.ql.plan.api.Query queryPlan; // required
   private TOperationHandle operationHandle; // required
+  private org.apache.hadoop.hive.ql.plan.api.Query queryPlan; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     STATUS((short)1, "status"),
-    QUERY_PLAN((short)2, "queryPlan"),
-    OPERATION_HANDLE((short)3, "operationHandle");
+    OPERATION_HANDLE((short)2, "operationHandle"),
+    QUERY_PLAN((short)3, "queryPlan");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -69,10 +69,10 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
       switch(fieldId) {
         case 1: // STATUS
           return STATUS;
-        case 2: // QUERY_PLAN
-          return QUERY_PLAN;
-        case 3: // OPERATION_HANDLE
+        case 2: // OPERATION_HANDLE
           return OPERATION_HANDLE;
+        case 3: // QUERY_PLAN
+          return QUERY_PLAN;
         default:
           return null;
       }
@@ -113,15 +113,16 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
   }
 
   // isset id assignments
+  private _Fields optionals[] = {_Fields.QUERY_PLAN};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.STATUS, new org.apache.thrift.meta_data.FieldMetaData("status", org.apache.thrift.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TStatus.class)));
-    tmpMap.put(_Fields.QUERY_PLAN, new org.apache.thrift.meta_data.FieldMetaData("queryPlan", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.hadoop.hive.ql.plan.api.Query.class)));
     tmpMap.put(_Fields.OPERATION_HANDLE, new org.apache.thrift.meta_data.FieldMetaData("operationHandle", org.apache.thrift.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TOperationHandle.class)));
+    tmpMap.put(_Fields.QUERY_PLAN, new org.apache.thrift.meta_data.FieldMetaData("queryPlan", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.hadoop.hive.ql.plan.api.Query.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TCompileRes.class, metaDataMap);
   }
@@ -131,12 +132,10 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
 
   public TCompileRes(
     TStatus status,
-    org.apache.hadoop.hive.ql.plan.api.Query queryPlan,
     TOperationHandle operationHandle)
   {
     this();
     this.status = status;
-    this.queryPlan = queryPlan;
     this.operationHandle = operationHandle;
   }
 
@@ -147,11 +146,11 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
     if (other.isSetStatus()) {
       this.status = new TStatus(other.status);
     }
-    if (other.isSetQueryPlan()) {
-      this.queryPlan = new org.apache.hadoop.hive.ql.plan.api.Query(other.queryPlan);
-    }
     if (other.isSetOperationHandle()) {
       this.operationHandle = new TOperationHandle(other.operationHandle);
+    }
+    if (other.isSetQueryPlan()) {
+      this.queryPlan = new org.apache.hadoop.hive.ql.plan.api.Query(other.queryPlan);
     }
   }
 
@@ -162,8 +161,8 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
   @Override
   public void clear() {
     this.status = null;
-    this.queryPlan = null;
     this.operationHandle = null;
+    this.queryPlan = null;
   }
 
   public TStatus getStatus() {
@@ -186,29 +185,6 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
   public void setStatusIsSet(boolean value) {
     if (!value) {
       this.status = null;
-    }
-  }
-
-  public org.apache.hadoop.hive.ql.plan.api.Query getQueryPlan() {
-    return this.queryPlan;
-  }
-
-  public void setQueryPlan(org.apache.hadoop.hive.ql.plan.api.Query queryPlan) {
-    this.queryPlan = queryPlan;
-  }
-
-  public void unsetQueryPlan() {
-    this.queryPlan = null;
-  }
-
-  /** Returns true if field queryPlan is set (has been assigned a value) and false otherwise */
-  public boolean isSetQueryPlan() {
-    return this.queryPlan != null;
-  }
-
-  public void setQueryPlanIsSet(boolean value) {
-    if (!value) {
-      this.queryPlan = null;
     }
   }
 
@@ -235,6 +211,29 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
     }
   }
 
+  public org.apache.hadoop.hive.ql.plan.api.Query getQueryPlan() {
+    return this.queryPlan;
+  }
+
+  public void setQueryPlan(org.apache.hadoop.hive.ql.plan.api.Query queryPlan) {
+    this.queryPlan = queryPlan;
+  }
+
+  public void unsetQueryPlan() {
+    this.queryPlan = null;
+  }
+
+  /** Returns true if field queryPlan is set (has been assigned a value) and false otherwise */
+  public boolean isSetQueryPlan() {
+    return this.queryPlan != null;
+  }
+
+  public void setQueryPlanIsSet(boolean value) {
+    if (!value) {
+      this.queryPlan = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case STATUS:
@@ -242,14 +241,6 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
         unsetStatus();
       } else {
         setStatus((TStatus)value);
-      }
-      break;
-
-    case QUERY_PLAN:
-      if (value == null) {
-        unsetQueryPlan();
-      } else {
-        setQueryPlan((org.apache.hadoop.hive.ql.plan.api.Query)value);
       }
       break;
 
@@ -261,6 +252,14 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
       }
       break;
 
+    case QUERY_PLAN:
+      if (value == null) {
+        unsetQueryPlan();
+      } else {
+        setQueryPlan((org.apache.hadoop.hive.ql.plan.api.Query)value);
+      }
+      break;
+
     }
   }
 
@@ -269,11 +268,11 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
     case STATUS:
       return getStatus();
 
-    case QUERY_PLAN:
-      return getQueryPlan();
-
     case OPERATION_HANDLE:
       return getOperationHandle();
+
+    case QUERY_PLAN:
+      return getQueryPlan();
 
     }
     throw new IllegalStateException();
@@ -288,10 +287,10 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
     switch (field) {
     case STATUS:
       return isSetStatus();
-    case QUERY_PLAN:
-      return isSetQueryPlan();
     case OPERATION_HANDLE:
       return isSetOperationHandle();
+    case QUERY_PLAN:
+      return isSetQueryPlan();
     }
     throw new IllegalStateException();
   }
@@ -318,21 +317,21 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
         return false;
     }
 
-    boolean this_present_queryPlan = true && this.isSetQueryPlan();
-    boolean that_present_queryPlan = true && that.isSetQueryPlan();
-    if (this_present_queryPlan || that_present_queryPlan) {
-      if (!(this_present_queryPlan && that_present_queryPlan))
-        return false;
-      if (!this.queryPlan.equals(that.queryPlan))
-        return false;
-    }
-
     boolean this_present_operationHandle = true && this.isSetOperationHandle();
     boolean that_present_operationHandle = true && that.isSetOperationHandle();
     if (this_present_operationHandle || that_present_operationHandle) {
       if (!(this_present_operationHandle && that_present_operationHandle))
         return false;
       if (!this.operationHandle.equals(that.operationHandle))
+        return false;
+    }
+
+    boolean this_present_queryPlan = true && this.isSetQueryPlan();
+    boolean that_present_queryPlan = true && that.isSetQueryPlan();
+    if (this_present_queryPlan || that_present_queryPlan) {
+      if (!(this_present_queryPlan && that_present_queryPlan))
+        return false;
+      if (!this.queryPlan.equals(that.queryPlan))
         return false;
     }
 
@@ -348,15 +347,15 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
     if (present_status)
       builder.append(status);
 
-    boolean present_queryPlan = true && (isSetQueryPlan());
-    builder.append(present_queryPlan);
-    if (present_queryPlan)
-      builder.append(queryPlan);
-
     boolean present_operationHandle = true && (isSetOperationHandle());
     builder.append(present_operationHandle);
     if (present_operationHandle)
       builder.append(operationHandle);
+
+    boolean present_queryPlan = true && (isSetQueryPlan());
+    builder.append(present_queryPlan);
+    if (present_queryPlan)
+      builder.append(queryPlan);
 
     return builder.toHashCode();
   }
@@ -379,22 +378,22 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(isSetQueryPlan()).compareTo(typedOther.isSetQueryPlan());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetQueryPlan()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.queryPlan, typedOther.queryPlan);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
     lastComparison = Boolean.valueOf(isSetOperationHandle()).compareTo(typedOther.isSetOperationHandle());
     if (lastComparison != 0) {
       return lastComparison;
     }
     if (isSetOperationHandle()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.operationHandle, typedOther.operationHandle);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(isSetQueryPlan()).compareTo(typedOther.isSetQueryPlan());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetQueryPlan()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.queryPlan, typedOther.queryPlan);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -427,14 +426,6 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("queryPlan:");
-    if (this.queryPlan == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.queryPlan);
-    }
-    first = false;
-    if (!first) sb.append(", ");
     sb.append("operationHandle:");
     if (this.operationHandle == null) {
       sb.append("null");
@@ -442,6 +433,16 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
       sb.append(this.operationHandle);
     }
     first = false;
+    if (isSetQueryPlan()) {
+      if (!first) sb.append(", ");
+      sb.append("queryPlan:");
+      if (this.queryPlan == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.queryPlan);
+      }
+      first = false;
+    }
     sb.append(")");
     return sb.toString();
   }
@@ -452,10 +453,6 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
       throw new org.apache.thrift.protocol.TProtocolException("Required field 'status' is unset! Struct:" + toString());
     }
 
-    if (!isSetQueryPlan()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'queryPlan' is unset! Struct:" + toString());
-    }
-
     if (!isSetOperationHandle()) {
       throw new org.apache.thrift.protocol.TProtocolException("Required field 'operationHandle' is unset! Struct:" + toString());
     }
@@ -464,11 +461,11 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
     if (status != null) {
       status.validate();
     }
-    if (queryPlan != null) {
-      queryPlan.validate();
-    }
     if (operationHandle != null) {
       operationHandle.validate();
+    }
+    if (queryPlan != null) {
+      queryPlan.validate();
     }
   }
 
@@ -515,20 +512,20 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 2: // QUERY_PLAN
-            if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-              struct.queryPlan = new org.apache.hadoop.hive.ql.plan.api.Query();
-              struct.queryPlan.read(iprot);
-              struct.setQueryPlanIsSet(true);
-            } else { 
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-            }
-            break;
-          case 3: // OPERATION_HANDLE
+          case 2: // OPERATION_HANDLE
             if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
               struct.operationHandle = new TOperationHandle();
               struct.operationHandle.read(iprot);
               struct.setOperationHandleIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 3: // QUERY_PLAN
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+              struct.queryPlan = new org.apache.hadoop.hive.ql.plan.api.Query();
+              struct.queryPlan.read(iprot);
+              struct.setQueryPlanIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -551,15 +548,17 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
         struct.status.write(oprot);
         oprot.writeFieldEnd();
       }
-      if (struct.queryPlan != null) {
-        oprot.writeFieldBegin(QUERY_PLAN_FIELD_DESC);
-        struct.queryPlan.write(oprot);
-        oprot.writeFieldEnd();
-      }
       if (struct.operationHandle != null) {
         oprot.writeFieldBegin(OPERATION_HANDLE_FIELD_DESC);
         struct.operationHandle.write(oprot);
         oprot.writeFieldEnd();
+      }
+      if (struct.queryPlan != null) {
+        if (struct.isSetQueryPlan()) {
+          oprot.writeFieldBegin(QUERY_PLAN_FIELD_DESC);
+          struct.queryPlan.write(oprot);
+          oprot.writeFieldEnd();
+        }
       }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
@@ -579,8 +578,15 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
     public void write(org.apache.thrift.protocol.TProtocol prot, TCompileRes struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
       struct.status.write(oprot);
-      struct.queryPlan.write(oprot);
       struct.operationHandle.write(oprot);
+      BitSet optionals = new BitSet();
+      if (struct.isSetQueryPlan()) {
+        optionals.set(0);
+      }
+      oprot.writeBitSet(optionals, 1);
+      if (struct.isSetQueryPlan()) {
+        struct.queryPlan.write(oprot);
+      }
     }
 
     @Override
@@ -589,12 +595,15 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
       struct.status = new TStatus();
       struct.status.read(iprot);
       struct.setStatusIsSet(true);
-      struct.queryPlan = new org.apache.hadoop.hive.ql.plan.api.Query();
-      struct.queryPlan.read(iprot);
-      struct.setQueryPlanIsSet(true);
       struct.operationHandle = new TOperationHandle();
       struct.operationHandle.read(iprot);
       struct.setOperationHandleIsSet(true);
+      BitSet incoming = iprot.readBitSet(1);
+      if (incoming.get(0)) {
+        struct.queryPlan = new org.apache.hadoop.hive.ql.plan.api.Query();
+        struct.queryPlan.read(iprot);
+        struct.setQueryPlanIsSet(true);
+      }
     }
   }
 
