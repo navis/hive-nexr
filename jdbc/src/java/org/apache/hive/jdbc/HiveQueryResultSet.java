@@ -29,7 +29,6 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hive.service.cli.TableSchema;
-import org.apache.hive.service.cli.thrift.TCLIService;
 import org.apache.hive.service.cli.thrift.TColumnDesc;
 import org.apache.hive.service.cli.thrift.TFetchOrientation;
 import org.apache.hive.service.cli.thrift.TFetchResultsReq;
@@ -49,7 +48,7 @@ public class HiveQueryResultSet extends HiveBaseResultSet {
 
   public static final Log LOG = LogFactory.getLog(HiveQueryResultSet.class);
 
-  private TCLIService.Iface client;
+  private HiveConnection connection;
   private TOperationHandle stmtHandle;
   private TSessionHandle sessHandle;
   private int maxRows;
@@ -63,7 +62,7 @@ public class HiveQueryResultSet extends HiveBaseResultSet {
 
   public static class Builder {
 
-    private TCLIService.Iface client = null;
+    private HiveConnection connection;
     private TOperationHandle stmtHandle = null;
     private TSessionHandle sessHandle  = null;
 
@@ -79,8 +78,8 @@ public class HiveQueryResultSet extends HiveBaseResultSet {
     private int fetchSize = 50;
     private boolean emptyResultSet = false;
 
-    public Builder setClient(TCLIService.Iface client) {
-      this.client = client;
+    public Builder setConnection(HiveConnection connection) {
+      this.connection = connection;
       return this;
     }
 
@@ -124,7 +123,7 @@ public class HiveQueryResultSet extends HiveBaseResultSet {
   }
 
   protected HiveQueryResultSet(Builder builder) throws SQLException {
-    this.client = builder.client;
+    this.connection = builder.connection;
     this.stmtHandle = builder.stmtHandle;
     this.sessHandle = builder.sessHandle;
     this.fetchSize = builder.fetchSize;
@@ -151,7 +150,7 @@ public class HiveQueryResultSet extends HiveBaseResultSet {
     try {
       TGetResultSetMetadataReq metadataReq = new TGetResultSetMetadataReq(stmtHandle);
       // TODO need session handle
-      TGetResultSetMetadataResp  metadataResp = client.GetResultSetMetadata(metadataReq);
+      TGetResultSetMetadataResp  metadataResp = connection.getClient().GetResultSetMetadata(metadataReq);
       Utils.verifySuccess(metadataResp.getStatus());
 
       StringBuilder namesSb = new StringBuilder();
@@ -197,7 +196,6 @@ public class HiveQueryResultSet extends HiveBaseResultSet {
   @Override
   public void close() throws SQLException {
     // Need reset during re-open when needed
-    client = null;
     stmtHandle = null;
     sessHandle = null;
     isClosed = true;
@@ -222,7 +220,7 @@ public class HiveQueryResultSet extends HiveBaseResultSet {
       if (fetchedRows == null || !fetchedRowsItr.hasNext()) {
         TFetchResultsReq fetchReq = new TFetchResultsReq(stmtHandle,
             TFetchOrientation.FETCH_NEXT, fetchSize);
-        TFetchResultsResp fetchResp = client.FetchResults(fetchReq);
+        TFetchResultsResp fetchResp = connection.getClient().FetchResults(fetchReq);
         Utils.verifySuccessWithInfo(fetchResp.getStatus());
         fetchedRows = fetchResp.getResults().getRows();
         fetchedRowsItr = fetchedRows.iterator();
