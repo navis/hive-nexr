@@ -146,6 +146,8 @@ public class SimpleFetchOptimizer {
   private FetchData checkTree(ParseContext pctx, String alias, TableScanOperator ts, int mode)
       throws HiveException {
     QB qb = pctx.getQB();
+    boolean convertInsert = HiveConf.getBoolVar(pctx.getConf(),
+        HiveConf.ConfVars.HIVEFETCHTASKCONVERSIONINSERT);
     SplitSample splitSample = pctx.getNameToSplitSample().get(alias);
     if (mode == MINIMAL &&
         (splitSample != null || !qb.isSimpleSelectQuery() || qb.hasTableSample(alias))) {
@@ -154,7 +156,10 @@ public class SimpleFetchOptimizer {
     if (mode == MORE && !qb.isSimpleSelectQuery()) {
       return null;
     }
-
+    boolean isQuery = qb.getIsQuery() && !qb.isCTAS();
+    if (mode == ALL && !isQuery && !convertInsert) {
+      return null;
+    }
 
     String[] subqIDs = alias.split(":");
     for (int i = 0 ; i < subqIDs.length - 1; i++) {
