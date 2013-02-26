@@ -163,6 +163,8 @@ public class Session {
       Query queryPlan = null;
       if (operation instanceof SQLOperation) {
         queryPlan = ((SQLOperation)operation).compile();
+      } else {
+        operation.run();
       }
       return new CompileResult(operation.getHandle().toTOperationHandle(), queryPlan);
     } finally {
@@ -176,8 +178,6 @@ public class Session {
       Operation operation = getOperationManager().getOperation(opHandle);
       if (operation instanceof SQLOperation) {
         ((SQLOperation)operation).execute();
-      } else {
-        operation.run();
       }
     } finally {
       release();
