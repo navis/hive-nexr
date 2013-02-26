@@ -29,7 +29,6 @@ import java.util.jar.Attributes;
 
 import org.apache.hadoop.hive.metastore.TableType;
 import org.apache.hive.service.cli.GetInfoType;
-import org.apache.hive.service.cli.thrift.TCLIService;
 import org.apache.hive.service.cli.thrift.TGetCatalogsReq;
 import org.apache.hive.service.cli.thrift.TGetCatalogsResp;
 import org.apache.hive.service.cli.thrift.TGetColumnsReq;
@@ -55,7 +54,7 @@ import org.apache.thrift.TException;
  */
 public class HiveDatabaseMetaData implements DatabaseMetaData {
 
-  private final TCLIService.Iface client;
+  private final HiveConnection connection;
   private final TSessionHandle sessHandle;
   private static final String CATALOG_SEPARATOR = ".";
 
@@ -67,8 +66,8 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
   /**
    *
    */
-  public HiveDatabaseMetaData(TCLIService.Iface client, TSessionHandle sessHandle) {
-    this.client = client;
+  public HiveDatabaseMetaData(HiveConnection connection, TSessionHandle sessHandle) {
+    this.connection = connection;
     this.sessHandle = sessHandle;
   }
 
@@ -122,14 +121,14 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
     TGetCatalogsResp catalogResp;
 
     try {
-      catalogResp = client.GetCatalogs(new TGetCatalogsReq(sessHandle));
+      catalogResp = connection.getClient().GetCatalogs(new TGetCatalogsReq(sessHandle));
     } catch (TException e) {
       throw new SQLException(e.getMessage(), "08S01");
     }
     Utils.verifySuccess(catalogResp.getStatus());
 
     return new HiveQueryResultSet.Builder()
-    .setClient(client)
+    .setConnection(connection)
     .setSessionHandle(sessHandle)
     .setStmtHandle(catalogResp.getOperationHandle())
     .build();
@@ -195,14 +194,14 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
     colReq.setTableName(tableNamePattern);
     colReq.setColumnName(columnNamePattern);
     try {
-      colResp = client.GetColumns(colReq);
+      colResp = connection.getClient().GetColumns(colReq);
     } catch (TException e) {
       throw new SQLException(e.getMessage(), "08S01");
     }
     Utils.verifySuccess(colResp.getStatus());
     // build the resultset from response
     return new HiveQueryResultSet.Builder()
-    .setClient(client)
+    .setConnection(connection)
     .setSessionHandle(sessHandle)
     .setStmtHandle(colResp.getOperationHandle())
     .build();
@@ -256,7 +255,7 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
     TGetInfoReq req = new TGetInfoReq(sessHandle, GetInfoType.CLI_DBMS_VER.toTGetInfoType());
     TGetInfoResp resp;
     try {
-      resp = client.GetInfo(req);
+      resp = connection.getClient().GetInfo(req);
     } catch (TException e) {
       throw new SQLException(e.getMessage(), "08S01", e);
     }
@@ -310,14 +309,14 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
     getFunctionsReq.setFunctionName(functionNamePattern);
 
     try {
-      funcResp = client.GetFunctions(getFunctionsReq);
+      funcResp = connection.getClient().GetFunctions(getFunctionsReq);
     } catch (TException e) {
       throw new SQLException(e.getMessage(), "08S01");
     }
     Utils.verifySuccess(funcResp.getStatus());
 
     return new HiveQueryResultSet.Builder()
-    .setClient(client)
+    .setConnection(connection)
     .setSessionHandle(sessHandle)
     .setStmtHandle(funcResp.getOperationHandle())
     .build();
@@ -330,7 +329,7 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getImportedKeys(String catalog, String schema, String table)
       throws SQLException {
     return new HiveQueryResultSet.Builder()
-    .setClient(client)
+    .setConnection(connection)
     .setEmptyResultSet(true)
     .setSchema(
         Arrays.asList(
@@ -471,7 +470,7 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
       throws SQLException {
     // Hive doesn't support primary keys
     // using local schema with empty resultset
-    return new HiveQueryResultSet.Builder().setClient(client).setEmptyResultSet(true).
+    return new HiveQueryResultSet.Builder().setConnection(connection).setEmptyResultSet(true).
         setSchema(Arrays.asList("TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME", "KEY_SEQ", "PK_NAME" ),
             Arrays.asList("STRING",    "STRING",      "STRING",     "STRING",       "INT",  "STRING"))
             .build();
@@ -482,7 +481,7 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
       throws SQLException {
     // Hive doesn't support primary keys
     // using local schema with empty resultset
-    return new HiveQueryResultSet.Builder().setClient(client).setEmptyResultSet(true).
+    return new HiveQueryResultSet.Builder().setConnection(connection).setEmptyResultSet(true).
                   setSchema(
                     Arrays.asList("PROCEDURE_CAT", "PROCEDURE_SCHEM", "PROCEDURE_NAME", "COLUMN_NAME", "COLUMN_TYPE",
                               "DATA_TYPE", "TYPE_NAME", "PRECISION", "LENGTH", "SCALE", "RADIX", "NULLABLE", "REMARKS",
@@ -503,7 +502,7 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
       String procedureNamePattern) throws SQLException {
     // Hive doesn't support primary keys
     // using local schema with empty resultset
-    return new HiveQueryResultSet.Builder().setClient(client).setEmptyResultSet(true).
+    return new HiveQueryResultSet.Builder().setConnection(connection).setEmptyResultSet(true).
                   setSchema(
                     Arrays.asList("PROCEDURE_CAT", "PROCEDURE_SCHEM", "PROCEDURE_NAME", "RESERVERD", "RESERVERD",
                                   "RESERVERD", "REMARKS", "PROCEDURE_TYPE", "SPECIFIC_NAME"),
@@ -551,14 +550,14 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
     schemaReq.setSchemaName(schemaPattern);
 
     try {
-      schemaResp = client.GetSchemas(schemaReq);
+      schemaResp = connection.getClient().GetSchemas(schemaReq);
     } catch (TException e) {
       throw new SQLException(e.getMessage(), "08S01");
     }
     Utils.verifySuccess(schemaResp.getStatus());
 
     return new HiveQueryResultSet.Builder()
-    .setClient(client)
+    .setConnection(connection)
     .setSessionHandle(sessHandle)
     .setStmtHandle(schemaResp.getOperationHandle())
     .build();
@@ -595,14 +594,14 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
     TGetTableTypesResp tableTypeResp;
 
     try {
-      tableTypeResp = client.GetTableTypes(new TGetTableTypesReq(sessHandle));
+      tableTypeResp = connection.getClient().GetTableTypes(new TGetTableTypesReq(sessHandle));
     } catch (TException e) {
       throw new SQLException(e.getMessage(), "08S01");
     }
     Utils.verifySuccess(tableTypeResp.getStatus());
 
     return new HiveQueryResultSet.Builder()
-    .setClient(client)
+    .setConnection(connection)
     .setSessionHandle(sessHandle)
     .setStmtHandle(tableTypeResp.getOperationHandle())
     .build();
@@ -628,14 +627,14 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
     }
 
     try {
-      getTableResp = client.GetTables(getTableReq);
+      getTableResp = connection.getClient().GetTables(getTableReq);
     } catch (TException e) {
       throw new SQLException(e.getMessage(), "08S01");
     }
     Utils.verifySuccess(getTableResp.getStatus());
 
     return new HiveQueryResultSet.Builder()
-    .setClient(client)
+    .setConnection(connection)
     .setSessionHandle(sessHandle)
     .setStmtHandle(getTableResp.getOperationHandle())
     .build();
@@ -685,13 +684,13 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
     TGetTypeInfoReq getTypeInfoReq = new TGetTypeInfoReq();
     getTypeInfoReq.setSessionHandle(sessHandle);
     try {
-      getTypeInfoResp = client.GetTypeInfo(getTypeInfoReq);
+      getTypeInfoResp = connection.getClient().GetTypeInfo(getTypeInfoReq);
     } catch (TException e) {
       throw new SQLException(e.getMessage(), "08S01");
     }
     Utils.verifySuccess(getTypeInfoResp.getStatus());
     return new HiveQueryResultSet.Builder()
-    .setClient(client)
+    .setConnection(connection)
     .setSessionHandle(sessHandle)
     .setStmtHandle(getTypeInfoResp.getOperationHandle())
     .build();
