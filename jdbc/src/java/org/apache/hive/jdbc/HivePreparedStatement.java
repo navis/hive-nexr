@@ -46,7 +46,6 @@ import java.util.Map;
 import org.apache.hive.service.cli.thrift.TExecuteStatementReq;
 import org.apache.hive.service.cli.thrift.TExecuteStatementResp;
 import org.apache.hive.service.cli.thrift.TOperationHandle;
-import org.apache.hive.service.cli.thrift.TCLIService;
 import org.apache.hive.service.cli.thrift.TSessionHandle;
 
 /**
@@ -55,7 +54,7 @@ import org.apache.hive.service.cli.thrift.TSessionHandle;
  */
 public class HivePreparedStatement implements PreparedStatement {
   private final String sql;
-  private TCLIService.Iface client;
+  private final HiveConnection connection;
   private final TSessionHandle sessHandle;
   private TOperationHandle stmtHandle;
   Map<String,String> sessConf = new HashMap<String,String>();
@@ -96,9 +95,9 @@ public class HivePreparedStatement implements PreparedStatement {
   /**
    *
    */
-  public HivePreparedStatement(TCLIService.Iface client, TSessionHandle sessHandle,
+  public HivePreparedStatement(HiveConnection connection, TSessionHandle sessHandle,
       String sql) {
-    this.client = client;
+    this.connection = connection;
     this.sessHandle = sessHandle;
     this.sql = sql;
   }
@@ -183,7 +182,7 @@ public class HivePreparedStatement implements PreparedStatement {
       }
       TExecuteStatementReq execReq = new TExecuteStatementReq(sessHandle, sql);
       execReq.setConfOverlay(sessConf);
-      TExecuteStatementResp execResp = client.ExecuteStatement(execReq);
+      TExecuteStatementResp execResp = connection.getClient().ExecuteStatement(execReq);
       Utils.verifySuccessWithInfo(execResp.getStatus());
       stmtHandle = execResp.getOperationHandle();
     } catch (SQLException es) {
@@ -191,7 +190,7 @@ public class HivePreparedStatement implements PreparedStatement {
     } catch (Exception ex) {
       throw new SQLException(ex.toString(), "08S01", ex);
     }
-    resultSet = new HiveQueryResultSet.Builder().setClient(client).setSessionHandle(sessHandle)
+    resultSet = new HiveQueryResultSet.Builder().setConnection(connection).setSessionHandle(sessHandle)
                       .setStmtHandle(stmtHandle).setMaxRows(maxRows)
                       .build();
     return resultSet;
@@ -865,7 +864,6 @@ public class HivePreparedStatement implements PreparedStatement {
    */
 
   public void close() throws SQLException {
-    client = null;
     if (resultSet!=null) {
       resultSet.close();
       resultSet = null;
