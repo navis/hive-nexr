@@ -25,7 +25,6 @@ import java.sql.SQLWarning;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.hive.service.cli.thrift.TCLIService;
 import org.apache.hive.service.cli.thrift.TCancelOperationReq;
 import org.apache.hive.service.cli.thrift.TCancelOperationResp;
 import org.apache.hive.service.cli.thrift.TCloseOperationReq;
@@ -40,10 +39,12 @@ import org.apache.hive.service.cli.thrift.TSessionHandle;
  *
  */
 public class HiveStatement implements java.sql.Statement {
-  private TCLIService.Iface client;
-  private TOperationHandle stmtHandle;
+  private final HiveConnection connection;
   private final TSessionHandle sessHandle;
-  Map<String,String> sessConf = new HashMap<String,String>();
+
+  private transient TOperationHandle stmtHandle;
+
+  private Map<String,String> sessConf = new HashMap<String,String>();
   private int fetchSize = 50;
   /**
    * We need to keep a reference to the result set to support the following:
@@ -74,8 +75,8 @@ public class HiveStatement implements java.sql.Statement {
   /**
    *
    */
-  public HiveStatement(TCLIService.Iface client, TSessionHandle sessHandle) {
-    this.client = client;
+  public HiveStatement(HiveConnection connection, TSessionHandle sessHandle) {
+    this.connection = connection;
     this.sessHandle = sessHandle;
   }
 
@@ -103,7 +104,7 @@ public class HiveStatement implements java.sql.Statement {
     TCancelOperationReq cancelReq = new TCancelOperationReq();
     cancelReq.setOperationHandle(stmtHandle);
     try {
-      TCancelOperationResp cancelResp = client.CancelOperation(cancelReq);
+      TCancelOperationResp cancelResp = connection.getClient().CancelOperation(cancelReq);
       Utils.verifySuccessWithInfo(cancelResp.getStatus());
     } catch (SQLException e) {
       throw e;
@@ -132,35 +133,49 @@ public class HiveStatement implements java.sql.Statement {
     warningChain = null;
   }
 
-  private void closeClientOperation() throws SQLException {
-    try {
-      if (stmtHandle != null) {
-        TCloseOperationReq closeReq = new TCloseOperationReq();
-        closeReq.setOperationHandle(stmtHandle);
-        TCloseOperationResp closeResp = client.CloseOperation(closeReq);
-        Utils.verifySuccessWithInfo(closeResp.getStatus());
-      }
-    } catch (SQLException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new SQLException(e.toString(), "08S01");
-    }
-    stmtHandle = null;
-  }
-  /*
-   * (non-Javadoc)
-   *
-   * @see java.sql.Statement#close()
-   */
-
   public void close() throws SQLException {
     if (isClosed) {
       return;
     }
-    closeClientOperation();
-    client = null;
-    resultSet = null;
+    cleanup();
     isClosed = true;
+  }
+
+  private void closeOperation() throws org.apache.thrift.TException, SQLException {
+    if (stmtHandle != null) {
+      try {
+        TCloseOperationReq closeReq = new TCloseOperationReq();
+        closeReq.setOperationHandle(stmtHandle);
+        TCloseOperationResp closeResp = connection.getClient().CloseOperation(closeReq);
+        Utils.verifySuccessWithInfo(closeResp.getStatus());
+      } finally {
+        stmtHandle = null;
+      }
+    }
+  }
+
+  private void closeResultSet() throws SQLException {
+    if (resultSet != null) {
+      try {
+        resultSet.close();
+      } finally {
+        resultSet = null;
+      }
+    }
+  }
+
+  private void cleanup() throws SQLException {
+    try {
+      closeResultSet();
+    } catch (SQLException e) {
+      // ignore
+    }
+    try {
+      closeOperation();
+    } catch (Exception e) {
+      throw new SQLException(e.toString(), "08S01");
+    }
+    stmtHandle = null;
   }
 
   /*
@@ -173,12 +188,11 @@ public class HiveStatement implements java.sql.Statement {
     if (isClosed) {
       throw new SQLException("Can't execute after statement has been closed");
     }
-
+    cleanup();
     try {
-      closeClientOperation();
       TExecuteStatementReq execReq = new TExecuteStatementReq(sessHandle, sql);
       execReq.setConfOverlay(sessConf);
-      TExecuteStatementResp execResp = client.ExecuteStatement(execReq);
+      TExecuteStatementResp execResp = connection.getClient().ExecuteStatement(execReq);
       Utils.verifySuccessWithInfo(execResp.getStatus());
       stmtHandle = execResp.getOperationHandle();
     } catch (SQLException eS) {
@@ -190,7 +204,7 @@ public class HiveStatement implements java.sql.Statement {
     if (!stmtHandle.isHasResultSet()) {
       return false;
     }
-    resultSet =  new HiveQueryResultSet.Builder().setClient(client).setSessionHandle(sessHandle)
+    resultSet =  new HiveQueryResultSet.Builder().setConnection(connection).setSessionHandle(sessHandle)
         .setStmtHandle(stmtHandle).setMaxRows(maxRows).setFetchSize(fetchSize)
         .build();
     return true;
