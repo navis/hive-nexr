@@ -24,6 +24,7 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.hive.common.LogUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.service.HiveServer;
 import org.apache.hive.common.util.HiveStringUtils;
@@ -87,6 +88,15 @@ public class HiveServer2 extends CompositeService {
    * @param args
    */
   public static void main(String[] args) {
+
+    // NOTE: It is critical to do this here so that log4j is reinitialized
+    // before any of the other core hive classes are loaded
+    try {
+      LogUtils.initHiveLog4j();
+    } catch (LogUtils.LogInitializationException e) {
+      LOG.warn(e.getMessage());
+    }
+
     HiveStringUtils.startupShutdownMessage(HiveServer2.class, args, LOG);
     HiveServer.HiveServerCli cli = new HiveServer.HiveServerCli();
     cli.parse(args);
@@ -118,6 +128,7 @@ public class HiveServer2 extends CompositeService {
         LOG.info("Executing : " + query);
         OperationHandle operation = sqlService.executeStatement(session, query, null);
         if (operation.hasResultSet()) {
+          LOG.info("Execution Results : ");
           TableSchema schema = sqlService.getResultSetMetadata(operation);
           RowSet rowSet = sqlService.fetchResults(operation);
           for (Row result : rowSet.getRows()) {
@@ -130,7 +141,9 @@ public class HiveServer2 extends CompositeService {
               }
               builder.append(values.get(i).getColumnValue(descs.get(i).getType()));
             }
-            LOG.info("Executing : " + builder.toString());
+            if (builder.length() > 0) {
+              LOG.info(builder.toString());
+            }
           }
         }
         sqlService.closeOperation(operation);
