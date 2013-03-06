@@ -35,6 +35,7 @@ public class cli_serviceConstants {
 
   public static final Set<TType> PRIMITIVE_TYPES = new HashSet<TType>();
   static {
+    PRIMITIVE_TYPES.add(org.apache.hive.service.cli.thrift.TType.VOID_TYPE);
     PRIMITIVE_TYPES.add(org.apache.hive.service.cli.thrift.TType.BOOLEAN_TYPE);
     PRIMITIVE_TYPES.add(org.apache.hive.service.cli.thrift.TType.TINYINT_TYPE);
     PRIMITIVE_TYPES.add(org.apache.hive.service.cli.thrift.TType.SMALLINT_TYPE);
@@ -64,6 +65,7 @@ public class cli_serviceConstants {
 
   public static final Map<TType,String> TYPE_NAMES = new HashMap<TType,String>();
   static {
+    TYPE_NAMES.put(org.apache.hive.service.cli.thrift.TType.VOID_TYPE, "VOID");
     TYPE_NAMES.put(org.apache.hive.service.cli.thrift.TType.BOOLEAN_TYPE, "BOOLEAN");
     TYPE_NAMES.put(org.apache.hive.service.cli.thrift.TType.TINYINT_TYPE, "TINYINT");
     TYPE_NAMES.put(org.apache.hive.service.cli.thrift.TType.SMALLINT_TYPE, "SMALLINT");
@@ -78,6 +80,7 @@ public class cli_serviceConstants {
     TYPE_NAMES.put(org.apache.hive.service.cli.thrift.TType.MAP_TYPE, "MAP");
     TYPE_NAMES.put(org.apache.hive.service.cli.thrift.TType.STRUCT_TYPE, "STRUCT");
     TYPE_NAMES.put(org.apache.hive.service.cli.thrift.TType.UNION_TYPE, "UNIONTYPE");
+    TYPE_NAMES.put(org.apache.hive.service.cli.thrift.TType.USER_DEFINED_TYPE, "USER_DEFINED");
   }
 
 }

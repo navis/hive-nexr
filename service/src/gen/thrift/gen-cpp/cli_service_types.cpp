@@ -19,6 +19,7 @@ const char* _kTProtocolVersionNames[] = {
 const std::map<int, const char*> _TProtocolVersion_VALUES_TO_NAMES(::apache::thrift::TEnumIterator(1, _kTProtocolVersionValues, _kTProtocolVersionNames), ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
 int _kTTypeValues[] = {
+  TType::VOID_TYPE,
   TType::BOOLEAN_TYPE,
   TType::TINYINT_TYPE,
   TType::SMALLINT_TYPE,
@@ -36,6 +37,7 @@ int _kTTypeValues[] = {
   TType::USER_DEFINED_TYPE
 };
 const char* _kTTypeNames[] = {
+  "VOID_TYPE",
   "BOOLEAN_TYPE",
   "TINYINT_TYPE",
   "SMALLINT_TYPE",
@@ -52,7 +54,7 @@ const char* _kTTypeNames[] = {
   "UNION_TYPE",
   "USER_DEFINED_TYPE"
 };
-const std::map<int, const char*> _TType_VALUES_TO_NAMES(::apache::thrift::TEnumIterator(15, _kTTypeValues, _kTTypeNames), ::apache::thrift::TEnumIterator(-1, NULL, NULL));
+const std::map<int, const char*> _TType_VALUES_TO_NAMES(::apache::thrift::TEnumIterator(16, _kTTypeValues, _kTTypeNames), ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
 int _kTStatusCodeValues[] = {
   TStatusCode::SUCCESS_STATUS,
