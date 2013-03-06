@@ -35,6 +35,12 @@ import org.apache.hive.service.cli.thrift.TStringValue;
  */
 public class ColumnValue {
 
+  public static final TColumnValue NULL = new TColumnValue();
+
+  static {
+    NULL.setStringVal(new TStringValue());
+  }
+
   // TODO: replace this with a non-Thrift implementation
   private final TColumnValue tColumnValue;
 

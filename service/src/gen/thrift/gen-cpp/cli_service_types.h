@@ -41,7 +41,8 @@ struct TType {
     MAP_TYPE = 11,
     STRUCT_TYPE = 12,
     UNION_TYPE = 13,
-    USER_DEFINED_TYPE = 14
+    USER_DEFINED_TYPE = 14,
+    VOID_TYPE = 15
   };
 };
 

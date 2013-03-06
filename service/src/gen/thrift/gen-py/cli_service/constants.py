@@ -10,6 +10,7 @@ from thrift.Thrift import TType, TMessageType, TException, TApplicationException
 from ttypes import *
 
 PRIMITIVE_TYPES = set([
+    15,
     0,
     1,
     2,
@@ -33,6 +34,7 @@ COLLECTION_TYPES = set([
     11,
 ])
 TYPE_NAMES = {
+    15 : "VOID",
     0 : "BOOLEAN",
     1 : "TINYINT",
     2 : "SMALLINT",
@@ -47,4 +49,5 @@ TYPE_NAMES = {
     11 : "MAP",
     12 : "STRUCT",
     13 : "UNIONTYPE",
+    14 : "USER_DEFINED",
 }

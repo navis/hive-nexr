@@ -33,7 +33,8 @@ int _kTTypeValues[] = {
   TType::MAP_TYPE,
   TType::STRUCT_TYPE,
   TType::UNION_TYPE,
-  TType::USER_DEFINED_TYPE
+  TType::USER_DEFINED_TYPE,
+  TType::VOID_TYPE
 };
 const char* _kTTypeNames[] = {
   "BOOLEAN_TYPE",
@@ -50,9 +51,10 @@ const char* _kTTypeNames[] = {
   "MAP_TYPE",
   "STRUCT_TYPE",
   "UNION_TYPE",
-  "USER_DEFINED_TYPE"
+  "USER_DEFINED_TYPE",
+  "VOID_TYPE"
 };
-const std::map<int, const char*> _TType_VALUES_TO_NAMES(::apache::thrift::TEnumIterator(15, _kTTypeValues, _kTTypeNames), ::apache::thrift::TEnumIterator(-1, NULL, NULL));
+const std::map<int, const char*> _TType_VALUES_TO_NAMES(::apache::thrift::TEnumIterator(16, _kTTypeValues, _kTTypeNames), ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
 int _kTStatusCodeValues[] = {
   TStatusCode::SUCCESS_STATUS,

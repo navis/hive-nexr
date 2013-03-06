@@ -27,6 +27,9 @@ import org.apache.hive.service.cli.thrift.TType;
  *
  */
 public enum Type {
+  VOID_TYPE("VOID",
+      java.sql.Types.NULL,
+      TType.VOID_TYPE),
   BOOLEAN_TYPE("BOOLEAN",
       java.sql.Types.BOOLEAN,
       TType.BOOLEAN_TYPE),
@@ -73,7 +76,7 @@ public enum Type {
       java.sql.Types.VARCHAR,
       TType.STRING_TYPE,
       true, false),
-  USER_DEFINED_TYPE(null,
+  USER_DEFINED_TYPE("USER_DEFINED",
       java.sql.Types.VARCHAR,
       TType.STRING_TYPE,
       true, false);
@@ -121,6 +124,9 @@ public enum Type {
   }
 
   public static Type getType(String name) {
+    if (name == null) {
+      return VOID_TYPE;
+    }
     for (Type type : values()) {
       if (name.equalsIgnoreCase(type.name)) {
         return type;

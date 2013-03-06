@@ -45,6 +45,7 @@ class TType:
   STRUCT_TYPE = 12
   UNION_TYPE = 13
   USER_DEFINED_TYPE = 14
+  VOID_TYPE = 15
 
   _VALUES_TO_NAMES = {
     0: "BOOLEAN_TYPE",
@@ -62,6 +63,7 @@ class TType:
     12: "STRUCT_TYPE",
     13: "UNION_TYPE",
     14: "USER_DEFINED_TYPE",
+    15: "VOID_TYPE",
   }
 
   _NAMES_TO_VALUES = {
@@ -80,6 +82,7 @@ class TType:
     "STRUCT_TYPE": 12,
     "UNION_TYPE": 13,
     "USER_DEFINED_TYPE": 14,
+    "VOID_TYPE": 15,
   }
 
 class TStatusCode:

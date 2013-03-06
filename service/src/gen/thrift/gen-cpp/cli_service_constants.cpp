@@ -11,6 +11,7 @@ namespace apache { namespace hive { namespace service { namespace cli { namespac
 const cli_serviceConstants g_cli_service_constants;
 
 cli_serviceConstants::cli_serviceConstants() {
+  PRIMITIVE_TYPES.insert((TType::type)15);
   PRIMITIVE_TYPES.insert((TType::type)0);
   PRIMITIVE_TYPES.insert((TType::type)1);
   PRIMITIVE_TYPES.insert((TType::type)2);
@@ -31,6 +32,7 @@ cli_serviceConstants::cli_serviceConstants() {
   COLLECTION_TYPES.insert((TType::type)10);
   COLLECTION_TYPES.insert((TType::type)11);
 
+  TYPE_NAMES.insert(std::make_pair((TType::type)15, "VOID"));
   TYPE_NAMES.insert(std::make_pair((TType::type)0, "BOOLEAN"));
   TYPE_NAMES.insert(std::make_pair((TType::type)1, "TINYINT"));
   TYPE_NAMES.insert(std::make_pair((TType::type)2, "SMALLINT"));
@@ -45,6 +47,7 @@ cli_serviceConstants::cli_serviceConstants() {
   TYPE_NAMES.insert(std::make_pair((TType::type)11, "MAP"));
   TYPE_NAMES.insert(std::make_pair((TType::type)12, "STRUCT"));
   TYPE_NAMES.insert(std::make_pair((TType::type)13, "UNIONTYPE"));
+  TYPE_NAMES.insert(std::make_pair((TType::type)14, "USER_DEFINED"));
 
 }
 

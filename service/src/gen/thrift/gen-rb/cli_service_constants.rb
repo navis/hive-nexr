@@ -8,6 +8,7 @@ require 'thrift'
 require 'cli_service_types'
 
 PRIMITIVE_TYPES = Set.new([
+    15,
     0,
     1,
     2,
@@ -34,6 +35,7 @@ COLLECTION_TYPES = Set.new([
 ])
 
 TYPE_NAMES = {
+    15 => %q"VOID",
     0 => %q"BOOLEAN",
     1 => %q"TINYINT",
     2 => %q"SMALLINT",
@@ -48,5 +50,6 @@ TYPE_NAMES = {
     11 => %q"MAP",
     12 => %q"STRUCT",
     13 => %q"UNIONTYPE",
+    14 => %q"USER_DEFINED",
 }
 

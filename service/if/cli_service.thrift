@@ -57,10 +57,12 @@ enum TType {
   MAP_TYPE,
   STRUCT_TYPE,
   UNION_TYPE,
-  USER_DEFINED_TYPE
+  USER_DEFINED_TYPE,
+  VOID_TYPE
 }
   
 const set<TType> PRIMITIVE_TYPES = [
+  TType.VOID_TYPE
   TType.BOOLEAN_TYPE
   TType.TINYINT_TYPE
   TType.SMALLINT_TYPE
@@ -87,6 +89,7 @@ const set<TType> COLLECTION_TYPES = [
 ]
 
 const map<TType,string> TYPE_NAMES = {
+  TType.VOID_TYPE: "VOID",
   TType.BOOLEAN_TYPE: "BOOLEAN",
   TType.TINYINT_TYPE: "TINYINT",
   TType.SMALLINT_TYPE: "SMALLINT",
@@ -100,7 +103,8 @@ const map<TType,string> TYPE_NAMES = {
   TType.ARRAY_TYPE: "ARRAY",
   TType.MAP_TYPE: "MAP",
   TType.STRUCT_TYPE: "STRUCT",
-  TType.UNION_TYPE: "UNIONTYPE"
+  TType.UNION_TYPE: "UNIONTYPE",
+  TType.USER_DEFINED_TYPE: "USER_DEFINED"
 }
 
 // Thrift does not support recursively defined types or forward declarations,
@@ -282,7 +286,7 @@ union TColumnValue {
   4: TI32Value    i32Val       // INT
   5: TI64Value    i64Val       // BIGINT, TIMESTAMP
   6: TDoubleValue doubleVal    // FLOAT, DOUBLE
-  7: TStringValue stringVal    // STRING, LIST, MAP, STRUCT, UNIONTYPE, BINARY
+  7: TStringValue stringVal    // STRING, LIST, MAP, STRUCT, UNIONTYPE, BINARY, VOID
 }
 
 // Represents a row in a rowset.

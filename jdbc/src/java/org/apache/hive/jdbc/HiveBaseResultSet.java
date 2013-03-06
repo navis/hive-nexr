@@ -465,6 +465,9 @@ public abstract class HiveBaseResultSet implements ResultSet {
       return getStringValue(tColumnValue.getStringVal());
     case TIMESTAMP_TYPE:
       return getTimestampValue(tColumnValue.getStringVal());
+    case VOID_TYPE:
+      wasNull = true;
+      return null;
     default:
       throw new SQLException("Unrecognized column type:" + columnType);
     }
