@@ -18,35 +18,38 @@ PRIMITIVE_TYPES = Set.new([
     7,
     8,
     9,
+    10,
 ])
 
 COMPLEX_TYPES = Set.new([
-    10,
     11,
     12,
     13,
     14,
+    15,
 ])
 
 COLLECTION_TYPES = Set.new([
-    10,
     11,
+    12,
 ])
 
 TYPE_NAMES = {
-    0 => %q"BOOLEAN",
-    1 => %q"TINYINT",
-    2 => %q"SMALLINT",
-    3 => %q"INT",
-    4 => %q"BIGINT",
-    5 => %q"FLOAT",
-    6 => %q"DOUBLE",
-    7 => %q"STRING",
-    8 => %q"TIMESTAMP",
-    9 => %q"BINARY",
-    10 => %q"ARRAY",
-    11 => %q"MAP",
-    12 => %q"STRUCT",
-    13 => %q"UNIONTYPE",
+    0 => %q"VOID",
+    1 => %q"BOOLEAN",
+    2 => %q"TINYINT",
+    3 => %q"SMALLINT",
+    4 => %q"INT",
+    5 => %q"BIGINT",
+    6 => %q"FLOAT",
+    7 => %q"DOUBLE",
+    8 => %q"STRING",
+    9 => %q"TIMESTAMP",
+    10 => %q"BINARY",
+    11 => %q"ARRAY",
+    12 => %q"MAP",
+    13 => %q"STRUCT",
+    14 => %q"UNIONTYPE",
+    15 => %q"USER_DEFINED",
 }
 

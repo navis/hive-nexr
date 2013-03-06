@@ -12,21 +12,22 @@ import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
 public enum TType implements org.apache.thrift.TEnum {
-  BOOLEAN_TYPE(0),
-  TINYINT_TYPE(1),
-  SMALLINT_TYPE(2),
-  INT_TYPE(3),
-  BIGINT_TYPE(4),
-  FLOAT_TYPE(5),
-  DOUBLE_TYPE(6),
-  STRING_TYPE(7),
-  TIMESTAMP_TYPE(8),
-  BINARY_TYPE(9),
-  ARRAY_TYPE(10),
-  MAP_TYPE(11),
-  STRUCT_TYPE(12),
-  UNION_TYPE(13),
-  USER_DEFINED_TYPE(14);
+  VOID_TYPE(0),
+  BOOLEAN_TYPE(1),
+  TINYINT_TYPE(2),
+  SMALLINT_TYPE(3),
+  INT_TYPE(4),
+  BIGINT_TYPE(5),
+  FLOAT_TYPE(6),
+  DOUBLE_TYPE(7),
+  STRING_TYPE(8),
+  TIMESTAMP_TYPE(9),
+  BINARY_TYPE(10),
+  ARRAY_TYPE(11),
+  MAP_TYPE(12),
+  STRUCT_TYPE(13),
+  UNION_TYPE(14),
+  USER_DEFINED_TYPE(15);
 
   private final int value;
 
@@ -48,34 +49,36 @@ public enum TType implements org.apache.thrift.TEnum {
   public static TType findByValue(int value) { 
     switch (value) {
       case 0:
-        return BOOLEAN_TYPE;
+        return VOID_TYPE;
       case 1:
-        return TINYINT_TYPE;
+        return BOOLEAN_TYPE;
       case 2:
-        return SMALLINT_TYPE;
+        return TINYINT_TYPE;
       case 3:
-        return INT_TYPE;
+        return SMALLINT_TYPE;
       case 4:
-        return BIGINT_TYPE;
+        return INT_TYPE;
       case 5:
-        return FLOAT_TYPE;
+        return BIGINT_TYPE;
       case 6:
-        return DOUBLE_TYPE;
+        return FLOAT_TYPE;
       case 7:
-        return STRING_TYPE;
+        return DOUBLE_TYPE;
       case 8:
-        return TIMESTAMP_TYPE;
+        return STRING_TYPE;
       case 9:
-        return BINARY_TYPE;
+        return TIMESTAMP_TYPE;
       case 10:
-        return ARRAY_TYPE;
+        return BINARY_TYPE;
       case 11:
-        return MAP_TYPE;
+        return ARRAY_TYPE;
       case 12:
-        return STRUCT_TYPE;
+        return MAP_TYPE;
       case 13:
-        return UNION_TYPE;
+        return STRUCT_TYPE;
       case 14:
+        return UNION_TYPE;
+      case 15:
         return USER_DEFINED_TYPE;
       default:
         return null;

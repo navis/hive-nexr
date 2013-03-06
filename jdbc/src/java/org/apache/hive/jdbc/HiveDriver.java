@@ -18,16 +18,22 @@
 
 package org.apache.hive.jdbc;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverPropertyInfo;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 import java.util.regex.Pattern;
+
 /**
  * HiveDriver.
  *
@@ -293,5 +299,40 @@ public class HiveDriver implements Driver {
       throw new SQLException("Couldn't load manifest attributes.", e);
     }
     return manifestAttributes.getValue(attributeName);
+  }
+
+  public static void main(String[] args) throws Exception {
+    HiveDriver driver = new HiveDriver();
+    Properties props = new Properties();
+    props.setProperty("user", "scott");
+    props.setProperty("password", "tiger");
+    Connection connection = driver.connect("jdbc:hive2://localhost:10000", props);
+
+    Statement stmt = connection.createStatement();
+
+    BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+
+    String line;
+    while ((line = reader.readLine()) != null) {
+      if (line.trim().isEmpty()) {
+        continue;
+      }
+      if (stmt.execute(line)) {
+        ResultSet result = stmt.getResultSet();
+        ResultSetMetaData meta = result.getMetaData();
+
+        while (result.next()) {
+          StringBuilder builder = new StringBuilder();
+          for (int i = 1; i <= meta.getColumnCount(); i++) {
+            Object value = result.getObject(i);
+            if (builder.length() > 0) {
+              builder.append(" ");
+            }
+            builder.append(value);
+          }
+          System.err.println("[HiveDriver/main] " + builder.toString());
+        }
+      }
+    }
   }
 }
