@@ -154,7 +154,7 @@ public class SimpleFetchOptimizer {
     if (mode == MORE && !qb.isSimpleSelectQuery()) {
       return null;
     }
-    if (mode == ALL && (convertInsert || (qb.getIsQuery() && !qb.isCTAS()))) {
+    if (mode == ALL && !convertInsert && (!qb.getIsQuery() || qb.isCTAS())) {
       return null;
     }
 
