@@ -1341,6 +1341,8 @@ public class HiveConf extends Configuration {
         "Initial amount of time (in milliseconds) to wait between retries\n" +
         "when connecting to the ZooKeeper server when using ExponentialBackoffRetry policy."),
 
+    HIVE_EMBEDDED_LOCK_TIMEOUT("hive.embedded.lock.timeout", 2000l, "Lock timeout for embedded lock manager"),
+
     // Transactions
     HIVE_TXN_MANAGER("hive.txn.manager",
         "org.apache.hadoop.hive.ql.lockmgr.DummyTxnManager",
