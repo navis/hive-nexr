@@ -1501,6 +1501,12 @@
 </property>
 
 <property>
+  <name>hive.embedded.lock.timeout</name>
+  <value>2000</value>
+  <description>Lock timeout for embedded lock manager</description>
+</property>
+
+<property>
   <name>fs.har.impl</name>
   <value>org.apache.hadoop.hive.shims.HiveHarFileSystem</value>
   <description>The implementation for accessing Hadoop Archives. Note that this won't be applicable to Hadoop versions less than 0.20</description>
