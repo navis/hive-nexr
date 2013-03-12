@@ -171,4 +171,18 @@ public class HiveLockObject {
     this.data = data;
   }
 
+  public String getQueryId() {
+    return data.getQueryId();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (!(o instanceof HiveLockObject)) {
+      return false;
+    }
+
+    HiveLockObject tgt = (HiveLockObject) o;
+    return getName().equals(tgt.getName()) &&
+        data == null ? tgt.getData() == null : data.equals(tgt.getData());
+  }
 }
