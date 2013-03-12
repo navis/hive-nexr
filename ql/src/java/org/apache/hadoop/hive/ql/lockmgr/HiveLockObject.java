@@ -193,6 +193,10 @@ public class HiveLockObject {
     this.data = data;
   }
 
+  public String getQueryId() {
+    return data.getQueryId();
+  }
+
   @Override
   public boolean equals(Object o) {
     if (!(o instanceof HiveLockObject)) {
