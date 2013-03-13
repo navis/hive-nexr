@@ -81,9 +81,12 @@ public class SQLOperation extends ExecuteStatementOperation {
   }
 
   public Query compile() throws HiveSQLException {
-    HiveConf hiveConf = getParentSession().getHiveConf();
+    assert driver == null;
     setState(OperationState.RUNNING);
+
+    HiveSession session = getParentSession();
     try {
+      HiveConf hiveConf = session.getHiveConf();
       driver = new Driver(hiveConf);
       // In Hive server mode, we are not able to retry in the FetchTask
       // case, when calling fetch queries since execute() has returned.
@@ -94,26 +97,33 @@ public class SQLOperation extends ExecuteStatementOperation {
 
       response = driver.compileCommand(subStatement, false);
       if (0 != response.getResponseCode()) {
-        throw new HiveSQLException("Error while processing statement: "
-            + response.getErrorMessage(), response.getSQLState(), response.getResponseCode());
+        setState(OperationState.ERROR);
+        throw new HiveSQLException("Error while compiling statement: " + statement + " by "
+            + response.toDetailedMessage(), response.getSQLState(), response.getResponseCode());
       }
       Query query = getPlan().getQueryPlan();
       setState(OperationState.FINISHED);
       return query;
+    } catch (HiveSQLException e) {
+      throw e;
     } catch (Exception e) {
       setState(OperationState.ERROR);
-      throw new HiveSQLException("Error compiling query: " + e.toString(), e);
+      throw new HiveSQLException("Error while compiling statement: " + statement + " by "
+          + e.toString(), e);
     }
   }
 
   public void execute() throws HiveSQLException {
     assert driver != null;
     setState(OperationState.RUNNING);
+
+    HiveSession session = getParentSession();
     try {
       response = driver.executePlan(false);
       if (0 != response.getResponseCode()) {
-        throw new HiveSQLException("Error while processing statement: "
-            + response.getErrorMessage(), response.getSQLState(), response.getResponseCode());
+        setState(OperationState.ERROR);
+        throw new HiveSQLException("Error while executing statement: " + statement + " by "
+            + response.toDetailedMessage(), response.getSQLState(), response.getResponseCode());
       }
 
       mResultSchema = driver.getSchema();
@@ -123,9 +133,11 @@ public class SQLOperation extends ExecuteStatementOperation {
       } else {
         setHasResultSet(false);
       }
+    } catch (HiveSQLException e) {
+      throw e;
     } catch (Exception e) {
       setState(OperationState.ERROR);
-      throw new HiveSQLException("Error running query: " + e.toString(), e);
+      throw new HiveSQLException("Error while executing statement: " + e.toString(), e);
     }
     setState(OperationState.FINISHED);
   }

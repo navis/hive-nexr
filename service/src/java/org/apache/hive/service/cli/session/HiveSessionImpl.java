@@ -230,7 +230,9 @@ public class HiveSessionImpl implements HiveSession {
       ExecuteStatementOperation operation = getOperationManager()
           .newExecuteStatementOperation(this, statement, confOverlay);
       try {
-        assert !(operation instanceof SQLOperation);
+        if (operation instanceof SQLOperation) {
+          throw new HiveSQLException("executeTransient() cannot execute SQLOperations");
+        }
         operation.run();
       } finally {
         getOperationManager().closeOperation(operation.getHandle());

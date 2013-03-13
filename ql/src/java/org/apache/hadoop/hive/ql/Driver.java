@@ -771,7 +771,7 @@ public class Driver implements CommandProcessor {
    * pretty simple. If all the locks cannot be obtained, error out. Deadlock is avoided by making
    * sure that the locks are lexicographically sorted.
    **/
-  public int acquireReadWriteLocks() {
+  private int acquireReadWriteLocks() {
     PerfLogger perfLogger = PerfLogger.getPerfLogger();
     perfLogger.PerfLogBegin(LOG, PerfLogger.ACQUIRE_READ_WRITE_LOCKS);
 
@@ -841,19 +841,19 @@ public class Driver implements CommandProcessor {
         ctx.setHiveLocks(hiveLocks);
       }
 
-      return (0);
+      return 0;
     } catch (SemanticException e) {
       errorMessage = "FAILED: Error in acquiring locks: " + e.getMessage();
       SQLState = ErrorMsg.findSQLState(e.getMessage());
       console.printError(errorMessage, "\n"
           + org.apache.hadoop.util.StringUtils.stringifyException(e));
-      return (10);
-    } catch (LockException e) {
+      return 10;
+    } catch (Exception e) {
       errorMessage = "FAILED: Error in acquiring locks: " + e.getMessage();
       SQLState = ErrorMsg.findSQLState(e.getMessage());
       console.printError(errorMessage, "\n"
           + org.apache.hadoop.util.StringUtils.stringifyException(e));
-      return (10);
+      return 11;
     } finally {
       perfLogger.PerfLogEnd(LOG, PerfLogger.ACQUIRE_READ_WRITE_LOCKS);
     }
@@ -922,7 +922,6 @@ public class Driver implements CommandProcessor {
       ret = compile(command, run);
     }
     if (ret != 0) {
-      releaseLocks(ctx.getHiveLocks());
       return new CommandProcessorResponse(ret, errorMessage, SQLState);
     }
     return new CommandProcessorResponse(ret);
@@ -962,20 +961,18 @@ public class Driver implements CommandProcessor {
     if (requireLock) {
       ret = acquireReadWriteLocks();
       if (ret != 0) {
-        releaseLocks(ctx.getHiveLocks());
         return new CommandProcessorResponse(ret, errorMessage, SQLState);
       }
     }
 
-    ret = execute(run);
-    if (ret != 0) {
-      //if needRequireLock is false, the release here will do nothing because there is no lock
+    try {
+      ret = execute(run);
+    } finally {
       releaseLocks(ctx.getHiveLocks());
+    }
+    if (ret != 0) {
       return new CommandProcessorResponse(ret, errorMessage, SQLState);
     }
-
-    //if needRequireLock is false, the release here will do nothing because there is no lock
-    releaseLocks(ctx.getHiveLocks());
 
     PerfLogger perfLogger = PerfLogger.getPerfLogger(true);
     if (run) {
@@ -1313,7 +1310,7 @@ public class Driver implements CommandProcessor {
       SQLState = "08S01";
       console.printError(errorMessage + "\n"
           + org.apache.hadoop.util.StringUtils.stringifyException(e));
-      return (12);
+      return 12;
     } finally {
       if (SessionState.get() != null) {
         SessionState.get().getHiveHistory().endQuery(queryId);
