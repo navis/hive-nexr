@@ -133,6 +133,8 @@ public class ObjectStore implements RawStore, Configurable {
   private static Lock pmfPropLock = new ReentrantLock();
   private static final Log LOG = LogFactory.getLog(ObjectStore.class.getName());
 
+  private static final boolean LOG_TX = Boolean.getBoolean("hive.log.objectstore.transaction");
+
   private static enum TXN_STATUS {
     NO_STATE, OPEN, COMMITED, ROLLBACK
   }
@@ -154,7 +156,7 @@ public class ObjectStore implements RawStore, Configurable {
   private boolean isInitialized = false;
   private PersistenceManager pm = null;
   private Configuration hiveConf;
-  int openTrasactionCalls = 0;
+  private int openTransactionCalls = 0;
   private Transaction currentTransaction = null;
   private TXN_STATUS transactionStatus = TXN_STATUS.NO_STATE;
 
@@ -192,7 +194,7 @@ public class ObjectStore implements RawStore, Configurable {
       // Always want to re-create pm as we don't know if it were created by the
       // most recent instance of the pmf
       pm = null;
-      openTrasactionCalls = 0;
+      openTransactionCalls = 0;
       currentTransaction = null;
       transactionStatus = TXN_STATUS.NO_STATE;
 
@@ -304,9 +306,33 @@ public class ObjectStore implements RawStore, Configurable {
    * @return an active transaction
    */
 
+  private String invoker() {
+    int start = 4;
+    Thread thread = Thread.currentThread();
+    StackTraceElement[] trace = thread.getStackTrace();
+
+    StackTraceElement element = trace[start];
+    for (; (element.getClassName().startsWith("java.lang.reflect") ||
+        element.getClassName().startsWith("sun.reflect")) && start < trace.length; start++) {
+      element = trace[start];
+    }
+    String className = element.getClassName();
+    return "[" + thread.getId() + "::" + className.substring(className.lastIndexOf(".") + 1) +
+        "/" + element.getMethodName() + ":" + element.getLineNumber() + "]";
+  }
+
+  private String getTxStatus() {
+    return invoker() + ", openTrasactionCalls " + openTransactionCalls +
+        ", status = " + transactionStatus + ":" +
+        (currentTransaction == null ? "X" : currentTransaction.isActive());
+  }
+
   public boolean openTransaction() {
-    openTrasactionCalls++;
-    if (openTrasactionCalls == 1) {
+    if (LOG_TX) {
+      LOG.error("__openTransaction() " + getTxStatus());
+    }
+    openTransactionCalls++;
+    if (openTransactionCalls == 1) {
       currentTransaction = pm.currentTransaction();
       currentTransaction.begin();
       transactionStatus = TXN_STATUS.OPEN;
@@ -326,12 +352,15 @@ public class ObjectStore implements RawStore, Configurable {
    */
   @SuppressWarnings("nls")
   public boolean commitTransaction() {
+    if (LOG_TX) {
+      LOG.error("commitTransaction() " + getTxStatus());
+    }
     if (TXN_STATUS.ROLLBACK == transactionStatus) {
       return false;
     }
-    if (openTrasactionCalls <= 0) {
+    if (openTransactionCalls <= 0) {
       throw new RuntimeException("commitTransaction was called but openTransactionCalls = "
-          + openTrasactionCalls + ". This probably indicates that there are unbalanced " +
+          + openTransactionCalls + ". This probably indicates that there are unbalanced " +
               "calls to openTransaction/commitTransaction");
     }
     if (!currentTransaction.isActive()) {
@@ -339,8 +368,8 @@ public class ObjectStore implements RawStore, Configurable {
           "Commit is called, but transaction is not active. Either there are"
               + " mismatching open and close calls or rollback was called in the same trasaction");
     }
-    openTrasactionCalls--;
-    if ((openTrasactionCalls == 0) && currentTransaction.isActive()) {
+    openTransactionCalls--;
+    if ((openTransactionCalls == 0) && currentTransaction.isActive()) {
       transactionStatus = TXN_STATUS.COMMITED;
       currentTransaction.commit();
     }
@@ -362,10 +391,13 @@ public class ObjectStore implements RawStore, Configurable {
    * Rolls back the current transaction if it is active
    */
   public void rollbackTransaction() {
-    if (openTrasactionCalls < 1) {
+    if (LOG_TX) {
+      LOG.error("_rbackTransaction() " + getTxStatus());
+    }
+    if (openTransactionCalls < 1) {
       return;
     }
-    openTrasactionCalls = 0;
+    openTransactionCalls = 0;
     if (currentTransaction.isActive()
         && transactionStatus != TXN_STATUS.ROLLBACK) {
       transactionStatus = TXN_STATUS.ROLLBACK;

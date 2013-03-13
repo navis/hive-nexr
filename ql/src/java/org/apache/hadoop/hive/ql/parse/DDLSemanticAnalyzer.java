@@ -2915,7 +2915,7 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
       }
       return tab;
     } catch (HiveException e) {
-      throw new SemanticException(ErrorMsg.INVALID_TABLE.getMsg(tblName));
+      throw new SemanticException(ErrorMsg.INVALID_TABLE.getMsg(tblName), e);
     }
   }
 
