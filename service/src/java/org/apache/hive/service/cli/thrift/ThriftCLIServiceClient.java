@@ -445,6 +445,15 @@ public class ThriftCLIServiceClient extends CLIServiceClient {
     SessionHandle session = client.openSession(null, null, null);
     System.err.println("[ThriftCLIServiceClient/main] " + session);
 
+    for (int i = 0; i < 10000; i++) {
+      CompileResult result = client.compileStatement(session, "truncate table table1", null);
+      OperationHandle handle = new OperationHandle(result.getHandle());
+      if (result.getPlan() != null) {
+        client.runStatement(session, handle);
+      }
+      client.closeOperation(handle);
+      Thread.sleep(3000);
+    }
     String line;
     BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
