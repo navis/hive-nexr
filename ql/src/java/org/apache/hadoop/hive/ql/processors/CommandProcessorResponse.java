@@ -51,4 +51,8 @@ public class CommandProcessorResponse {
   public String getErrorMessage() { return errorMessage; }
   public String getSQLState() { return SQLState; }
   public Schema getSchema() { return resSchema; }
+
+  public String toDetailedMessage() {
+    return errorMessage + ", SQLState = " + SQLState + ", ResponseCode = " + responseCode;
+  }
 }
