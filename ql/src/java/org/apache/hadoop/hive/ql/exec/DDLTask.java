@@ -3891,20 +3891,15 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
 
     Table table = db.getTable(tableName, true);
 
-    FsShell fshell = new FsShell(conf);
     try {
+      // it's not transactional
       for (Path location : getLocations(db, table, partSpec)) {
-        fshell.run(new String[]{"-rmr", location.toString()});
-        location.getFileSystem(conf).mkdirs(location);
+        FileSystem fs = location.getFileSystem(conf);
+        fs.delete(location, true);
+        fs.mkdirs(location);
       }
     } catch (Exception e) {
       throw new HiveException(e);
-    } finally {
-      try {
-        fshell.close();
-      } catch (IOException e) {
-        // ignore
-      }
     }
     return 0;
   }
