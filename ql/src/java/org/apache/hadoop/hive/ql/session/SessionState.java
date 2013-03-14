@@ -45,6 +45,7 @@ import org.apache.hadoop.hive.ql.MapRedStats;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.history.HiveHistory;
+import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.HiveUtils;
 import org.apache.hadoop.hive.ql.plan.HiveOperation;
@@ -134,6 +135,8 @@ public class SessionState {
    */
   LineageState ls;
   private HiveDriverRunHookContext hookContext;
+
+  private String currentDB;
 
   /**
    * Get the lineage state stored in this session.
@@ -284,6 +287,9 @@ public class SessionState {
     }
 
     try {
+      Hive hive = Hive.get(startSs.getConf());
+      hive.setCurrentDatabase(startSs.getCurrentDB());
+
       startSs.authenticator = HiveUtils.getAuthenticator(
           startSs.getConf(),HiveConf.ConfVars.HIVE_AUTHENTICATOR_MANAGER);
       startSs.authorizer = HiveUtils.getAuthorizeProviderManager(
@@ -331,6 +337,14 @@ public class SessionState {
 
   public HiveDriverRunHookContext getHookContext() {
     return hookContext;
+  }
+
+  public String getCurrentDB() {
+    return currentDB;
+  }
+
+  public void setCurrentDB(String currentDB) {
+    this.currentDB = currentDB;
   }
 
   /**
