@@ -2472,6 +2472,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       posn++;
     }
 
+    boolean subQuery = qb.getParseInfo().getIsSubQ();
     boolean isInTransform = (selExprList.getChild(posn).getChild(0).getType() ==
         HiveParser.TOK_TRANSFORM);
     if (isInTransform) {
@@ -2506,6 +2507,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       if (isUDTF && !fi.isNative()) {
         unparseTranslator.addIdentifierTranslation((ASTNode) udtfExpr
             .getChild(0));
+      }
+      if (isUDTF && (selectStar = udtfExprType == HiveParser.TOK_FUNCTIONSTAR)) {
+        genColListRegex(".*", null, (ASTNode) udtfExpr.getChild(0),
+            col_list, inputRR, pos, out_rwsch, qb.getAliases(), subQuery);
       }
     }
 
@@ -2607,7 +2612,6 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
       }
 
-      boolean subQuery = qb.getParseInfo().getIsSubQ();
       if (expr.getType() == HiveParser.TOK_ALLCOLREF) {
         pos = genColListRegex(".*", expr.getChildCount() == 0 ? null
             : getUnescapedName((ASTNode) expr.getChild(0)).toLowerCase(),
