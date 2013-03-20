@@ -1,0 +1,1 @@
+FAILED: SemanticException [Error 10301]: 1:50 Line 1:50 Invalid location for ellipsis '...'. Error encountered near token '...'

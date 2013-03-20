@@ -430,6 +430,9 @@ public enum ErrorMsg {
 
   DROP_NATIVE_FUNCTION(10301, "Cannot drop native function"),
 
+  INVALID_LOCATION_FOR_ELLIPSIS(10302, "Invalid location for ellipsis"),
+  INVALID_LOCATION_FOR_TOK_ALLCOLREF(10303, "Invalid location for TOK_ALLCOLREF"),
+
   //========================== 20000 range starts here ========================//
   SCRIPT_INIT_ERROR(20000, "Unable to initialize custom script."),
   SCRIPT_IO_ERROR(20001, "An error occurred while reading or writing to your custom script. "

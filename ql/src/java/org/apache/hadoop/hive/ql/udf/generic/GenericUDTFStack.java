@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hive.ql.udf.generic;
 
-import java.util.List;
 import java.util.ArrayList;
 
 import org.apache.hadoop.hive.ql.exec.Description;
@@ -47,12 +46,10 @@ public class GenericUDTFStack extends GenericUDTF {
   public void close() throws HiveException {
   }
 
-  private transient List<ObjectInspector> argOIs = new ArrayList<ObjectInspector>();
+  private transient ObjectInspector[] argOIs;
   private transient Object[] forwardObj = null;
-  private transient ArrayList<ReturnObjectInspectorResolver> returnOIResolvers =
-      new ArrayList<ReturnObjectInspectorResolver>();
-  IntWritable numRows = null;
-  Integer numCols = null;
+  private transient ReturnObjectInspectorResolver[] returnOIResolvers;
+  private transient IntWritable numRows = null;
 
   @Override
   public StructObjectInspector initialize(ObjectInspector[] args)
@@ -74,14 +71,15 @@ public class GenericUDTFStack extends GenericUDTF {
     }
 
     // Divide and round up.
-    numCols = (args.length - 1 + numRows.get() - 1) / numRows.get();
+    int numCols = (args.length - 1 + numRows.get() - 1) / numRows.get();
 
+    returnOIResolvers = new ReturnObjectInspectorResolver[numCols];
     for (int jj = 0; jj < numCols; ++jj) {
-      returnOIResolvers.add(new ReturnObjectInspectorResolver());
+      returnOIResolvers[jj] = new ReturnObjectInspectorResolver();
       for (int ii = 0; ii < numRows.get(); ++ii) {
         int index = ii * numCols + jj + 1;
         if (index < args.length && 
-            !returnOIResolvers.get(jj).update(args[index])) {
+            !returnOIResolvers[jj].update(args[index])) {
           throw new UDFArgumentException(
               "Argument " + (jj + 1) + "'s type (" +
               args[jj + 1].getTypeName() + ") should be equal to argument " +
@@ -91,15 +89,13 @@ public class GenericUDTFStack extends GenericUDTF {
     }
 
     forwardObj = new Object[numCols];
-    for (int ii = 0; ii < args.length; ++ii) {
-      argOIs.add(args[ii]);
-    }
+    argOIs = args;
 
     ArrayList<String> fieldNames = new ArrayList<String>();
     ArrayList<ObjectInspector> fieldOIs = new ArrayList<ObjectInspector>();
     for (int ii = 0; ii < numCols; ++ii) {
       fieldNames.add("col" + ii);
-      fieldOIs.add(returnOIResolvers.get(ii).get());
+      fieldOIs.add(returnOIResolvers[ii].get());
     }
 
     return ObjectInspectorFactory.getStandardStructObjectInspector(
@@ -107,14 +103,13 @@ public class GenericUDTFStack extends GenericUDTF {
   }
 
   @Override
-  public void process(Object[] args)
-      throws HiveException, UDFArgumentException {
+  public void process(Object[] args) throws HiveException, UDFArgumentException {
     for (int ii = 0; ii < numRows.get(); ++ii) {
-      for (int jj = 0; jj < numCols; ++jj) {
-        int index = ii * numCols + jj + 1;
+      for (int jj = 0; jj < forwardObj.length; ++jj) {
+        int index = ii * forwardObj.length + jj + 1;
         if (index < args.length) {
-          forwardObj[jj] = 
-            returnOIResolvers.get(jj).convertIfNecessary(args[index], argOIs.get(index));
+          forwardObj[jj] =
+            returnOIResolvers[jj].convertIfNecessary(args[index], argOIs[index]);
         } else {
           forwardObj[ii] = null;
         }

@@ -57,7 +57,7 @@ tableOrColumn
 @init { gParent.pushMsg("table or column identifier", state); }
 @after { gParent.popMsg(state); }
     :
-    identifier -> ^(TOK_TABLE_OR_COL identifier)
+    identifier ELLIPSIS? -> ^(TOK_TABLE_OR_COL identifier ELLIPSIS?)
     ;
 
 expressionList

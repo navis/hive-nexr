@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
+import org.antlr.runtime.tree.Tree;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -191,7 +192,11 @@ public class TypeCheckProcFactory {
     HashMap<Node, Object> nodeOutputs = new LinkedHashMap<Node, Object>();
     ogw.startWalking(topNodes, nodeOutputs);
 
-    return convert(nodeOutputs);
+    Map<ASTNode, ExprNodeDesc> converted = convert(nodeOutputs);
+    if (!tcCtx.isAllowColumnList() && converted.get(expr) instanceof ExprNodeColumnListDesc) {
+      throw new SemanticException(ErrorMsg.INVALID_LOCATION_FOR_TOK_ALLCOLREF.getMsg(expr));
+    }
+    return converted;
   }
 
   // temporary type-safe casting
@@ -499,58 +504,76 @@ public class TypeCheckProcFactory {
         return null;
       }
 
-      assert (expr.getChildCount() == 1);
-      String tableOrCol = BaseSemanticAnalyzer.unescapeIdentifier(expr
-          .getChild(0).getText());
+      assert (expr.getChildCount() > 0);
+      Tree child = expr.getChild(0);
+      String tableOrCol = BaseSemanticAnalyzer.unescapeIdentifier(child.getText());
+
+      boolean ellipsis = expr.getFirstChildWithType(HiveParser.ELLIPSIS) != null;
 
       boolean isTableAlias = input.hasTableAlias(tableOrCol);
       ColumnInfo colInfo = input.get(null, tableOrCol);
 
       if (isTableAlias) {
-        if (colInfo != null) {
-          if (parent != null && parent.getType() == HiveParser.DOT) {
-            // It's a table alias.
-            return null;
-          }
-          // It's a column.
-          return toExprNodeDesc(colInfo);
-        } else {
+        if (colInfo == null || (parent != null && parent.getType() == HiveParser.DOT)) {
           // It's a table alias.
-          // We will process that later in DOT.
+          if (ellipsis) {
+            // DOT - TorC - alias (table)
+            //     |      - ellipsis
+            //     - alias (column)
+            ctx.setError(ErrorMsg.INVALID_LOCATION_FOR_ELLIPSIS.getMsg(expr), expr);
+          }
           return null;
         }
-      } else {
-        if (colInfo == null) {
-          // It's not a column or a table alias.
-          if (input.getIsExprResolver()) {
-            ASTNode exprNode = expr;
-            if (!stack.empty()) {
-              ASTNode tmp = (ASTNode) stack.pop();
-              if (!stack.empty()) {
-                exprNode = (ASTNode) stack.peek();
-              }
-              stack.push(tmp);
-            }
-            ctx.setError(ErrorMsg.NON_KEY_EXPR_IN_GROUPBY.getMsg(exprNode), expr);
-            return null;
-          } else {
-            List<String> possibleColumnNames = input.getReferenceableColumnAliases(tableOrCol, -1);
-            String reason = String.format("(possible column names are: %s)",
-                StringUtils.join(possibleColumnNames, ", "));
-            ctx.setError(ErrorMsg.INVALID_TABLE_OR_COLUMN.getMsg(expr.getChild(0), reason),
-                expr);
-            LOG.debug(ErrorMsg.INVALID_TABLE_OR_COLUMN.toString() + ":"
-                + input.toString());
-            return null;
-          }
-        } else {
-          // It's a column.
-          return toExprNodeDesc(colInfo);
+      }
+      if (colInfo != null) {
+        if (ellipsis) {
+          // TorC - alias (column)
+          //      - ellipsis
+          return getColumnList(input, colInfo.getTabAlias(), tableOrCol);
         }
+        return toExprNodeDesc(colInfo);
       }
 
+      // It's not a column or a table alias.
+      if (input.getIsExprResolver()) {
+        ASTNode exprNode = expr;
+        if (!stack.empty()) {
+          ASTNode tmp = (ASTNode) stack.pop();
+          if (!stack.empty()) {
+            exprNode = (ASTNode) stack.peek();
+          }
+          stack.push(tmp);
+        }
+        ctx.setError(ErrorMsg.NON_KEY_EXPR_IN_GROUPBY.getMsg(exprNode), expr);
+        return null;
+      } else {
+        List<String> possibleColumnNames = input.getReferenceableColumnAliases(tableOrCol, -1);
+        String reason = String.format("(possible column names are: %s)",
+            StringUtils.join(possibleColumnNames, ", "));
+        ctx.setError(ErrorMsg.INVALID_TABLE_OR_COLUMN.getMsg(child, reason),
+            expr);
+        LOG.debug(ErrorMsg.INVALID_TABLE_OR_COLUMN.toString() + ":"
+            + input.toString());
+        return null;
+      }
     }
+  }
 
+  private static ExprNodeDesc getColumnList(RowResolver input, String tabAlias, String colAlias) {
+    ExprNodeColumnListDesc columnList = new ExprNodeColumnListDesc();
+    boolean found = false;
+    for (Map.Entry<String, ColumnInfo> entry : input.getFieldMap(tabAlias).entrySet()) {
+      if (!found && entry.getKey().equals(colAlias)) {
+        found = true;
+      }
+      if (found) {
+        ColumnInfo colInfo = entry.getValue();
+        if (!colInfo.getIsVirtualCol()) {
+          columnList.addColumn(toExprNodeDesc(colInfo));
+        }
+      }
+    }
+    return columnList;
   }
 
   private static ExprNodeDesc toExprNodeDesc(ColumnInfo colInfo) {
@@ -990,16 +1013,21 @@ public class TypeCheckProcFactory {
     protected ExprNodeDesc processQualifiedColRef(TypeCheckCtx ctx, ASTNode expr,
         Object... nodeOutputs) throws SemanticException {
       RowResolver input = ctx.getInputRR();
-      String tableAlias = BaseSemanticAnalyzer.unescapeIdentifier(expr.getChild(0).getChild(0)
-          .getText());
+      String tableAlias = BaseSemanticAnalyzer.unescapeIdentifier(expr
+          .getChild(0).getChild(0).getText());
       // NOTE: tableAlias must be a valid non-ambiguous table alias,
       // because we've checked that in TOK_TABLE_OR_COL's process method.
-      ColumnInfo colInfo = input.get(tableAlias, ((ExprNodeConstantDesc) nodeOutputs[1]).getValue()
-          .toString());
-
+      String colAlias = ((ExprNodeConstantDesc) nodeOutputs[1]).getValue().toString();
+      ColumnInfo colInfo = input.get(tableAlias, colAlias);
       if (colInfo == null) {
         ctx.setError(ErrorMsg.INVALID_COLUMN.getMsg(expr.getChild(1)), expr);
         return null;
+      }
+      if (expr.getFirstChildWithType(HiveParser.ELLIPSIS) != null) {
+        // DOT - TorC - alias (table)
+        //     - alias (column)
+        //     - ellipsis
+        return getColumnList(input, tableAlias, colAlias);
       }
       return toExprNodeDesc(colInfo);
     }
@@ -1061,7 +1089,7 @@ public class TypeCheckProcFactory {
         return null;
       }
 
-      if (expr.getType() == HiveParser.TOK_TABNAME) {
+      if (expr.getType() == HiveParser.TOK_TABNAME || expr.getType() == HiveLexer.ELLIPSIS) {
         return null;
       }
 

@@ -71,6 +71,11 @@ public class TypeCheckCtx implements NodeProcessorCtx {
   private final boolean allowSubQueryExpr;
 
   /**
+   * Whether to allow convert input ast to multiple expr nodes
+   */
+  private boolean allowColumnList;
+
+  /**
    * Constructor.
    *
    * @param inputRR
@@ -197,5 +202,13 @@ public class TypeCheckCtx implements NodeProcessorCtx {
 
   public boolean getallowSubQueryExpr() {
     return allowSubQueryExpr;
+  }
+
+  public boolean isAllowColumnList() {
+    return allowColumnList;
+  }
+
+  public void setAllowColumnList(boolean allowColumnList) {
+    this.allowColumnList = allowColumnList;
   }
 }

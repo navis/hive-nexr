@@ -117,7 +117,6 @@ import org.apache.hadoop.hive.ql.optimizer.Optimizer;
 import org.apache.hadoop.hive.ql.optimizer.calcite.CalciteSemanticException;
 import org.apache.hadoop.hive.ql.optimizer.unionproc.UnionProcContext;
 import org.apache.hadoop.hive.ql.parse.BaseSemanticAnalyzer.tableSpec.SpecType;
-import org.apache.hadoop.hive.ql.parse.CalcitePlanner.ASTSearcher;
 import org.apache.hadoop.hive.ql.parse.PTFInvocationSpec.OrderExpression;
 import org.apache.hadoop.hive.ql.parse.PTFInvocationSpec.OrderSpec;
 import org.apache.hadoop.hive.ql.parse.PTFInvocationSpec.PTFInputSpec;
@@ -287,9 +286,6 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
    * Used to check recursive CTE invocations. Similar to viewsExpanded
    */
   private ArrayList<String> ctesExpanded;
-
-  /** Not thread-safe. */
-  final ASTSearcher astSearcher = new ASTSearcher();
 
   static class Phase1Ctx {
     String dest;
@@ -2885,9 +2881,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
   @SuppressWarnings("nls")
   // TODO: make aliases unique, otherwise needless rewriting takes place
-  Integer genColListRegex(String colRegex, String tabAlias, ASTNode sel,
+  int genColListRegex(String colRegex, String tabAlias, ASTNode sel,
     ArrayList<ExprNodeDesc> col_list, HashSet<ColumnInfo> excludeCols, RowResolver input,
-    RowResolver colSrcRR, Integer pos, RowResolver output, List<String> aliases,
+    RowResolver colSrcRR, int pos, RowResolver output, List<String> aliases,
     boolean ensureUniqueCols) throws SemanticException {
 
     if (colSrcRR == null) {
@@ -2993,8 +2989,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           }
         } else {
           output.put(tmp[0], tmp[1], oColInfo);
+          pos++;
         }
-        pos = Integer.valueOf(pos.intValue() + 1);
         matched++;
 
         if (unparseTranslator.isEnabled()) {
@@ -3488,47 +3484,57 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       return result;
     }
   }
+  
+  static class ColumnAlias {
+    String declaredAlias;
+    String tableAlias;
+    String columnAlias;
+    String functionString;
+    
+    ColumnAlias() {}
+    ColumnAlias(String columnAlias) { this.columnAlias = columnAlias; }
 
-  static String[] getColAlias(ASTNode selExpr, String defaultName,
-      RowResolver inputRR, boolean includeFuncName, int colNum) {
-    String colAlias = null;
-    String tabAlias = null;
-    String[] colRef = new String[2];
+    String getColumnAlias(String defaultName, int outPos) {
+      return declaredAlias != null ? declaredAlias : 
+             columnAlias != null ? columnAlias : 
+             functionString != null ? functionString + outPos : defaultName + outPos;     
+    }
+  }
 
+  static ColumnAlias getColAlias(ASTNode selExpr, String defaultName,
+      RowResolver inputRR, boolean includeFuncName) {
+
+    ColumnAlias alias = new ColumnAlias();
+    
     //for queries with a windowing expressions, the selexpr may have a third child
-    if (selExpr.getChildCount() == 2 ||
-        (selExpr.getChildCount() == 3 &&
-        selExpr.getChild(2).getType() == HiveParser.TOK_WINDOWSPEC)) {
+    if (selExpr.getChildCount() == 2) {
       // return zz for "xx + yy AS zz"
-      colAlias = unescapeIdentifier(selExpr.getChild(1).getText());
-      colRef[0] = tabAlias;
-      colRef[1] = colAlias;
-      return colRef;
+      alias.declaredAlias = unescapeIdentifier(selExpr.getChild(1).getText());
+      return alias;
     }
 
     ASTNode root = (ASTNode) selExpr.getChild(0);
     if (root.getType() == HiveParser.TOK_TABLE_OR_COL) {
-      colAlias =
-          BaseSemanticAnalyzer.unescapeIdentifier(root.getChild(0).getText());
-      colRef[0] = tabAlias;
-      colRef[1] = colAlias;
-      return colRef;
+      alias.columnAlias = BaseSemanticAnalyzer.unescapeIdentifier(root.getChild(0).getText());
+      return alias;
     }
 
     if (root.getType() == HiveParser.DOT) {
       ASTNode tab = (ASTNode) root.getChild(0);
-      if (tab.getType() == HiveParser.TOK_TABLE_OR_COL) {
+      if (tab.getType() != HiveParser.TOK_TABLE_OR_COL) {
         String t = unescapeIdentifier(tab.getChild(0).getText());
         if (inputRR.hasTableAlias(t)) {
-          tabAlias = t;
+          alias.tableAlias = t;
         }
       }
 
       // Return zz for "xx.zz" and "xx.yy.zz"
       ASTNode col = (ASTNode) root.getChild(1);
       if (col.getType() == HiveParser.Identifier) {
-        colAlias = unescapeIdentifier(col.getText());
+        alias.columnAlias = unescapeIdentifier(col.getText());
       }
+      
+      return alias;
     }
 
     // if specified generate alias using func name
@@ -3548,17 +3554,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       }
 
       // append colnum to make it unique
-      colAlias = expr_formatted.concat("_" + colNum);
+      alias.functionString = expr_formatted;
     }
-
-    if (colAlias == null) {
-      // Return defaultName if selExpr is not a simple xx.yy.zz
-      colAlias = defaultName + colNum;
-    }
-
-    colRef[0] = tabAlias;
-    colRef[1] = colAlias;
-    return colRef;
+    
+    return alias;
   }
 
   /**
@@ -3603,7 +3602,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     ArrayList<ExprNodeDesc> col_list = new ArrayList<ExprNodeDesc>();
     RowResolver out_rwsch = new RowResolver();
     ASTNode trfm = null;
-    Integer pos = Integer.valueOf(0);
+
+    int pos = 0;
     RowResolver inputRR = opParseCtx.get(input).getRowResolver();
     RowResolver starRR = null;
     if (inputForSelectStar != null && inputForSelectStar != input) {
@@ -3716,16 +3716,13 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       startPosn = 0;
     }
 
-    Set<String> colAliases = new HashSet<String>();
     ASTNode[] exprs = new ASTNode[exprList.getChildCount()];
-    String[][] aliases = new String[exprList.getChildCount()][];
-    boolean[] hasAsClauses = new boolean[exprList.getChildCount()];
+    ColumnAlias[] aliases = new ColumnAlias[exprList.getChildCount()];
     // Iterate over all expression (either after SELECT, or in SELECT TRANSFORM)
     for (int i = startPosn; i < exprList.getChildCount(); ++i) {
 
       // child can be EXPR AS ALIAS, or EXPR.
       ASTNode child = (ASTNode) exprList.getChild(i);
-      boolean hasAsClause = (!isInTransform) && (child.getChildCount() == 2);
       boolean isWindowSpec = child.getChildCount() == 3 &&
           child.getChild(2).getType() == HiveParser.TOK_WINDOWSPEC;
 
@@ -3739,39 +3736,27 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       }
 
       // The real expression
-      ASTNode expr;
-      String tabAlias;
-      String colAlias;
-
       if (isInTransform || isUDTF) {
-        tabAlias = null;
-        colAlias = autogenColAliasPrfxLbl + i;
-        expr = child;
+        exprs[i] = child;
+        aliases[i] = new ColumnAlias(autogenColAliasPrfxLbl);
       } else {
         // Get rid of TOK_SELEXPR
-        expr = (ASTNode) child.getChild(0);
-        String[] colRef = getColAlias(child, autogenColAliasPrfxLbl, inputRR,
-            autogenColAliasPrfxIncludeFuncName, i);
-        tabAlias = colRef[0];
-        colAlias = colRef[1];
-        if (hasAsClause) {
+        exprs[i] = (ASTNode) child.getChild(0);
+        aliases[i] = getColAlias(child, autogenColAliasPrfxLbl, inputRR,
+            autogenColAliasPrfxIncludeFuncName);
+        if (aliases[i].declaredAlias != null) {
           unparseTranslator.addIdentifierTranslation((ASTNode) child
               .getChild(1));
         }
       }
-      exprs[i] = expr;
-      aliases[i] = new String[] {tabAlias, colAlias};
-      hasAsClauses[i] = hasAsClause;
-      colAliases.add(colAlias);
     }
 
     // Iterate over all expression (either after SELECT, or in SELECT TRANSFORM)
     for (int i = startPosn; i < exprList.getChildCount(); ++i) {
       // The real expression
       ASTNode expr = exprs[i];
-      String tabAlias = aliases[i][0];
-      String colAlias = aliases[i][1];
-      boolean hasAsClause = hasAsClauses[i];
+      ColumnAlias alias = aliases[i];
+      boolean hasAsClause = alias.declaredAlias != null;
 
       if (expr.getType() == HiveParser.TOK_ALLCOLREF) {
         pos = genColListRegex(".*", expr.getChildCount() == 0 ? null
@@ -3804,29 +3789,47 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         // We allow stateful functions in the SELECT list (but nowhere else)
         tcCtx.setAllowStatefulFunctions(true);
         tcCtx.setAllowDistinctFunctions(false);
-        ExprNodeDesc exp = genExprNodeDesc(expr, inputRR, tcCtx);
-        String recommended = recommendName(exp, colAlias);
-        if (recommended != null && !colAliases.contains(recommended) &&
-            out_rwsch.get(null, recommended) == null) {
-          colAlias = recommended;
+        tcCtx.setAllowColumnList(true);
+        ExprNodeDesc eval = genExprNodeDesc(expr, inputRR, tcCtx);
+
+        List<ExprNodeDesc> exps;
+        if (eval instanceof ExprNodeColumnListDesc) {
+          exps = eval.getChildren();
+        } else {
+          exps = Arrays.asList(eval);
         }
-        col_list.add(exp);
-
-        ColumnInfo colInfo = new ColumnInfo(getColumnInternalName(pos),
-            exp.getWritableObjectInspector(), tabAlias, false);
-        colInfo.setSkewedCol((exp instanceof ExprNodeColumnDesc) ? ((ExprNodeColumnDesc) exp)
-            .isSkewedCol() : false);
-        out_rwsch.put(tabAlias, colAlias, colInfo);
-
-        if ( exp instanceof ExprNodeColumnDesc ) {
-          ExprNodeColumnDesc colExp = (ExprNodeColumnDesc) exp;
-          String[] altMapping = inputRR.getAlternateMappings(colExp.getColumn());
-          if ( altMapping != null ) {
-            out_rwsch.put(altMapping[0], altMapping[1], colInfo);
+        String tabAlias = alias.tableAlias;
+        
+        for (int j = 0; j < exps.size(); j++) {
+          ExprNodeDesc exp = exps.get(j);
+          String colAlias = recommendColName(exp, alias, pos, j);
+          if (colAlias == null || out_rwsch.get(null, colAlias) != null) {
+            colAlias = generateOuputColName(pos); 
+          } else {
+            for (int k = i + 1; k < exprList.getChildCount(); k++) {
+              if (colAlias.equals(aliases[k].declaredAlias)) {
+                colAlias = generateOuputColName(pos);
+                break;
+              }
+            }
           }
-        }
+          col_list.add(exp);
 
-        pos = Integer.valueOf(pos.intValue() + 1);
+          ColumnInfo colInfo = new ColumnInfo(getColumnInternalName(pos),
+              exp.getWritableObjectInspector(), tabAlias, false);
+          colInfo.setSkewedCol((exp instanceof ExprNodeColumnDesc) ? ((ExprNodeColumnDesc) exp)
+              .isSkewedCol() : false);
+          out_rwsch.put(tabAlias, colAlias, colInfo);
+
+          if ( exp instanceof ExprNodeColumnDesc ) {
+            ExprNodeColumnDesc colExp = (ExprNodeColumnDesc) exp;
+            String[] altMapping = inputRR.getAlternateMappings(colExp.getColumn());
+            if ( altMapping != null ) {
+              out_rwsch.put(altMapping[0], altMapping[1], colInfo);
+            }
+          }
+          pos++;
+        }
       }
     }
     selectStar = selectStar && exprList.getChildCount() == posn + 1;
@@ -3954,15 +3957,22 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     col_list.addAll(new_col_list);
     out_rwsch.setRowSchema(new RowSchema(newSchema));
   }
-  String recommendName(ExprNodeDesc exp, String colAlias) {
-    if (!colAlias.startsWith(autogenColAliasPrfxLbl)) {
-      return null;
+
+  String recommendColName(ExprNodeDesc exp, ColumnAlias colAlias, int outPos, int expandPos) {
+    if (colAlias.declaredAlias != null) {
+      return expandPos > 0 ? colAlias.declaredAlias + expandPos : colAlias.declaredAlias;
     }
-    String column = ExprNodeDescUtils.recommendInputName(exp);
-    if (column != null && !column.startsWith(autogenColAliasPrfxLbl)) {
-      return column;
+    if (colAlias.columnAlias != null && !colAlias.columnAlias.startsWith(autogenColAliasPrfxLbl)) {
+      return colAlias.columnAlias;
     }
-    return null;
+    if (colAlias.functionString != null) {
+      return colAlias.functionString + outPos;
+    }
+    return ExprNodeDescUtils.recommendInputName(exp);
+  }
+
+  String generateOuputColName(int outPos) {
+    return autogenColAliasPrfxLbl + outPos;
   }
 
   String getAutogenColAliasPrfxLbl() {
@@ -10368,9 +10378,6 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       }
       throw new SemanticException(errMsg);
     }
-    if (desc instanceof ExprNodeColumnListDesc) {
-      throw new SemanticException("TOK_ALLCOLREF is not supported in current context");
-    }
 
     if (!unparseTranslator.isEnabled()) {
       // Not creating a view, so no need to track view expansions.
@@ -11920,19 +11927,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         throw new SemanticException(
             String.format("'%s' column not allowed in dynamic select list", selectExprStr));
       }
-      ASTNode aliasNode = selExpr.getChildCount() > 1
-          && selExpr.getChild(1).getType() == HiveParser.Identifier ?
-          (ASTNode) selExpr.getChild(1) : null;
-      String alias = null;
-      if ( aliasNode != null ) {
-        alias = aliasNode.getText();
-      }
-      else {
-        String[] tabColAlias = getColAlias(selExpr, null, null, true, -1);
-        alias = tabColAlias[1];
-      }
+      ColumnAlias alias = getColAlias(selExpr, null, null, true);
       WindowExpressionSpec exprSpec = new WindowExpressionSpec();
-      exprSpec.setAlias(alias);
+      exprSpec.setAlias(alias.getColumnAlias(null, -1));
       exprSpec.setExpression(expr);
       selSpec.add(exprSpec);
     }

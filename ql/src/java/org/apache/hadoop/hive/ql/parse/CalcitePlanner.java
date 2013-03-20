@@ -24,6 +24,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -150,6 +151,7 @@ import org.apache.hadoop.hive.ql.parse.WindowingSpec.WindowExpressionSpec;
 import org.apache.hadoop.hive.ql.parse.WindowingSpec.WindowFunctionSpec;
 import org.apache.hadoop.hive.ql.parse.WindowingSpec.WindowSpec;
 import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
+import org.apache.hadoop.hive.ql.plan.ExprNodeColumnListDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeConstantDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDescUtils;
@@ -2308,7 +2310,8 @@ public class CalcitePlanner extends SemanticAnalyzer {
 
       // 2.Row resolvers for input, output
       RowResolver out_rwsch = new RowResolver();
-      Integer pos = Integer.valueOf(0);
+      
+      int pos = 0;
       // TODO: will this also fix windowing? try
       RowResolver inputRR = this.relToHiveRR.get(srcRel), starRR = inputRR;
       if (starSrcRel != null) {
@@ -2317,7 +2320,6 @@ public class CalcitePlanner extends SemanticAnalyzer {
 
       // 3. Query Hints
       // TODO: Handle Query Hints; currently we ignore them
-      boolean selectStar = false;
       int posn = 0;
       boolean hintPresent = (selExprList.getChild(0).getType() == HiveParser.TOK_HINTLIST);
       if (hintPresent) {
@@ -2355,6 +2357,9 @@ public class CalcitePlanner extends SemanticAnalyzer {
 
       // 6. Iterate over all expression (after SELECT)
       ASTNode exprList = selExprList;
+      ASTNode[] exprs = new ASTNode[exprList.getChildCount()];
+      ColumnAlias[] aliases = new ColumnAlias[exprList.getChildCount()];
+      
       int startPosn = posn;
       List<String> tabAliasesForAllProjs = getTabAliases(starRR);
       for (int i = startPosn; i < exprList.getChildCount(); ++i) {
@@ -2372,22 +2377,20 @@ public class CalcitePlanner extends SemanticAnalyzer {
               (ASTNode) child.getChild(2), ErrorMsg.INVALID_AS.getMsg()));
         }
 
-        String tabAlias;
-        String colAlias;
-
         // 6.3 Get rid of TOK_SELEXPR
-        expr = (ASTNode) child.getChild(0);
-        String[] colRef = SemanticAnalyzer.getColAlias(child, getAutogenColAliasPrfxLbl(), inputRR,
-            autogenColAliasPrfxIncludeFuncName(), i);
-        tabAlias = colRef[0];
-        colAlias = colRef[1];
+        exprs[i] = (ASTNode) child.getChild(0);
+        aliases[i] = SemanticAnalyzer.getColAlias(child, getAutogenColAliasPrfxLbl(), inputRR,
+            autogenColAliasPrfxIncludeFuncName());
+      }
 
+      for (int i = startPosn; i < exprList.getChildCount(); ++i) {
+        ColumnAlias alias = aliases[i];
+        boolean hasAsClause = alias.declaredAlias != null;
         // 6.4 Build ExprNode corresponding to colums
         if (expr.getType() == HiveParser.TOK_ALLCOLREF) {
           pos = genColListRegex(".*", expr.getChildCount() == 0 ? null : SemanticAnalyzer
               .getUnescapedName((ASTNode) expr.getChild(0)).toLowerCase(), expr, col_list,
               excludedColumns, inputRR, starRR, pos, out_rwsch, tabAliasesForAllProjs, true);
-          selectStar = true;
         } else if (expr.getType() == HiveParser.TOK_TABLE_OR_COL
             && !hasAsClause
             && !inputRR.getIsExprResolver()
@@ -2424,34 +2427,52 @@ public class CalcitePlanner extends SemanticAnalyzer {
           TypeCheckCtx tcCtx = new TypeCheckCtx(inputRR);
           // We allow stateful functions in the SELECT list (but nowhere else)
           tcCtx.setAllowStatefulFunctions(true);
-          ExprNodeDesc exp = genExprNodeDesc(expr, inputRR, tcCtx);
-          String recommended = recommendName(exp, colAlias);
-          if (recommended != null && out_rwsch.get(null, recommended) == null) {
-            colAlias = recommended;
+          tcCtx.setAllowColumnList(true);
+          ExprNodeDesc eval = genExprNodeDesc(expr, inputRR, tcCtx);
+          
+          List<ExprNodeDesc> exps;
+          if (eval instanceof ExprNodeColumnListDesc) {
+            exps = eval.getChildren();
+          } else {
+            exps = Arrays.asList(eval);
           }
-          col_list.add(exp);
+          String tabAlias = alias.tableAlias;
 
-          ColumnInfo colInfo = new ColumnInfo(SemanticAnalyzer.getColumnInternalName(pos),
-              exp.getWritableObjectInspector(), tabAlias, false);
-          colInfo.setSkewedCol((exp instanceof ExprNodeColumnDesc) ? ((ExprNodeColumnDesc) exp)
-              .isSkewedCol() : false);
-          if (!out_rwsch.putWithCheck(tabAlias, colAlias, null, colInfo)) {
-            throw new CalciteSemanticException("Cannot add column to RR: " + tabAlias + "."
-                + colAlias + " => " + colInfo + " due to duplication, see previous warnings");
-          }
-
-          if (exp instanceof ExprNodeColumnDesc) {
-            ExprNodeColumnDesc colExp = (ExprNodeColumnDesc) exp;
-            String[] altMapping = inputRR.getAlternateMappings(colExp.getColumn());
-            if (altMapping != null) {
-              out_rwsch.put(altMapping[0], altMapping[1], colInfo);
+          for (int j = 0; j < exps.size(); j++) {
+            ExprNodeDesc exp = exps.get(j);
+            String colAlias = recommendColName(exp, alias, pos, j);
+            if (colAlias == null || out_rwsch.get(null, colAlias) != null) {
+              colAlias = generateOuputColName(pos);
+            } else {
+              for (int k = i + 1; k < exprList.getChildCount(); k++) {
+                if (colAlias.equals(aliases[k].declaredAlias)) {
+                  colAlias = generateOuputColName(pos);
+                  break;
+                }
+              }
             }
-          }
+            col_list.add(exp);
 
-          pos = Integer.valueOf(pos.intValue() + 1);
+            ColumnInfo colInfo = new ColumnInfo(SemanticAnalyzer.getColumnInternalName(pos),
+                exp.getWritableObjectInspector(), tabAlias, false);
+            colInfo.setSkewedCol((exp instanceof ExprNodeColumnDesc) ? ((ExprNodeColumnDesc) exp)
+                .isSkewedCol() : false);
+            if (!out_rwsch.putWithCheck(tabAlias, colAlias, null, colInfo)) {
+              throw new CalciteSemanticException("Cannot add column to RR: " + tabAlias + "."
+                  + colAlias + " => " + colInfo + " due to duplication, see previous warnings");
+            }
+
+            if (exp instanceof ExprNodeColumnDesc) {
+              ExprNodeColumnDesc colExp = (ExprNodeColumnDesc) exp;
+              String[] altMapping = inputRR.getAlternateMappings(colExp.getColumn());
+              if (altMapping != null) {
+                out_rwsch.put(altMapping[0], altMapping[1], colInfo);
+              }
+            }
+            pos++;
+          }
         }
       }
-      selectStar = selectStar && exprList.getChildCount() == posn + 1;
 
       // 7. Convert Hive projections to Calcite
       List<RexNode> calciteColLst = new ArrayList<RexNode>();

@@ -336,6 +336,8 @@ BITWISEXOR : '^';
 QUESTION : '?';
 DOLLAR : '$';
 
+ELLIPSIS : '...';
+
 // LITERALS
 fragment
 Letter

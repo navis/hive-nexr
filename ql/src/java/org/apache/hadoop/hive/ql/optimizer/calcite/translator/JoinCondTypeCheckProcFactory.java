@@ -90,7 +90,10 @@ public class JoinCondTypeCheckProcFactory extends TypeCheckProcFactory {
         return null;
       }
 
-      assert (expr.getChildCount() == 1);
+      if (expr.getFirstChildWithType(HiveParser.ELLIPSIS) != null) {
+        ctx.setError(ErrorMsg.INVALID_LOCATION_FOR_ELLIPSIS.getMsg(expr), expr);
+        return null;
+      }
       String tableOrCol = BaseSemanticAnalyzer.unescapeIdentifier(expr.getChild(0).getText());
 
       boolean qualifiedAccess = (parent != null && parent.getType() == HiveParser.DOT);
