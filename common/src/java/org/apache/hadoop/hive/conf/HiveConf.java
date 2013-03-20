@@ -1216,6 +1216,14 @@ public class HiveConf extends Configuration {
     }
   }
 
+  @Override
+  public Class<?> getClassByName(String name) throws ClassNotFoundException {
+    if (getClassLoader() == HiveConf.class.getClassLoader()) {
+      return super.getClassByName(name);
+    }
+    return Class.forName(name, true, getClassLoader());
+  }
+
   public static String getColumnInternalName(int pos) {
     return "_col" + pos;
   }

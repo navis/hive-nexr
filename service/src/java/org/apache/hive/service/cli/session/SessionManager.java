@@ -20,7 +20,6 @@ package org.apache.hive.service.cli.session;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.session.SessionState;
@@ -69,7 +68,6 @@ public class SessionManager extends CompositeService {
     super.stop();
   }
 
-
   public SessionHandle openSession(String username, String password, Map<String, String> sessionConf)
           throws HiveSQLException {
      return openSession(username, password, sessionConf, false, null);
@@ -94,22 +92,15 @@ public class SessionManager extends CompositeService {
     synchronized(sessionMapLock) {
       handleToSession.put(session.getSessionHandle(), session);
     }
-    SessionState.start(session.getSessionState());
+    SessionState clientState = session.getSessionState();
     if (inheritToClient && serverSession != null) {
-      addResources(serverSession.getSessionState());
+      SessionState serverState = serverSession.getSessionState();
+      session.getHiveConf().setClassLoader(serverState.getConf().getClassLoader());
+      clientState.addResourceMap(serverState.getResourceMap());
     }
-    return session.getSessionHandle();
-  }
+    SessionState.start(clientState);
 
-  private void addResources(SessionState serverSession) {
-    for (SessionState.ResourceType resourceType : SessionState.ResourceType.values()) {
-      Set<String> resources = serverSession.list_resource(resourceType, null);
-      if (resources != null && !resources.isEmpty()) {
-        for (String resource : resources) {
-          SessionState.get().add_resource(resourceType, resource);
-        }
-      }
-    }
+    return session.getSessionHandle();
   }
 
   public void closeSession(SessionHandle sessionHandle) throws HiveSQLException {
