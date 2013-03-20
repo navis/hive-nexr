@@ -46,6 +46,7 @@ class TTypeId:
   UNION_TYPE = 13
   USER_DEFINED_TYPE = 14
   DECIMAL_TYPE = 15
+  VOID_TYPE = 16
 
   _VALUES_TO_NAMES = {
     0: "BOOLEAN_TYPE",
@@ -64,6 +65,7 @@ class TTypeId:
     13: "UNION_TYPE",
     14: "USER_DEFINED_TYPE",
     15: "DECIMAL_TYPE",
+    16: "VOID_TYPE",
   }
 
   _NAMES_TO_VALUES = {
@@ -83,6 +85,7 @@ class TTypeId:
     "UNION_TYPE": 13,
     "USER_DEFINED_TYPE": 14,
     "DECIMAL_TYPE": 15,
+    "VOID_TYPE": 16,
   }
 
 class TStatusCode:
