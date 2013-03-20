@@ -55,7 +55,6 @@ public class Session {
   private final SessionHandle sessionHandle = new SessionHandle();
   private final String username;
   private final String password;
-  private final Map<String, String> sessionConf = new HashMap<String, String>();
   private final HiveConf hiveConf;
   private final SessionState sessionState;
 
@@ -76,6 +75,7 @@ public class Session {
         hiveConf.set(entry.getKey(), entry.getValue());
       }
     }
+    hiveConf.setVar(HiveConf.ConfVars.HIVEFETCHOUTPUTSERDE, FETCH_WORK_SERDE_CLASS);
 
     this.hiveConf = hiveConf;
     this.sessionState = new SessionState(hiveConf);
@@ -119,7 +119,6 @@ public class Session {
   }
 
   public HiveConf getHiveConf() {
-    hiveConf.setVar(HiveConf.ConfVars.HIVEFETCHOUTPUTSERDE, FETCH_WORK_SERDE_CLASS);
     return hiveConf;
   }
 
@@ -292,10 +291,9 @@ public class Session {
     }
   }
 
-  public void close()
-      throws HiveSQLException {
+  public void close() throws HiveSQLException {
     // throw new HiveSQLException("Not implemented!");
-    // TODO: add close operation
+    sessionState.destroy();
     return;
   }
 
