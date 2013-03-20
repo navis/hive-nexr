@@ -253,6 +253,13 @@ public class SessionState {
 
     tss.set(startSs);
 
+    HiveConf conf = startSs.getConf();
+    Thread.currentThread().setContextClassLoader(conf.getClassLoader());
+
+    if (StringUtils.isEmpty(conf.getVar(HiveConf.ConfVars.HIVESESSIONID))) {
+      conf.setVar(HiveConf.ConfVars.HIVESESSIONID, makeSessionId());
+    }
+
     if (startSs.hiveHist == null) {
       startSs.hiveHist = new HiveHistory(startSs);
     }
@@ -260,8 +267,8 @@ public class SessionState {
     if (startSs.getTmpOutputFile() == null) {
       // per-session temp file containing results to be sent from HiveServer to HiveClient
       File tmpDir = new File(
-          HiveConf.getVar(startSs.getConf(), HiveConf.ConfVars.HIVEHISTORYFILELOC));
-      String sessionID = startSs.getConf().getVar(HiveConf.ConfVars.HIVESESSIONID);
+          HiveConf.getVar(conf, HiveConf.ConfVars.HIVEHISTORYFILELOC));
+      String sessionID = conf.getVar(HiveConf.ConfVars.HIVESESSIONID);
       try {
         File tmpFile = File.createTempFile(sessionID, ".pipeout", tmpDir);
         tmpFile.deleteOnExit();
@@ -272,16 +279,15 @@ public class SessionState {
     }
 
     try {
-      Hive hive = Hive.get(startSs.getConf());
+      Hive hive = Hive.get(conf);
       hive.setCurrentDatabase(startSs.getCurrentDB());
 
       startSs.authenticator = HiveUtils.getAuthenticator(
-          startSs.getConf(),HiveConf.ConfVars.HIVE_AUTHENTICATOR_MANAGER);
+          conf,HiveConf.ConfVars.HIVE_AUTHENTICATOR_MANAGER);
       startSs.authorizer = HiveUtils.getAuthorizeProviderManager(
-          startSs.getConf(), HiveConf.ConfVars.HIVE_AUTHORIZATION_MANAGER,
+          conf, HiveConf.ConfVars.HIVE_AUTHORIZATION_MANAGER,
           startSs.authenticator);
-      startSs.createTableGrants = CreateTableAutomaticGrant.create(startSs
-          .getConf());
+      startSs.createTableGrants = CreateTableAutomaticGrant.create(conf);
     } catch (HiveException e) {
       throw new RuntimeException(e);
     }
@@ -330,6 +336,23 @@ public class SessionState {
 
   public void setCurrentDB(String currentDB) {
     this.currentDB = currentDB;
+  }
+
+  public void destroy() {
+    if (authenticator != null) {
+      try {
+        authenticator.destroy();
+      } catch (HiveException e) {
+        getConsole().printInfo("Failed to destroy authenticator by exception: " + e);
+      }
+    }
+    if (tmpOutputFile != null) {
+      try {
+        tmpOutputFile.delete();
+      } catch (Exception e) {
+        // ignore
+      }
+    }
   }
 
   /**
@@ -424,7 +447,7 @@ public class SessionState {
     return _console;
   }
 
-  public static String validateFile(Set<String> curFiles, String newFile) {
+  private static String validateFile(Map<String, String> curFiles, String newFile) {
     SessionState ss = SessionState.get();
     LogHelper console = getConsole();
     Configuration conf = (ss == null) ? new Configuration() : ss.getConf();
@@ -480,9 +503,10 @@ public class SessionState {
    *
    */
   public static interface ResourceHook {
-    String preHook(Set<String> cur, String s);
 
-    boolean postHook(Set<String> cur, String s);
+    String preHook(Map<String, String> cur, String localized);
+
+    boolean postHook(Map<String, String> cur, String localized);
   }
 
   /**
@@ -491,36 +515,36 @@ public class SessionState {
    */
   public static enum ResourceType {
     FILE(new ResourceHook() {
-      public String preHook(Set<String> cur, String s) {
-        return validateFile(cur, s);
+      public String preHook(Map<String, String> cur, String localized) {
+        return validateFile(cur, localized);
       }
 
-      public boolean postHook(Set<String> cur, String s) {
+      public boolean postHook(Map<String, String> cur, String localized) {
         return true;
       }
     }),
 
     JAR(new ResourceHook() {
-      public String preHook(Set<String> cur, String s) {
-        String newJar = validateFile(cur, s);
+      public String preHook(Map<String, String> cur, String localized) {
+        String newJar = validateFile(cur, localized);
         if (newJar != null) {
-          return (registerJar(newJar) ? newJar : null);
+          return registerJar(newJar) ? newJar : null;
         } else {
           return null;
         }
       }
 
-      public boolean postHook(Set<String> cur, String s) {
-        return unregisterJar(s);
+      public boolean postHook(Map<String, String> cur, String localized) {
+        return unregisterJar(localized);
       }
     }),
 
     ARCHIVE(new ResourceHook() {
-      public String preHook(Set<String> cur, String s) {
-        return validateFile(cur, s);
+      public String preHook(Map<String, String> cur, String localized) {
+        return validateFile(cur, localized);
       }
 
-      public boolean postHook(Set<String> cur, String s) {
+      public boolean postHook(Map<String, String> cur, String localized) {
         return true;
       }
     });
@@ -555,8 +579,18 @@ public class SessionState {
     return null;
   }
 
-  private final HashMap<ResourceType, Set<String>> resource_map =
-    new HashMap<ResourceType, Set<String>>();
+  private final Map<ResourceType, Map<String, String>> resource_map =
+    new HashMap<ResourceType, Map<String, String>>();
+
+  public Map<ResourceType, Map<String, String>> getResourceMap() {
+    return resource_map;
+  }
+
+  public void addResourceMap(Map<ResourceType, Map<String, String>> resource_map) {
+    for (Map.Entry<ResourceType, Map<String, String>> entry : resource_map.entrySet()) {
+      getResourceMap(entry.getKey()).putAll(entry.getValue());
+    }
+  }
 
   public String add_resource(ResourceType t, String value) {
     // By default don't convert to unix
@@ -564,36 +598,39 @@ public class SessionState {
   }
 
   public String add_resource(ResourceType t, String value, boolean convertToUnix) {
+    Map<String, String> resourceMap = getResourceMap(t);
+    String converted = resourceMap.get(value);
+    if (converted != null) {
+      return converted;
+    }
+
     try {
-      value = downloadResource(value, convertToUnix);
+      converted = downloadResource(value, convertToUnix);
     } catch (Exception e) {
       getConsole().printError(e.getMessage());
       return null;
     }
 
-    Set<String> resourceMap = getResourceMap(t);
-
-    String fnlVal = value;
     if (t.hook != null) {
-      fnlVal = t.hook.preHook(resourceMap, value);
-      if (fnlVal == null) {
-        return fnlVal;
+      converted = t.hook.preHook(resourceMap, converted);
+      if (converted == null) {
+        return null;
       }
     }
-    getConsole().printInfo("Added resource: " + fnlVal);
-    resourceMap.add(fnlVal);
+    getConsole().printInfo("Added resource: " + value + ":" + converted);
+    resourceMap.put(value, converted);
 
-    return fnlVal;
+    return converted;
   }
 
   public void add_builtin_resource(ResourceType t, String value) {
-    getResourceMap(t).add(value);
+    getResourceMap(t).put(value, value);
   }
 
-  private Set<String> getResourceMap(ResourceType t) {
-    Set<String> result = resource_map.get(t);
+  private Map<String, String> getResourceMap(ResourceType t) {
+    Map<String, String> result = resource_map.get(t);
     if (result == null) {
-      result = new HashSet<String>();
+      result = new HashMap<String, String>();
       resource_map.put(t, result);
     }
     return result;
@@ -641,38 +678,43 @@ public class SessionState {
   }
 
   public boolean delete_resource(ResourceType t, String value) {
-    if (resource_map.get(t) == null) {
+    Map<String, String> resources = resource_map.get(t);
+    if (resources == null) {
       return false;
     }
-    if (t.hook != null) {
-      if (!t.hook.postHook(resource_map.get(t), value)) {
+    String localized = resources.remove(value);
+    if (localized != null && t.hook != null) {
+      if (!t.hook.postHook(resources, localized)) {
         return false;
       }
     }
-    return (resource_map.get(t).remove(value));
+    return localized != null;
   }
 
   public Set<String> list_resource(ResourceType t, List<String> filter) {
     if (resource_map.get(t) == null) {
       return null;
     }
-    Set<String> orig = resource_map.get(t);
-    if (filter == null) {
-      return orig;
-    } else {
-      Set<String> fnl = new HashSet<String>();
-      for (String one : orig) {
-        if (filter.contains(one)) {
-          fnl.add(one);
-        }
-      }
-      return fnl;
+    Map<String, String> orig = resource_map.get(t);
+    if (orig == null || orig.isEmpty()) {
+      return null;
     }
+    if (filter == null) {
+      return new HashSet<String>(orig.values());
+    }
+    Set<String> fnl = new HashSet<String>();
+    for (String one : orig.values()) {
+      if (filter.contains(one)) {
+        fnl.add(one);
+      }
+    }
+    return fnl;
   }
 
   public void delete_resource(ResourceType t) {
-    if (resource_map.get(t) != null) {
-      for (String value : resource_map.get(t)) {
+    Map<String, String> resources = resource_map.get(t);
+    if (resources != null) {
+      for (String value : resources.keySet()) {
         delete_resource(t, value);
       }
       resource_map.remove(t);

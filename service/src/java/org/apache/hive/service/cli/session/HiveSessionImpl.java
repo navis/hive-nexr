@@ -19,7 +19,6 @@
 package org.apache.hive.service.cli.session;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -66,7 +65,6 @@ public class HiveSessionImpl implements HiveSession {
   private final SessionHandle sessionHandle = new SessionHandle();
   private String username;
   private final String password;
-  private final Map<String, String> sessionConf = new HashMap<String, String>();
   private final HiveConf hiveConf;
   private final SessionState sessionState;
 
@@ -91,8 +89,8 @@ public class HiveSessionImpl implements HiveSession {
       }
     }
     // set an explicit session name to control the download directory name
-    hiveConf.set(ConfVars.HIVESESSIONID.varname,
-        sessionHandle.getHandleIdentifier().toString());
+    hiveConf.set(ConfVars.HIVESESSIONID.varname, sessionHandle.getHandleIdentifier().toString());
+    hiveConf.setVar(HiveConf.ConfVars.HIVEFETCHOUTPUTSERDE, FETCH_WORK_SERDE_CLASS);
 
     this.hiveConf = hiveConf;
     this.sessionState = new SessionState(hiveConf);
@@ -136,7 +134,6 @@ public class HiveSessionImpl implements HiveSession {
   }
 
   public HiveConf getHiveConf() {
-    hiveConf.setVar(HiveConf.ConfVars.HIVEFETCHOUTPUTSERDE, FETCH_WORK_SERDE_CLASS);
     return hiveConf;
   }
 
