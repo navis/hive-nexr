@@ -22,6 +22,7 @@ import java.beans.DefaultPersistenceDelegate;
 import java.beans.Encoder;
 import java.beans.ExceptionListener;
 import java.beans.Expression;
+import java.beans.PersistenceDelegate;
 import java.beans.Statement;
 import java.beans.XMLDecoder;
 import java.beans.XMLEncoder;
@@ -40,6 +41,8 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -48,12 +51,14 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.SQLTransientException;
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -339,6 +344,81 @@ public final class Utilities {
 
   }
 
+  /**
+   * The persistence delegate for <CODE>java.util.Date</CODE> classes.
+   * Do not extend DefaultPersistenceDelegate to improve performance and
+   * to avoid problems with <CODE>java.sql.Date</CODE>,
+   * <CODE>java.sql.Time</CODE> and <CODE>java.sql.Timestamp</CODE>.
+   *
+   * @author Sergey A. Malenkov
+   */
+  static class java_util_Date_PersistenceDelegate extends PersistenceDelegate {
+    protected boolean mutatesTo(Object oldInstance, Object newInstance) {
+      if (!super.mutatesTo(oldInstance, newInstance)) {
+        return false;
+      }
+      Date oldDate = (Date)oldInstance;
+      Date newDate = (Date)newInstance;
+
+      return oldDate.getTime() == newDate.getTime();
+    }
+
+    protected Expression instantiate(Object oldInstance, Encoder out) {
+      Date date = (Date)oldInstance;
+      return new Expression(date, date.getClass(), "new", new Object[] {date.getTime()});
+    }
+  }
+
+  /**
+   * The persistence delegate for <CODE>java.sql.Timestamp</CODE> classes.
+   * It supports nanoseconds.
+   *
+   * @author Sergey A. Malenkov
+   */
+  final static class java_sql_Timestamp_PersistenceDelegate
+      extends java_util_Date_PersistenceDelegate {
+    private static final Method getNanosMethod = getNanosMethod();
+
+    private static Method getNanosMethod() {
+      try {
+        Class<?> c = Class.forName("java.sql.Timestamp", true, null);
+        return c.getMethod("getNanos");
+      } catch (ClassNotFoundException e) {
+        return null;
+      } catch (NoSuchMethodException e) {
+        throw new AssertionError(e);
+      }
+    }
+
+    /**
+     * Invoke Timstamp getNanos.
+     */
+    private static int getNanos(Object obj) {
+      if (getNanosMethod == null)
+        throw new AssertionError("Should not get here");
+      try {
+        return (Integer)getNanosMethod.invoke(obj);
+      } catch (InvocationTargetException e) {
+        Throwable cause = e.getCause();
+        if (cause instanceof RuntimeException)
+          throw (RuntimeException)cause;
+        if (cause instanceof Error)
+          throw (Error)cause;
+        throw new AssertionError(e);
+      } catch (IllegalAccessException iae) {
+        throw new AssertionError(iae);
+      }
+    }
+
+    protected void initialize(Class<?> type, Object oldInstance, Object newInstance, Encoder out) {
+      // assumes oldInstance and newInstance are Timestamps
+      int nanos = getNanos(oldInstance);
+      if (nanos != getNanos(newInstance)) {
+        out.writeStatement(new Statement(oldInstance, "setNanos", new Object[] {nanos}));
+      }
+    }
+  }
+
   public static void setMapRedWork(Configuration job, MapredWork w, String hiveScratchDir) {
     try {
 
@@ -387,6 +467,7 @@ public final class Utilities {
   public static String serializeExpression(ExprNodeDesc expr) {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     XMLEncoder encoder = new XMLEncoder(baos);
+    encoder.setPersistenceDelegate(Timestamp.class, new java_sql_Timestamp_PersistenceDelegate());
     try {
       encoder.writeObject(expr);
     } finally {
@@ -429,6 +510,7 @@ public final class Utilities {
       e.setPersistenceDelegate(ExpressionTypes.class, new EnumDelegate());
       e.setPersistenceDelegate(GroupByDesc.Mode.class, new EnumDelegate());
       e.setPersistenceDelegate(Operator.ProgressCounter.class, new EnumDelegate());
+      e.setPersistenceDelegate(Timestamp.class, new java_sql_Timestamp_PersistenceDelegate());
 
       e.writeObject(t);
     } finally {
@@ -468,6 +550,7 @@ public final class Utilities {
     e.setPersistenceDelegate(ExpressionTypes.class, new EnumDelegate());
     e.setPersistenceDelegate(GroupByDesc.Mode.class, new EnumDelegate());
     e.setPersistenceDelegate(Operator.ProgressCounter.class, new EnumDelegate());
+    e.setPersistenceDelegate(Timestamp.class, new java_sql_Timestamp_PersistenceDelegate());
 
     e.setPersistenceDelegate(org.datanucleus.store.types.sco.backed.Map.class, new MapDelegate());
     e.setPersistenceDelegate(org.datanucleus.store.types.sco.backed.List.class, new ListDelegate());

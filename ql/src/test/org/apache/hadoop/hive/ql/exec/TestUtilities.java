@@ -18,11 +18,17 @@
 
 package org.apache.hadoop.hive.ql.exec;
 
+import java.sql.Timestamp;
+
 import static org.apache.hadoop.hive.ql.exec.Utilities.getFileExtension;
 
 import junit.framework.TestCase;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat;
+import org.apache.hadoop.hive.ql.plan.ExprNodeConstantDesc;
+import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.mapred.JobConf;
 
 public class TestUtilities extends TestCase {
@@ -52,5 +58,13 @@ public class TestUtilities extends TestCase {
         getFileExtension(jc, false, new HiveIgnoreKeyTextOutputFormat()));
     assertEquals("Custom extension for uncompressed text format", extension,
         getFileExtension(jc, true, new HiveIgnoreKeyTextOutputFormat()));
+  }
+
+  public void testSerializeTimestamp() {
+    ExprNodeConstantDesc constant = new ExprNodeConstantDesc(
+        TypeInfoFactory.timestampTypeInfo, new Timestamp(100));
+    String serialized = Utilities.serializeExpression(constant);
+    ExprNodeDesc deserilized = Utilities.deserializeExpression(serialized, new Configuration());
+    assertEquals(constant.getExprString(), deserilized.getExprString());
   }
 }
