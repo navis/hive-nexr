@@ -158,24 +158,19 @@ public class SimpleFetchOptimizer {
 
     String[] subqIDs = alias.split(":");
     for (int i = 0 ; i < subqIDs.length - 1; i++) {
-      String subqID = subqIDs[i];
-      boolean subquery1 = subqID.endsWith("-subquery1");
-      boolean subquery2 = subqID.endsWith("-subquery2");
-      if (subquery1 || subquery2) {
-        int index = subqID.lastIndexOf("-subquery");
-        subqID = subqID.substring(0, index);
-        if (subqID.equals("null")) {
-          continue;
+      String[] subqID = subqIDs[i].split("-");
+      if (subqID[0].equals("null")) {
+        continue; // root alias
+      }
+      QBExpr qbexpr = qb.getSubqForAlias(subqID[0]);
+      for (int j = 1; j < subqID.length; j++) {
+        if (subqID[j].equals("subquery1")) {
+          qbexpr = qbexpr.getQBExpr1();
+        } else if (subqID[j].equals("subquery2")) {
+          qbexpr = qbexpr.getQBExpr2();
         }
       }
-      QBExpr qbexpr = qb.getSubqForAlias(subqID);
-      if (qbexpr.getOpcode() == QBExpr.Opcode.NULLOP) {
-        qb = qbexpr.getQB();
-      } else if (subquery1) {
-        qb = qbexpr.getQBExpr1().getQB();
-      } else if (subquery2) {
-        qb = qbexpr.getQBExpr2().getQB();
-      }
+      qb = qbexpr.getQB();
     }
     String tableName = subqIDs[subqIDs.length - 1];
     Table table = qb.getMetaData().getAliasToTable().get(tableName);
