@@ -7,8 +7,8 @@ select * from (select * from src where key > 450) a join (select * from src wher
 
 -- union all
 explain
-select * from (select * from src a where key < 100 union all select * from src b where key > 400 ) c;
-select * from (select * from src a where key < 100 union all select * from src b where key > 400 ) c;
+select * from src a where key < 50 union all select * from src b where key > 450 union all select * from src1;
+select * from src a where key < 50 union all select * from src b where key > 450 union all select * from src1;
 
 -- lateral view
 EXPLAIN
@@ -24,8 +24,8 @@ select * from (select * from src where key > 450) a join (select * from src wher
 
 -- union all
 explain
-select * from src a where key < 50 union all select * from src b where key > 450;
-select * from src a where key < 50 union all select * from src b where key > 450;
+select * from src a where key < 50 union all select * from src b where key > 450 union all select * from src1;
+select * from src a where key < 50 union all select * from src b where key > 450 union all select * from src1;
 
 -- lateral view
 EXPLAIN
