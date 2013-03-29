@@ -21,10 +21,12 @@ package org.apache.hadoop.hive.ql.exec;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -135,6 +137,10 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
     return childOperators;
   }
 
+  public int getNumChild() {
+    return childOperators == null ? 0 : childOperators.size();
+  }
+
   /**
    * Implements the getChildren function for the Node Interface.
    */
@@ -159,6 +165,10 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
 
   public List<Operator<? extends OperatorDesc>> getParentOperators() {
     return parentOperators;
+  }
+
+  public int getNumParent() {
+    return parentOperators == null ? 0 : parentOperators.size();
   }
 
   protected T conf;
@@ -1462,6 +1472,44 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
   }
 
   public String toString() {
-    return getName() + "-" + getIdentifier() + "[" + state + ":" + hashCode() + "]";
+    return getName() + "[" + getIdentifier() + "]";
+  }
+
+  public static String toString(Collection<Operator<? extends OperatorDesc>> top) {
+    StringBuilder builder = new StringBuilder();
+    Set<String> visited = new HashSet<String>();
+    for (Operator<?> op : top) {
+      if (builder.length() > 0) {
+        builder.append('\n');
+      }
+      toString(builder, visited, op, 0);
+    }
+    return builder.toString();
+  }
+
+  static boolean toString(StringBuilder builder, Set<String> visited, Operator<?> op, int start) {
+    String name = op.toString();
+    boolean added = visited.add(name);
+    if (start > 0) {
+      builder.append("-");
+      start++;
+    }
+    builder.append(name);
+    if (added) {
+      if (op.getNumChild() > 0) {
+        List<Operator<?>> children = op.getChildOperators();
+        for (int i = 0; i < children.size(); i++) {
+          if (i > 0) {
+            builder.append('\n');
+            for (int j = 0; j < start; j++) {
+              builder.append(' ');
+            }
+          }
+          toString(builder, visited, children.get(i), start += name.length());
+        }
+      }
+      return true;
+    }
+    return false;
   }
 }

@@ -8309,10 +8309,14 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       setTableAccessInfo(tableAccessAnalyzer.analyzeTableAccess());
     }
 
+    LOG.info("Before optimization\n" + Operator.toString(pCtx.getTopOps().values()));
+
     Optimizer optm = new Optimizer();
     optm.setPctx(pCtx);
     optm.initialize(conf);
     pCtx = optm.optimize();
+
+    LOG.info("After optimization\n" + Operator.toString(pCtx.getTopOps().values()));
 
     // At this point we have the complete operator tree
     // from which we want to find the reduce operator
