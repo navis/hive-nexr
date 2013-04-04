@@ -1858,7 +1858,17 @@
                <void property="children"> 
                 <object class="java.util.ArrayList"> 
                  <void method="add"> 
-                  <object idref="ExprNodeColumnDesc9"/> 
+                  <object class="org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc"> 
+                   <void property="column"> 
+                    <string>_col2</string> 
+                   </void> 
+                   <void property="tabAlias"> 
+                    <string>b</string> 
+                   </void> 
+                   <void property="typeInfo"> 
+                    <object idref="PrimitiveTypeInfo0"/> 
+                   </void> 
+                  </object> 
                  </void> 
                 </object> 
                </void> 

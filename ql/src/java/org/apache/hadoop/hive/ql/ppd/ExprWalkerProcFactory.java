@@ -37,7 +37,6 @@ import org.apache.hadoop.hive.ql.lib.NodeProcessor;
 import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
 import org.apache.hadoop.hive.ql.lib.Rule;
 import org.apache.hadoop.hive.ql.lib.RuleRegExp;
-import org.apache.hadoop.hive.ql.parse.RowResolver;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
@@ -69,36 +68,27 @@ public final class ExprWalkerProcFactory {
         Object... nodeOutputs) throws SemanticException {
       ExprWalkerInfo ctx = (ExprWalkerInfo) procCtx;
       ExprNodeColumnDesc colref = (ExprNodeColumnDesc) nd;
-      RowResolver toRR = ctx.getToRR();
       Operator<? extends OperatorDesc> op = ctx.getOp();
-      String[] colAlias = toRR.reverseLookup(colref.getColumn());
 
-      boolean isCandidate = true;
+      String candidateAlias = null;
       if (op.getColumnExprMap() != null) {
         // replace the output expression with the input expression so that
         // parent op can understand this expression
         ExprNodeDesc exp = op.getColumnExprMap().get(colref.getColumn());
-        if (exp == null) {
-          // means that expression can't be pushed either because it is value in
-          // group by
-          ctx.setIsCandidate(colref, false);
-          return false;
-        } else {
-          if (exp instanceof ExprNodeGenericFuncDesc) {
-            isCandidate = false;
-          }
+        if (exp == null || exp instanceof ExprNodeGenericFuncDesc) {
+          candidateAlias = ExprWalkerInfo.UNKNOWN;
+        } else if (exp instanceof ExprNodeColumnDesc) {
+          candidateAlias = ((ExprNodeColumnDesc)exp).getTabAlias();
+        } else if (exp instanceof ExprNodeFieldDesc) {
+          candidateAlias = ctx.getCandidate(((ExprNodeFieldDesc)exp).getDesc());
         }
-        ctx.addConvertedNode(colref, exp);
-        ctx.setIsCandidate(exp, isCandidate);
-        ctx.addAlias(exp, colAlias[0]);
-      } else {
-        if (colAlias == null) {
-          return false;
-        }
-        ctx.addAlias(colref, colAlias[0]);
       }
-      ctx.setIsCandidate(colref, isCandidate);
-      return isCandidate;
+      if (candidateAlias == null) {
+        String[] nm = ctx.getToRR().reverseLookup(colref.getColumn());
+        candidateAlias = nm != null ? nm[0] : ExprWalkerInfo.UNKNOWN;
+      }
+      ctx.setCandidate(colref, candidateAlias);
+      return candidateAlias;
     }
 
   }
@@ -113,36 +103,11 @@ public final class ExprWalkerProcFactory {
     public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
         Object... nodeOutputs) throws SemanticException {
       ExprWalkerInfo ctx = (ExprWalkerInfo) procCtx;
-      String alias = null;
       ExprNodeFieldDesc expr = (ExprNodeFieldDesc) nd;
-
-      boolean isCandidate = true;
-      assert (nd.getChildren().size() == 1);
-      ExprNodeDesc ch = (ExprNodeDesc) nd.getChildren().get(0);
-      ExprNodeDesc newCh = ctx.getConvertedNode(ch);
-      if (newCh != null) {
-        expr.setDesc(newCh);
-        ch = newCh;
-      }
-      String chAlias = ctx.getAlias(ch);
-
-      isCandidate = isCandidate && ctx.isCandidate(ch);
-      // need to iterate through all children even if one is found to be not a
-      // candidate
-      // in case if the other children could be individually pushed up
-      if (isCandidate && chAlias != null) {
-        if (alias == null) {
-          alias = chAlias;
-        } else if (!chAlias.equalsIgnoreCase(alias)) {
-          isCandidate = false;
-        }
-      }
-
-      ctx.addAlias(expr, alias);
-      ctx.setIsCandidate(expr, isCandidate);
-      return isCandidate;
+      String candidate = ctx.getCandidate(expr.getChildren().get(0));
+      ctx.setCandidate(expr, candidate);
+      return candidate;
     }
-
   }
 
   /**
@@ -161,42 +126,27 @@ public final class ExprWalkerProcFactory {
 
       if (!FunctionRegistry.isDeterministic(expr.getGenericUDF())) {
         // this GenericUDF can't be pushed down
-        ctx.setIsCandidate(expr, false);
+        ctx.setCandidate(expr, ExprWalkerInfo.UNKNOWN);
         ctx.setDeterministic(false);
-        return false;
+        return ExprWalkerInfo.UNKNOWN;
       }
 
-      boolean isCandidate = true;
-      for (int i = 0; i < nd.getChildren().size(); i++) {
-        ExprNodeDesc ch = (ExprNodeDesc) nd.getChildren().get(i);
-        ExprNodeDesc newCh = ctx.getConvertedNode(ch);
-        if (newCh != null) {
-          expr.getChildren().set(i, newCh);
-          ch = newCh;
+      String candidateAlias = null;
+      for (ExprNodeDesc child : expr.getChildren()) {
+        String childAlias = ctx.getCandidate(child);
+        if (childAlias == null) {
+          continue;
         }
-        String chAlias = ctx.getAlias(ch);
-
-        isCandidate = isCandidate && ctx.isCandidate(ch);
-        // need to iterate through all children even if one is found to be not a
-        // candidate
-        // in case if the other children could be individually pushed up
-        if (isCandidate && chAlias != null) {
-          if (alias == null) {
-            alias = chAlias;
-          } else if (!chAlias.equalsIgnoreCase(alias)) {
-            isCandidate = false;
-          }
-        }
-
-        if (!isCandidate) {
+        if (childAlias.equals(ExprWalkerInfo.UNKNOWN) ||
+            (candidateAlias != null && !candidateAlias.equals(childAlias))) {
+          candidateAlias = ExprWalkerInfo.UNKNOWN;
           break;
         }
+        candidateAlias = childAlias;
       }
-      ctx.addAlias(expr, alias);
-      ctx.setIsCandidate(expr, isCandidate);
-      return isCandidate;
+      ctx.setCandidate(expr, candidateAlias);
+      return candidateAlias;
     }
-
   }
 
   /**
@@ -206,9 +156,9 @@ public final class ExprWalkerProcFactory {
 
     @Override
     public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
-        Object... nodeOutputs) throws SemanticException {
+                          Object... nodeOutputs) throws SemanticException {
       ExprWalkerInfo ctx = (ExprWalkerInfo) procCtx;
-      ctx.setIsCandidate((ExprNodeDesc) nd, true);
+      ctx.setCandidate((ExprNodeDesc) nd, null);
       return true;
     }
   }
@@ -274,20 +224,12 @@ public final class ExprWalkerProcFactory {
         exprRules, exprContext);
     GraphWalker egw = new DefaultGraphWalker(disp);
 
-    List<Node> startNodes = new ArrayList<Node>();
-    List<ExprNodeDesc> clonedPreds = new ArrayList<ExprNodeDesc>();
-    for (ExprNodeDesc node : preds) {
-      ExprNodeDesc clone = node.clone();
-      clonedPreds.add(clone);
-      exprContext.getNewToOldExprMap().put(clone, node);
-    }
-    startNodes.addAll(clonedPreds);
-
+    List<Node> startNodes = new ArrayList<Node>(preds);
     egw.startWalking(startNodes, null);
 
     HiveConf conf = opContext.getParseContext().getConf();
     // check the root expression for final candidates
-    for (ExprNodeDesc pred : clonedPreds) {
+    for (ExprNodeDesc pred : preds) {
       extractFinalCandidates(pred, exprContext, conf);
     }
     return exprContext;
@@ -299,31 +241,16 @@ public final class ExprWalkerProcFactory {
    */
   private static void extractFinalCandidates(ExprNodeDesc expr,
       ExprWalkerInfo ctx, HiveConf conf) {
-    // We decompose an AND expression into its parts before checking if the
-    // entire expression is a candidate because each part may be a candidate
-    // for replicating transitively over an equijoin condition.
     if (FunctionRegistry.isOpAnd(expr)) {
-      // If the operator is AND, we need to determine if any of the children are
-      // final candidates.
-
-      // For the children, we populate the NewToOldExprMap to keep track of
-      // the original condition before rewriting it for this operator
-      assert ctx.getNewToOldExprMap().containsKey(expr);
-      for (int i = 0; i < expr.getChildren().size(); i++) {
-        ctx.getNewToOldExprMap().put(
-            (ExprNodeDesc) expr.getChildren().get(i),
-            ctx.getNewToOldExprMap().get(expr).getChildren().get(i));
-        extractFinalCandidates((ExprNodeDesc) expr.getChildren().get(i),
-            ctx, conf);
+      for (ExprNodeDesc child : expr.getChildren()) {
+        extractFinalCandidates(child, ctx, conf);
       }
       return;
     }
-
-    if (ctx.isCandidate(expr)) {
-      ctx.addFinalCandidate(expr);
-      return;
-    } else if (!FunctionRegistry.isOpAnd(expr) &&
-        HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVEPPDREMOVEDUPLICATEFILTERS)) {
+    String candidate = ctx.getCandidate(expr);
+    if (candidate == null || !candidate.equals(ExprWalkerInfo.UNKNOWN)) {
+      ctx.addFinalCandidate(candidate, expr);
+    } else {
       ctx.addNonFinalCandidate(expr);
     }
   }

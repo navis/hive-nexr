@@ -79,7 +79,13 @@ public class OpWalkerInfo implements NodeProcessorCtx {
   }
 
   public void addCandidateFilterOp(FilterOperator fop) {
+    System.err.println("---- [OpWalkerInfo/addCandidateFilterOp] " + fop);
     candidateFilterOps.add(fop);
+  }
+
+  public void removeCandidateFilterOp(FilterOperator fop) {
+    System.err.println("---- [OpWalkerInfo/removeCandidateFilterOp] " + fop);
+    candidateFilterOps.remove(fop);
   }
 
 }

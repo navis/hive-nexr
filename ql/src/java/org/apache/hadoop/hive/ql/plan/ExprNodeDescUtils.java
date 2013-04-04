@@ -232,6 +232,41 @@ public class ExprNodeDescUtils {
     return backtrack(mapped, current, terminal);
   }
 
+  public static List<ExprNodeDesc> backtrackWith(List<ExprNodeDesc> sources,
+       Operator<?> current) throws SemanticException {
+    ArrayList<ExprNodeDesc> result = new ArrayList<ExprNodeDesc>();
+    for (ExprNodeDesc expr : sources) {
+      result.add(backtrackWith(expr, current));
+    }
+    return result;
+  }
+
+  public static ExprNodeDesc backtrackWith(ExprNodeDesc source, Operator<?> current)
+    throws SemanticException {
+    if (current.getColumnExprMap() == null) {
+      return source;
+    }
+    if (source instanceof ExprNodeGenericFuncDesc) {
+      // all children expression should be resolved
+      ExprNodeGenericFuncDesc function = (ExprNodeGenericFuncDesc) source.clone();
+      function.setChildren(backtrackWith(function.getChildren(), current));
+      return function;
+    }
+    if (source instanceof ExprNodeColumnDesc) {
+      ExprNodeColumnDesc column = (ExprNodeColumnDesc) source;
+      ExprNodeDesc mapped = current.getColumnExprMap().get(column.getColumn());
+      return mapped == null ? column : mapped.clone();
+    }
+    if (source instanceof ExprNodeFieldDesc) {
+      // field expression should be resolved
+      ExprNodeFieldDesc field = (ExprNodeFieldDesc) source.clone();
+      field.setDesc(backtrackWith(field.getDesc(), current));
+      return field;
+    }
+    // constant or null expr, just return
+    return source;
+  }
+
   public static Operator<?> getSingleParent(Operator<?> current, Operator<?> terminal)
       throws SemanticException {
     if (current == terminal) {

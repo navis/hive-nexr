@@ -1453,14 +1453,18 @@ public final class FunctionRegistry {
    * out of array and getting values out of map.
    */
   public static GenericUDF getGenericUDFForIndex() {
-    return FunctionRegistry.getFunctionInfo("index").getGenericUDF();
+    return getGenericUDFForName("index");
   }
 
   /**
    * A shortcut to get the "and" GenericUDF.
    */
   public static GenericUDF getGenericUDFForAnd() {
-    return FunctionRegistry.getFunctionInfo("and").getGenericUDF();
+    return getGenericUDFForName("and");
+  }
+
+  public static GenericUDF getGenericUDFForName(String name) {
+    return FunctionRegistry.getFunctionInfo(name).getGenericUDF();
   }
 
   /**

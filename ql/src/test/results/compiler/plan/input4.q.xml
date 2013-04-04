@@ -527,7 +527,14 @@
                      <void property="children"> 
                       <object class="java.util.ArrayList"> 
                        <void method="add"> 
-                        <object idref="ExprNodeColumnDesc1"/> 
+                        <object class="org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc"> 
+                         <void property="column"> 
+                          <string>_col0</string> 
+                         </void> 
+                         <void property="typeInfo"> 
+                          <object idref="PrimitiveTypeInfo0"/> 
+                         </void> 
+                        </object> 
                        </void> 
                        <void method="add"> 
                         <object class="org.apache.hadoop.hive.ql.plan.ExprNodeConstantDesc"> 
