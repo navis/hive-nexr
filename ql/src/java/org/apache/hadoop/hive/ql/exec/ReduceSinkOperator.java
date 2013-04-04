@@ -52,6 +52,10 @@ import org.apache.hadoop.io.Writable;
 public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
     implements Serializable {
 
+  static {
+    PTFUtils.makeTransient(ReduceSinkOperator.class, "inputAliases");
+  }
+
   private static final long serialVersionUID = 1L;
 
   /**
@@ -80,14 +84,14 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
   transient byte[] tagByte = new byte[1];
   transient protected int numDistributionKeys;
   transient protected int numDistinctExprs;
-  transient String inputAlias;  // input alias of this RS for join (used for PPD)
+  transient String[] inputAliases;  // input aliases of this RS for join (used for PPD)
 
-  public void setInputAlias(String inputAlias) {
-    this.inputAlias = inputAlias;
+  public void setInputAliases(String[] inputAliases) {
+    this.inputAliases = inputAliases;
   }
 
-  public String getInputAlias() {
-    return inputAlias;
+  public String[] getInputAliases() {
+    return inputAliases;
   }
 
   @Override
