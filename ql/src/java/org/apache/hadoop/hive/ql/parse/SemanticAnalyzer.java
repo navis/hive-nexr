@@ -7593,8 +7593,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           RowResolver allPathRR = opParseCtx.get(lvForward).getRowResolver();
           //Operator allPath = op;
           Operator allPath = putOpInsertMap(OperatorFactory.getAndMakeChild(
-                            new SelectDesc(true), new RowSchema(allPathRR.getColumnInfos()),
-                            lvForward), allPathRR);
+              new SelectDesc(true), new RowSchema(allPathRR.getColumnInfos()),
+              lvForward), allPathRR);
+          int allColumns = allPathRR.getColumnInfos().size();
+
           // Get the UDTF Path
           QB blankQb = new QB(null, null, false);
           Operator udtfPath = genSelectPlan((ASTNode) lateralViewTree
@@ -7613,26 +7615,17 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           RowResolver lateralViewRR = new RowResolver();
           ArrayList<String> outputInternalColNames = new ArrayList<String>();
 
-          LVmergeRowResolvers(allPathRR, lateralViewRR, outputInternalColNames);
-          LVmergeRowResolvers(udtfPathRR, lateralViewRR, outputInternalColNames);
-
           // For PPD, we need a column to expression map so that during the walk,
           // the processor knows how to transform the internal col names.
           // Following steps are dependant on the fact that we called
           // LVmerge.. in the above order
           Map<String, ExprNodeDesc> colExprMap = new HashMap<String, ExprNodeDesc>();
 
-          int i=0;
-          for (ColumnInfo c : allPathRR.getColumnInfos()) {
-            String internalName = getColumnInternalName(i);
-            i++;
-            colExprMap.put(internalName,
-                new ExprNodeColumnDesc(c.getType(), c.getInternalName(),
-                    c.getTabAlias(), c.getIsVirtualCol()));
-          }
+          LVmergeRowResolvers(allPathRR, lateralViewRR, colExprMap, outputInternalColNames);
+          LVmergeRowResolvers(udtfPathRR, lateralViewRR, colExprMap, outputInternalColNames);
 
           Operator lateralViewJoin = putOpInsertMap(OperatorFactory
-              .getAndMakeChild(new LateralViewJoinDesc(outputInternalColNames),
+              .getAndMakeChild(new LateralViewJoinDesc(allColumns, outputInternalColNames),
                   new RowSchema(lateralViewRR.getColumnInfos()), allPath,
                   udtfPath), lateralViewRR);
           lateralViewJoin.setColumnExprMap(colExprMap);
@@ -7659,7 +7652,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
    *          the same order as in the dest row resolver
    */
   private void LVmergeRowResolvers(RowResolver source, RowResolver dest,
-      ArrayList<String> outputInternalColNames) {
+      Map<String, ExprNodeDesc> colExprMap, ArrayList<String> outputInternalColNames) {
     for (ColumnInfo c : source.getColumnInfos()) {
       String internalName = getColumnInternalName(outputInternalColNames.size());
       outputInternalColNames.add(internalName);
@@ -7669,6 +7662,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       String tableAlias = tableCol[0];
       String colAlias = tableCol[1];
       dest.put(tableAlias, colAlias, newCol);
+      colExprMap.put(internalName, new ExprNodeColumnDesc(c.getType(), c.getInternalName(),
+              c.getTabAlias(), c.getIsVirtualCol()));
     }
   }
 
