@@ -8124,9 +8124,6 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     RowResolver lvForwardRR = new RowResolver();
     RowResolver source = opParseCtx.get(op).getRowResolver();
     for (ColumnInfo col : source.getColumnInfos()) {
-      if (col.getIsVirtualCol() && col.isHiddenVirtualCol()) {
-        continue;
-      }
       String[] tabCol = source.reverseLookup(col.getInternalName());
       lvForwardRR.put(tabCol[0], tabCol[1], col);
     }
@@ -8210,7 +8207,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       String internalName = getColumnInternalName(outputInternalColNames.size());
       outputInternalColNames.add(internalName);
       ColumnInfo newCol = new ColumnInfo(internalName, c.getType(), c
-          .getTabAlias(), c.getIsVirtualCol());
+          .getTabAlias(), c.getIsVirtualCol(), c.isHiddenVirtualCol());
       String[] tableCol = source.reverseLookup(c.getInternalName());
       String tableAlias = tableCol[0];
       String colAlias = tableCol[1];
