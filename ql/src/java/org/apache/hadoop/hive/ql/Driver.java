@@ -1386,7 +1386,7 @@ public class Driver implements CommandProcessor {
   private HiveConf convertForStage(String stageId, HiveConf hiveConf) {
     String prefix = (stageId + ".").toLowerCase();
     HiveConf newConf = new HiveConf(hiveConf);
-    Properties changed = hiveConf.getChangedProperties();
+    Properties changed = newConf.getChangedProperties();
     for (String propName : changed.stringPropertyNames()) {
       if (propName.startsWith(prefix)) {
         newConf.set(propName.substring(prefix.length()), changed.getProperty(propName));
