@@ -301,6 +301,12 @@ public class SessionState {
       throw new RuntimeException(e);
     }
 
+
+    if (Thread.interrupted()) {
+      getConsole().printInfo("Worker thread " + Thread.currentThread() +
+          " is in interrupted state.. flag is cleaned-up");
+    }
+
     return startSs;
   }
 
