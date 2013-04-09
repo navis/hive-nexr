@@ -359,6 +359,11 @@ public class SessionState {
     } else {
       LOG.info("No Tez session required at this point. hive.execution.engine=mr.");
     }
+
+    if (Thread.interrupted()) {
+      getConsole().printInfo("Worker thread " + Thread.currentThread() +
+          " is in interrupted state.. flag is cleaned-up");
+    }
     return startSs;
   }
 
