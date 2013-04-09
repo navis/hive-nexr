@@ -315,10 +315,15 @@ public class SessionState {
 
     setCurrentSessionState(startSs);
 
-    if(startSs.hiveHist == null){
+    if (Thread.interrupted()) {
+      LOG.warn("Worker thread " + Thread.currentThread() +
+          " was in interrupted state.. flag is cleaned-up");
+    }
+
+    if (startSs.hiveHist == null) {
       if (startSs.getConf().getBoolVar(HiveConf.ConfVars.HIVE_SESSION_HISTORY_ENABLED)) {
         startSs.hiveHist = new HiveHistoryImpl(startSs);
-      }else {
+      } else {
         //Hive history is disabled, create a no-op proxy
         startSs.hiveHist = HiveHistoryProxyHandler.getNoOpHiveHistoryProxy();
       }
