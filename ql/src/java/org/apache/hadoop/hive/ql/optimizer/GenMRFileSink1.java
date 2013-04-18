@@ -134,6 +134,9 @@ public class GenMRFileSink1 implements NodeProcessor {
 
         // no need of merging if the move is to a local file system
         MoveTask mvTask = (MoveTask) findMoveTask(mvTasks, fsOp);
+        if (mvTask == null) {
+          return null;  // might be null for non-native tables
+        }
 
         if (isInsertTable &&
             hconf.getBoolVar(HiveConf.ConfVars.HIVESTATSAUTOGATHER)) {
