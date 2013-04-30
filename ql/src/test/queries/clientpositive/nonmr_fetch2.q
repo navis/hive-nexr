@@ -15,6 +15,11 @@ EXPLAIN
 SELECT * FROM src LATERAL VIEW explode(array(key, value)) myTable AS myCol where key > 450;
 SELECT * FROM src LATERAL VIEW explode(array(key, value)) myTable AS myCol where key > 450;
 
+-- complex
+explain
+select a.* from (select key from src where key > 490) a left outer join (select * from(select key from src union all select key from src) a where key > 450)b on a.key=b.key;
+select a.* from (select key from src where key > 490) a left outer join (select * from(select key from src union all select key from src) a where key > 450)b on a.key=b.key;
+
 set hive.fetch.task.conversion.list.fetch=true;
 
 -- sub-query
@@ -31,3 +36,9 @@ select * from src a where key < 50 union all select * from src b where key > 450
 EXPLAIN
 SELECT * FROM src LATERAL VIEW explode(array(key, value)) myTable AS myCol where key > 450;
 SELECT * FROM src LATERAL VIEW explode(array(key, value)) myTable AS myCol where key > 450;
+
+-- complex
+explain
+select a.* from (select key from src where key > 490) a left outer join (select * from(select key from src union all select key from src) a where key > 450)b on a.key=b.key;
+select a.* from (select key from src where key > 490) a left outer join (select * from(select key from src union all select key from src) a where key > 450)b on a.key=b.key;
+

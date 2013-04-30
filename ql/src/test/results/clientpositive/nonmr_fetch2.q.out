@@ -687,6 +687,204 @@ POSTHOOK: Input: default@src
 469	val_469	val_469
 477	val_477	477
 477	val_477	val_477
+PREHOOK: query: -- complex
+explain
+select a.* from (select key from src where key > 490) a left outer join (select * from(select key from src union all select key from src) a where key > 450)b on a.key=b.key
+PREHOOK: type: QUERY
+POSTHOOK: query: -- complex
+explain
+select a.* from (select key from src where key > 490) a left outer join (select * from(select key from src union all select key from src) a where key > 450)b on a.key=b.key
+POSTHOOK: type: QUERY
+STAGE DEPENDENCIES:
+  Stage-0 is a root stage
+  Stage-1 is a root stage
+  Stage-2 is a root stage
+  Stage-3 is a root stage
+
+STAGE PLANS:
+  Stage: Stage-0
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        TableScan
+          alias: src
+          Statistics: Num rows: 58 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
+          Filter Operator
+            predicate: (key > 450) (type: boolean)
+            Statistics: Num rows: 19 Data size: 1903 Basic stats: COMPLETE Column stats: NONE
+            Select Operator
+              expressions: key (type: string)
+              outputColumnNames: _col0
+              Statistics: Num rows: 19 Data size: 1903 Basic stats: COMPLETE Column stats: NONE
+              Union
+                Statistics: Num rows: 38 Data size: 3806 Basic stats: COMPLETE Column stats: NONE
+                Select Operator
+                  expressions: _col0 (type: string)
+                  outputColumnNames: _col0
+                  Statistics: Num rows: 38 Data size: 3806 Basic stats: COMPLETE Column stats: NONE
+                  Reduce Output Operator
+                    key expressions: _col0 (type: string)
+                    sort order: +
+                    Map-reduce partition columns: _col0 (type: string)
+                    Statistics: Num rows: 38 Data size: 3806 Basic stats: COMPLETE Column stats: NONE
+                    Join Operator
+                      condition map:
+                           Left Outer Join0 to 1
+                      condition expressions:
+                        0 {VALUE._col0}
+                        1 
+                      outputColumnNames: _col0
+                      Statistics: Num rows: 41 Data size: 4186 Basic stats: COMPLETE Column stats: NONE
+                      Select Operator
+                        expressions: _col0 (type: string)
+                        outputColumnNames: _col0
+                        Statistics: Num rows: 41 Data size: 4186 Basic stats: COMPLETE Column stats: NONE
+                        File Output Operator
+                          compressed: false
+                          Statistics: Num rows: 41 Data size: 4186 Basic stats: COMPLETE Column stats: NONE
+                          table:
+                              input format: org.apache.hadoop.mapred.TextInputFormat
+                              output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+                              serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+      pseudoMR: push
+
+  Stage: Stage-1
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        TableScan
+          alias: src
+          Statistics: Num rows: 58 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
+          Filter Operator
+            predicate: (key > 490) (type: boolean)
+            Statistics: Num rows: 19 Data size: 1903 Basic stats: COMPLETE Column stats: NONE
+            Select Operator
+              expressions: key (type: string)
+              outputColumnNames: _col0
+              Statistics: Num rows: 19 Data size: 1903 Basic stats: COMPLETE Column stats: NONE
+              Reduce Output Operator
+                key expressions: _col0 (type: string)
+                sort order: +
+                Map-reduce partition columns: _col0 (type: string)
+                Statistics: Num rows: 19 Data size: 1903 Basic stats: COMPLETE Column stats: NONE
+                value expressions: _col0 (type: string)
+                Join Operator
+                  condition map:
+                       Left Outer Join0 to 1
+                  condition expressions:
+                    0 {VALUE._col0}
+                    1 
+                  outputColumnNames: _col0
+                  Statistics: Num rows: 41 Data size: 4186 Basic stats: COMPLETE Column stats: NONE
+                  Select Operator
+                    expressions: _col0 (type: string)
+                    outputColumnNames: _col0
+                    Statistics: Num rows: 41 Data size: 4186 Basic stats: COMPLETE Column stats: NONE
+                    File Output Operator
+                      compressed: false
+                      Statistics: Num rows: 41 Data size: 4186 Basic stats: COMPLETE Column stats: NONE
+                      table:
+                          input format: org.apache.hadoop.mapred.TextInputFormat
+                          output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+                          serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+      pseudoMR: push
+
+  Stage: Stage-2
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        TableScan
+          alias: src
+          Statistics: Num rows: 58 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
+          Filter Operator
+            predicate: (key > 450) (type: boolean)
+            Statistics: Num rows: 19 Data size: 1903 Basic stats: COMPLETE Column stats: NONE
+            Select Operator
+              expressions: key (type: string)
+              outputColumnNames: _col0
+              Statistics: Num rows: 19 Data size: 1903 Basic stats: COMPLETE Column stats: NONE
+              Union
+                Statistics: Num rows: 38 Data size: 3806 Basic stats: COMPLETE Column stats: NONE
+                Select Operator
+                  expressions: _col0 (type: string)
+                  outputColumnNames: _col0
+                  Statistics: Num rows: 38 Data size: 3806 Basic stats: COMPLETE Column stats: NONE
+                  Reduce Output Operator
+                    key expressions: _col0 (type: string)
+                    sort order: +
+                    Map-reduce partition columns: _col0 (type: string)
+                    Statistics: Num rows: 38 Data size: 3806 Basic stats: COMPLETE Column stats: NONE
+                    Join Operator
+                      condition map:
+                           Left Outer Join0 to 1
+                      condition expressions:
+                        0 {VALUE._col0}
+                        1 
+                      outputColumnNames: _col0
+                      Statistics: Num rows: 41 Data size: 4186 Basic stats: COMPLETE Column stats: NONE
+                      Select Operator
+                        expressions: _col0 (type: string)
+                        outputColumnNames: _col0
+                        Statistics: Num rows: 41 Data size: 4186 Basic stats: COMPLETE Column stats: NONE
+                        File Output Operator
+                          compressed: false
+                          Statistics: Num rows: 41 Data size: 4186 Basic stats: COMPLETE Column stats: NONE
+                          table:
+                              input format: org.apache.hadoop.mapred.TextInputFormat
+                              output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+                              serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+      pseudoMR: push
+
+  Stage: Stage-3
+    Fetch Operator
+      limit: -1
+
+PREHOOK: query: select a.* from (select key from src where key > 490) a left outer join (select * from(select key from src union all select key from src) a where key > 450)b on a.key=b.key
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: select a.* from (select key from src where key > 490) a left outer join (select * from(select key from src union all select key from src) a where key > 450)b on a.key=b.key
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+491
+491
+492
+492
+492
+492
+492
+492
+492
+492
+493
+493
+494
+494
+495
+495
+496
+496
+497
+497
+498
+498
+498
+498
+498
+498
+498
+498
+498
+498
+498
+498
+498
+498
+498
+498
+498
+498
 PREHOOK: query: -- sub-query
 explain
 select * from (select * from src where key > 450) a join (select * from src where key > 450) b on a.key=b.key
@@ -1337,3 +1535,184 @@ POSTHOOK: Input: default@src
 469	val_469	val_469
 477	val_477	477
 477	val_477	val_477
+PREHOOK: query: -- complex
+explain
+select a.* from (select key from src where key > 490) a left outer join (select * from(select key from src union all select key from src) a where key > 450)b on a.key=b.key
+PREHOOK: type: QUERY
+POSTHOOK: query: -- complex
+explain
+select a.* from (select key from src where key > 490) a left outer join (select * from(select key from src union all select key from src) a where key > 450)b on a.key=b.key
+POSTHOOK: type: QUERY
+STAGE DEPENDENCIES:
+  Stage-0 is a root stage
+  Stage-1 is a root stage
+  Stage-2 is a root stage
+  Stage-3 is a root stage
+
+STAGE PLANS:
+  Stage: Stage-0
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        TableScan
+          alias: src
+          Statistics: Num rows: 58 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
+          Filter Operator
+            predicate: (key > 450) (type: boolean)
+            Statistics: Num rows: 19 Data size: 1903 Basic stats: COMPLETE Column stats: NONE
+            Select Operator
+              expressions: key (type: string)
+              outputColumnNames: _col0
+              Statistics: Num rows: 19 Data size: 1903 Basic stats: COMPLETE Column stats: NONE
+              Union
+                Statistics: Num rows: 38 Data size: 3806 Basic stats: COMPLETE Column stats: NONE
+                Select Operator
+                  expressions: _col0 (type: string)
+                  outputColumnNames: _col0
+                  Statistics: Num rows: 38 Data size: 3806 Basic stats: COMPLETE Column stats: NONE
+                  Reduce Output Operator
+                    key expressions: _col0 (type: string)
+                    sort order: +
+                    Map-reduce partition columns: _col0 (type: string)
+                    Statistics: Num rows: 38 Data size: 3806 Basic stats: COMPLETE Column stats: NONE
+                    Join Operator
+                      condition map:
+                           Left Outer Join0 to 1
+                      condition expressions:
+                        0 {VALUE._col0}
+                        1 
+                      outputColumnNames: _col0
+                      Statistics: Num rows: 41 Data size: 4186 Basic stats: COMPLETE Column stats: NONE
+                      Select Operator
+                        expressions: _col0 (type: string)
+                        outputColumnNames: _col0
+                        Statistics: Num rows: 41 Data size: 4186 Basic stats: COMPLETE Column stats: NONE
+                        ListSink
+      pseudoMR: push
+
+  Stage: Stage-1
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        TableScan
+          alias: src
+          Statistics: Num rows: 58 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
+          Filter Operator
+            predicate: (key > 490) (type: boolean)
+            Statistics: Num rows: 19 Data size: 1903 Basic stats: COMPLETE Column stats: NONE
+            Select Operator
+              expressions: key (type: string)
+              outputColumnNames: _col0
+              Statistics: Num rows: 19 Data size: 1903 Basic stats: COMPLETE Column stats: NONE
+              Reduce Output Operator
+                key expressions: _col0 (type: string)
+                sort order: +
+                Map-reduce partition columns: _col0 (type: string)
+                Statistics: Num rows: 19 Data size: 1903 Basic stats: COMPLETE Column stats: NONE
+                value expressions: _col0 (type: string)
+                Join Operator
+                  condition map:
+                       Left Outer Join0 to 1
+                  condition expressions:
+                    0 {VALUE._col0}
+                    1 
+                  outputColumnNames: _col0
+                  Statistics: Num rows: 41 Data size: 4186 Basic stats: COMPLETE Column stats: NONE
+                  Select Operator
+                    expressions: _col0 (type: string)
+                    outputColumnNames: _col0
+                    Statistics: Num rows: 41 Data size: 4186 Basic stats: COMPLETE Column stats: NONE
+                    ListSink
+      pseudoMR: push
+
+  Stage: Stage-2
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        TableScan
+          alias: src
+          Statistics: Num rows: 58 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
+          Filter Operator
+            predicate: (key > 450) (type: boolean)
+            Statistics: Num rows: 19 Data size: 1903 Basic stats: COMPLETE Column stats: NONE
+            Select Operator
+              expressions: key (type: string)
+              outputColumnNames: _col0
+              Statistics: Num rows: 19 Data size: 1903 Basic stats: COMPLETE Column stats: NONE
+              Union
+                Statistics: Num rows: 38 Data size: 3806 Basic stats: COMPLETE Column stats: NONE
+                Select Operator
+                  expressions: _col0 (type: string)
+                  outputColumnNames: _col0
+                  Statistics: Num rows: 38 Data size: 3806 Basic stats: COMPLETE Column stats: NONE
+                  Reduce Output Operator
+                    key expressions: _col0 (type: string)
+                    sort order: +
+                    Map-reduce partition columns: _col0 (type: string)
+                    Statistics: Num rows: 38 Data size: 3806 Basic stats: COMPLETE Column stats: NONE
+                    Join Operator
+                      condition map:
+                           Left Outer Join0 to 1
+                      condition expressions:
+                        0 {VALUE._col0}
+                        1 
+                      outputColumnNames: _col0
+                      Statistics: Num rows: 41 Data size: 4186 Basic stats: COMPLETE Column stats: NONE
+                      Select Operator
+                        expressions: _col0 (type: string)
+                        outputColumnNames: _col0
+                        Statistics: Num rows: 41 Data size: 4186 Basic stats: COMPLETE Column stats: NONE
+                        ListSink
+      pseudoMR: push
+
+  Stage: Stage-3
+    Fetch Operator
+      limit: -1
+      pseudoMR: pull
+
+PREHOOK: query: select a.* from (select key from src where key > 490) a left outer join (select * from(select key from src union all select key from src) a where key > 450)b on a.key=b.key
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: select a.* from (select key from src where key > 490) a left outer join (select * from(select key from src union all select key from src) a where key > 450)b on a.key=b.key
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+491
+491
+492
+492
+492
+492
+492
+492
+492
+492
+493
+493
+494
+494
+495
+495
+496
+496
+497
+497
+498
+498
+498
+498
+498
+498
+498
+498
+498
+498
+498
+498
+498
+498
+498
+498
+498
+498
