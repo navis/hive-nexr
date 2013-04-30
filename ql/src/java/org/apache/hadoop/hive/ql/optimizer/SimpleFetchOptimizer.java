@@ -164,10 +164,12 @@ public class SimpleFetchOptimizer {
       }
       QBExpr qbexpr = qb.getSubqForAlias(subqID[0]);
       for (int j = 1; j < subqID.length; j++) {
-        if (subqID[j].equals("subquery1")) {
-          qbexpr = qbexpr.getQBExpr1();
-        } else if (subqID[j].equals("subquery2")) {
-          qbexpr = qbexpr.getQBExpr2();
+        if (qbexpr.getOpcode() == QBExpr.Opcode.UNION) {
+          if (subqID[j].equals("subquery1")) {
+            qbexpr = qbexpr.getQBExpr1();
+          } else if (subqID[j].equals("subquery2")) {
+            qbexpr = qbexpr.getQBExpr2();
+          }
         }
       }
       qb = qbexpr.getQB();
