@@ -1171,9 +1171,7 @@
           <artifact:deploy
               file="${mvn.jar.dir}/hive-${hive.project}-${version}.jar">
             <pom refid="hive.project.pom" />
-            <remoteRepository id="${mvn.deploy.nexr.release.id}" url="${mvn.deploy.nexr.release.url}">
-              <authentication username="admin" password="qa-nexus$#@!"/>
-            </remoteRepository>
+            <remoteRepository id="${mvn.deploy.nexr.release.id}" url="${mvn.deploy.nexr.release.url}"/>
           </artifact:deploy>
         </then>
       </elseif>
@@ -1244,6 +1242,24 @@
         <equals arg1="${mvn.publish.repo}" arg2="local"/>
         <then>
           <!-- NOP, HCat always publishes to the local repo -->
+        </then>
+      </elseif>
+      <elseif>
+        <equals arg1="${mvn.publish.repo}" arg2="nexr-snapshot"/>
+          <then>
+            <ant dir="hcatalog" target="mvn-deploy">
+              <property name="mvn.deploy.repo.id" value="${mvn.deploy.nexr.snapshot.id}"/>
+              <property name="mvn.deploy.repo.url" value="${mvn.deploy.nexr.snapshot.url}"/>
+            </ant>
+        </then>
+      </elseif>
+      <elseif>
+        <equals arg1="${mvn.publish.repo}" arg2="nexr-release"/>
+          <then>
+            <ant dir="hcatalog" target="mvn-deploy">
+              <property name="mvn.deploy.repo.id" value="${mvn.deploy.nexr.release.id}"/>
+              <property name="mvn.deploy.repo.url" value="${mvn.deploy.nexr.release.url}"/>
+            </ant>
         </then>
       </elseif>
       <else>
