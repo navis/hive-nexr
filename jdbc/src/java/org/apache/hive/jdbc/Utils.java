@@ -103,6 +103,10 @@ public class Utils {
     // Currently supports JKS keystore format
     static final String SSL_TRUST_STORE_TYPE = "JKS";
 
+    static final String HIVE_JDBC_AUTO_RECONNECT = "autoReconnect";
+    static final String HIVE_JDBC_AUTO_RECONNECT_COUNT = "autoReconnectCount";
+    static final String HIVE_JDBC_AUTO_RECONNECT_INTERVAL = "autoReconnectInterval";
+
     private String host = null;
     private int port;
     private String jdbcUriString;
