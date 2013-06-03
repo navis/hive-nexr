@@ -797,7 +797,7 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
     // configured not to fail silently
     boolean throwException =
         !ifExists && !HiveConf.getBoolVar(conf, ConfVars.DROPIGNORESNONEXISTENT);
-    Table tab = getTable(tableName, throwException);
+    Table tab = getTableWithQN(tableName, throwException);
     if (tab != null) {
       inputs.add(new ReadEntity(tab));
       outputs.add(new WriteEntity(tab, WriteEntity.WriteType.DDL_EXCLUSIVE));

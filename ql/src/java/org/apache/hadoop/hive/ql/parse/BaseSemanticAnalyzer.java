@@ -1311,7 +1311,7 @@ public abstract class BaseSemanticAnalyzer {
     return getTable(currentDb, tblName, throwException);
   }
 
-  // qnName : possibly contains database name (dot seperated)
+  // qnName : possibly contains database name (dot separated)
   protected Table getTableWithQN(String qnName, boolean throwException) throws SemanticException {
     int dot = qnName.indexOf('.');
     if (dot < 0) {
