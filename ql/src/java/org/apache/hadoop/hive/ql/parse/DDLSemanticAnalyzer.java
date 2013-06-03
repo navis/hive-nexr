@@ -734,7 +734,7 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
     // configured not to fail silently
     boolean throwException =
         !ifExists && !HiveConf.getBoolVar(conf, ConfVars.DROPIGNORESNONEXISTENT);
-    Table tab = getTable(tableName, throwException);
+    Table tab = getTableWithQN(tableName, throwException);
     if (tab != null) {
       inputs.add(new ReadEntity(tab));
       outputs.add(new WriteEntity(tab));
@@ -3032,6 +3032,14 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
 
   private Table getTable(String tblName, boolean throwException) throws SemanticException {
     return getTable(db.getCurrentDatabase(), tblName, throwException);
+  }
+
+  private Table getTableWithQN(String qnName, boolean throwException) throws SemanticException {
+    int dot = qnName.indexOf('.');
+    if (dot < 0) {
+      return getTable(db.getCurrentDatabase(), qnName, throwException);
+    }
+    return getTable(qnName.substring(0, dot), qnName.substring(dot + 1), throwException);
   }
 
   private Table getTable(String database, String tblName, boolean throwException)
