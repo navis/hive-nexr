@@ -20,6 +20,7 @@ package org.apache.hadoop.hive.ql.exec;
 
 import java.io.Serializable;
 
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.ql.session.SessionState;
 
 /**
@@ -57,6 +58,11 @@ public class TaskRunner extends Thread {
       exitVal = tsk.executeTask();
     } catch (Throwable t) {
       t.printStackTrace();
+    } finally {
+      if (Thread.interrupted()) {
+        LogFactory.getLog(TaskRunner.class.getName()).warn("Task for " + tsk.getId() +
+            " was interrupted while execution");
+      }
     }
     result.setExitVal(exitVal);
   }
