@@ -71,6 +71,7 @@ import org.apache.hadoop.hive.ql.lockmgr.HiveLockObj;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockObject;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockObject.HiveLockObjectData;
 import org.apache.hadoop.hive.ql.lockmgr.LockException;
+import org.apache.hadoop.hive.ql.lockmgr.SharedLockManager;
 import org.apache.hadoop.hive.ql.log.PerfLogger;
 import org.apache.hadoop.hive.ql.metadata.AuthorizationException;
 import org.apache.hadoop.hive.ql.metadata.DummyPartition;
@@ -113,7 +114,9 @@ public class Driver implements CommandProcessor {
   static final private LogHelper console = new LogHelper(LOG);
 
   private static final Object compileMonitor = new Object();
-  
+
+  private static SharedLockManager sharedLockMgr;
+
   private int maxRows = 100;
   ByteStream.Output bos = new ByteStream.Output();
 
@@ -135,55 +138,72 @@ public class Driver implements CommandProcessor {
   private static final int SLEEP_TIME = 2000;
   protected int tryCount = Integer.MAX_VALUE;
 
+  // the reason that we set the lock manager for the cxt here is because each
+  // query has its own ctx object. The hiveLockMgr is shared accross the
+  // same instance of Driver, which can run multiple queries.
   private boolean checkLockManager() {
+    if (sharedLockMgr != null || hiveLockMgr != null) {
+      ctx.setHiveLockMgr(sharedLockMgr != null ? sharedLockMgr : hiveLockMgr);
+      return true;
+    }
     boolean supportConcurrency = conf.getBoolVar(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY);
     if (!supportConcurrency) {
       return false;
     }
-    if ((hiveLockMgr == null)) {
-      try {
-        setLockManager();
-      } catch (SemanticException e) {
-        errorMessage = "FAILED: Error in semantic analysis: " + e.getMessage();
-        SQLState = ErrorMsg.findSQLState(e.getMessage());
-        console.printError(errorMessage, "\n"
-            + org.apache.hadoop.util.StringUtils.stringifyException(e));
-        return false;
-      }
+    HiveLockManager lockManager;
+    try {
+      lockManager = createLockManager();
+    } catch (SemanticException e) {
+      errorMessage = "FAILED: Error in semantic analysis: " + e.getMessage();
+      SQLState = ErrorMsg.findSQLState(e.getMessage());
+      console.printError(errorMessage, "\n"
+          + org.apache.hadoop.util.StringUtils.stringifyException(e));
+      return false;
     }
-    // the reason that we set the lock manager for the cxt here is because each
-    // query has its own ctx object. The hiveLockMgr is shared accross the
-    // same instance of Driver, which can run multiple queries.
-    ctx.setHiveLockMgr(hiveLockMgr);
-    return hiveLockMgr != null;
+    ctx.setHiveLockMgr(lockManager);
+
+    if (lockManager instanceof SharedLockManager) {
+      sharedLockMgr = (SharedLockManager) lockManager;
+      Runtime.getRuntime().addShutdownHook(new Thread() {
+        @Override
+        public void run() {
+          try {
+            sharedLockMgr.close();
+          } catch (Exception e) {
+            LOG.error("Failed to close lock manager", e);
+          }
+          sharedLockMgr = null;
+        }
+      });
+    } else {
+      hiveLockMgr = lockManager;
+    }
+    return lockManager != null;
   }
 
-  private void setLockManager() throws SemanticException {
-    boolean supportConcurrency = conf.getBoolVar(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY);
-    if (supportConcurrency) {
-      String lockMgr = conf.getVar(HiveConf.ConfVars.HIVE_LOCK_MANAGER);
-      if ((lockMgr == null) || (lockMgr.isEmpty())) {
-        throw new SemanticException(ErrorMsg.LOCKMGR_NOT_SPECIFIED.getMsg());
-      }
-
-      try {
-        hiveLockMgr = (HiveLockManager) ReflectionUtils.newInstance(conf.getClassByName(lockMgr),
-            conf);
-        hiveLockMgr.setContext(new HiveLockManagerCtx(conf));
-      } catch (Exception e) {
-        // set hiveLockMgr to null just in case this invalid manager got set to
-        // next query's ctx.
-        if (hiveLockMgr != null) {
-          try {
-            hiveLockMgr.close();
-          } catch (LockException e1) {
-            //nothing can do here
-          }
-          hiveLockMgr = null;
-        }
-        throw new SemanticException(ErrorMsg.LOCKMGR_NOT_INITIALIZED.getMsg() + e.getMessage());
-      }
+  private HiveLockManager createLockManager() throws SemanticException {
+    String lockMgr = conf.getVar(HiveConf.ConfVars.HIVE_LOCK_MANAGER);
+    if (lockMgr == null || lockMgr.isEmpty()) {
+      throw new SemanticException(ErrorMsg.LOCKMGR_NOT_SPECIFIED.getMsg());
     }
+    HiveLockManager hiveLockMgr = null;
+    try {
+      hiveLockMgr = (HiveLockManager) ReflectionUtils.newInstance(conf.getClassByName(lockMgr),
+          conf);
+      hiveLockMgr.setContext(new HiveLockManagerCtx(conf));
+    } catch (Exception e) {
+      // set hiveLockMgr to null just in case this invalid manager got set to
+      // next query's ctx.
+      if (hiveLockMgr != null) {
+        try {
+          hiveLockMgr.close();
+        } catch (Exception e1) {
+          //nothing can do here
+        }
+      }
+      throw new SemanticException(ErrorMsg.LOCKMGR_NOT_INITIALIZED.getMsg() + e.getMessage());
+    }
+    return hiveLockMgr;
   }
 
   public void init() {

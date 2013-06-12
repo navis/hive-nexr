@@ -41,7 +41,7 @@ import org.apache.hadoop.hive.ql.metadata.Table;
 /**
  * shared lock manager for dedicated hive server. all locks are managed in memory
  */
-public class EmbeddedLockManager implements HiveLockManager {
+public class EmbeddedLockManager implements SharedLockManager {
 
   private static final Log LOG = LogFactory.getLog("EmbeddedHiveLockManager");
 
