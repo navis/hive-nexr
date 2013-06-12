@@ -1,10 +1,11 @@
-set hive.lock.numretries=5;
-set hive.lock.sleep.between.retries=5;
+set hive.lock.numretries=3;
+set hive.lock.sleep.between.retries=3;
 
-DROP TABLE insert_into1_neg;
-CREATE TABLE insert_into1_neg (key int, value string);
+DROP TABLE insert_into2_neg;
 
-LOCK TABLE insert_into1_neg EXCLUSIVE;
-INSERT INTO TABLE insert_into1_neg SELECT * FROM src LIMIT 100;
+CREATE TABLE insert_into2_neg (key int, value string);
 
-DROP TABLE insert_into1_neg;
+LOCK TABLE insert_into2_neg EXCLUSIVE;
+INSERT INTO TABLE insert_into2_neg SELECT * FROM src LIMIT 100;
+
+DROP TABLE insert_into2_neg;

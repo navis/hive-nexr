@@ -196,6 +196,10 @@ public class HiveLockObject {
     this(new String[] {par.getName()}, lockData);
   }
 
+  public String getQueryId() {
+    return data.getQueryId();
+  }
+
   public String[] getPaths() {
     return pathNames;
   }

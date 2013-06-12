@@ -20,21 +20,53 @@ package org.apache.hadoop.hive.ql.lockmgr;
 
 import org.apache.hadoop.hive.conf.HiveConf;
 
-public class HiveLockManagerCtx {
-  HiveConf conf;
+import java.util.concurrent.TimeUnit;
 
-  public HiveLockManagerCtx() {
-  }
+public class HiveLockManagerCtx {
+
+  private final HiveConf conf;
+
+  private long sleepTime;
+  private int numRetriesForLock;
+  private int numRetriesForUnLock;
+
+  private long lockTimeout;
+  private long unlockTimeout;
 
   public HiveLockManagerCtx(HiveConf conf) {
     this.conf = conf;
+    refresh();
   }
 
   public HiveConf getConf() {
     return conf;
   }
 
-  public void setConf(HiveConf conf) {
-    this.conf = conf;
+  public void refresh() {
+    sleepTime = conf.getTimeVar(HiveConf.ConfVars.HIVE_LOCK_SLEEP_BETWEEN_RETRIES, TimeUnit.MILLISECONDS);
+    numRetriesForLock = conf.getIntVar(HiveConf.ConfVars.HIVE_LOCK_NUMRETRIES);
+    numRetriesForUnLock = conf.getIntVar(HiveConf.ConfVars.HIVE_UNLOCK_NUMRETRIES);
+    lockTimeout = conf.getTimeVar(HiveConf.ConfVars.HIVE_LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
+    unlockTimeout = conf.getTimeVar(HiveConf.ConfVars.HIVE_UNLOCK_TIMEOUT, TimeUnit.MILLISECONDS);
+  }
+
+  public long lockTimeout() {
+    return lockTimeout;
+  }
+
+  public long unlockTimeout() {
+    return unlockTimeout;
+  }
+
+  public int numRetriesForLock() {
+    return numRetriesForLock;
+  }
+
+  public int numRetriesForUnLock() {
+    return numRetriesForUnLock;
+  }
+
+  public long sleepTime() {
+    return sleepTime;
   }
 }

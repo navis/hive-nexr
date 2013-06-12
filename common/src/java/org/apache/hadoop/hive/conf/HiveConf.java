@@ -1314,6 +1314,11 @@ public class HiveConf extends Configuration {
         "that need to execute at least one mapred job."),
 
      // Zookeeper related configs
+    HIVE_LOCK_TIMEOUT("hive.lock.timeout", "2000ms",
+        new TimeValidator(TimeUnit.MILLISECONDS), "lock timeout msec"),
+    HIVE_UNLOCK_TIMEOUT("hive.unlock.timeout", "2000ms",
+        new TimeValidator(TimeUnit.MILLISECONDS), "unlock timeout msec"),
+
     HIVE_ZOOKEEPER_QUORUM("hive.zookeeper.quorum", "",
         "List of ZooKeeper servers to talk to. This is needed for: \n" +
         "1. Read/write locks - when hive.lock.manager is set to \n" +

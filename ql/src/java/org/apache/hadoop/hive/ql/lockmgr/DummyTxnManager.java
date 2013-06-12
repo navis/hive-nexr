@@ -33,7 +33,6 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.Partition;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.session.SessionState;
-import org.apache.hadoop.util.ReflectionUtils;
 
 import java.util.*;
 
@@ -59,16 +58,8 @@ class DummyTxnManager extends HiveTxnManagerImpl {
       boolean supportConcurrency =
           conf.getBoolVar(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY);
       if (supportConcurrency) {
-        String lockMgrName =
-            conf.getVar(HiveConf.ConfVars.HIVE_LOCK_MANAGER);
-        if ((lockMgrName == null) || (lockMgrName.isEmpty())) {
-          throw new LockException(ErrorMsg.LOCKMGR_NOT_SPECIFIED.getMsg());
-        }
-
         try {
-          LOG.info("Creating lock manager of type " + lockMgrName);
-          lockMgr = (HiveLockManager)ReflectionUtils.newInstance(
-              conf.getClassByName(lockMgrName), conf);
+          lockMgr = LockManagers.getLockManager(new HiveLockManagerCtx(conf));
           lockMgr.setContext(new HiveLockManagerCtx(conf));
         } catch (Exception e) {
           // set hiveLockMgr to null just in case this invalid manager got set to
