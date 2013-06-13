@@ -120,6 +120,9 @@ public final class StructTypeInfo extends TypeInfo implements Serializable {
       return false;
     }
     StructTypeInfo o = (StructTypeInfo) other;
+    if (allStructFieldNames.size() != o.allStructFieldNames.size()) {
+      return false;
+    }
     Iterator<String> namesIterator = getAllStructFieldNames().iterator();
     Iterator<String> otherNamesIterator = o.getAllStructFieldNames().iterator();
 
@@ -128,11 +131,6 @@ public final class StructTypeInfo extends TypeInfo implements Serializable {
       if (!namesIterator.next().equalsIgnoreCase(otherNamesIterator.next())) {
         return false;
       }
-    }
-
-    // Different number of field names
-    if (namesIterator.hasNext() || otherNamesIterator.hasNext()) {
-      return false;
     }
 
     // Compare the field types

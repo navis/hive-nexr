@@ -86,7 +86,9 @@ public final class PrimitiveTypeInfo extends TypeInfo implements Serializable {
    */
   @Override
   public boolean equals(Object other) {
-    return this == other;
+    return this == other ||
+        (other instanceof PrimitiveTypeInfo &&
+            typeName.equals(((PrimitiveTypeInfo)other).typeName));
   }
 
   /**
