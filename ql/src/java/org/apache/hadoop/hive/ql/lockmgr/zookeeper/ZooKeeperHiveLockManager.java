@@ -443,7 +443,11 @@ public class ZooKeeperHiveLockManager implements HiveLockManager {
                              HiveLock hiveLock, String parent) throws LockException {
     ZooKeeperHiveLock zLock = (ZooKeeperHiveLock)hiveLock;
     try {
-      zkpClient.delete(zLock.getPath(), -1);
+      try {
+        zkpClient.delete(zLock.getPath(), -1);
+      } catch (KeeperException.NoNodeException e) {
+        // removed already
+      }
 
       // Delete the parent node if all the children have been deleted
       HiveLockObject obj = zLock.getHiveLockObject();
