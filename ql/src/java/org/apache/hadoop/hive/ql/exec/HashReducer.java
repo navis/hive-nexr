@@ -95,7 +95,7 @@ public class HashReducer extends ExecReducer implements OutputCollector<HiveKey,
 
   private static class BytesIterator implements Iterator<BytesWritable> {
 
-    private static BytesWritable WRITABLE = new BytesWritable();
+    private final BytesWritable WRITABLE = new BytesWritable();
 
     private Iterator<byte[]> values;
 
