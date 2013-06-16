@@ -840,7 +840,15 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
         o.reset();
       }
     }
+  }
 
+  public void clear() {
+    this.state = State.UNINIT;
+    if (childOperators != null) {
+      for (Operator<? extends OperatorDesc> o : childOperators) {
+        o.clear();
+      }
+    }
   }
 
   /**

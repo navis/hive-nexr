@@ -482,6 +482,22 @@ public final class HiveFileFormatUtils {
     return pathToAliases.get(path);
   }
 
+  public static String getPathForAlias(Map<String, ArrayList<String>> pathToAliases, String alias) {
+    String found = null;
+    for (Map.Entry<String, ArrayList<String>> entry : pathToAliases.entrySet()) {
+      if (entry.getValue().contains(alias)) {
+        if (found != null && !found.equals(alias)) {
+          throw new IllegalStateException("More than two paths for alias " + alias);
+        }
+        found = entry.getKey();
+      }
+    }
+    if (found == null) {
+      throw new IllegalStateException("Cannot find path for alias " + alias);
+    }
+    return found;
+  }
+
   private HiveFileFormatUtils() {
     // prevent instantiation
   }

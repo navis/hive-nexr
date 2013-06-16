@@ -20,11 +20,12 @@ package org.apache.hadoop.hive.ql.optimizer;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
@@ -32,6 +33,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.exec.FetchTask;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
 import org.apache.hadoop.hive.ql.exec.FilterOperator;
@@ -47,6 +49,7 @@ import org.apache.hadoop.hive.ql.exec.TaskFactory;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.hooks.ReadEntity;
 import org.apache.hadoop.hive.ql.io.ContentSummaryInputFormat;
+import org.apache.hadoop.hive.ql.io.HiveFileFormatUtils;
 import org.apache.hadoop.hive.ql.io.HiveInputFormat;
 import org.apache.hadoop.hive.ql.metadata.InputEstimator;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
@@ -62,6 +65,8 @@ import org.apache.hadoop.hive.ql.parse.SplitSample;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
 import org.apache.hadoop.hive.ql.plan.ListSinkDesc;
+import org.apache.hadoop.hive.ql.plan.MapWork;
+import org.apache.hadoop.hive.ql.plan.MapredWork;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.PartitionDesc;
 import org.apache.hadoop.hive.ql.plan.PlanUtils;
@@ -126,6 +131,85 @@ public class SimpleFetchOptimizer {
     return true;
   }
 
+  public List<FetchTask> transform(MapredWork mapredWork, Context ctx) throws Exception {
+    MapWork mapWork = mapredWork.getMapWork();
+    if (!checkThreshold(mapWork, ctx)) {
+      return null;
+    }
+    List<FetchTask> fetchers = new ArrayList<FetchTask>();
+    for (Map.Entry<String, Operator<? extends OperatorDesc>> entry :
+        mapWork.getAliasToWork().entrySet()) {
+      FetchWork fetchWork = getFetchForAlias(mapWork, entry.getKey());
+      FetchTask fetchTask = (FetchTask) TaskFactory.get(fetchWork, null);
+      fetchWork.setSource(entry.getValue());
+      fetchWork.setPseudoMR(true);
+      fetchers.add(fetchTask);
+    }
+    Operator<?> reducer = mapredWork.getReducer();
+    if (reducer != null) {
+      List<Operator<? extends OperatorDesc>> terminals = getMapTerminals(mapredWork);
+      for (Operator<?> terminal : terminals) {
+        terminal.setChildOperators(
+            new ArrayList<Operator<? extends OperatorDesc>>(Arrays.asList(reducer)));
+      }
+      reducer.setParentOperators(terminals);
+    }
+    prepareReducers(mapWork.getAliasToWork().values());
+    return fetchers;
+  }
+
+  public void untransform(MapredWork mapredWork) {
+    MapWork mapWork = mapredWork.getMapWork();
+    for (Operator<?> operator : mapWork.getAliasToWork().values()) {
+      operator.clear();
+    }
+    Operator<?> reducer = mapredWork.getReducer();
+    if (reducer != null) {
+      for (Operator<?> parent : reducer.getParentOperators()) {
+        parent.setChildOperators(null);
+      }
+      reducer.setParentOperators(null);
+    }
+  }
+
+  private List<Operator<? extends OperatorDesc>> getMapTerminals(MapredWork mapredWork) {
+    MapWork mapWork = mapredWork.getMapWork();
+    List<Operator<? extends OperatorDesc>> found =
+        new ArrayList<Operator<? extends OperatorDesc>>();
+    for (Operator<?> operator : mapWork.getAliasToWork().values()) {
+      getMapTerminals(operator, found);
+    }
+    return found;
+  }
+
+  private void getMapTerminals(Operator<?> operator, List<Operator<?>> found) {
+    if (operator.getNumChild() == 0) {
+      found.add(operator);
+      return;
+    }
+    for (Operator<?> child : operator.getChildOperators()) {
+      getMapTerminals(child, found);
+    }
+  }
+
+  private FetchWork getFetchForAlias(MapWork mapWork, String alias) {
+    String path = HiveFileFormatUtils.getPathForAlias(mapWork.getPathToAliases(), alias);
+    PartitionDesc partition = mapWork.getPathToPartitionInfo().get(path);
+    assert partition.getPartSpec() == null || partition.getPartSpec().isEmpty();
+    FetchWork work = new FetchWork(new Path(path), partition.getTableDesc());
+    return work;
+  }
+
+  private boolean checkThreshold(MapWork mapwork, Context ctx) throws Exception {
+    long threshold = HiveConf.getLongVar(ctx.getConf(),
+        HiveConf.ConfVars.HIVEFETCHTASKCONVERSIONTHRESHOLD);
+    if (threshold < 0) {
+      return true;
+    }
+    ContentSummary summary = Utilities.getInputSummary(ctx, mapwork, null);
+    return summary.getLength() < threshold;
+  }
+
   private boolean checkThreshold(List<FetchData> datas, ParseContext pctx) throws Exception {
     long threshold = HiveConf.getLongVar(pctx.getConf(),
         HiveConf.ConfVars.HIVEFETCHTASKCONVERSIONTHRESHOLD);
@@ -136,7 +220,7 @@ public class SimpleFetchOptimizer {
     for (FetchData data : datas) {
       remaining -= data.getInputLength(pctx, remaining);
       if (remaining < 0) {
-        LOG.info("Threshold " + remaining + " exceeded for pseudoMR mode");
+        LOG.info("Threshold " + threshold + " exceeded for pseudoMR mode");
         return false;
       }
     }

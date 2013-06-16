@@ -21,6 +21,16 @@ package org.apache.hadoop.hive.ql.exec;
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicLong;
 
+import java.util.List;
+
+import org.apache.hadoop.hive.conf.HiveConf;
+import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVEFETCHTASKCONVERSIONINTERM;
+import org.apache.hadoop.hive.ql.Context;
+import org.apache.hadoop.hive.ql.DriverContext;
+import org.apache.hadoop.hive.ql.exec.mr.MapRedTask;
+import org.apache.hadoop.hive.ql.optimizer.SimpleFetchOptimizer;
+import org.apache.hadoop.hive.ql.plan.MapredWork;
+import org.apache.hadoop.hive.ql.plan.api.StageType;
 import org.apache.hadoop.hive.ql.session.SessionState;
 
 /**
@@ -82,7 +92,7 @@ public class TaskRunner extends Thread {
   public void runSequential() {
     int exitVal = -101;
     try {
-      exitVal = tsk.executeTask();
+      exitVal = localizeMRTask(tsk).executeTask();
     } catch (Throwable t) {
       if (tsk.getException() == null) {
         tsk.setException(t);
@@ -94,5 +104,58 @@ public class TaskRunner extends Thread {
 
   public static long getTaskRunnerID () {
     return taskRunnerID.get();
+  }
+
+  private Task<?> localizeMRTask(final Task<?> tsk) {
+    if (!(tsk instanceof MapRedTask) ||
+        !HiveConf.getBoolVar(tsk.getConf(), HIVEFETCHTASKCONVERSIONINTERM)) {
+      return tsk;
+    }
+    final MapredWork mapredWork = ((MapRedTask) tsk).getWork();
+    if (!mapredWork.getMapWork().hasMapJoin()) {
+      final SimpleFetchOptimizer optimizer = new SimpleFetchOptimizer();
+      final List<FetchTask> fetchTasks;
+      try {
+        fetchTasks = optimizer.transform(mapredWork, tsk.driverContext.getCtx());
+      } catch (Exception e) {
+        tsk.console.printInfo("Failed to localize task " + tsk.getId());
+        return tsk;
+      }
+      if (fetchTasks != null) {
+        tsk.console.printInfo("Executing localized task for " + tsk.getId());
+        Task<?> task = new Task() {
+          protected int execute(DriverContext driverContext) {
+            for (FetchTask fetch : fetchTasks) {
+              try {
+                fetch.initialize(tsk.getConf(), tsk.getQueryPlan(), tsk.driverContext);
+              } catch (Exception e) {
+                return rollback(driverContext);
+              }
+            }
+            for (FetchTask fetch : fetchTasks) {
+              int code = fetch.execute(driverContext);
+              if (code != 0) {
+                return rollback(driverContext);
+              }
+            }
+            tsk.setDone();
+            return 0;
+          }
+
+          private int rollback(DriverContext driverContext) {
+            tsk.console.printInfo("Failed to execute localized task for " + tsk.getId());
+            optimizer.untransform(mapredWork);
+            return tsk.execute(driverContext);
+          }
+
+          public String getName() { return tsk.getName(); }
+          public StageType getType() { return tsk.getType(); }
+          protected void localizeMRTmpFilesImpl(Context ctx) { }
+        };
+        task.initialize(tsk.getConf(), tsk.getQueryPlan(), tsk.driverContext);
+        return task;
+      }
+    }
+    return tsk;
   }
 }

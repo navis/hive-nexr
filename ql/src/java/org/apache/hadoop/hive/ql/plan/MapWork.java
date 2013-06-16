@@ -534,4 +534,7 @@ public class MapWork extends BaseWork {
     this.vectorMode = vectorMode;
   }
 
+  public boolean hasMapJoin() {
+    return mapLocalWork != null || useBucketizedHiveInputFormat;
+  }
 }

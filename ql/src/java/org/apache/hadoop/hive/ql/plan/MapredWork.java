@@ -56,6 +56,10 @@ public class MapredWork extends AbstractOperatorDesc {
     this.reduceWork = reduceWork;
   }
 
+  public Operator<?> getReducer() {
+    return reduceWork != null ? reduceWork.getReducer() : null;
+  }
+
   public boolean isFinalMapRed() {
     return finalMapRed;
   }

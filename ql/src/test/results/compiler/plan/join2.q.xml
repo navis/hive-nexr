@@ -1468,29 +1468,6 @@
               <object idref="ReduceSinkOperator1"/> 
              </void> 
             </void> 
-            <void property="posToAliasMap"> 
-             <object class="java.util.HashMap"> 
-              <void method="put"> 
-               <int>0</int> 
-               <object class="java.util.HashSet"> 
-                <void method="add"> 
-                 <string>src2</string> 
-                </void> 
-                <void method="add"> 
-                 <string>src1</string> 
-                </void> 
-               </object> 
-              </void> 
-              <void method="put"> 
-               <int>1</int> 
-               <object class="java.util.HashSet"> 
-                <void method="add"> 
-                 <string>src3</string> 
-                </void> 
-               </object> 
-              </void> 
-             </object> 
-            </void> 
             <void property="schema"> 
              <object class="org.apache.hadoop.hive.ql.exec.RowSchema"> 
               <void property="signature"> 
@@ -2571,26 +2548,6 @@
          <void method="add"> 
           <object idref="ReduceSinkOperator2"/> 
          </void> 
-        </void> 
-        <void property="posToAliasMap"> 
-         <object class="java.util.HashMap"> 
-          <void method="put"> 
-           <int>0</int> 
-           <object class="java.util.HashSet"> 
-            <void method="add"> 
-             <string>src1</string> 
-            </void> 
-           </object> 
-          </void> 
-          <void method="put"> 
-           <int>1</int> 
-           <object class="java.util.HashSet"> 
-            <void method="add"> 
-             <string>src2</string> 
-            </void> 
-           </object> 
-          </void> 
-         </object> 
         </void> 
         <void property="schema"> 
          <object idref="RowSchema0"/> 

@@ -119,6 +119,10 @@ public abstract class Task<T extends Serializable> implements Serializable, Node
     return taskHandle;
   }
 
+  public HiveConf getConf() {
+    return conf;
+  }
+
   public void initialize(HiveConf conf, QueryPlan queryPlan, DriverContext driverContext) {
     this.queryPlan = queryPlan;
     isdone = false;

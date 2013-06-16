@@ -114,6 +114,13 @@ public final class OperatorFactory {
         DemuxOperator.class));
     opvec.add(new OpTuple<MuxDesc>(MuxDesc.class,
         MuxOperator.class));
+
+    for (OpTuple tuple : opvec) {
+      PTFUtils.makeTransientFieldsTransient(tuple.opClass);
+    }
+    PTFUtils.makeTransientFieldsTransient(Operator.class);
+    PTFUtils.makeTransientFieldsTransient(CommonJoinOperator.class);
+    PTFUtils.makeTransientFieldsTransient(AbstractMapJoinOperator.class);
   }
 
   public static ArrayList<OpTuple> vectorOpvec;
