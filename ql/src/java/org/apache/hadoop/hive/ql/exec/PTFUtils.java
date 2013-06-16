@@ -31,6 +31,8 @@ import java.beans.XMLDecoder;
 import java.beans.XMLEncoder;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -259,6 +261,29 @@ public class PTFUtils {
     {
       e.printStackTrace();
       throw new RuntimeException("Cannot serialize the query plan", e);
+    }
+  }
+
+  public static void makeTransientFieldsTransient(Class<?> beanClass) {
+    try {
+      BeanInfo info = Introspector.getBeanInfo(beanClass);
+      PropertyDescriptor[] descs = info.getPropertyDescriptors();
+      if (descs == null) {
+        throw new RuntimeException("Cannot access property descriptor for class " + beanClass);
+      }
+      for (PropertyDescriptor desc : descs) {
+        try {
+          Field field = beanClass.getDeclaredField(desc.getName());
+          if (Modifier.isTransient(field.getModifiers())) {
+            desc.setValue("transient", Boolean.TRUE);
+          }
+        } catch (NoSuchFieldException e) {
+          // ignore
+        }
+      }
+    }
+    catch (IntrospectionException ie) {
+      throw new RuntimeException(ie);
     }
   }
 

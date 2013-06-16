@@ -98,6 +98,13 @@ public final class OperatorFactory {
         HashTableSinkOperator.class));
     opvec.add(new OpTuple<DummyStoreDesc>(DummyStoreDesc.class,
         DummyStoreOperator.class));
+
+    for (OpTuple tuple : opvec) {
+      PTFUtils.makeTransientFieldsTransient(tuple.opClass);
+    }
+    PTFUtils.makeTransientFieldsTransient(Operator.class);
+    PTFUtils.makeTransientFieldsTransient(CommonJoinOperator.class);
+    PTFUtils.makeTransientFieldsTransient(AbstractMapJoinOperator.class);
   }
 
   public static <T extends OperatorDesc> Operator<T> get(Class<T> opClass) {

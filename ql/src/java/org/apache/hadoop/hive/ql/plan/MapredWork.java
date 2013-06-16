@@ -556,6 +556,10 @@ public class MapredWork extends AbstractOperatorDesc {
     this.useBucketizedHiveInputFormat = useBucketizedHiveInputFormat;
   }
 
+  public boolean hasMapJoin() {
+    return mapLocalWork != null || useBucketizedHiveInputFormat;
+  }
+
   public boolean isFinalMapRed() {
     return finalMapRed;
   }

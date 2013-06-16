@@ -633,6 +633,7 @@ public class HiveConf extends Configuration {
     // 'minimal', 'more' (and 'all' later)
     HIVEFETCHTASKCONVERSION("hive.fetch.task.conversion", "minimal"),
     HIVEFETCHTASKCONVERSIONTHRESHOLD("hive.fetch.task.conversion.threshold", -1l),
+    HIVEFETCHTASKCONVERSIONINTERM("hive.fetch.task.conversion.interm", false),
     HIVEFETCHTASKCONVERSIONINSERT("hive.fetch.task.conversion.insert", false),
 
     // Serde for FetchTask
