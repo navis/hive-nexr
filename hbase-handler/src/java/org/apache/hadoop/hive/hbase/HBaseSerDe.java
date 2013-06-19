@@ -249,6 +249,10 @@ public class HBaseSerDe extends AbstractSerDe {
     return serdeParams;
   }
 
+  public HBaseRowSerializer getSerializer() {
+    return serializer;
+  }
+
   /**
    * Deserialize a row from the HBase Result writable to a LazyObject
    * @param result the HBase Result Writable containing the row

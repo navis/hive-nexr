@@ -23,9 +23,7 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.hive.serde2.ByteStream.Output;
 import org.apache.hadoop.hive.serde2.ByteStream.RandomAccessOutput;
-import org.apache.hadoop.hive.serde2.WriteBuffers;
 import org.apache.hadoop.hive.serde2.io.TimestampWritable;
 import org.apache.hadoop.hive.serde2.lazybinary.objectinspector.LazyBinaryObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -459,6 +457,19 @@ public final class LazyBinaryUtils {
             valueObjectInspector);
         break;
       }
+      case UNION: {
+        UnionTypeInfo unionTypeInfo = (UnionTypeInfo) typeInfo;
+        List<TypeInfo> types = unionTypeInfo.getAllUnionObjectTypeInfos();
+        List<ObjectInspector> fieldObjectInspectors = new ArrayList<ObjectInspector>(types.size());
+        for (int i = 0; i < types.size(); i++) {
+          fieldObjectInspectors
+              .add(getLazyBinaryObjectInspectorFromTypeInfo(types
+              .get(i)));
+        }
+        result = LazyBinaryObjectInspectorFactory.
+            getLazyBinaryUnionObjectInspector(fieldObjectInspectors);
+        break;
+      }
       case STRUCT: {
         StructTypeInfo structTypeInfo = (StructTypeInfo) typeInfo;
         List<String> fieldNames = structTypeInfo.getAllStructFieldNames();
@@ -474,20 +485,6 @@ public final class LazyBinaryUtils {
         result = LazyBinaryObjectInspectorFactory
             .getLazyBinaryStructObjectInspector(fieldNames,
             fieldObjectInspectors);
-        break;
-      }
-      case UNION: {
-        UnionTypeInfo unionTypeInfo = (UnionTypeInfo) typeInfo;
-        final List<TypeInfo> fieldTypeInfos = unionTypeInfo.getAllUnionObjectTypeInfos();
-        List<ObjectInspector> fieldObjectInspectors = new ArrayList<ObjectInspector>(
-          fieldTypeInfos.size());
-        for (int i = 0; i < fieldTypeInfos.size(); i++) {
-          fieldObjectInspectors
-            .add(getLazyBinaryObjectInspectorFromTypeInfo(fieldTypeInfos
-                                                            .get(i)));
-        }
-        result = LazyBinaryObjectInspectorFactory
-            .getLazyBinaryUnionObjectInspector(fieldObjectInspectors);
         break;
       }
       default: {

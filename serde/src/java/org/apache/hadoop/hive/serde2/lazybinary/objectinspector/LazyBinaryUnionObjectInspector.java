@@ -20,7 +20,6 @@ package org.apache.hadoop.hive.serde2.lazybinary.objectinspector;
 import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryUnion;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StandardUnionObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.UnionObject;
 
 import java.util.List;
 
@@ -29,35 +28,24 @@ import java.util.List;
  *
  * @see org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryUnion
  */
-public class LazyBinaryUnionObjectInspector extends
-    StandardUnionObjectInspector {
-
-  protected LazyBinaryUnionObjectInspector() {
-    super();
-  }
-  protected LazyBinaryUnionObjectInspector(List<ObjectInspector> unionFieldObjectInspectors) {
-    super(unionFieldObjectInspectors);
+public class LazyBinaryUnionObjectInspector extends StandardUnionObjectInspector {
+  public LazyBinaryUnionObjectInspector(List<ObjectInspector> ois) {
+    super(ois);
   }
 
   /**
    * Return the tag of the object.
    */
+  @Override
   public byte getTag(Object o) {
-    if (o == null) {
-      return -1;
-    }
-    LazyBinaryUnion lazyBinaryUnion = (LazyBinaryUnion) o;
-    return lazyBinaryUnion.getTag();
+    return o == null ? -1 : ((LazyBinaryUnion) o).getTag();
   }
 
   /**
    * Return the field based on the tag value associated with the Object.
    */
+  @Override
   public Object getField(Object o) {
-    if (o == null) {
-      return null;
-    }
-    LazyBinaryUnion lazyBinaryUnion = (LazyBinaryUnion) o;
-    return lazyBinaryUnion.getField();
+    return o == null ? null : ((LazyBinaryUnion) o).getField();
   }
 }

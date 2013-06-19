@@ -1,0 +1,82 @@
+PREHOOK: query: DROP table hbase_export
+PREHOOK: type: DROPTABLE
+POSTHOOK: query: DROP table hbase_export
+POSTHOOK: type: DROPTABLE
+PREHOOK: query: CREATE EXTERNAL TABLE hbase_export(rowkey STRING, col1 STRING, col2 STRING)
+ROW FORMAT SERDE 'org.apache.hadoop.hive.hbase.HBaseExportSerDe'
+WITH SERDEPROPERTIES ("hbase.columns.mapping" = "cf2:value,:key,cf1:key")
+STORED AS
+  INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat'
+  OUTPUTFORMAT 'org.apache.hadoop.hive.hbase.HiveHFileExporter'
+#### A masked pattern was here ####
+PREHOOK: type: CREATETABLE
+#### A masked pattern was here ####
+PREHOOK: Output: database:default
+POSTHOOK: query: CREATE EXTERNAL TABLE hbase_export(rowkey STRING, col1 STRING, col2 STRING)
+ROW FORMAT SERDE 'org.apache.hadoop.hive.hbase.HBaseExportSerDe'
+WITH SERDEPROPERTIES ("hbase.columns.mapping" = "cf2:value,:key,cf1:key")
+STORED AS
+  INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat'
+  OUTPUTFORMAT 'org.apache.hadoop.hive.hbase.HiveHFileExporter'
+#### A masked pattern was here ####
+POSTHOOK: type: CREATETABLE
+#### A masked pattern was here ####
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@hbase_export
+PREHOOK: query: INSERT OVERWRITE TABLE hbase_export
+SELECT * from (SELECT hfile_kv(key,key,value,"cf2:value,:key,cf1:key") as (key,values) FROM src) A ORDER BY key,values
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: default@hbase_export
+POSTHOOK: query: INSERT OVERWRITE TABLE hbase_export
+SELECT * from (SELECT hfile_kv(key,key,value,"cf2:value,:key,cf1:key") as (key,values) FROM src) A ORDER BY key,values
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: default@hbase_export
+POSTHOOK: Lineage: hbase_export.key SCRIPT [(src)src.FieldSchema(name:key, type:string, comment:default), (src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: hbase_export.values SCRIPT [(src)src.FieldSchema(name:key, type:string, comment:default), (src)src.FieldSchema(name:value, type:string, comment:default), ]
+#### A masked pattern was here ####
+PREHOOK: query: -- QTestUtil masks something like this (validated by HFile.Writer itself)
+#### A masked pattern was here ####
+
+desc formatted hbase_export
+PREHOOK: type: DESCTABLE
+PREHOOK: Input: default@hbase_export
+POSTHOOK: query: -- QTestUtil masks something like this (validated by HFile.Writer itself)
+#### A masked pattern was here ####
+
+desc formatted hbase_export
+POSTHOOK: type: DESCTABLE
+POSTHOOK: Input: default@hbase_export
+# col_name            	data_type           	comment             
+	 	 
+key                 	string              	from deserializer   
+values              	uniontype<string,string>	from deserializer   
+	 	 
+# Detailed Table Information	 	 
+Database:           	default             	 
+#### A masked pattern was here ####
+Protect Mode:       	None                	 
+Retention:          	0                   	 
+#### A masked pattern was here ####
+Table Type:         	EXTERNAL_TABLE      	 
+Table Parameters:	 	 
+	COLUMN_STATS_ACCURATE	true                
+	EXTERNAL            	TRUE                
+	numFiles            	0                   
+	numRows             	0                   
+	rawDataSize         	0                   
+	totalSize           	0                   
+#### A masked pattern was here ####
+	 	 
+# Storage Information	 	 
+SerDe Library:      	org.apache.hadoop.hive.hbase.HBaseExportSerDe	 
+InputFormat:        	org.apache.hadoop.mapred.TextInputFormat	 
+OutputFormat:       	org.apache.hadoop.hive.hbase.HiveHFileExporter	 
+Compressed:         	No                  	 
+Num Buckets:        	-1                  	 
+Bucket Columns:     	[]                  	 
+Sort Columns:       	[]                  	 
+Storage Desc Params:	 	 
+	hbase.columns.mapping	cf2:value,:key,cf1:key
+	serialization.format	1                   

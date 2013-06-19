@@ -436,6 +436,8 @@ public final class FunctionRegistry {
     system.registerTableFunction(NOOP_STREAMING_MAP_TABLE_FUNCTION, NoopWithMapStreamingResolver.class);
     system.registerTableFunction(WINDOWING_TABLE_FUNCTION, WindowingTableFunctionResolver.class);
     system.registerTableFunction(MATCH_PATH_TABLE_FUNCTION, MatchPathResolver.class);
+
+    system.registerGenericUDTF("hfile_kv", HFileKeyValue.class);
   }
 
   public static String getNormalizedFunctionName(String fn) throws SemanticException {

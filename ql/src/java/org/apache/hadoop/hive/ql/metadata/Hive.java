@@ -103,6 +103,7 @@ import org.apache.hadoop.hive.ql.exec.FunctionTask;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.index.HiveIndexHandler;
 import org.apache.hadoop.hive.ql.io.AcidUtils;
+import org.apache.hadoop.hive.ql.io.HiveOutputCommitter;
 import org.apache.hadoop.hive.ql.optimizer.listbucketingpruner.ListBucketingPrunerUtils;
 import org.apache.hadoop.hive.ql.plan.AddPartitionDesc;
 import org.apache.hadoop.hive.ql.plan.DropTableDesc;
@@ -115,6 +116,7 @@ import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.shims.HadoopShims;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.mapred.InputFormat;
+import org.apache.hadoop.mapred.OutputFormat;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.thrift.TException;
@@ -1382,6 +1384,11 @@ public class Hive {
         newPartPath = oldPartPath;
       }
 
+      HiveOutputCommitter committer = getCommitter(tbl.getOutputFormatClass());
+      if (committer != null) {
+        committer.commit(conf, loadPath);
+      }
+
       List<Path> newFiles = null;
       if (replace) {
         Hive.replaceFiles(tbl.getPath(), loadPath, newPartPath, oldPartPath, getConf(),
@@ -1411,6 +1418,9 @@ public class Hive {
               newFiles);
           return new Partition(tbl, newCreatedTpart);
         }
+      }
+      if (committer != null) {
+        committer.completed(conf);
       }
     } catch (IOException e) {
       LOG.error(StringUtils.stringifyException(e));
@@ -1614,6 +1624,11 @@ private void constructOneLBLocationMap(FileStatus fSta,
     List<Path> newFiles = new ArrayList<Path>();
     Table tbl = getTable(tableName);
     HiveConf sessionConf = SessionState.getSessionConf();
+    HiveOutputCommitter committer = getCommitter(tbl.getOutputFormatClass());
+    if (committer != null) {
+      committer.commit(conf, loadPath);
+    }
+
     if (replace) {
       Path tableDest = tbl.getPath();
       replaceFiles(tableDest, loadPath, tableDest, tableDest, sessionConf, isSrcLocal);
@@ -1649,7 +1664,24 @@ private void constructOneLBLocationMap(FileStatus fSta,
         throw new HiveException(e);
       }
     }
+
     fireInsertEvent(tbl, null, newFiles);
+
+    if (committer != null) {
+      committer.completed(conf);
+    }
+  }
+
+  private HiveOutputCommitter getCommitter(Class<? extends OutputFormat> output)
+      throws HiveException {
+    if (HiveOutputCommitter.class.isAssignableFrom(output)) {
+      try {
+        return (HiveOutputCommitter) output.newInstance();
+      } catch (Exception e) {
+        throw new HiveException(e);
+      }
+    }
+    return null;
   }
 
   /**

@@ -575,7 +575,7 @@
                   outputDirectory="${project.build.directory}/generated-test-sources/java/org/apache/hadoop/hive/cli/"
                   templatePath="${basedir}/${hive.path.to.root}/hbase-handler/src/test/templates/" template="TestHBaseCliDriver.vm"
                   queryDirectory="${basedir}/${hive.path.to.root}/hbase-handler/src/test/queries/positive/"
-                  queryFile="hbase_bulk.m"
+                  queryFile="hbase_bulk.m,hbase_bulk2.m"
                   runDisabled="${run_disabled}"
                   clusterMode="miniMR"
                   resultsDirectory="${basedir}/${hive.path.to.root}/hbase-handler/src/test/results/positive/" className="TestHBaseMinimrCliDriver"

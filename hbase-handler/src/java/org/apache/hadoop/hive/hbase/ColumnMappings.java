@@ -411,5 +411,10 @@ public class ColumnMappings implements Iterable<ColumnMappings.ColumnMapping> {
     public boolean isComparable() {
       return binaryStorage.get(0) || isCategory(PrimitiveCategory.STRING);
     }
+
+    public boolean convertToJson(ObjectInspector input) {
+      return columnType.getCategory() == ObjectInspector.Category.PRIMITIVE &&
+          input.getCategory() != ObjectInspector.Category.PRIMITIVE;
+    }
   }
 }

@@ -56,7 +56,7 @@ public class DefaultHBaseKeyFactory extends AbstractHBaseKeyFactory implements H
 
   @Override
   public byte[] serializeKey(Object object, StructField field) throws IOException {
-    return serializer.serializeKeyField(object, field, keyMapping);
+    return serializer.serializeKeyField(object, field);
   }
 
   @VisibleForTesting
