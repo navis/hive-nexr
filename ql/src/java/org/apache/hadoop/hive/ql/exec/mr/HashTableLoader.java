@@ -35,8 +35,6 @@ import org.apache.hadoop.hive.ql.exec.MapJoinOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.TemporaryHashSinkOperator;
 import org.apache.hadoop.hive.ql.exec.Utilities;
-import org.apache.hadoop.hive.ql.exec.persistence.MapJoinKey;
-import org.apache.hadoop.hive.ql.exec.persistence.MapJoinKeyObject;
 import org.apache.hadoop.hive.ql.exec.persistence.MapJoinTableContainer;
 import org.apache.hadoop.hive.ql.exec.persistence.MapJoinTableContainerSerDe;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
@@ -143,8 +141,8 @@ public class HashTableLoader implements org.apache.hadoop.hive.ql.exec.HashTable
         operator.setChildOperators(Arrays.<Operator<? extends OperatorDesc>>asList(sink));
       }
     }
-    localTask.setExecContext(context);
-    localTask.startForward(inputFileName);
+
+    localTask.startForward(context, inputFileName);
 
     MapJoinTableContainer[] tables = sink.getMapJoinTables();
     for (int i = 0; i < sink.getNumParent(); i++) {

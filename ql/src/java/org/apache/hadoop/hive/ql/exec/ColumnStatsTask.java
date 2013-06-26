@@ -79,7 +79,6 @@ public class ColumnStatsTask extends Task<ColumnStatsWork> implements Serializab
   @Override
   public void initialize(HiveConf conf, QueryPlan queryPlan, DriverContext ctx) {
     super.initialize(conf, queryPlan, ctx);
-    work.initializeForFetch();
     try {
       JobConf job = new JobConf(conf);
       ftOp = new FetchOperator(work.getfWork(), job);

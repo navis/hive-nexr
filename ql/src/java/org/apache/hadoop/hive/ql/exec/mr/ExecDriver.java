@@ -543,7 +543,7 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
         OperatorUtils.setChildrenCollector(ts.getChildOperators(), sampler);
         while (fetcher.pushRow()) { }
       } finally {
-        fetcher.clearFetchContext();
+        fetcher.close();
       }
     } else {
       throw new IllegalArgumentException("Invalid sampling type " + mWork.getSamplingType());

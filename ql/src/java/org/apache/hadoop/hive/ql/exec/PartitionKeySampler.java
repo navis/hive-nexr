@@ -168,23 +168,16 @@ public class PartitionKeySampler implements OutputCollector<HiveKey, Object> {
     }
 
     @Override
-    public boolean pushRow() throws IOException, HiveException {
-      if (!super.pushRow()) {
-        return false;
-      }
-      if (sampled < sampleNum) {
+    protected boolean pushRow(InspectableObject row) throws HiveException {
+      if (row != null && sampled < sampleNum) {
+        if (random.nextFloat() < samplePercent) {
+          sampled++;
+          return super.pushRow(row);
+        }
         return true;
       }
-      flushRow();
+      flushRows();
       return false;
-    }
-
-    @Override
-    protected void pushRow(InspectableObject row) throws HiveException {
-      if (random.nextFloat() < samplePercent) {
-        sampled++;
-        super.pushRow(row);
-      }
     }
   }
 }

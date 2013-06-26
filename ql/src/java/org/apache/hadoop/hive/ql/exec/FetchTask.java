@@ -30,7 +30,6 @@ import org.apache.hadoop.hive.ql.DriverContext;
 import org.apache.hadoop.hive.ql.QueryPlan;
 import org.apache.hadoop.hive.ql.io.HiveInputFormat;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
-import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
 import org.apache.hadoop.hive.ql.plan.FileSinkDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
@@ -76,7 +75,7 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
         HiveInputFormat.pushFilters(job, ts);
       }
       sink = work.getSink();
-      fetch = new FetchOperator(work, job, source, getVirtualColumns(source));
+      fetch = new FetchOperator(work, job, source, null);
       source.initialize(conf, new ObjectInspector[]{fetch.getOutputObjectInspector()});
       totalRows = 0;
 
@@ -86,13 +85,6 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
       LOG.error(StringUtils.stringifyException(e));
       throw new RuntimeException(e);
     }
-  }
-
-  private List<VirtualColumn> getVirtualColumns(Operator<?> ts) {
-    if (ts instanceof TableScanOperator && ts.getConf() != null) {
-      return ((TableScanOperator)ts).getConf().getVirtualCols();
-    }
-    return null;
   }
 
   @Override
@@ -130,7 +122,7 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
     }
     try {
       if (rowsRet <= 0 || work.getLimit() == totalRows) {
-        fetch.clearFetchContext();
+        fetch.close();
         return false;
       }
       boolean fetched = false;
@@ -170,13 +162,19 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
   }
 
   /**
-   * Clear the Fetch Operator.
+   * Clear the Fetch Operator and reset ExecContext if exists (reusable)
    *
    * @throws HiveException
    */
   public void clearFetch() throws HiveException {
     if (fetch != null) {
       fetch.clearFetchContext();
+    }
+  }
+
+  public void close() throws HiveException {
+    if (fetch != null) {
+      fetch.close();
     }
   }
 }

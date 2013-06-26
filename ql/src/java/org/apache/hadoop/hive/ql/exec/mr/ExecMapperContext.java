@@ -17,11 +17,8 @@
  */
 package org.apache.hadoop.hive.ql.exec.mr;
 
-import java.util.Map;
-
 import org.apache.commons.logging.Log;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hive.ql.exec.FetchOperator;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.io.IOContext;
 import org.apache.hadoop.hive.ql.plan.MapredLocalWork;
@@ -46,12 +43,11 @@ public class ExecMapperContext {
   // if big alias is partitioned table, it's partition spec + bucket number
   private String fileId = null;
   private MapredLocalWork localWork = null;
-  private Map<String, FetchOperator> fetchOperators;
   private JobConf jc;
 
   private IOContext ioCxt;
 
-  private String currentBigBucketFile=null;
+  private String currentBigBucketFile;
 
   public String getCurrentBigBucketFile() {
     return currentBigBucketFile;
@@ -66,13 +62,19 @@ public class ExecMapperContext {
     ioCxt = IOContext.get(jc);
   }
 
+  public void reset() {
+    lastInputPath = null;
+    currentInputPath = null;
+    inputFileChecked = false;
+  }
+
   public void clear() {
     IOContext.clear();
     ioCxt = null;
   }
 
   /**
-   * For CompbineFileInputFormat, the mapper's input file will be changed on the
+   * For CombineFileInputFormat, the mapper's input file will be changed on the
    * fly, and the input file name is passed to jobConf by shims/initNextRecordReader.
    * If the map local work has any mapping depending on the current
    * mapper's input file, the work need to clear context and re-initialization
@@ -138,14 +140,6 @@ public class ExecMapperContext {
 
   public void setFileId(String fileId) {
     this.fileId = fileId;
-  }
-
-  public Map<String, FetchOperator> getFetchOperators() {
-    return fetchOperators;
-  }
-
-  public void setFetchOperators(Map<String, FetchOperator> fetchOperators) {
-    this.fetchOperators = fetchOperators;
   }
 
   public IOContext getIoCxt() {

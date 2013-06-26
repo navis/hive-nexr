@@ -127,16 +127,17 @@ public class FetchOperator implements Serializable {
     this(work, job, null, null);
   }
 
-  public FetchOperator(FetchWork work, JobConf job, Operator<?> operator,
-      List<VirtualColumn> vcCols) throws HiveException {
+  public FetchOperator(FetchWork work, JobConf job, Operator<?> operator, 
+      ExecMapperContext context) throws HiveException {
     this.job = job;
     this.work = work;
     this.operator = operator;
-    this.vcCols = vcCols;
+    this.vcCols = getVirtualColumns(operator);
     this.hasVC = vcCols != null && !vcCols.isEmpty();
     this.isStatReader = work.getTblDesc() == null;
     this.isPartitioned = !isStatReader && work.isPartitioned();
     this.isNonNativeTable = !isStatReader && work.getTblDesc().isNonNative();
+    this.context = setupExecContext(context, operator, work.getPathLists());
     initialize();
   }
 
@@ -170,19 +171,25 @@ public class FetchOperator implements Serializable {
       iterPartDesc = Iterators.cycle(new PartitionDesc(work.getTblDesc(), null));
     }
     outputOI = setupOutputObjectInspector();
-    context = setupExecContext(operator, work.getPathLists());
   }
 
-  private ExecMapperContext setupExecContext(Operator operator, List<Path> paths) {
-    ExecMapperContext context = null;
-    if (hasVC || work.getSplitSample() != null) {
+  private ExecMapperContext setupExecContext(ExecMapperContext context, 
+      Operator operator, List<Path> paths) {
+    if (context == null && (hasVC || work.getSplitSample() != null)) {
       context = new ExecMapperContext(job);
-      if (operator != null) {
-        operator.setExecContext(context);
-      }
+    }
+    if (operator != null && context != null) {
+      operator.setExecContext(context);
     }
     setFetchOperatorContext(job, paths);
     return context;
+  }
+
+  private List<VirtualColumn> getVirtualColumns(Operator<?> ts) {
+    if (ts instanceof TableScanOperator && ts.getConf() != null) {
+      return ((TableScanOperator)ts).getConf().getVirtualCols();
+    }
+    return null;
   }
 
   public FetchWork getWork() {
@@ -401,30 +408,40 @@ public class FetchOperator implements Serializable {
 
   /**
    * Get the next row and push down it to operator tree.
-   * Currently only used by FetchTask.
+   * Currently only used by FetchTask and ExecDriver (for partition sampling).
    **/
   public boolean pushRow() throws IOException, HiveException {
-    if (work.getRowsComputedUsingStats() != null) {
-      for (List<Object> row : work.getRowsComputedUsingStats()) {
-        operator.processOp(row, 0);
-      }
-      flushRow();
-      return true;
+    if (work.getRowsComputedUsingStats() == null) {
+      return pushRow(getNextRow());
     }
-    InspectableObject row = getNextRow();
+    for (List<Object> row : work.getRowsComputedUsingStats()) {
+      operator.processOp(row, 0);
+    }
+    flushRows();
+    return true;
+  }
+
+  protected boolean pushRow(InspectableObject row) throws HiveException {
     if (row != null) {
-      pushRow(row);
-    } else {
-      flushRow();
+      operator.processOp(row.o, 0);
+      if (!operator.getDone()) {
+        return true;
+      }
     }
-    return row != null;
+    operator.flush();
+    return false;
   }
 
-  protected void pushRow(InspectableObject row) throws HiveException {
-    operator.processOp(row.o, 0);
+  // push all
+  public void pushRows() throws IOException, HiveException {
+    InspectableObject row;
+    while (!operator.getDone() && (row = getNextRow()) != null) {
+      operator.processOp(row.o, 0);
+    }
+    flushRows();
   }
 
-  protected void flushRow() throws HiveException {
+  protected void flushRows() throws HiveException {
     operator.flush();
   }
 
@@ -519,12 +536,10 @@ public class FetchOperator implements Serializable {
         currRecReader = null;
       }
       if (operator != null) {
-        operator.close(false);
-        operator = null;
+        operator.reset();
       }
       if (context != null) {
-        context.clear();
-        context = null;
+        context.reset();
       }
       this.currPath = null;
       this.iterPath = null;
@@ -536,10 +551,18 @@ public class FetchOperator implements Serializable {
     }
   }
 
+  public void close() throws HiveException {
+    clearFetchContext();
+    if (operator != null) {
+      operator.close(false);
+      operator = null;
+    }
+  }
+
   /**
    * used for bucket map join
    */
-  public void setupContext(List<Path> paths) {
+  public void setupContext(String inputBucketPath, List<Path> paths) {
     this.iterPath = paths.iterator();
     List<PartitionDesc> partitionDescs;
     if (!isPartitioned) {
@@ -547,7 +570,8 @@ public class FetchOperator implements Serializable {
     } else {
       this.iterPartDesc = work.getPartDescs(paths).iterator();
     }
-    this.context = setupExecContext(operator, paths);
+    context = setupExecContext(context, operator, paths);
+    context.setCurrentBigBucketFile(inputBucketPath);
   }
 
   /**

@@ -32,6 +32,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.ObjectPair;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.ql.exec.mr.ExecMapperContext;
 import org.apache.hadoop.hive.ql.exec.persistence.RowContainer;
 import org.apache.hadoop.hive.ql.io.HiveInputFormat;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
@@ -196,12 +197,8 @@ public class SMBMapJoinOperator extends AbstractMapJoinOperator<SMBJoinDesc> imp
       // push down filters
       HiveInputFormat.pushFilters(jobClone, ts);
 
-
-      ts.setExecContext(getExecContext());
-
-      FetchOperator fetchOp = new FetchOperator(fetchWork, jobClone);
+      FetchOperator fetchOp = new FetchOperator(fetchWork, jobClone, ts, getExecContext());
       ts.initialize(jobClone, new ObjectInspector[]{fetchOp.getOutputObjectInspector()});
-      fetchOp.clearFetchContext();
 
       DummyStoreOperator sinkOp = aliasToSinkWork.get(alias);
 
@@ -526,16 +523,17 @@ public class SMBMapJoinOperator extends AbstractMapJoinOperator<SMBJoinDesc> imp
     Class<? extends BucketMatcher> bucketMatcherCls = bucketMatcherCxt.getBucketMatcherClass();
     BucketMatcher bucketMatcher = ReflectionUtils.newInstance(bucketMatcherCls, null);
 
-    getExecContext().setFileId(bucketMatcherCxt.createFileId(currentInputPath.toString()));
+    String inputPathString = currentInputPath.toString();
+    getExecContext().setFileId(bucketMatcherCxt.createFileId(inputPathString));
     LOG.info("set task id: " + getExecContext().getFileId());
 
     bucketMatcher.setAliasBucketFileNameMapping(bucketMatcherCxt
         .getAliasBucketFileNameMapping());
 
-    List<Path> aliasFiles = bucketMatcher.getAliasBucketFiles(currentInputPath.toString(),
+    List<Path> aliasFiles = bucketMatcher.getAliasBucketFiles(inputPathString,
         bucketMatcherCxt.getMapJoinBigTableAlias(), alias);
 
-    mergeQueue.setupContext(aliasFiles);
+    mergeQueue.setupContext(inputPathString, aliasFiles);
   }
 
   private void fetchOneRow(byte tag) {
@@ -622,7 +620,7 @@ public class SMBMapJoinOperator extends AbstractMapJoinOperator<SMBJoinDesc> imp
       MergeQueue mergeQueue = entry.getValue();
       Operator forwardOp = localWork.getAliasToWork().get(alias);
       forwardOp.close(abort);
-      mergeQueue.clearFetchContext();
+      mergeQueue.close();
     }
   }
 
@@ -695,16 +693,17 @@ public class SMBMapJoinOperator extends AbstractMapJoinOperator<SMBJoinDesc> imp
     // currently, number of paths is always the same (bucket numbers are all the same over
     // all partitions in a table).
     // But if hive supports assigning bucket number for each partition, this can be vary
-    public void setupContext(List<Path> paths) throws HiveException {
+    public void setupContext(String inputPath, List<Path> paths) throws HiveException {
       int segmentLen = paths.size();
       FetchOperator.setFetchOperatorContext(jobConf, fetchWork.getPartDir());
       FetchOperator[] segments = segmentsForSize(segmentLen);
       for (int i = 0 ; i < segmentLen; i++) {
         Path path = paths.get(i);
         if (segments[i] == null) {
-          segments[i] = new FetchOperator(fetchWork, new JobConf(jobConf));
+          ExecMapperContext context = getExecContext();
+          segments[i] = new FetchOperator(fetchWork, new JobConf(jobConf), forwardOp, context);
         }
-        segments[i].setupContext(Arrays.asList(path));
+        segments[i].setupContext(inputPath, Arrays.asList(path));
       }
       initialize(segmentLen);
       for (int i = 0; i < segmentLen; i++) {
@@ -745,7 +744,7 @@ public class SMBMapJoinOperator extends AbstractMapJoinOperator<SMBJoinDesc> imp
       return compareKeys(keys[(Integer) a].getFirst(), keys[(Integer)b].getFirst()) < 0;
     }
 
-    public final InspectableObject getNextRow() throws IOException {
+    public final InspectableObject getNextRow() throws HiveException, IOException {
       if (currentMinSegment != null) {
         adjustPriorityQueue(currentMinSegment);
       }
@@ -758,8 +757,8 @@ public class SMBMapJoinOperator extends AbstractMapJoinOperator<SMBJoinDesc> imp
       return keys[currentMinSegment = current].getSecond();
     }
 
-    private void adjustPriorityQueue(Integer current) throws IOException {
-      if (nextIO(current)) {
+    private void adjustPriorityQueue(Integer current) throws HiveException, IOException {
+      if (next(current)) {
         adjustTop();  // sort
       } else {
         pop();
@@ -772,15 +771,6 @@ public class SMBMapJoinOperator extends AbstractMapJoinOperator<SMBJoinDesc> imp
         return next(current);
       } catch (IOException e) {
         throw new HiveException(e);
-      }
-    }
-
-    // wrapping for exception handling
-    private boolean nextIO(Integer current) throws IOException {
-      try {
-        return next(current);
-      } catch (HiveException e) {
-        throw new IOException(e);
       }
     }
 
@@ -815,6 +805,17 @@ public class SMBMapJoinOperator extends AbstractMapJoinOperator<SMBJoinDesc> imp
       }
       keys[current] = null;
       return false;
+    }
+
+    public void close() throws HiveException {
+      if (segments != null) {
+        for (FetchOperator op : segments) {
+          if (op != null) {
+            op.close();
+          }
+        }
+      }
+      segments = null;
     }
   }
 

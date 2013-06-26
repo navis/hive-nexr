@@ -1734,7 +1734,7 @@ public class Driver implements CommandProcessor {
         FetchTask fetchTask = plan.getFetchTask();
         if (null != fetchTask) {
           try {
-            fetchTask.clearFetch();
+            fetchTask.close();
           } catch (Exception e) {
             LOG.debug(" Exception while clearing the Fetch task ", e);
           }

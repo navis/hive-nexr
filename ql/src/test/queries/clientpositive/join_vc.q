@@ -12,3 +12,12 @@ from src t1 join src t2 on t1.key = t2.key where t1.key < 100 order by t2.BLOCK_
 
 select t2.BLOCK__OFFSET__INSIDE__FILE
 from src t1 join src t2 on t1.key = t2.key where t1.key < 100 order by t2.BLOCK__OFFSET__INSIDE__FILE;
+
+set hive.auto.convert.join=true;
+
+-- HIVE-4790 MapredLocalTask does not make virtual columns
+
+explain
+SELECT *,a.BLOCK__OFFSET__INSIDE__FILE FROM src a JOIN src b ON a.key = b.key where a.key < 50 order by a.key, a.BLOCK__OFFSET__INSIDE__FILE;
+SELECT *,a.BLOCK__OFFSET__INSIDE__FILE FROM src a JOIN src b ON a.key = b.key where a.key < 50 order by a.key, a.BLOCK__OFFSET__INSIDE__FILE;
+

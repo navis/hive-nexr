@@ -62,10 +62,7 @@ import org.apache.hadoop.hive.ql.plan.api.StageType;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.ql.session.SessionState.LogHelper;
 import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
-import org.apache.hadoop.hive.serde2.objectinspector.InspectableObject;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.shims.HadoopShims;
-import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.hive.shims.Utils;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -82,7 +79,6 @@ import org.apache.hive.common.util.StreamPrinter;
  */
 public class MapredLocalTask extends Task<MapredLocalWork> implements Serializable {
 
-  private final Map<String, FetchOperator> fetchOperators = new HashMap<String, FetchOperator>();
   protected HadoopJobExecHelper jobExecHelper;
   private JobConf job;
   public static transient final Log l4j = LogFactory.getLog(MapredLocalTask.class);
@@ -91,10 +87,6 @@ public class MapredLocalTask extends Task<MapredLocalWork> implements Serializab
   static final String[] HIVE_SYS_PROP = {"build.dir", "build.dir.hive", "hive.query.id"};
   public static MemoryMXBean memoryMXBean;
   private static final Log LOG = LogFactory.getLog(MapredLocalTask.class);
-
-  // not sure we need this exec context; but all the operators in the work
-  // will pass this context throught
-  private ExecMapperContext execContext = null;
 
   private Process executor;
 
@@ -108,15 +100,10 @@ public class MapredLocalTask extends Task<MapredLocalWork> implements Serializab
     console = new LogHelper(LOG, isSilent);
   }
 
-  public void setExecContext(ExecMapperContext execContext) {
-    this.execContext = execContext;
-  }
-
   @Override
   public void initialize(HiveConf conf, QueryPlan queryPlan, DriverContext driverContext) {
     super.initialize(conf, queryPlan, driverContext);
     job = new JobConf(conf, ExecDriver.class);
-    execContext = new ExecMapperContext(job);
     //we don't use the HadoopJobExecHooks for local tasks
     this.jobExecHelper = new HadoopJobExecHelper(job, console, this, null);
   }
@@ -326,20 +313,15 @@ public class MapredLocalTask extends Task<MapredLocalWork> implements Serializab
       return -1;
     }
 
-    if (execContext == null) {
-      execContext = new ExecMapperContext(job);
-    }
-
     memoryMXBean = ManagementFactory.getMemoryMXBean();
     long startTime = System.currentTimeMillis();
     console.printInfo(Utilities.now()
         + "\tStarting to launch local task to process map join;\tmaximum memory = "
         + memoryMXBean.getHeapMemoryUsage().getMax());
-    execContext.setJc(job);
-    // set the local work, so all the operator can get this context
-    execContext.setLocalWork(work);
+
+    ExecMapperContext context = new ExecMapperContext(job);
     try {
-      startForward(null);
+      startForward(context, null);
       long currentTime = System.currentTimeMillis();
       long elapsed = currentTime - startTime;
       console.printInfo(Utilities.now() + "\tEnd of local task; Time Taken: "
@@ -349,128 +331,111 @@ public class MapredLocalTask extends Task<MapredLocalWork> implements Serializab
           || (throwable instanceof MapJoinMemoryExhaustionException)) {
         l4j.error("Hive Runtime Error: Map local work exhausted memory", throwable);
         return 3;
-      } else {
-        l4j.error("Hive Runtime Error: Map local work failed", throwable);
-        return 2;
       }
+      console.printError(org.apache.hadoop.util.StringUtils.stringifyException(throwable));
+      l4j.error("Hive Runtime Error: Map local work failed", throwable);
+      return 2;
+    } finally {
+      context.clear();
     }
     return 0;
   }
 
-  public void startForward(String bigTableBucket) throws Exception {
-    boolean inputFileChangeSenstive = work.getInputFileChangeSensitive();
-    initializeOperators(new HashMap<FetchOperator, JobConf>());
+  public void startForward(ExecMapperContext execContext, String bigTableBucket)
+      throws Exception {
+
+    execContext.setJc(job);
+    // set the local work, so all the operator can get this context
+    execContext.setLocalWork(work);
+
+    Map<String, FetchOperator> fetchers = initializeOperators(execContext);
+
     // for each big table's bucket, call the start forward
-    if (inputFileChangeSenstive) {
+    if (work.getInputFileChangeSensitive()) {
       for (Map<String, List<String>> bigTableBucketFiles : work
           .getBucketMapjoinContext().getAliasBucketFileNameMapping().values()) {
         if (bigTableBucket == null) {
           for (String bigTableBucketFile : bigTableBucketFiles.keySet()) {
-            startForward(inputFileChangeSenstive, bigTableBucketFile);
+            startForward(fetchers, bigTableBucketFile);
           }
         } else if (bigTableBucketFiles.keySet().contains(bigTableBucket)) {
-          startForward(inputFileChangeSenstive, bigTableBucket);
+          startForward(fetchers, bigTableBucket);
         }
       }
     } else {
-      startForward(inputFileChangeSenstive, null);
+      startForward(fetchers, null);
     }
   }
 
-  private void startForward(boolean inputFileChangeSenstive, String bigTableBucket)
+  private void startForward(Map<String, FetchOperator> fetchers, String bigTableBucket)
       throws Exception {
     for (Operator<?> source : work.getAliasToWork().values()) {
       source.reset();
     }
-    if (inputFileChangeSenstive) {
-      execContext.setCurrentBigBucketFile(bigTableBucket);
-    }
-    for (Map.Entry<String, FetchOperator> entry : fetchOperators.entrySet()) {
+    for (Map.Entry<String, FetchOperator> entry : fetchers.entrySet()) {
       String alias = entry.getKey();
       FetchOperator fetchOp = entry.getValue();
 
-      if (inputFileChangeSenstive) {
-        fetchOp.clearFetchContext();
+      if (bigTableBucket != null) {
         setUpFetchOpContext(fetchOp, alias, bigTableBucket);
       }
-
-      // get the root operator
-      Operator<? extends OperatorDesc> forwardOp = work.getAliasToWork().get(alias);
-      // walk through the operator tree
-      while (!forwardOp.getDone()) {
-        InspectableObject row = fetchOp.getNextRow();
-        if (row == null) {
-          break;
-        }
-        forwardOp.processOp(row.o, 0);
+      try {
+        fetchOp.pushRows();
+      } finally {
+        fetchOp.clearFetchContext();
       }
-      forwardOp.flush();
     }
     for (Operator<?> source : work.getAliasToWork().values()) {
-      source.close(false);
+      source.close(false);  // flush to file
     }
   }
 
-  private void initializeOperators(Map<FetchOperator, JobConf> fetchOpJobConfMap)
+  private Map<String, FetchOperator> initializeOperators(ExecMapperContext context)
       throws HiveException {
-    for (Map.Entry<String, Operator<? extends OperatorDesc>> entry : work.getAliasToWork().entrySet()) {
-      LOG.debug("initializeOperators: " +  entry.getKey() + ", children = "  + entry.getValue().getChildOperators());
-    }
-    // this mapper operator is used to initialize all the operators
+
+    Map<String, FetchOperator> fetchOperators = new HashMap<String, FetchOperator>();
+
+    // all operators should be initialized first before fetching
     for (Map.Entry<String, FetchWork> entry : work.getAliasToFetchWork().entrySet()) {
       if (entry.getValue() == null) {
         continue;
       }
       JobConf jobClone = new JobConf(job);
 
-      TableScanOperator ts = (TableScanOperator)work.getAliasToWork().get(entry.getKey());
+      Operator<?> forwardOp = work.getAliasToWork().get(entry.getKey());
       // push down projections
-      ColumnProjectionUtils.appendReadColumns(
-          jobClone, ts.getNeededColumnIDs(), ts.getNeededColumns());
-      // push down filters
-      HiveInputFormat.pushFilters(jobClone, ts);
-
-      // create a fetch operator
-      FetchOperator fetchOp = new FetchOperator(entry.getValue(), jobClone);
-      fetchOpJobConfMap.put(fetchOp, jobClone);
-      fetchOperators.put(entry.getKey(), fetchOp);
-      l4j.info("fetchoperator for " + entry.getKey() + " created");
-    }
-    // initialize all forward operator
-    for (Map.Entry<String, FetchOperator> entry : fetchOperators.entrySet()) {
-      // get the forward op
-      String alias = entry.getKey();
-      Operator<? extends OperatorDesc> forwardOp = work.getAliasToWork().get(alias);
-
-      // put the exe context into all the operators
-      forwardOp.setExecContext(execContext);
-      // All the operators need to be initialized before process
-      FetchOperator fetchOp = entry.getValue();
-      JobConf jobConf = fetchOpJobConfMap.get(fetchOp);
-
-      if (jobConf == null) {
-        jobConf = job;
+      if (forwardOp instanceof TableScanOperator) {
+        TableScanOperator ts = (TableScanOperator) forwardOp;
+        ColumnProjectionUtils.appendReadColumns(
+            jobClone, ts.getNeededColumnIDs(), ts.getNeededColumns());
+        // push down filters
+        HiveInputFormat.pushFilters(jobClone, ts);
       }
-      // initialize the forward operator
+      // create a fetch operator & put the exe context into all the operators
+      FetchOperator fetchOp = new FetchOperator(entry.getValue(), jobClone, forwardOp, context);
+
+      // All the operators need to be initialized before process
       ObjectInspector objectInspector = fetchOp.getOutputObjectInspector();
-      forwardOp.initialize(jobConf, new ObjectInspector[] {objectInspector});
+      forwardOp.initialize(jobClone, new ObjectInspector[]{objectInspector});
+
+      fetchOperators.put(entry.getKey(), fetchOp);
       l4j.info("fetchoperator for " + entry.getKey() + " initialized");
     }
+    return fetchOperators;
   }
 
   private void setUpFetchOpContext(FetchOperator fetchOp, String alias, String currentInputFile)
       throws Exception {
 
-    BucketMapJoinContext bucketMatcherCxt = this.work.getBucketMapjoinContext();
+    BucketMapJoinContext bucketMatcherCxt = work.getBucketMapjoinContext();
 
     Class<? extends BucketMatcher> bucketMatcherCls = bucketMatcherCxt.getBucketMatcherClass();
-    BucketMatcher bucketMatcher = ReflectionUtils.newInstance(bucketMatcherCls,
-        null);
+    BucketMatcher bucketMatcher = ReflectionUtils.newInstance(bucketMatcherCls, null);
     bucketMatcher.setAliasBucketFileNameMapping(bucketMatcherCxt.getAliasBucketFileNameMapping());
 
     List<Path> aliasFiles = bucketMatcher.getAliasBucketFiles(currentInputFile, bucketMatcherCxt
         .getMapJoinBigTableAlias(), alias);
-    fetchOp.setupContext(aliasFiles);
+    fetchOp.setupContext(currentInputFile, aliasFiles);
   }
 
   @Override
@@ -490,7 +455,6 @@ public class MapredLocalTask extends Task<MapredLocalWork> implements Serializab
 
   @Override
   public StageType getType() {
-    //assert false;
     return StageType.MAPREDLOCAL;
   }
 
