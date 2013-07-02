@@ -18,10 +18,8 @@
 
 package org.apache.hive.common.util;
 
-import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -29,6 +27,7 @@ import java.util.regex.Pattern;
 import org.joda.time.DateTime;
 import org.joda.time.MutableDateTime;
 import org.joda.time.DateTimeFieldType;
+import org.joda.time.ReadWritableInstant;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.DateTimeFormatterBuilder;
@@ -82,6 +81,10 @@ public class TimestampParser {
     }
   }
 
+  public ReadWritableInstant getReusableInstance() {
+    return fmt == null ? null : new MutableDateTime(startingDateValue); 
+  }
+
   /**
    * Parse the input string and return a timestamp value
    * @param strValue
@@ -104,6 +107,17 @@ public class TimestampParser {
 
     // Otherwise try default timestamp parsing
     return Timestamp.valueOf(strValue);
+  }
+
+  public long parseTimestamp(String strValue, ReadWritableInstant instance) 
+      throws IllegalArgumentException {
+    assert fmt != null;
+    int ret = fmt.parseInto(instance, strValue, 0);
+    // Only accept parse results if we parsed the entire string
+    if (ret == strValue.length()) {
+      return instance.getMillis();
+    }
+    return Long.MIN_VALUE;
   }
 
   /**

@@ -26,6 +26,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.serde2.io.TimestampWritable;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyTimestampObjectInspector;
+import org.apache.hive.common.util.TimestampParser;
+import org.joda.time.ReadWritableInstant;
 
 /**
  *
@@ -38,18 +40,27 @@ import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyTimestam
 public class LazyTimestamp extends LazyPrimitive<LazyTimestampObjectInspector, TimestampWritable> {
   static final private Log LOG = LogFactory.getLog(LazyTimestamp.class);
 
+  private final TimestampParser timestampParser;
+  private final ReadWritableInstant reusable;
+
   public LazyTimestamp(LazyTimestampObjectInspector oi) {
     super(oi);
     data = new TimestampWritable();
+    timestampParser = oi.getTimestampParser();
+    reusable = timestampParser.getReusableInstance();
   }
 
   public LazyTimestamp(LazyTimestamp copy) {
     super(copy);
     data = new TimestampWritable(copy.data);
+    timestampParser = oi.getTimestampParser();
+    reusable = timestampParser.getReusableInstance();
   }
 
+  private transient final Timestamp ts = new Timestamp(0);
+
   /**
-   * Initilizes LazyTimestamp object by interpreting the input bytes
+   * Initializes LazyTimestamp object by interpreting the input bytes
    * as a JDBC timestamp string
    *
    * @param bytes
@@ -66,20 +77,41 @@ public class LazyTimestamp extends LazyPrimitive<LazyTimestampObjectInspector, T
       s = "";
     }
 
-    Timestamp t = null;
-    if (s.compareTo("NULL") == 0) {
-      isNull = true;
-      logExceptionMessage(bytes, start, length, "TIMESTAMP");
-    } else {
-      try {
-        t = oi.getTimestampParser().parseTimestamp(s);
-        isNull = false;
-      } catch (IllegalArgumentException e) {
+    try {
+      if (s.compareTo("NULL") == 0) {
         isNull = true;
         logExceptionMessage(bytes, start, length, "TIMESTAMP");
+      } else if (s.length() < 19 && isAllNumeric(s)) {
+        ts.setTime(Long.parseLong(s));
+        data.set(ts);
+        isNull = false;
+      } else {
+        if (reusable != null) {
+          long time = timestampParser.parseTimestamp(s, reusable);
+          if (time != Long.MIN_VALUE) {
+            ts.setTime(time);
+            data.set(ts);
+          } else {
+            data.set(Timestamp.valueOf(s));
+          }
+        } else {
+          data.set(Timestamp.valueOf(s));
+        }
+        isNull = false;
+      }
+    } catch (IllegalArgumentException e) {
+      isNull = true;
+      logExceptionMessage(bytes, start, length, "TIMESTAMP");
+    }
+  }
+
+  private boolean isAllNumeric(String s) {
+    for (int i = 0; i < s.length(); i++) {
+      if (s.charAt(i) < '0' || s.charAt(i) > '9') {
+        return false;
       }
     }
-    data.set(t);
+    return true;
   }
 
   private static final String nullTimestamp = "NULL";
