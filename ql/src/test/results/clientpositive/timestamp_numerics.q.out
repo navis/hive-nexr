@@ -1,0 +1,52 @@
+PREHOOK: query: create table ts1 (key timestamp, value string)
+PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
+POSTHOOK: query: create table ts1 (key timestamp, value string)
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@ts1
+PREHOOK: query: create table ts2 (key timestamp, value string) STORED AS SEQUENCEFILE
+PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
+POSTHOOK: query: create table ts2 (key timestamp, value string) STORED AS SEQUENCEFILE
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@ts2
+PREHOOK: query: load data local inpath '../../data/files/kv1.txt' into table ts1
+PREHOOK: type: LOAD
+#### A masked pattern was here ####
+PREHOOK: Output: default@ts1
+POSTHOOK: query: load data local inpath '../../data/files/kv1.txt' into table ts1
+POSTHOOK: type: LOAD
+#### A masked pattern was here ####
+POSTHOOK: Output: default@ts1
+PREHOOK: query: load data local inpath '../../data/files/kv1.seq' into table ts2
+PREHOOK: type: LOAD
+#### A masked pattern was here ####
+PREHOOK: Output: default@ts2
+POSTHOOK: query: load data local inpath '../../data/files/kv1.seq' into table ts2
+POSTHOOK: type: LOAD
+#### A masked pattern was here ####
+POSTHOOK: Output: default@ts2
+PREHOOK: query: select * from ts1 limit 3
+PREHOOK: type: QUERY
+PREHOOK: Input: default@ts1
+#### A masked pattern was here ####
+POSTHOOK: query: select * from ts1 limit 3
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@ts1
+#### A masked pattern was here ####
+NULL	val_238
+NULL	val_86
+NULL	val_311
+PREHOOK: query: select * from ts2 limit 3
+PREHOOK: type: QUERY
+PREHOOK: Input: default@ts2
+#### A masked pattern was here ####
+POSTHOOK: query: select * from ts2 limit 3
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@ts2
+#### A masked pattern was here ####
+NULL	val_238
+NULL	val_86
+NULL	val_311

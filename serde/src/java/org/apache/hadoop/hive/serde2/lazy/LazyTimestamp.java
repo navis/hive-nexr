@@ -48,6 +48,8 @@ public class LazyTimestamp extends LazyPrimitive<LazyTimestampObjectInspector, T
     data = new TimestampWritable(copy.data);
   }
 
+  private transient final Timestamp ts = new Timestamp(0);
+
   /**
    * Initilizes LazyTimestamp object by interpreting the input bytes
    * as a JDBC timestamp string
@@ -66,20 +68,36 @@ public class LazyTimestamp extends LazyPrimitive<LazyTimestampObjectInspector, T
       s = "";
     }
 
-    Timestamp t = null;
     if (s.compareTo("NULL") == 0) {
       isNull = true;
       logExceptionMessage(bytes, start, length, "TIMESTAMP");
+    } else if (s.length() < 19 && isAllNumeric(s)) {
+      try {
+        ts.setTime(Long.parseLong(s));
+        isNull = false;
+      } catch (NumberFormatException e) {
+        isNull = true;
+        logExceptionMessage(bytes, start, length, "TIMESTAMP");
+      }
+      data.set(ts);
     } else {
       try {
-        t = Timestamp.valueOf(s);
+        data.set(Timestamp.valueOf(s));
         isNull = false;
       } catch (IllegalArgumentException e) {
         isNull = true;
         logExceptionMessage(bytes, start, length, "TIMESTAMP");
       }
     }
-    data.set(t);
+  }
+
+  private boolean isAllNumeric(String s) {
+    for (int i = 0; i < s.length(); i++) {
+      if (s.charAt(i) < '0' || s.charAt(i) > '9') {
+        return false;
+      }
+    }
+    return true;
   }
 
   private static final String nullTimestamp = "NULL";
