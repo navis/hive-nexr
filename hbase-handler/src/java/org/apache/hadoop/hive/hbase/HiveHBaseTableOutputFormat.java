@@ -33,6 +33,7 @@ import org.apache.hadoop.hbase.mapred.TableMapReduceUtil;
 import org.apache.hadoop.hbase.mapreduce.TableOutputFormat;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator.RecordWriter;
+import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.io.HiveOutputFormat;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.io.Writable;
@@ -76,6 +77,11 @@ public class HiveHBaseTableOutputFormat extends
       final Progressable progressable) throws IOException {
 
     String hbaseTableName = jc.get(HBaseSerDe.HBASE_TABLE_NAME);
+    String partName = jc.get("partName");
+    if (partName != null) {
+      hbaseTableName += HBaseSerDe.toPartSuffix(partName);
+    }
+
     jc.set(TableOutputFormat.OUTPUT_TABLE, hbaseTableName);
     final boolean walEnabled = HiveConf.getBoolVar(
         jc, HiveConf.ConfVars.HIVE_HBASE_WAL_ENABLED);

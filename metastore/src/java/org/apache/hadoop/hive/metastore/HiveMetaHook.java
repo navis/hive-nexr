@@ -89,4 +89,61 @@ public interface HiveMetaHook {
    */
   public void commitDropTable(Table table, boolean deleteData)
     throws MetaException;
+
+  /**
+   * Called before a new partition definition is added to the metastore
+   * during CREATE PARTITION.
+   *
+   * @param partition new partition definition
+   */
+  public void preCreatePartition(Table table, Partition partition)
+    throws MetaException;
+
+  /**
+   * Called after failure adding a new partition definition to the metastore
+   * during CREATE PARTITION.
+   *
+   * @param partition new partition definition
+   */
+  public void rollbackCreatePartition(Table table, Partition partition)
+    throws MetaException;
+
+  /**
+   * Called after successfully adding a new partition definition to the metastore
+   * during CREATE PARTITION.
+   *
+   * @param partition new partition definition
+   */
+  public void commitCreatePartition(Table table, Partition partition)
+    throws MetaException;
+
+  /**
+   * Called before a partition definition is removed from the metastore
+   * during DROP PARTITION.
+   *
+   * @param partition partition definition
+   */
+  public void preDropPartition(Table table, Partition partition)
+    throws MetaException;
+
+  /**
+   * Called after failure removing a partition definition from the metastore
+   * during DROP PARTITION.
+   *
+   * @param partition partition definition
+   */
+  public void rollbackDropPartition(Table table, Partition partition)
+    throws MetaException;
+
+  /**
+   * Called after successfully removing a partition definition from the metastore
+   * during DROP PARTITION.
+   *
+   * @param partition partition definition
+   *
+   * @param deleteData whether to delete data as well; this should typically
+   * be ignored in the case of an external partition
+   */
+  public void commitDropPartition(Table table, Partition partition, boolean deleteData)
+    throws MetaException;
 }

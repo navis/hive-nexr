@@ -217,7 +217,7 @@ public enum ErrorMsg {
   ALTER_COMMAND_FOR_VIEWS(10131, "To alter a view you need to use the ALTER VIEW command."),
   ALTER_COMMAND_FOR_TABLES(10132, "To alter a base table you need to use the ALTER TABLE command."),
   ALTER_VIEW_DISALLOWED_OP(10133, "Cannot use this form of ALTER on a view"),
-  ALTER_TABLE_NON_NATIVE(10134, "ALTER TABLE cannot be used for a non-native table"),
+  ALTER_TABLE_NON_NATIVE(10134, "ALTER TABLE {0} cannot be used for a non-native table {1}", true),
   SORTMERGE_MAPJOIN_FAILED(10135,
       "Sort merge bucketed join could not be performed. " +
       "If you really want to perform the operation, either set " +
@@ -338,6 +338,9 @@ public enum ErrorMsg {
             + "fails to construct aggregation for the partition "),
   ANALYZE_TABLE_PARTIALSCAN_AUTOGATHER(10233, "Analyze partialscan is not allowed " +
             "if hive.stats.autogather is set to false"),
+
+  DYNAMIC_PARTITION_ON_NONNATIVE_TABLE(10246,
+      "Dynamic partition on non-native table {0} is not supported", true),
 
   SCRIPT_INIT_ERROR(20000, "Unable to initialize custom script."),
   SCRIPT_IO_ERROR(20001, "An error occurred while reading or writing to your custom script. "
@@ -590,13 +593,34 @@ public enum ErrorMsg {
     return mesg + " " + reason;
   }
 
-  public String format(String reason) {
-    return format(new String[]{reason});
-  }
-
+  /**
+   * If the message is parametrized, this will fill the parameters with supplied 
+   * {@code reasons}, otherwise {@code reasons} are appended at the end of the 
+   * message.
+   */
   public String format(String... reasons) {
-    assert format != null;
-    return format.format(reasons);
+    /* Not all messages are parametrized even those that should have been, e.g {@link #INVALID_TABLE}.
+     INVALID_TABLE is usually used with {@link #getMsg(String)}.
+     This method can also be used with INVALID_TABLE and the like and will match getMsg(String) behavior.
+
+     Another example: {@link #INVALID_PARTITION}.  Ideally you want the message to have 2 parameters one for
+     partition name one for table name.  Since this is already defined w/o any parameters, one can still call
+     {@code INVALID_PARTITION.format("<partName> <table Name>"}.  This way the message text will be slightly
+     different but at least the errorCode will match.  Note this, should not be abused by adding anything other
+     than what should have been parameter names to keep msg text standardized.
+     */
+    if(reasons == null || reasons.length == 0) {
+      return getMsg();
+    }
+    if(format != null) {
+      return format.format(reasons);
+    }
+    StringBuilder sb = new StringBuilder(128);
+    sb.append(getMsg());
+    for (Object reason : reasons) {
+      sb.append(' ').append(reason);
+    }
+    return sb.toString();
   }
 
   public String getErrorCodedMsg() {

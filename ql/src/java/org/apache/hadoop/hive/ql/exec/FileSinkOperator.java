@@ -34,6 +34,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.FileUtils;
+import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants;
 import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.io.HiveFileFormatUtils;
 import org.apache.hadoop.hive.ql.io.HiveKey;
@@ -112,6 +113,7 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
     Path[] finalPaths;
     RecordWriter[] outWriters;
     Stat stat;
+    String partName;
 
     public FSPaths() {
     }
@@ -251,6 +253,8 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
   private transient int timeOut; // JT timeout in msec.
   private transient long lastProgressReport = System.currentTimeMillis();
 
+  private transient String[] partKeys;
+
   /**
    * TableIdEnum.
    *
@@ -359,6 +363,12 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
         statsMap.put(tabIdEnum, row_count);
       }
 
+      String pcols = conf.getTableInfo().getProperties().getProperty(
+          hive_metastoreConstants.META_TABLE_PARTITION_COLUMNS);
+      if (pcols != null) {
+        partKeys = pcols.trim().split("/");
+      }
+
       if (dpCtx != null) {
         dpSetup();
       }
@@ -369,6 +379,7 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
 
       if (!bDynParts) {
         fsp = new FSPaths(specPath);
+        fsp.partName = conf.getStaticSpec();
 
         // Create all the files - this is required because empty files need to be created for
         // empty buckets
@@ -509,6 +520,9 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
           }
         }
 
+        if (fsp.partName != null) {
+          jc.set("partName", fsp.partName);
+        }
         Utilities.copyTableJobPropertiesToConf(conf.getTableInfo(), jc);
         // only create bucket files only if no dynamic partitions,
         // buckets of dynamic partitions will be created for each newly created partition
@@ -566,7 +580,7 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
 
     if (!bDynParts && !filesCreated) {
       if (lbDirName != null) {
-        FSPaths fsp2 = lookupListBucketingPaths(lbDirName);
+        FSPaths fsp2 = lookupListBucketingPaths(lbDirName, conf.getStaticSpec());
       } else {
         createBucketFiles(fsp);
       }
@@ -609,7 +623,7 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
 
       } else {
         if (lbDirName != null) {
-          fpaths = lookupListBucketingPaths(lbDirName);
+          fpaths = lookupListBucketingPaths(lbDirName, conf.getStaticSpec());
         } else {
           fpaths = fsp;
         }
@@ -660,10 +674,11 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
    * @return
    * @throws HiveException
    */
-  private FSPaths lookupListBucketingPaths(String lbDirName) throws HiveException {
+  private FSPaths lookupListBucketingPaths(String lbDirName, String partSpec)
+      throws HiveException {
     FSPaths fsp2 = valToPaths.get(lbDirName);
     if (fsp2 == null) {
-      fsp2 = createNewPaths(lbDirName);
+      fsp2 = createNewPaths(lbDirName, partSpec);
     }
     return fsp2;
   }
@@ -675,7 +690,7 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
    * @return
    * @throws HiveException
    */
-  private FSPaths createNewPaths(String dirName) throws HiveException {
+  private FSPaths createNewPaths(String dirName, String partSpec) throws HiveException {
     FSPaths fsp2 = new FSPaths(specPath);
     if (childSpecPathDynLinkedPartitions != null) {
       fsp2.tmpPath = new Path(fsp2.tmpPath,
@@ -688,6 +703,7 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
       fsp2.taskOutputTempPath =
         new Path(fsp2.taskOutputTempPath, dirName);
     }
+    fsp2.partName = partSpec;
     createBucketFiles(fsp2);
     valToPaths.put(dirName, fsp2);
     return fsp2;
@@ -760,7 +776,9 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
           fatalError = true;
           LOG.error("Fatal error was thrown due to exceeding number of dynamic partitions");
         }
-        fsp2 = createNewPaths(dpDir);
+        String staticSpec = conf.getStaticSpec();
+        String dynamicSpec = Utilities.makePartName(partKeys, row);
+        fsp2 = createNewPaths(dpDir, staticSpec == null ? dynamicSpec : staticSpec + dynamicSpec);
       }
       fp = fsp2;
     } else {

@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaHook;
+import org.apache.hadoop.hive.ql.plan.AlterTableDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
@@ -41,6 +42,12 @@ import org.apache.hadoop.mapred.SequenceFileOutputFormat;
  */
 public class DefaultStorageHandler implements HiveStorageHandler {
   private Configuration conf;
+
+  @Override
+  public boolean supports(org.apache.hadoop.hive.ql.metadata.Table tbl,
+                          AlterTableDesc.AlterTableTypes alter) {
+    return false;
+  }
 
   @Override
   public Class<? extends InputFormat> getInputFormatClass() {

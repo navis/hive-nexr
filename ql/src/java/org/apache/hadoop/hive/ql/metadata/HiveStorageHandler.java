@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.hive.metastore.HiveMetaHook;
+import org.apache.hadoop.hive.ql.plan.AlterTableDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.ql.security.authorization.HiveAuthorizationProvider;
@@ -47,6 +48,12 @@ import org.apache.hadoop.mapred.OutputFormat;
  * clause in CREATE TABLE.
  */
 public interface HiveStorageHandler extends Configurable {
+
+  /**
+   * Returns whether current storage handler supports DDL command
+   */
+  public boolean supports(Table tbl, AlterTableDesc.AlterTableTypes alter);
+
   /**
    * @return Class providing an implementation of {@link InputFormat}
    */

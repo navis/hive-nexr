@@ -38,6 +38,8 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hive.hbase.HBaseSerDe.ColumnMapping;
 import org.apache.hadoop.hive.metastore.HiveMetaHook;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
+import org.apache.hadoop.hive.metastore.TableType;
+import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -45,6 +47,7 @@ import org.apache.hadoop.hive.ql.index.IndexPredicateAnalyzer;
 import org.apache.hadoop.hive.ql.index.IndexSearchCondition;
 import org.apache.hadoop.hive.ql.metadata.DefaultStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.HiveStoragePredicateHandler;
+import org.apache.hadoop.hive.ql.plan.AlterTableDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.serde2.Deserializer;
@@ -78,7 +81,7 @@ public class HBaseStorageHandler extends DefaultStorageHandler
     }
   }
 
-  private String getHBaseTableName(Table tbl) {
+  private String getHBaseTableName(Table tbl, Partition part) throws MetaException {
     // Give preference to TBLPROPERTIES over SERDEPROPERTIES
     // (really we should only use TBLPROPERTIES, so this is just
     // for backwards compatibility with the original specs).
@@ -88,12 +91,30 @@ public class HBaseStorageHandler extends DefaultStorageHandler
         HBaseSerDe.HBASE_TABLE_NAME);
     }
     if (tableName == null) {
-      tableName = tbl.getDbName() + "." + tbl.getTableName();
-      if (tableName.startsWith(DEFAULT_PREFIX)) {
-        tableName = tableName.substring(DEFAULT_PREFIX.length());
+      if (tbl.getDbName().equals(MetaStoreUtils.DEFAULT_DATABASE_NAME)) {
+        tableName = tbl.getTableName();
+      } else {
+        tableName = tbl.getDbName() + "." + tbl.getTableName();
       }
     }
+    if (part != null) {
+      for (String value : part.getValues()) {
+        tableName += "_";
+        tableName += value;
+      }
+    }
+
     return tableName;
+  }
+
+  @Override
+  public boolean supports(org.apache.hadoop.hive.ql.metadata.Table tbl,
+                          AlterTableDesc.AlterTableTypes alter) {
+    if (alter == AlterTableDesc.AlterTableTypes.ADDPARTITION ||
+        alter == AlterTableDesc.AlterTableTypes.DROPPARTITION) {
+      return tbl.getTableType() == TableType.MANAGED_TABLE;
+    }
+    return false;
   }
 
   @Override
@@ -107,35 +128,22 @@ public class HBaseStorageHandler extends DefaultStorageHandler
   }
 
   @Override
-  public void commitDropTable(
-    Table tbl, boolean deleteData) throws MetaException {
-
-    try {
-      String tableName = getHBaseTableName(tbl);
-      boolean isExternal = MetaStoreUtils.isExternalTable(tbl);
-      if (deleteData && !isExternal) {
-        if (getHBaseAdmin().isTableEnabled(tableName)) {
-          getHBaseAdmin().disableTable(tableName);
-        }
-        getHBaseAdmin().deleteTable(tableName);
-      }
-    } catch (IOException ie) {
-      throw new MetaException(StringUtils.stringifyException(ie));
+  public void commitDropTable(Table tbl, boolean deleteData) throws MetaException {
+    if (deleteData && !MetaStoreUtils.isExternalTable(tbl)) {
+      dropHBaseTable(getHBaseTableName(tbl, null));
     }
   }
 
   @Override
   public void preCreateTable(Table tbl) throws MetaException {
+    createTable(tbl, null);
+  }
+
+  private void createTable(Table tbl, Partition part) throws MetaException {
     boolean isExternal = MetaStoreUtils.isExternalTable(tbl);
 
-    // We'd like to move this to HiveMetaStore for any non-native table, but
-    // first we need to support storing NULL for location on a table
-    if (tbl.getSd().getLocation() != null) {
-      throw new MetaException("LOCATION may not be specified for HBase.");
-    }
-
     try {
-      String tableName = getHBaseTableName(tbl);
+      String tableName = getHBaseTableName(tbl, part);
       Map<String, String> serdeParam = tbl.getSd().getSerdeInfo().getParameters();
       String hbaseColumnsMapping = serdeParam.get(HBaseSerDe.HBASE_COLUMNS_MAPPING);
       List<ColumnMapping> columnsMapping = null;
@@ -204,10 +212,14 @@ public class HBaseStorageHandler extends DefaultStorageHandler
 
   @Override
   public void rollbackCreateTable(Table table) throws MetaException {
-    boolean isExternal = MetaStoreUtils.isExternalTable(table);
-    String tableName = getHBaseTableName(table);
+    if (MetaStoreUtils.isExternalTable(table)) {
+      dropHBaseTable(getHBaseTableName(table, null));
+    }
+  }
+
+  private void dropHBaseTable(String tableName) throws MetaException {
     try {
-      if (!isExternal && getHBaseAdmin().tableExists(tableName)) {
+      if (getHBaseAdmin().tableExists(tableName)) {
         // we have created an HBase table, so we delete it to roll back;
         if (getHBaseAdmin().isTableEnabled(tableName)) {
           getHBaseAdmin().disableTable(tableName);
@@ -222,6 +234,38 @@ public class HBaseStorageHandler extends DefaultStorageHandler
   @Override
   public void commitCreateTable(Table table) throws MetaException {
     // nothing to do
+  }
+
+  @Override
+  public void preCreatePartition(Table table, Partition partition) throws MetaException {
+    createTable(table, partition);
+  }
+
+  @Override
+  public void rollbackCreatePartition(Table table, Partition partition) throws MetaException {
+    if (MetaStoreUtils.isExternalTable(table)) {
+      dropHBaseTable(getHBaseTableName(table, partition));
+    }
+  }
+
+  @Override
+  public void commitCreatePartition(Table table, Partition partition) throws MetaException {
+  }
+
+  @Override
+  public void preDropPartition(Table table, Partition partition) throws MetaException {
+  }
+
+  @Override
+  public void rollbackDropPartition(Table table, Partition partition) throws MetaException {
+  }
+
+  @Override
+  public void commitDropPartition(Table table, Partition partition, boolean deleteData)
+      throws MetaException {
+    if (deleteData && !MetaStoreUtils.isExternalTable(table)) {
+      dropHBaseTable(getHBaseTableName(table, partition));
+    }
   }
 
   @Override

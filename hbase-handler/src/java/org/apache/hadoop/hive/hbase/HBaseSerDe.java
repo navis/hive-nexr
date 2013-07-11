@@ -30,6 +30,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.AbstractSerDe;
 import org.apache.hadoop.hive.serde2.ByteStream;
@@ -816,5 +817,13 @@ public class HBaseSerDe extends AbstractSerDe {
 
     throw new SerDeException("HBaseSerDe Error: columns mapping list does not contain" +
       " row key column.");
+  }
+
+  public static String toPartSuffix(String partName) {
+    StringBuilder builder = new StringBuilder();
+    for (String value : Utilities.makeSpecFromName(partName).values()) {
+      builder.append('_').append(value);
+    }
+    return builder.toString();
   }
 }

@@ -4949,6 +4949,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
               qb.getParseInfo().getDestForClause(dest),
               ErrorMsg.NEED_PARTITION_ERROR.getMsg()));
         }
+        if (dest_tab.isNonNative()) {
+          throw new SemanticException(
+            ErrorMsg.DYNAMIC_PARTITION_ON_NONNATIVE_TABLE.format(dest_tab.getTableName()));
+        }
         // the HOLD_DDLTIIME hint should not be used with dynamic partition since the
         // newly generated partitions should always update their DDLTIME
         if (holdDDLTime) {
