@@ -223,7 +223,7 @@ public enum ErrorMsg {
   ALTER_COMMAND_FOR_VIEWS(10131, "To alter a view you need to use the ALTER VIEW command."),
   ALTER_COMMAND_FOR_TABLES(10132, "To alter a base table you need to use the ALTER TABLE command."),
   ALTER_VIEW_DISALLOWED_OP(10133, "Cannot use this form of ALTER on a view"),
-  ALTER_TABLE_NON_NATIVE(10134, "ALTER TABLE cannot be used for a non-native table"),
+  ALTER_TABLE_NON_NATIVE(10134, "ALTER TABLE {0} cannot be used for a non-native table {1}", true),
   SORTMERGE_MAPJOIN_FAILED(10135,
       "Sort merge bucketed join could not be performed. " +
       "If you really want to perform the operation, either set " +
@@ -344,6 +344,7 @@ public enum ErrorMsg {
             + "fails to construct aggregation for the partition "),
   ANALYZE_TABLE_PARTIALSCAN_AUTOGATHER(10233, "Analyze partialscan is not allowed " +
             "if hive.stats.autogather is set to false"),
+
   PARTITION_VALUE_NOT_CONTINUOUS(10234, "Parition values specifed are not continuous." +
             " A subpartition value is specified without specififying the parent partition's value"),
   TABLES_INCOMPATIBLE_SCHEMAS(10235, "Tables have incompatible schemas and their partitions " +
@@ -429,6 +430,8 @@ public enum ErrorMsg {
       "Alter table partition type {0} does not support cascade", true),
 
   DROP_NATIVE_FUNCTION(10301, "Cannot drop native function"),
+  DYNAMIC_PARTITION_ON_NONNATIVE_TABLE(10302,
+      "Dynamic partition on non-native table {0} is not supported", true),
 
   //========================== 20000 range starts here ========================//
   SCRIPT_INIT_ERROR(20000, "Unable to initialize custom script."),
@@ -701,9 +704,6 @@ public enum ErrorMsg {
     return mesg + " " + reason;
   }
 
-  public String format(String reason) {
-    return format(new String[]{reason});
-  }
   /**
    * If the message is parametrized, this will fill the parameters with supplied
    * {@code reasons}, otherwise {@code reasons} are appended at the end of the
@@ -726,19 +726,12 @@ public enum ErrorMsg {
     if(format != null) {
       return format.format(reasons);
     }
-    if(reasons.length > 1) {
-      StringBuilder sb = new StringBuilder();
-      for(String re : reasons) {
-        if(re != null) {
-          if(sb.length() > 0) {
-            sb.append(" ");
-          }
-          sb.append(re);
-        }
-      }
-      return getMsg(sb.toString());
+    StringBuilder sb = new StringBuilder(128);
+    sb.append(getMsg());
+    for (Object reason : reasons) {
+      sb.append(' ').append(reason);
     }
-    return getMsg(reasons[0]);
+    return sb.toString();
   }
 
   public String getErrorCodedMsg() {

@@ -284,7 +284,7 @@ module ThriftHiveMetastore
 
     def drop_table(dbname, name, deleteData)
       send_drop_table(dbname, name, deleteData)
-      recv_drop_table()
+      return recv_drop_table()
     end
 
     def send_drop_table(dbname, name, deleteData)
@@ -293,14 +293,15 @@ module ThriftHiveMetastore
 
     def recv_drop_table()
       result = receive_message(Drop_table_result)
+      return result.success unless result.success.nil?
       raise result.o1 unless result.o1.nil?
       raise result.o3 unless result.o3.nil?
-      return
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'drop_table failed: unknown result')
     end
 
     def drop_table_with_environment_context(dbname, name, deleteData, environment_context)
       send_drop_table_with_environment_context(dbname, name, deleteData, environment_context)
-      recv_drop_table_with_environment_context()
+      return recv_drop_table_with_environment_context()
     end
 
     def send_drop_table_with_environment_context(dbname, name, deleteData, environment_context)
@@ -309,9 +310,10 @@ module ThriftHiveMetastore
 
     def recv_drop_table_with_environment_context()
       result = receive_message(Drop_table_with_environment_context_result)
+      return result.success unless result.success.nil?
       raise result.o1 unless result.o1.nil?
       raise result.o3 unless result.o3.nil?
-      return
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'drop_table_with_environment_context failed: unknown result')
     end
 
     def get_tables(db_name, pattern)
@@ -2247,7 +2249,7 @@ module ThriftHiveMetastore
       args = read_args(iprot, Drop_table_args)
       result = Drop_table_result.new()
       begin
-        @handler.drop_table(args.dbname, args.name, args.deleteData)
+        result.success = @handler.drop_table(args.dbname, args.name, args.deleteData)
       rescue ::NoSuchObjectException => o1
         result.o1 = o1
       rescue ::MetaException => o3
@@ -2260,7 +2262,7 @@ module ThriftHiveMetastore
       args = read_args(iprot, Drop_table_with_environment_context_args)
       result = Drop_table_with_environment_context_result.new()
       begin
-        @handler.drop_table_with_environment_context(args.dbname, args.name, args.deleteData, args.environment_context)
+        result.success = @handler.drop_table_with_environment_context(args.dbname, args.name, args.deleteData, args.environment_context)
       rescue ::NoSuchObjectException => o1
         result.o1 = o1
       rescue ::MetaException => o3
@@ -4170,10 +4172,12 @@ module ThriftHiveMetastore
 
   class Drop_table_result
     include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
     O1 = 1
     O3 = 2
 
     FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::LIST, :name => 'success', :element => {:type => ::Thrift::Types::STRUCT, :class => ::Partition}},
       O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => ::NoSuchObjectException},
       O3 => {:type => ::Thrift::Types::STRUCT, :name => 'o3', :class => ::MetaException}
     }
@@ -4210,10 +4214,12 @@ module ThriftHiveMetastore
 
   class Drop_table_with_environment_context_result
     include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
     O1 = 1
     O3 = 2
 
     FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::LIST, :name => 'success', :element => {:type => ::Thrift::Types::STRUCT, :class => ::Partition}},
       O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => ::NoSuchObjectException},
       O3 => {:type => ::Thrift::Types::STRUCT, :name => 'o3', :class => ::MetaException}
     }

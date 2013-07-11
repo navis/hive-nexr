@@ -22,6 +22,8 @@ import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaHook;
+import org.apache.hadoop.hive.metastore.api.MetaException;
+import org.apache.hadoop.hive.ql.plan.AlterTableDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
@@ -42,6 +44,12 @@ import org.apache.hadoop.mapred.SequenceFileOutputFormat;
  */
 public class DefaultStorageHandler implements HiveStorageHandler {
   private Configuration conf;
+
+  @Override
+  public boolean supports(org.apache.hadoop.hive.ql.metadata.Table tbl,
+                          AlterTableDesc.AlterTableTypes alter) {
+    return false;
+  }
 
   @Override
   public Class<? extends InputFormat> getInputFormatClass() {
@@ -104,5 +112,23 @@ public class DefaultStorageHandler implements HiveStorageHandler {
   @Override
   public String toString() {
     return this.getClass().getName();
+  }
+
+  // optional implementation for partition
+  public void preCreatePartition(org.apache.hadoop.hive.metastore.api.Table table,
+    org.apache.hadoop.hive.metastore.api.Partition partition) throws MetaException {
+  }
+
+  public void rollbackCreatePartition(org.apache.hadoop.hive.metastore.api.Table table,
+    org.apache.hadoop.hive.metastore.api.Partition partition) throws MetaException {
+  }
+
+  public void commitCreatePartition(org.apache.hadoop.hive.metastore.api.Table table,
+    org.apache.hadoop.hive.metastore.api.Partition partition) throws MetaException {
+  }
+
+  public void commitDropPartition(org.apache.hadoop.hive.metastore.api.Table table,
+    org.apache.hadoop.hive.metastore.api.Partition partition, boolean deleteData)
+    throws MetaException {
   }
 }

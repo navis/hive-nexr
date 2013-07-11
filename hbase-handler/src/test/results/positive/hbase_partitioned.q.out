@@ -1,0 +1,481 @@
+PREHOOK: query: CREATE TABLE hbase_partition(key int, value string) partitioned by (pid string)
+STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+WITH SERDEPROPERTIES ("hbase.columns.mapping" = ":key,cf:string")
+PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
+PREHOOK: Output: default@hbase_partition
+POSTHOOK: query: CREATE TABLE hbase_partition(key int, value string) partitioned by (pid string)
+STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+WITH SERDEPROPERTIES ("hbase.columns.mapping" = ":key,cf:string")
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@hbase_partition
+PREHOOK: query: alter table hbase_partition add partition (pid='100')
+PREHOOK: type: ALTERTABLE_ADDPARTS
+PREHOOK: Output: default@hbase_partition
+POSTHOOK: query: alter table hbase_partition add partition (pid='100')
+POSTHOOK: type: ALTERTABLE_ADDPARTS
+POSTHOOK: Output: default@hbase_partition
+POSTHOOK: Output: default@hbase_partition@pid=100
+PREHOOK: query: alter table hbase_partition add partition (pid='200')
+PREHOOK: type: ALTERTABLE_ADDPARTS
+PREHOOK: Output: default@hbase_partition
+POSTHOOK: query: alter table hbase_partition add partition (pid='200')
+POSTHOOK: type: ALTERTABLE_ADDPARTS
+POSTHOOK: Output: default@hbase_partition
+POSTHOOK: Output: default@hbase_partition@pid=200
+PREHOOK: query: select * from hbase_partition
+PREHOOK: type: QUERY
+PREHOOK: Input: default@hbase_partition
+PREHOOK: Input: default@hbase_partition@pid=100
+PREHOOK: Input: default@hbase_partition@pid=200
+#### A masked pattern was here ####
+POSTHOOK: query: select * from hbase_partition
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@hbase_partition
+POSTHOOK: Input: default@hbase_partition@pid=100
+POSTHOOK: Input: default@hbase_partition@pid=200
+#### A masked pattern was here ####
+PREHOOK: query: from src
+insert overwrite table hbase_partition partition (pid='100') select * where key < 100
+insert overwrite table hbase_partition partition (pid='200') select * where key >= 100 AND key < 200
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: default@hbase_partition@pid=100
+PREHOOK: Output: default@hbase_partition@pid=200
+POSTHOOK: query: from src
+insert overwrite table hbase_partition partition (pid='100') select * where key < 100
+insert overwrite table hbase_partition partition (pid='200') select * where key >= 100 AND key < 200
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: default@hbase_partition@pid=100
+POSTHOOK: Output: default@hbase_partition@pid=200
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=100).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=100).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=200).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=200).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+PREHOOK: query: explain extended
+select * from hbase_partition limit 10
+PREHOOK: type: QUERY
+POSTHOOK: query: explain extended
+select * from hbase_partition limit 10
+POSTHOOK: type: QUERY
+ABSTRACT SYNTAX TREE:
+  
+TOK_QUERY
+   TOK_FROM
+      TOK_TABREF
+         TOK_TABNAME
+            hbase_partition
+   TOK_INSERT
+      TOK_DESTINATION
+         TOK_DIR
+            TOK_TMP_FILE
+      TOK_SELECT
+         TOK_SELEXPR
+            TOK_ALLCOLREF
+      TOK_LIMIT
+         10
+
+
+STAGE DEPENDENCIES:
+  Stage-0 is a root stage
+
+STAGE PLANS:
+  Stage: Stage-0
+    Fetch Operator
+      limit: 10
+      Partition Description:
+          Partition
+            input format: org.apache.hadoop.hive.hbase.HiveHBaseTableInputFormat
+            output format: org.apache.hadoop.hive.hbase.HiveHBaseTableOutputFormat
+            partition values:
+              pid 100
+            properties:
+              COLUMN_STATS_ACCURATE true
+              bucket_count -1
+              columns key,value
+              columns.comments 
+              columns.types int:string
+#### A masked pattern was here ####
+              hbase.columns.mapping :key,cf:string
+#### A masked pattern was here ####
+              name default.hbase_partition
+              numFiles 0
+              numRows 0
+              partition_columns pid
+              partition_columns.types string
+              rawDataSize 0
+              serialization.ddl struct hbase_partition { i32 key, string value}
+              serialization.format 1
+              serialization.lib org.apache.hadoop.hive.hbase.HBaseSerDe
+              totalSize 0
+#### A masked pattern was here ####
+            serde: org.apache.hadoop.hive.hbase.HBaseSerDe
+          
+              input format: org.apache.hadoop.hive.hbase.HiveHBaseTableInputFormat
+              jobProperties:
+                hbase.columns.mapping :key,cf:string
+                hbase.columns.mapping.regex.matching true
+                hbase.table.default.storage.type string
+                hbase.table.name hbase_partition
+              output format: org.apache.hadoop.hive.hbase.HiveHBaseTableOutputFormat
+              properties:
+                bucket_count -1
+                columns key,value
+                columns.comments 
+                columns.types int:string
+#### A masked pattern was here ####
+                hbase.columns.mapping :key,cf:string
+#### A masked pattern was here ####
+                name default.hbase_partition
+                partition_columns pid
+                partition_columns.types string
+                serialization.ddl struct hbase_partition { i32 key, string value}
+                serialization.format 1
+                serialization.lib org.apache.hadoop.hive.hbase.HBaseSerDe
+                storage_handler org.apache.hadoop.hive.hbase.HBaseStorageHandler
+#### A masked pattern was here ####
+              serde: org.apache.hadoop.hive.hbase.HBaseSerDe
+              name: default.hbase_partition
+            name: default.hbase_partition
+          Partition
+            input format: org.apache.hadoop.hive.hbase.HiveHBaseTableInputFormat
+            output format: org.apache.hadoop.hive.hbase.HiveHBaseTableOutputFormat
+            partition values:
+              pid 200
+            properties:
+              COLUMN_STATS_ACCURATE true
+              bucket_count -1
+              columns key,value
+              columns.comments 
+              columns.types int:string
+#### A masked pattern was here ####
+              hbase.columns.mapping :key,cf:string
+#### A masked pattern was here ####
+              name default.hbase_partition
+              numFiles 0
+              numRows 0
+              partition_columns pid
+              partition_columns.types string
+              rawDataSize 0
+              serialization.ddl struct hbase_partition { i32 key, string value}
+              serialization.format 1
+              serialization.lib org.apache.hadoop.hive.hbase.HBaseSerDe
+              totalSize 0
+#### A masked pattern was here ####
+            serde: org.apache.hadoop.hive.hbase.HBaseSerDe
+          
+              input format: org.apache.hadoop.hive.hbase.HiveHBaseTableInputFormat
+              output format: org.apache.hadoop.hive.hbase.HiveHBaseTableOutputFormat
+              properties:
+                bucket_count -1
+                columns key,value
+                columns.comments 
+                columns.types int:string
+#### A masked pattern was here ####
+                hbase.columns.mapping :key,cf:string
+#### A masked pattern was here ####
+                name default.hbase_partition
+                partition_columns pid
+                partition_columns.types string
+                serialization.ddl struct hbase_partition { i32 key, string value}
+                serialization.format 1
+                serialization.lib org.apache.hadoop.hive.hbase.HBaseSerDe
+                storage_handler org.apache.hadoop.hive.hbase.HBaseStorageHandler
+#### A masked pattern was here ####
+              serde: org.apache.hadoop.hive.hbase.HBaseSerDe
+              name: default.hbase_partition
+            name: default.hbase_partition
+      Processor Tree:
+        TableScan
+          alias: hbase_partition
+          Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
+          GatherStats: false
+          Select Operator
+            expressions: key (type: int), value (type: string), pid (type: string)
+            outputColumnNames: _col0, _col1, _col2
+            Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
+            Limit
+              Number of rows: 10
+              Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
+              ListSink
+
+PREHOOK: query: select * from hbase_partition limit 10
+PREHOOK: type: QUERY
+PREHOOK: Input: default@hbase_partition
+PREHOOK: Input: default@hbase_partition@pid=100
+PREHOOK: Input: default@hbase_partition@pid=200
+#### A masked pattern was here ####
+POSTHOOK: query: select * from hbase_partition limit 10
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@hbase_partition
+POSTHOOK: Input: default@hbase_partition@pid=100
+POSTHOOK: Input: default@hbase_partition@pid=200
+#### A masked pattern was here ####
+0	val_0	100
+10	val_10	100
+11	val_11	100
+12	val_12	100
+15	val_15	100
+17	val_17	100
+18	val_18	100
+19	val_19	100
+2	val_2	100
+20	val_20	100
+PREHOOK: query: explain extended
+select * from hbase_partition where pid='100' limit 10
+PREHOOK: type: QUERY
+POSTHOOK: query: explain extended
+select * from hbase_partition where pid='100' limit 10
+POSTHOOK: type: QUERY
+ABSTRACT SYNTAX TREE:
+  
+TOK_QUERY
+   TOK_FROM
+      TOK_TABREF
+         TOK_TABNAME
+            hbase_partition
+   TOK_INSERT
+      TOK_DESTINATION
+         TOK_DIR
+            TOK_TMP_FILE
+      TOK_SELECT
+         TOK_SELEXPR
+            TOK_ALLCOLREF
+      TOK_WHERE
+         =
+            TOK_TABLE_OR_COL
+               pid
+            '100'
+      TOK_LIMIT
+         10
+
+
+STAGE DEPENDENCIES:
+  Stage-0 is a root stage
+
+STAGE PLANS:
+  Stage: Stage-0
+    Fetch Operator
+      limit: 10
+      Partition Description:
+          Partition
+            input format: org.apache.hadoop.hive.hbase.HiveHBaseTableInputFormat
+            output format: org.apache.hadoop.hive.hbase.HiveHBaseTableOutputFormat
+            partition values:
+              pid 100
+            properties:
+              COLUMN_STATS_ACCURATE true
+              bucket_count -1
+              columns key,value
+              columns.comments 
+              columns.types int:string
+#### A masked pattern was here ####
+              hbase.columns.mapping :key,cf:string
+#### A masked pattern was here ####
+              name default.hbase_partition
+              numFiles 0
+              numRows 0
+              partition_columns pid
+              partition_columns.types string
+              rawDataSize 0
+              serialization.ddl struct hbase_partition { i32 key, string value}
+              serialization.format 1
+              serialization.lib org.apache.hadoop.hive.hbase.HBaseSerDe
+              totalSize 0
+#### A masked pattern was here ####
+            serde: org.apache.hadoop.hive.hbase.HBaseSerDe
+          
+              input format: org.apache.hadoop.hive.hbase.HiveHBaseTableInputFormat
+              jobProperties:
+                hbase.columns.mapping :key,cf:string
+                hbase.columns.mapping.regex.matching true
+                hbase.table.default.storage.type string
+                hbase.table.name hbase_partition
+              output format: org.apache.hadoop.hive.hbase.HiveHBaseTableOutputFormat
+              properties:
+                bucket_count -1
+                columns key,value
+                columns.comments 
+                columns.types int:string
+#### A masked pattern was here ####
+                hbase.columns.mapping :key,cf:string
+#### A masked pattern was here ####
+                name default.hbase_partition
+                partition_columns pid
+                partition_columns.types string
+                serialization.ddl struct hbase_partition { i32 key, string value}
+                serialization.format 1
+                serialization.lib org.apache.hadoop.hive.hbase.HBaseSerDe
+                storage_handler org.apache.hadoop.hive.hbase.HBaseStorageHandler
+#### A masked pattern was here ####
+              serde: org.apache.hadoop.hive.hbase.HBaseSerDe
+              name: default.hbase_partition
+            name: default.hbase_partition
+      Processor Tree:
+        TableScan
+          alias: hbase_partition
+          Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
+          GatherStats: false
+          Select Operator
+            expressions: key (type: int), value (type: string), '100' (type: string)
+            outputColumnNames: _col0, _col1, _col2
+            Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
+            Limit
+              Number of rows: 10
+              Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
+              ListSink
+
+PREHOOK: query: select * from hbase_partition where pid='100' limit 10
+PREHOOK: type: QUERY
+PREHOOK: Input: default@hbase_partition
+PREHOOK: Input: default@hbase_partition@pid=100
+#### A masked pattern was here ####
+POSTHOOK: query: select * from hbase_partition where pid='100' limit 10
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@hbase_partition
+POSTHOOK: Input: default@hbase_partition@pid=100
+#### A masked pattern was here ####
+0	val_0	100
+10	val_10	100
+11	val_11	100
+12	val_12	100
+15	val_15	100
+17	val_17	100
+18	val_18	100
+19	val_19	100
+2	val_2	100
+20	val_20	100
+PREHOOK: query: explain extended
+select * from hbase_partition where pid='200' limit 10
+PREHOOK: type: QUERY
+POSTHOOK: query: explain extended
+select * from hbase_partition where pid='200' limit 10
+POSTHOOK: type: QUERY
+ABSTRACT SYNTAX TREE:
+  
+TOK_QUERY
+   TOK_FROM
+      TOK_TABREF
+         TOK_TABNAME
+            hbase_partition
+   TOK_INSERT
+      TOK_DESTINATION
+         TOK_DIR
+            TOK_TMP_FILE
+      TOK_SELECT
+         TOK_SELEXPR
+            TOK_ALLCOLREF
+      TOK_WHERE
+         =
+            TOK_TABLE_OR_COL
+               pid
+            '200'
+      TOK_LIMIT
+         10
+
+
+STAGE DEPENDENCIES:
+  Stage-0 is a root stage
+
+STAGE PLANS:
+  Stage: Stage-0
+    Fetch Operator
+      limit: 10
+      Partition Description:
+          Partition
+            input format: org.apache.hadoop.hive.hbase.HiveHBaseTableInputFormat
+            output format: org.apache.hadoop.hive.hbase.HiveHBaseTableOutputFormat
+            partition values:
+              pid 200
+            properties:
+              COLUMN_STATS_ACCURATE true
+              bucket_count -1
+              columns key,value
+              columns.comments 
+              columns.types int:string
+#### A masked pattern was here ####
+              hbase.columns.mapping :key,cf:string
+#### A masked pattern was here ####
+              name default.hbase_partition
+              numFiles 0
+              numRows 0
+              partition_columns pid
+              partition_columns.types string
+              rawDataSize 0
+              serialization.ddl struct hbase_partition { i32 key, string value}
+              serialization.format 1
+              serialization.lib org.apache.hadoop.hive.hbase.HBaseSerDe
+              totalSize 0
+#### A masked pattern was here ####
+            serde: org.apache.hadoop.hive.hbase.HBaseSerDe
+          
+              input format: org.apache.hadoop.hive.hbase.HiveHBaseTableInputFormat
+              jobProperties:
+                hbase.columns.mapping :key,cf:string
+                hbase.columns.mapping.regex.matching true
+                hbase.table.default.storage.type string
+                hbase.table.name hbase_partition
+              output format: org.apache.hadoop.hive.hbase.HiveHBaseTableOutputFormat
+              properties:
+                bucket_count -1
+                columns key,value
+                columns.comments 
+                columns.types int:string
+#### A masked pattern was here ####
+                hbase.columns.mapping :key,cf:string
+#### A masked pattern was here ####
+                name default.hbase_partition
+                partition_columns pid
+                partition_columns.types string
+                serialization.ddl struct hbase_partition { i32 key, string value}
+                serialization.format 1
+                serialization.lib org.apache.hadoop.hive.hbase.HBaseSerDe
+                storage_handler org.apache.hadoop.hive.hbase.HBaseStorageHandler
+#### A masked pattern was here ####
+              serde: org.apache.hadoop.hive.hbase.HBaseSerDe
+              name: default.hbase_partition
+            name: default.hbase_partition
+      Processor Tree:
+        TableScan
+          alias: hbase_partition
+          Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
+          GatherStats: false
+          Select Operator
+            expressions: key (type: int), value (type: string), '200' (type: string)
+            outputColumnNames: _col0, _col1, _col2
+            Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
+            Limit
+              Number of rows: 10
+              Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
+              ListSink
+
+PREHOOK: query: select * from hbase_partition where pid='200' limit 10
+PREHOOK: type: QUERY
+PREHOOK: Input: default@hbase_partition
+PREHOOK: Input: default@hbase_partition@pid=200
+#### A masked pattern was here ####
+POSTHOOK: query: select * from hbase_partition where pid='200' limit 10
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@hbase_partition
+POSTHOOK: Input: default@hbase_partition@pid=200
+#### A masked pattern was here ####
+100	val_100	200
+103	val_103	200
+104	val_104	200
+105	val_105	200
+111	val_111	200
+113	val_113	200
+114	val_114	200
+116	val_116	200
+118	val_118	200
+119	val_119	200
+PREHOOK: query: drop table hbase_partition
+PREHOOK: type: DROPTABLE
+PREHOOK: Input: default@hbase_partition
+PREHOOK: Output: default@hbase_partition
+POSTHOOK: query: drop table hbase_partition
+POSTHOOK: type: DROPTABLE
+POSTHOOK: Input: default@hbase_partition
+POSTHOOK: Output: default@hbase_partition

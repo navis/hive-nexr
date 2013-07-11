@@ -144,7 +144,7 @@ public class JoinDesc extends AbstractOperatorDesc {
     ret.setSkewKeyDefinition(getSkewKeyDefinition());
     ret.setTagOrder(getTagOrder().clone());
     if (getKeyTableDesc() != null) {
-      ret.setKeyTableDesc((TableDesc) getKeyTableDesc().clone());
+      ret.setKeyTableDesc(getKeyTableDesc().clone());
     }
 
     if (getBigKeysDirMap() != null) {

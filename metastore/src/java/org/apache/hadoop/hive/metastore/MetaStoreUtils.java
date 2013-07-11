@@ -1311,10 +1311,12 @@ public class MetaStoreUtils {
   }
 
   public static boolean isNonNativeTable(Table table) {
-    if (table == null) {
-      return false;
-    }
-    return (table.getParameters().get(hive_metastoreConstants.META_TABLE_STORAGE) != null);
+    return table != null &&
+        table.getParameters().get(hive_metastoreConstants.META_TABLE_STORAGE) != null;
+  }
+
+  public static boolean isPartitionedTable(Table table) {
+    return table != null && table.getPartitionKeysSize() > 0;
   }
 
   /**

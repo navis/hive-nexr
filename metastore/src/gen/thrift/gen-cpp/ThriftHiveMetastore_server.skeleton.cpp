@@ -102,12 +102,12 @@ class ThriftHiveMetastoreHandler : virtual public ThriftHiveMetastoreIf {
     printf("create_table_with_environment_context\n");
   }
 
-  void drop_table(const std::string& dbname, const std::string& name, const bool deleteData) {
+  void drop_table(std::vector<Partition> & _return, const std::string& dbname, const std::string& name, const bool deleteData) {
     // Your implementation goes here
     printf("drop_table\n");
   }
 
-  void drop_table_with_environment_context(const std::string& dbname, const std::string& name, const bool deleteData, const EnvironmentContext& environment_context) {
+  void drop_table_with_environment_context(std::vector<Partition> & _return, const std::string& dbname, const std::string& name, const bool deleteData, const EnvironmentContext& environment_context) {
     // Your implementation goes here
     printf("drop_table_with_environment_context\n");
   }

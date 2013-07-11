@@ -807,9 +807,9 @@ service ThriftHiveMetastore extends fb303.FacebookService
               4:NoSuchObjectException o4)
   // drops the table and all the partitions associated with it if the table has partitions
   // delete data (including partitions) if deleteData is set to true
-  void drop_table(1:string dbname, 2:string name, 3:bool deleteData)
+  list<Partition> drop_table(1:string dbname, 2:string name, 3:bool deleteData)
                        throws(1:NoSuchObjectException o1, 2:MetaException o3)
-  void drop_table_with_environment_context(1:string dbname, 2:string name, 3:bool deleteData,
+  list<Partition> drop_table_with_environment_context(1:string dbname, 2:string name, 3:bool deleteData,
       4:EnvironmentContext environment_context)
                        throws(1:NoSuchObjectException o1, 2:MetaException o3)
   list<string> get_tables(1: string db_name, 2: string pattern) throws (1: MetaException o1)

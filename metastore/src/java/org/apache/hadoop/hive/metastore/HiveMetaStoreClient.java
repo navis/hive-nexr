@@ -45,6 +45,7 @@ import javax.security.auth.login.LoginException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.ObjectPair;
 import org.apache.hadoop.hive.common.ValidTxnList;
 import org.apache.hadoop.hive.common.classification.InterfaceAudience.Public;
@@ -515,13 +516,40 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   public Partition add_partition(Partition new_part)
       throws InvalidObjectException, AlreadyExistsException, MetaException,
       TException {
-    return add_partition(new_part, null);
+    return add_partition(null, new_part, null);
   }
 
   public Partition add_partition(Partition new_part, EnvironmentContext envContext)
       throws InvalidObjectException, AlreadyExistsException, MetaException,
       TException {
-    return deepCopy(client.add_partition_with_environment_context(new_part, envContext));
+    return add_partition(null, new_part, envContext);
+  }
+
+  private Partition add_partition(Table table, Partition part, EnvironmentContext envContext)
+      throws InvalidObjectException, AlreadyExistsException, MetaException,
+      TException {
+    if (table == null) {
+       table = getTable(part.getDbName(), part.getTableName());
+    }
+    HiveMetaHook hook = getHook(table);
+    if (hook != null) {
+      hook.preCreatePartition(table, part);
+    }
+    boolean success = false;
+    try {
+      Partition created = envContext == null ?
+          client.add_partition(part) :
+          client.add_partition_with_environment_context(part, envContext);
+      if (hook != null) {
+        hook.commitCreatePartition(table, part);
+      }
+      success = true;
+      return deepCopy(created);
+    } finally {
+      if (hook != null && !success) {
+        hook.rollbackCreatePartition(table, part);
+      }
+    }
   }
 
   /**
@@ -536,7 +564,34 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   public int add_partitions(List<Partition> new_parts)
       throws InvalidObjectException, AlreadyExistsException, MetaException,
       TException {
-    return client.add_partitions(new_parts);
+    if (new_parts == null || new_parts.isEmpty()) {
+      return 0;
+    }
+    Partition part0 = new_parts.get(0);
+    Table table = getTable(part0.getDbName(), part0.getTableName());
+    HiveMetaHook hook = getHook(table);
+    if (hook != null) {
+      for (Partition new_part : new_parts) {
+        hook.preCreatePartition(table, new_part);
+      }
+    }
+    boolean success = false;
+    try {
+      int added = client.add_partitions(new_parts);
+      if (hook != null) {
+        for (Partition new_part : new_parts) {
+          hook.commitCreatePartition(table, new_part);
+        }
+      }
+      success = true;
+      return added;
+    } finally {
+      if (hook != null && !success) {
+        for (Partition new_part : new_parts) {
+          hook.rollbackCreatePartition(table, new_part);
+        }
+      }
+    }
   }
 
   @Override
@@ -546,12 +601,35 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
     if (parts.isEmpty()) {
       return needResults ? new ArrayList<Partition>() : null;
     }
-    Partition part = parts.get(0);
+    Partition part0 = parts.get(0);
+    Table table = getTable(part0.getDbName(), part0.getTableName());
+    HiveMetaHook hook = getHook(table);
+    if (hook != null) {
+      for (Partition new_part : parts) {
+        hook.preCreatePartition(table, new_part);
+      }
+    }
     AddPartitionsRequest req = new AddPartitionsRequest(
-        part.getDbName(), part.getTableName(), parts, ifNotExists);
+        table.getDbName(), table.getTableName(), parts, ifNotExists);
     req.setNeedResult(needResults);
-    AddPartitionsResult result = client.add_partitions_req(req);
-    return needResults ? filterHook.filterPartitions(result.getPartitions()) : null;
+
+    boolean success = false;
+    try {
+      AddPartitionsResult result = client.add_partitions_req(req);
+      if (hook != null && success) {
+        for (Partition new_part : parts) {
+          hook.commitCreatePartition(table, new_part);
+        }
+      }
+      success = true;
+      return needResults ? result.getPartitions() : null;
+    } finally {
+      if (hook != null && !success) {
+        for (Partition new_part : parts) {
+          hook.rollbackCreatePartition(table, new_part);
+        }
+      }
+    }
   }
 
   @Override
@@ -581,8 +659,8 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   public Partition appendPartition(String db_name, String table_name, List<String> part_vals,
       EnvironmentContext envContext) throws InvalidObjectException, AlreadyExistsException,
       MetaException, TException {
-    return deepCopy(client.append_partition_with_environment_context(db_name, table_name,
-        part_vals, envContext));
+    Table table = getTable(db_name, table_name);
+    return add_partition(table, toPartition(table, part_vals), envContext);
   }
 
   @Override
@@ -594,8 +672,43 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   public Partition appendPartition(String dbName, String tableName, String partName,
       EnvironmentContext envContext) throws InvalidObjectException, AlreadyExistsException,
       MetaException, TException {
-    return deepCopy(client.append_partition_by_name_with_environment_context(dbName, tableName,
-        partName, envContext));
+    Table table = getTable(dbName, tableName);
+    return add_partition(table, toPartition(table, partName), envContext);
+  }
+
+  private Partition toPartition(Table table, List<String> partVals) throws TException {
+    String partName = Warehouse.makePartName(table.getPartitionKeys(), partVals);
+    return toPartition(table, partVals, partName);
+  }
+
+  private Partition toPartition(Table table, String partName) throws TException {
+    // Unescape the partition name
+    LinkedHashMap<String, String> hm = Warehouse.makeSpecFromName(partName);
+    List<String> partVals = new ArrayList<String>();
+    for (FieldSchema field : table.getPartitionKeys()) {
+      String key = field.getName();
+      String val = hm.get(key);
+      if (val == null) {
+        throw new InvalidObjectException("incomplete partition name - missing " + key);
+      }
+      partVals.add(val);
+    }
+    return toPartition(table, partVals, partName);
+  }
+
+  private Partition toPartition(Table table, List<String> partVals, String partName) {
+    Partition part = new Partition();
+    part.setDbName(table.getDbName());
+    part.setTableName(table.getTableName());
+    part.setValues(partVals);
+    part.setSd(table.getSd());
+    String location = table.getSd().getLocation();
+    if (location != null) {
+      Path partLocation = new Path(location, partName);
+      part.getSd().setLocation(partLocation.toString());
+    }
+
+    return part;
   }
 
   /**
@@ -603,7 +716,7 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
    * @param partitionSpecs partitions specs of the parent partition to be exchanged
    * @param destDb the db of the destination table
    * @param destinationTableName the destination table name
-   @ @return new partition after exchanging
+   * @return new partition after exchanging
    */
   @Override
   public Partition exchange_partition(Map<String, String> partitionSpecs,
@@ -744,12 +857,13 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   public boolean dropPartition(String db_name, String tbl_name,
       List<String> part_vals) throws NoSuchObjectException, MetaException,
       TException {
-    return dropPartition(db_name, tbl_name, part_vals, true, null);
+    return dropPartition(db_name, tbl_name, part_vals, null);
   }
 
   public boolean dropPartition(String db_name, String tbl_name, List<String> part_vals,
       EnvironmentContext env_context) throws NoSuchObjectException, MetaException, TException {
-    return dropPartition(db_name, tbl_name, part_vals, true, env_context);
+    Table table = getTable(db_name, tbl_name);
+    return drop_partition(table, toPartition(table, part_vals), true, env_context);
   }
 
   @Override
@@ -760,8 +874,8 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
 
   public boolean dropPartition(String dbName, String tableName, String partName, boolean deleteData,
       EnvironmentContext envContext) throws NoSuchObjectException, MetaException, TException {
-    return client.drop_partition_by_name_with_environment_context(dbName, tableName, partName,
-        deleteData, envContext);
+    Table table = getTable(dbName, tableName);
+    return drop_partition(table, toPartition(table, partName), deleteData, envContext);
   }
 
   /**
@@ -781,14 +895,35 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   public boolean dropPartition(String db_name, String tbl_name,
       List<String> part_vals, boolean deleteData) throws NoSuchObjectException,
       MetaException, TException {
-    return dropPartition(db_name, tbl_name, part_vals, deleteData, null);
+    Table table = getTable(db_name, tbl_name);
+    return drop_partition(table, toPartition(table, part_vals), deleteData, null);
   }
 
   public boolean dropPartition(String db_name, String tbl_name, List<String> part_vals,
       boolean deleteData, EnvironmentContext envContext) throws NoSuchObjectException,
       MetaException, TException {
-    return client.drop_partition_with_environment_context(db_name, tbl_name, part_vals, deleteData,
-        envContext);
+    Table table = getTable(db_name, tbl_name);
+    return drop_partition(table, toPartition(table, part_vals), deleteData, envContext);
+  }
+
+  private boolean drop_partition(Table table, Partition part, boolean deleteData,
+      EnvironmentContext ctx)
+      throws InvalidObjectException, AlreadyExistsException, MetaException, TException {
+    if (table == null) {
+       table = getTable(part.getDbName(), part.getTableName());
+    }
+    HiveMetaHook hook = getHook(table);
+    String dbName = part.getDbName();
+    String tableName = part.getTableName();
+    List<String> vals = part.getValues();
+
+    boolean done = ctx == null ?
+        client.drop_partition(dbName, tableName, vals, deleteData) :
+        client.drop_partition_with_environment_context(dbName, tableName, vals, deleteData, ctx);
+    if (hook != null && done) {
+      hook.commitDropPartition(table, part, deleteData);
+    }
+    return true;
   }
 
   @Override
@@ -804,12 +939,22 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
       exprs.add(dpe);
     }
     rps.setExprs(exprs);
+
+    Table table = getTable(dbName, tblName);
+    HiveMetaHook hook = getHook(table);
+
     DropPartitionsRequest req = new DropPartitionsRequest(dbName, tblName, rps);
     req.setDeleteData(deleteData);
     req.setIgnoreProtection(ignoreProtection);
     req.setNeedResult(true);
     req.setIfExists(ifExists);
-    return client.drop_partitions_req(req).getPartitions();
+    List<Partition> partitions = client.drop_partitions_req(req).getPartitions();
+    if (hook != null && partitions != null) {
+      for (Partition part : partitions) {
+        hook.commitDropPartition(table, part, deleteData);
+      }
+    }
+    return partitions;
   }
 
   /**
@@ -905,9 +1050,15 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
     }
     boolean success = false;
     try {
-      drop_table_with_environment_context(dbname, name, deleteData, envContext);
+      List<Partition> partitions =
+          drop_table_with_environment_context(dbname, name, deleteData, envContext);
       if (hook != null) {
         hook.commitDropTable(tbl, deleteData);
+      }
+      if (hook != null && partitions != null && !partitions.isEmpty()) {
+        for (Partition partition : partitions) {
+          hook.commitDropPartition(tbl, partition, deleteData);
+        }
       }
       success=true;
     } catch (NoSuchObjectException e) {
@@ -1440,32 +1591,7 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   @Override
   public Partition getPartition(String db, String tableName, String partName)
       throws MetaException, TException, UnknownTableException, NoSuchObjectException {
-    return deepCopy(
-        filterHook.filterPartition(client.get_partition_by_name(db, tableName, partName)));
-  }
-
-  public Partition appendPartitionByName(String dbName, String tableName, String partName)
-      throws InvalidObjectException, AlreadyExistsException, MetaException, TException {
-    return appendPartitionByName(dbName, tableName, partName, null);
-  }
-
-  public Partition appendPartitionByName(String dbName, String tableName, String partName,
-      EnvironmentContext envContext) throws InvalidObjectException, AlreadyExistsException,
-      MetaException, TException {
-    return deepCopy(client.append_partition_by_name_with_environment_context(dbName, tableName,
-        partName, envContext));
-  }
-
-  public boolean dropPartitionByName(String dbName, String tableName, String partName,
-      boolean deleteData) throws NoSuchObjectException, MetaException, TException {
-    return dropPartitionByName(dbName, tableName, partName, deleteData, null);
-  }
-
-  public boolean dropPartitionByName(String dbName, String tableName, String partName,
-      boolean deleteData, EnvironmentContext envContext) throws NoSuchObjectException,
-      MetaException, TException {
-    return client.drop_partition_by_name_with_environment_context(dbName, tableName, partName,
-        deleteData, envContext);
+    return deepCopy(client.get_partition_by_name(db, tableName, partName));
   }
 
   private HiveMetaHook getHook(Table tbl) throws MetaException {
@@ -1975,10 +2101,10 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
     client.create_table_with_environment_context(tbl, envContext);
   }
 
-  protected void drop_table_with_environment_context(String dbname, String name,
+  protected List<Partition> drop_table_with_environment_context(String dbname, String name,
       boolean deleteData, EnvironmentContext envContext) throws MetaException, TException,
       NoSuchObjectException, UnsupportedOperationException {
-    client.drop_table_with_environment_context(dbname, name, deleteData, envContext);
+    return client.drop_table_with_environment_context(dbname, name, deleteData, envContext);
   }
 
   @Override

@@ -74,7 +74,7 @@ public class PartitionDesc implements Serializable, Cloneable {
   }
 
   public PartitionDesc(final TableDesc table, final LinkedHashMap<String, String> partSpec) {
-    this.tableDesc = table;
+    this.tableDesc = table.clone();
     this.partSpec = partSpec;
   }
 
@@ -87,7 +87,7 @@ public class PartitionDesc implements Serializable, Cloneable {
   }
 
   public PartitionDesc(final Partition part,final TableDesc tblDesc) throws HiveException {
-    this.tableDesc = tblDesc;
+    this.tableDesc = tblDesc.clone();
     setProperties(part.getSchemaFromTableSchema(tblDesc.getProperties())); // each partition maintains a large properties
     partSpec = part.getSpec();
     setOutputFileFormatClass(part.getInputFormatClass());
@@ -240,7 +240,7 @@ public class PartitionDesc implements Serializable, Cloneable {
       }
       ret.setProperties(newProp);
     }
-    ret.tableDesc = (TableDesc) tableDesc.clone();
+    ret.tableDesc = tableDesc.clone();
     // The partition spec is not present
     if (partSpec != null) {
       ret.partSpec = new java.util.LinkedHashMap<String, String>();

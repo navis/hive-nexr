@@ -95,7 +95,13 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
     HBaseSplit hbaseSplit = (HBaseSplit) split;
     TableSplit tableSplit = hbaseSplit.getTableSplit();
 
-    setHTable(HiveHBaseInputFormatUtil.getTable(jobConf));
+    String hbaseTableName = jobConf.get(HBaseSerDe.HBASE_TABLE_NAME);
+    String partName = jobConf.get("partName");
+    if (partName != null && !partName.isEmpty()) {
+      hbaseTableName += HBaseSerDe.toPartSuffix(partName);
+    }
+
+    setHTable(new HTable(HBaseConfiguration.create(jobConf), Bytes.toBytes(hbaseTableName)));
     setScan(HiveHBaseInputFormatUtil.getScan(jobConf));
 
     Job job = new Job(jobConf);
@@ -440,8 +446,7 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
       TableMapReduceUtil.initCredentials(jobConf);
     }
 
-    String hbaseTableName = jobConf.get(HBaseSerDe.HBASE_TABLE_NAME);
-    setHTable(new HTable(HBaseConfiguration.create(jobConf), Bytes.toBytes(hbaseTableName)));
+    setHTable(HiveHBaseInputFormatUtil.getTable(jobConf));
     String hbaseColumnsMapping = jobConf.get(HBaseSerDe.HBASE_COLUMNS_MAPPING);
     boolean doColumnRegexMatching = jobConf.getBoolean(HBaseSerDe.HBASE_COLUMNS_REGEX_MATCHING, true);
 

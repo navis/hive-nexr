@@ -105,7 +105,8 @@ public class TestFileSinkOperator {
     Properties properties = new Properties();
     properties.setProperty(serdeConstants.SERIALIZATION_LIB, TFSOSerDe.class.getName());
     nonAcidTableDescriptor = new TableDesc(TFSOInputFormat.class, TFSOOutputFormat.class, properties);
-    properties = new Properties(properties);
+    properties = new Properties();
+    properties.setProperty(serdeConstants.SERIALIZATION_LIB, TFSOSerDe.class.getName());
     properties.setProperty(hive_metastoreConstants.BUCKET_COUNT, "1");
     acidTableDescriptor = new TableDesc(TFSOInputFormat.class, TFSOOutputFormat.class, properties);
 
@@ -286,11 +287,11 @@ public class TestFileSinkOperator {
       case DELETE:
       case UPDATE:
       case INSERT:
-        tableDesc = acidTableDescriptor;
+        tableDesc = acidTableDescriptor.clone();
         break;
 
       case NOT_ACID:
-        tableDesc = nonAcidTableDescriptor;
+        tableDesc = nonAcidTableDescriptor.clone();
         break;
     }
     FileSinkDesc desc = null;
@@ -303,6 +304,7 @@ public class TestFileSinkOperator {
       Map<String, String> partColNames = new HashMap<String, String>(1);
       partColNames.put(PARTCOL_NAME, PARTCOL_NAME);
       dpCtx.setInputToDPCols(partColNames);
+      tableDesc.getProperties().setProperty(hive_metastoreConstants.META_TABLE_PARTITION_COLUMNS, PARTCOL_NAME);
       desc = new FileSinkDesc(basePath, tableDesc, false, 1, false, false, 1, 1, partCols, dpCtx);
     } else {
       desc = new FileSinkDesc(basePath, tableDesc, false);

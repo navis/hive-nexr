@@ -1215,7 +1215,7 @@ public final class GenMapRedUtils {
         GenMapRedUtils.createTemporaryTableScanOperator(inputRS);
 
     // Create a FileSink operator
-    TableDesc ts = (TableDesc) fsInputDesc.getTableInfo().clone();
+    TableDesc ts = fsInputDesc.getTableInfo().clone();
     FileSinkDesc fsOutputDesc = new FileSinkDesc(finalName, ts,
       conf.getBoolVar(ConfVars.COMPRESSRESULT));
     FileSinkOperator fsOutput = (FileSinkOperator) OperatorFactory.getAndMakeChild(

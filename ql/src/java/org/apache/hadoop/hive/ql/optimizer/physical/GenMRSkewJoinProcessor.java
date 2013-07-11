@@ -159,7 +159,7 @@ public final class GenMRSkewJoinProcessor {
     List<Task<? extends Serializable>> listTasks = new ArrayList<Task<? extends Serializable>>();
     MapredWork currPlan = (MapredWork) currTask.getWork();
 
-    TableDesc keyTblDesc = (TableDesc) currPlan.getReduceWork().getKeyDesc().clone();
+    TableDesc keyTblDesc = currPlan.getReduceWork().getKeyDesc().clone();
     List<String> joinKeys = Utilities
         .getColumnNames(keyTblDesc.getProperties());
     List<String> joinKeyTypes = Utilities.getColumnTypes(keyTblDesc

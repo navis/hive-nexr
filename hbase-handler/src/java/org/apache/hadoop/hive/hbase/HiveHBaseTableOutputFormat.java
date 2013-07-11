@@ -32,7 +32,6 @@ import org.apache.hadoop.hbase.mapred.TableMapReduceUtil;
 import org.apache.hadoop.hbase.mapreduce.TableOutputCommitter;
 import org.apache.hadoop.hbase.mapreduce.TableOutputFormat;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.hbase.PutWritable;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputFormat;
@@ -55,19 +54,6 @@ public class HiveHBaseTableOutputFormat extends
 
   static final Log LOG = LogFactory.getLog(HiveHBaseTableOutputFormat.class);
   public static final String HBASE_WAL_ENABLED = "hive.hbase.wal.enabled";
-
-  /**
-   * Update the out table, and output an empty key as the key.
-   *
-   * @param jc the job configuration file
-   * @param finalOutPath the final output table name
-   * @param valueClass the value class
-   * @param isCompressed whether the content is compressed or not
-   * @param tableProperties the table info of the corresponding table
-   * @param progress progress used for status report
-   * @return the RecordWriter for the output file
-   */
-
 
   @Override
   public void checkOutputSpecs(FileSystem fs, JobConf jc) throws IOException {
@@ -99,7 +85,12 @@ public class HiveHBaseTableOutputFormat extends
       Progressable progressable) throws IOException {
 
     String hbaseTableName = jobConf.get(HBaseSerDe.HBASE_TABLE_NAME);
+    String partName = jobConf.get("partName");
+    if (partName != null && !partName.isEmpty()) {
+      hbaseTableName += HBaseSerDe.toPartSuffix(partName);
+    }
     jobConf.set(TableOutputFormat.OUTPUT_TABLE, hbaseTableName);
+
     final boolean walEnabled = HiveConf.getBoolVar(
         jobConf, HiveConf.ConfVars.HIVE_HBASE_WAL_ENABLED);
     final HTable table = new HTable(HBaseConfiguration.create(jobConf), hbaseTableName);

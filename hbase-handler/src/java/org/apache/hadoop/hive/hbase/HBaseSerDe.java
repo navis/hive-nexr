@@ -29,6 +29,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hive.hbase.ColumnMappings.ColumnMapping;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.serde.serdeConstants;
+import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.serde2.AbstractSerDe;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
@@ -301,5 +302,13 @@ public class HBaseSerDe extends AbstractSerDe {
     HBaseSerDeParameters serdeParams =
         new HBaseSerDeParameters(jobConf, tableDesc.getProperties(), HBaseSerDe.class.getName());
     serdeParams.getKeyFactory().configureJobConf(tableDesc, jobConf);
+  }
+
+  public static String toPartSuffix(String partName) {
+    StringBuilder builder = new StringBuilder();
+    for (String value : Utilities.makeSpecFromName(partName).values()) {
+      builder.append('_').append(value);
+    }
+    return builder.toString();
   }
 }

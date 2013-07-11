@@ -59,6 +59,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.common.LogUtils;
 import org.apache.hadoop.hive.common.LogUtils.LogInitializationException;
+import org.apache.hadoop.hive.common.ObjectPair;
 import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.common.classification.InterfaceStability;
 import org.apache.hadoop.hive.common.cli.CommonCliOptions;
@@ -969,7 +970,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       boolean success = false;
       Database db = null;
       List<Path> tablePaths = new ArrayList<Path>();
-      List<Path> partitionPaths = new ArrayList<Path>();
+      List<Path> partitionPaths = Collections.emptyList();
       try {
         ms.openTransaction();
         db = ms.getDatabase(name);
@@ -1046,7 +1047,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
               // For each partition in each table, drop the partitions and get a list of
               // partitions' locations which might need to be deleted
               partitionPaths = dropPartitionsAndGetLocations(ms, name, table.getTableName(),
-                  tablePath, table.getPartitionKeys(), deleteData && !isExternal(table));
+                  tablePath, table.getPartitionKeys(), deleteData && !isExternal(table)).getSecond();
 
               // Drop the table but not its data
               drop_table(name, table.getTableName(), false);
@@ -1452,14 +1453,16 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       return (ms.getTable(dbname, name) != null);
     }
 
-    private boolean drop_table_core(final RawStore ms, final String dbname, final String name,
+    private List<Partition> drop_table_core(final RawStore ms, final String dbname, final String name,
         final boolean deleteData, final EnvironmentContext envContext,
-        final String indexName) throws NoSuchObjectException,
-        MetaException, IOException, InvalidObjectException, InvalidInputException {
+        final String indexName)
+        throws NoSuchObjectException, MetaException, IOException,
+        InvalidObjectException, InvalidInputException {
       boolean success = false;
       boolean isExternal = false;
       Path tblPath = null;
-      List<Path> partPaths = null;
+      ObjectPair<List<Partition>, List<Path>> partitions =
+          new ObjectPair<List<Partition>, List<Path>>(null, null);
       Table tbl = null;
       try {
         ms.openTransaction();
@@ -1505,8 +1508,10 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         }
 
         // Drop the partitions and get a list of locations which need to be deleted
-        partPaths = dropPartitionsAndGetLocations(ms, dbname, name, tblPath,
-            tbl.getPartitionKeys(), deleteData && !isExternal);
+        if (MetaStoreUtils.isPartitionedTable(tbl)) {
+          partitions = dropPartitionsAndGetLocations(ms, dbname, name, tblPath,
+              tbl.getPartitionKeys(), deleteData && !isExternal);
+        }
 
         if (!ms.dropTable(dbname, name)) {
           String tableName = dbname + "." + name;
@@ -1521,7 +1526,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           boolean ifPurge = envContext != null &&
               Boolean.parseBoolean(envContext.getProperties().get("ifPurge"));
           // Delete the data in the partitions which have other locations
-          deletePartitionData(partPaths, ifPurge);
+          deletePartitionData(partitions.getSecond(), ifPurge);
           // Delete the data in the table
           deleteTableData(tblPath, ifPurge);
           // ok even if the data is not deleted
@@ -1532,7 +1537,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           listener.onDropTable(dropTableEvent);
         }
       }
-      return success;
+      return partitions.getFirst();
     }
 
     /**
@@ -1616,8 +1621,9 @@ public class HiveMetaStore extends ThriftHiveMetastore {
      * @throws InvalidObjectException
      * @throws NoSuchObjectException
      */
-    private List<Path> dropPartitionsAndGetLocations(RawStore ms, String dbName,
-      String tableName, Path tablePath, List<FieldSchema> partitionKeys, boolean checkLocation)
+    private ObjectPair<List<Partition>, List<Path>> dropPartitionsAndGetLocations(
+        RawStore ms, String dbName, String tableName, Path tablePath,
+        List<FieldSchema> partitionKeys, boolean checkLocation)
       throws MetaException, IOException, NoSuchObjectException, InvalidObjectException,
       InvalidInputException {
       int partitionBatchSize = HiveConf.getIntVar(hiveConf,
@@ -1626,6 +1632,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       if (tablePath != null) {
         tableDnsPath = wh.getDnsPath(tablePath);
       }
+      List<Partition> partitions = new ArrayList<Partition>();
       List<Path> partPaths = new ArrayList<Path>();
       Table tbl = ms.getTable(dbName, tableName);
 
@@ -1636,6 +1643,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         if (partsToDelete == null || partsToDelete.isEmpty()) {
           break;
         }
+        partitions.addAll(partsToDelete);
         List<String> partNames = new ArrayList<String>();
         for (Partition part : partsToDelete) {
           if (checkLocation && part.getSd() != null &&
@@ -1658,25 +1666,25 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         ms.dropPartitions(dbName, tableName, partNames);
       }
 
-      return partPaths;
+      return new ObjectPair<List<Partition>, List<Path>>(partitions, partPaths);
     }
 
     @Override
-    public void drop_table(final String dbname, final String name, final boolean deleteData)
+    public List<Partition> drop_table(String dbname, String name, boolean deleteData)
         throws NoSuchObjectException, MetaException {
-      drop_table_with_environment_context(dbname, name, deleteData, null);
+      return drop_table_with_environment_context(dbname, name, deleteData, null);
     }
 
     @Override
-    public void drop_table_with_environment_context(final String dbname, final String name,
-        final boolean deleteData, final EnvironmentContext envContext)
+    public List<Partition> drop_table_with_environment_context(String dbname, String name,
+        boolean deleteData, EnvironmentContext envContext)
         throws NoSuchObjectException, MetaException {
       startTableFunction("drop_table", dbname, name);
 
-      boolean success = false;
       Exception ex = null;
+      List<Partition> partitions = null;
       try {
-        success = drop_table_core(getMS(), dbname, name, deleteData, envContext, null);
+        partitions = drop_table_core(getMS(), dbname, name, deleteData, envContext, null);
       } catch (IOException e) {
         ex = e;
         throw new MetaException(e.getMessage());
@@ -1690,9 +1698,9 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           throw newMetaException(e);
         }
       } finally {
-        endFunction("drop_table", success, ex, name);
+        endFunction("drop_table", ex == null, ex, name);
       }
-
+      return partitions;
     }
 
     /**
@@ -2150,17 +2158,15 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     public int add_partitions(final List<Partition> parts) throws MetaException,
         InvalidObjectException, AlreadyExistsException {
       startFunction("add_partition");
-      if (parts.size() == 0) {
-        return 0;
-      }
-
-      Integer ret = null;
       Exception ex = null;
       try {
-        // Old API assumed all partitions belong to the same table; keep the same assumption
-        ret = add_partitions_core(getMS(), parts.get(0).getDbName(),
-            parts.get(0).getTableName(), parts, false).size();
-        assert ret == parts.size();
+        if (!parts.isEmpty()) {
+          // Old API assumed all partitions belong to the same table; keep the same assumption
+          List<Partition> partitions = add_partitions_core(getMS(), parts.get(0).getDbName(),
+            parts.get(0).getTableName(), parts, false);
+          return partitions.size();
+        }
+        return 0;
       } catch (Exception e) {
         ex = e;
         if (e instanceof MetaException) {
@@ -2174,9 +2180,8 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         }
       } finally {
         String tableName = parts.get(0).getTableName();
-        endFunction("add_partition", ret != null, ex, tableName);
+        endFunction("add_partition", ex == null, ex, tableName);
       }
-      return ret;
     }
 
     @Override
@@ -3945,7 +3950,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
 
           // Drop the partitions and get a list of partition locations which need to be deleted
           partPaths = dropPartitionsAndGetLocations(ms, qualified[0], qualified[1], tblPath,
-              tbl.getPartitionKeys(), deleteData);
+              tbl.getPartitionKeys(), deleteData).getSecond();
 
           if (!ms.dropTable(qualified[0], qualified[1])) {
             throw new MetaException("Unable to drop underlying data table "

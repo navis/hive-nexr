@@ -149,6 +149,11 @@ public class TableDesc implements Serializable, Cloneable {
         .getProperty(hive_metastoreConstants.META_TABLE_NAME);
   }
 
+  public String getPartitionColumns() {
+    return properties
+        .getProperty(hive_metastoreConstants.META_TABLE_PARTITION_COLUMNS);
+  }
+
   @Explain(displayName = "input format")
   public String getInputFileFormatClassName() {
     return getInputFileFormatClass().getName();
@@ -164,7 +169,7 @@ public class TableDesc implements Serializable, Cloneable {
   }
 
   @Override
-  public Object clone() {
+  public TableDesc clone() {
     TableDesc ret = new TableDesc();
     ret.setInputFileFormatClass(inputFileFormatClass);
     ret.setOutputFileFormatClass(outputFileFormatClass);

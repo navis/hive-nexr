@@ -65,4 +65,9 @@ public class HivePassThroughOutputFormat<K, V> implements HiveOutputFormat<K, V>
     RecordWriter<?, ?> recordWriter = actualOutputFormat.getRecordWriter(fs, jc, null, progress);
     return new HivePassThroughRecordWriter(recordWriter);
   }
+
+  @Override
+  public String toString() {
+    return "HivePassThroughOutputFormat [" + actualOutputFormat + "]";
+  }
 }

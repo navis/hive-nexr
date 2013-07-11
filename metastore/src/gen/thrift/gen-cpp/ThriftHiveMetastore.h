@@ -32,8 +32,8 @@ class ThriftHiveMetastoreIf : virtual public  ::facebook::fb303::FacebookService
   virtual void get_schema(std::vector<FieldSchema> & _return, const std::string& db_name, const std::string& table_name) = 0;
   virtual void create_table(const Table& tbl) = 0;
   virtual void create_table_with_environment_context(const Table& tbl, const EnvironmentContext& environment_context) = 0;
-  virtual void drop_table(const std::string& dbname, const std::string& name, const bool deleteData) = 0;
-  virtual void drop_table_with_environment_context(const std::string& dbname, const std::string& name, const bool deleteData, const EnvironmentContext& environment_context) = 0;
+  virtual void drop_table(std::vector<Partition> & _return, const std::string& dbname, const std::string& name, const bool deleteData) = 0;
+  virtual void drop_table_with_environment_context(std::vector<Partition> & _return, const std::string& dbname, const std::string& name, const bool deleteData, const EnvironmentContext& environment_context) = 0;
   virtual void get_tables(std::vector<std::string> & _return, const std::string& db_name, const std::string& pattern) = 0;
   virtual void get_all_tables(std::vector<std::string> & _return, const std::string& db_name) = 0;
   virtual void get_table(Table& _return, const std::string& dbname, const std::string& tbl_name) = 0;
@@ -215,10 +215,10 @@ class ThriftHiveMetastoreNull : virtual public ThriftHiveMetastoreIf , virtual p
   void create_table_with_environment_context(const Table& /* tbl */, const EnvironmentContext& /* environment_context */) {
     return;
   }
-  void drop_table(const std::string& /* dbname */, const std::string& /* name */, const bool /* deleteData */) {
+  void drop_table(std::vector<Partition> & /* _return */, const std::string& /* dbname */, const std::string& /* name */, const bool /* deleteData */) {
     return;
   }
-  void drop_table_with_environment_context(const std::string& /* dbname */, const std::string& /* name */, const bool /* deleteData */, const EnvironmentContext& /* environment_context */) {
+  void drop_table_with_environment_context(std::vector<Partition> & /* _return */, const std::string& /* dbname */, const std::string& /* name */, const bool /* deleteData */, const EnvironmentContext& /* environment_context */) {
     return;
   }
   void get_tables(std::vector<std::string> & /* _return */, const std::string& /* db_name */, const std::string& /* pattern */) {
@@ -2697,7 +2697,8 @@ class ThriftHiveMetastore_drop_table_pargs {
 };
 
 typedef struct _ThriftHiveMetastore_drop_table_result__isset {
-  _ThriftHiveMetastore_drop_table_result__isset() : o1(false), o3(false) {}
+  _ThriftHiveMetastore_drop_table_result__isset() : success(false), o1(false), o3(false) {}
+  bool success;
   bool o1;
   bool o3;
 } _ThriftHiveMetastore_drop_table_result__isset;
@@ -2710,10 +2711,15 @@ class ThriftHiveMetastore_drop_table_result {
 
   virtual ~ThriftHiveMetastore_drop_table_result() throw() {}
 
+  std::vector<Partition>  success;
   NoSuchObjectException o1;
   MetaException o3;
 
   _ThriftHiveMetastore_drop_table_result__isset __isset;
+
+  void __set_success(const std::vector<Partition> & val) {
+    success = val;
+  }
 
   void __set_o1(const NoSuchObjectException& val) {
     o1 = val;
@@ -2725,6 +2731,8 @@ class ThriftHiveMetastore_drop_table_result {
 
   bool operator == (const ThriftHiveMetastore_drop_table_result & rhs) const
   {
+    if (!(success == rhs.success))
+      return false;
     if (!(o1 == rhs.o1))
       return false;
     if (!(o3 == rhs.o3))
@@ -2743,7 +2751,8 @@ class ThriftHiveMetastore_drop_table_result {
 };
 
 typedef struct _ThriftHiveMetastore_drop_table_presult__isset {
-  _ThriftHiveMetastore_drop_table_presult__isset() : o1(false), o3(false) {}
+  _ThriftHiveMetastore_drop_table_presult__isset() : success(false), o1(false), o3(false) {}
+  bool success;
   bool o1;
   bool o3;
 } _ThriftHiveMetastore_drop_table_presult__isset;
@@ -2754,6 +2763,7 @@ class ThriftHiveMetastore_drop_table_presult {
 
   virtual ~ThriftHiveMetastore_drop_table_presult() throw() {}
 
+  std::vector<Partition> * success;
   NoSuchObjectException o1;
   MetaException o3;
 
@@ -2842,7 +2852,8 @@ class ThriftHiveMetastore_drop_table_with_environment_context_pargs {
 };
 
 typedef struct _ThriftHiveMetastore_drop_table_with_environment_context_result__isset {
-  _ThriftHiveMetastore_drop_table_with_environment_context_result__isset() : o1(false), o3(false) {}
+  _ThriftHiveMetastore_drop_table_with_environment_context_result__isset() : success(false), o1(false), o3(false) {}
+  bool success;
   bool o1;
   bool o3;
 } _ThriftHiveMetastore_drop_table_with_environment_context_result__isset;
@@ -2855,10 +2866,15 @@ class ThriftHiveMetastore_drop_table_with_environment_context_result {
 
   virtual ~ThriftHiveMetastore_drop_table_with_environment_context_result() throw() {}
 
+  std::vector<Partition>  success;
   NoSuchObjectException o1;
   MetaException o3;
 
   _ThriftHiveMetastore_drop_table_with_environment_context_result__isset __isset;
+
+  void __set_success(const std::vector<Partition> & val) {
+    success = val;
+  }
 
   void __set_o1(const NoSuchObjectException& val) {
     o1 = val;
@@ -2870,6 +2886,8 @@ class ThriftHiveMetastore_drop_table_with_environment_context_result {
 
   bool operator == (const ThriftHiveMetastore_drop_table_with_environment_context_result & rhs) const
   {
+    if (!(success == rhs.success))
+      return false;
     if (!(o1 == rhs.o1))
       return false;
     if (!(o3 == rhs.o3))
@@ -2888,7 +2906,8 @@ class ThriftHiveMetastore_drop_table_with_environment_context_result {
 };
 
 typedef struct _ThriftHiveMetastore_drop_table_with_environment_context_presult__isset {
-  _ThriftHiveMetastore_drop_table_with_environment_context_presult__isset() : o1(false), o3(false) {}
+  _ThriftHiveMetastore_drop_table_with_environment_context_presult__isset() : success(false), o1(false), o3(false) {}
+  bool success;
   bool o1;
   bool o3;
 } _ThriftHiveMetastore_drop_table_with_environment_context_presult__isset;
@@ -2899,6 +2918,7 @@ class ThriftHiveMetastore_drop_table_with_environment_context_presult {
 
   virtual ~ThriftHiveMetastore_drop_table_with_environment_context_presult() throw() {}
 
+  std::vector<Partition> * success;
   NoSuchObjectException o1;
   MetaException o3;
 
@@ -16949,12 +16969,12 @@ class ThriftHiveMetastoreClient : virtual public ThriftHiveMetastoreIf, public  
   void create_table_with_environment_context(const Table& tbl, const EnvironmentContext& environment_context);
   void send_create_table_with_environment_context(const Table& tbl, const EnvironmentContext& environment_context);
   void recv_create_table_with_environment_context();
-  void drop_table(const std::string& dbname, const std::string& name, const bool deleteData);
+  void drop_table(std::vector<Partition> & _return, const std::string& dbname, const std::string& name, const bool deleteData);
   void send_drop_table(const std::string& dbname, const std::string& name, const bool deleteData);
-  void recv_drop_table();
-  void drop_table_with_environment_context(const std::string& dbname, const std::string& name, const bool deleteData, const EnvironmentContext& environment_context);
+  void recv_drop_table(std::vector<Partition> & _return);
+  void drop_table_with_environment_context(std::vector<Partition> & _return, const std::string& dbname, const std::string& name, const bool deleteData, const EnvironmentContext& environment_context);
   void send_drop_table_with_environment_context(const std::string& dbname, const std::string& name, const bool deleteData, const EnvironmentContext& environment_context);
-  void recv_drop_table_with_environment_context();
+  void recv_drop_table_with_environment_context(std::vector<Partition> & _return);
   void get_tables(std::vector<std::string> & _return, const std::string& db_name, const std::string& pattern);
   void send_get_tables(const std::string& db_name, const std::string& pattern);
   void recv_get_tables(std::vector<std::string> & _return);
@@ -17700,22 +17720,24 @@ class ThriftHiveMetastoreMultiface : virtual public ThriftHiveMetastoreIf, publi
     ifaces_[i]->create_table_with_environment_context(tbl, environment_context);
   }
 
-  void drop_table(const std::string& dbname, const std::string& name, const bool deleteData) {
+  void drop_table(std::vector<Partition> & _return, const std::string& dbname, const std::string& name, const bool deleteData) {
     size_t sz = ifaces_.size();
     size_t i = 0;
     for (; i < (sz - 1); ++i) {
-      ifaces_[i]->drop_table(dbname, name, deleteData);
+      ifaces_[i]->drop_table(_return, dbname, name, deleteData);
     }
-    ifaces_[i]->drop_table(dbname, name, deleteData);
+    ifaces_[i]->drop_table(_return, dbname, name, deleteData);
+    return;
   }
 
-  void drop_table_with_environment_context(const std::string& dbname, const std::string& name, const bool deleteData, const EnvironmentContext& environment_context) {
+  void drop_table_with_environment_context(std::vector<Partition> & _return, const std::string& dbname, const std::string& name, const bool deleteData, const EnvironmentContext& environment_context) {
     size_t sz = ifaces_.size();
     size_t i = 0;
     for (; i < (sz - 1); ++i) {
-      ifaces_[i]->drop_table_with_environment_context(dbname, name, deleteData, environment_context);
+      ifaces_[i]->drop_table_with_environment_context(_return, dbname, name, deleteData, environment_context);
     }
-    ifaces_[i]->drop_table_with_environment_context(dbname, name, deleteData, environment_context);
+    ifaces_[i]->drop_table_with_environment_context(_return, dbname, name, deleteData, environment_context);
+    return;
   }
 
   void get_tables(std::vector<std::string> & _return, const std::string& db_name, const std::string& pattern) {

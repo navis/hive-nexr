@@ -161,8 +161,8 @@ public class ReduceSinkDesc extends AbstractOperatorDesc {
     desc.setTag(getTag());
     desc.setNumReducers(getNumReducers());
     desc.setPartitionCols((ArrayList<ExprNodeDesc>) getPartitionCols().clone());
-    desc.setKeySerializeInfo((TableDesc) getKeySerializeInfo().clone());
-    desc.setValueSerializeInfo((TableDesc) getValueSerializeInfo().clone());
+    desc.setKeySerializeInfo(getKeySerializeInfo().clone());
+    desc.setValueSerializeInfo(getValueSerializeInfo().clone());
     desc.setNumBuckets(numBuckets);
     desc.setBucketCols(bucketCols);
     desc.setStatistics(this.getStatistics());

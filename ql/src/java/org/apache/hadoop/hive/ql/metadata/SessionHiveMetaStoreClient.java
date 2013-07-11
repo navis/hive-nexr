@@ -31,13 +31,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.hive.common.FileUtils;
-import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.metastore.HiveMetaHook;
 import org.apache.hadoop.hive.metastore.HiveMetaHookLoader;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.IMetaStoreClient;
@@ -55,9 +49,7 @@ import org.apache.hadoop.hive.metastore.api.InvalidObjectException;
 import org.apache.hadoop.hive.metastore.api.InvalidOperationException;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
-import org.apache.hadoop.hive.metastore.api.PartitionsStatsRequest;
 import org.apache.hadoop.hive.metastore.api.PrincipalPrivilegeSet;
-import org.apache.hadoop.hive.metastore.api.TableStatsRequest;
 import org.apache.hadoop.hive.metastore.api.UnknownDBException;
 import org.apache.hadoop.hive.metastore.api.UnknownTableException;
 import org.apache.hadoop.hive.ql.session.SessionState;
@@ -98,7 +90,8 @@ public class SessionHiveMetaStoreClient extends HiveMetaStoreClient implements I
   }
 
   @Override
-  protected void drop_table_with_environment_context(String dbname, String name,
+  protected List<org.apache.hadoop.hive.metastore.api.Partition>
+  drop_table_with_environment_context(String dbname, String name,
       boolean deleteData, EnvironmentContext envContext) throws MetaException, TException,
       NoSuchObjectException, UnsupportedOperationException {
     // First try temp table
@@ -111,11 +104,11 @@ public class SessionHiveMetaStoreClient extends HiveMetaStoreClient implements I
         LOG.info(err);
       }
       dropTempTable(table, deleteData, envContext);
-      return;
+      return Collections.emptyList();
     }
 
     // Try underlying client
-    super.drop_table_with_environment_context(dbname,  name, deleteData, envContext);
+    return super.drop_table_with_environment_context(dbname,  name, deleteData, envContext);
   }
 
   @Override

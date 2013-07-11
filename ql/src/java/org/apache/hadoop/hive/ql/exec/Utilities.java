@@ -2432,6 +2432,46 @@ public final class Utilities {
     }
   }
 
+  // copied from Warehouse for using in runtime
+  public static String makePartName(Map<String, String> partSpec) {
+    StringBuilder builder = new StringBuilder();
+    for (Map.Entry<String, String> entry : partSpec.entrySet()) {
+      builder.append(FileUtils.escapePathName(entry.getKey()));
+      builder.append('=');
+      builder.append(FileUtils.escapePathName(entry.getValue()));
+      builder.append(Path.SEPARATOR);
+    }
+    return builder.toString();
+  }
+
+  public static String makePartName(String[] partKeys, List<String> dpCols, List<String> partVals) {
+    int needs = dpCols == null || dpCols.isEmpty() ? partKeys.length : dpCols.size();
+    StringBuilder builder = new StringBuilder();
+    int offset = partVals.size() - needs;
+    for (int i = 0; i < needs; i++) {
+      builder.append(FileUtils.escapePathName(partKeys[i]));
+      builder.append('=');
+      builder.append(FileUtils.escapePathName(partVals.get(offset + i)));
+      builder.append(Path.SEPARATOR);
+    }
+    return builder.toString();
+  }
+
+  // copied from Warehouse for using in runtime
+  public static LinkedHashMap<String, String> makeSpecFromName(String name) {
+    LinkedHashMap<String, String> partSpec = new LinkedHashMap<String, String>();
+    for (String entry : name.split(Path.SEPARATOR)) {
+      if (entry.isEmpty()) {
+        continue;
+      }
+      int index = entry.indexOf('=');
+      String k = FileUtils.unescapePathName(entry.substring(0, index));
+      String v = FileUtils.unescapePathName(entry.substring(index + 1));
+      partSpec.put(k, v);
+    }
+    return partSpec;
+  }
+
   private static final Object INPUT_SUMMARY_LOCK = new Object();
 
   /**

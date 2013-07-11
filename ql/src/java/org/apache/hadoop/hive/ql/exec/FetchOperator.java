@@ -305,6 +305,9 @@ public class FetchOperator implements Serializable {
       }
       if (isPartitioned) {
         row[1] = createPartValue(currDesc, partKeyOI);
+        if (currDesc != null) {
+          job.set("partName", Utilities.makePartName(currDesc.getPartSpec()));
+        }
       }
       iterSplits = Arrays.asList(splits).iterator();
 
