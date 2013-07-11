@@ -68,6 +68,7 @@ import org.apache.hadoop.hive.ql.io.RCFileInputFormat;
 import org.apache.hadoop.hive.ql.lib.Node;
 import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.ql.metadata.HiveStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.HiveUtils;
 import org.apache.hadoop.hive.ql.metadata.Partition;
 import org.apache.hadoop.hive.ql.metadata.Table;
@@ -1034,7 +1035,11 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
       }
     }
     if (tbl.isNonNative()) {
-      throw new SemanticException(ErrorMsg.ALTER_TABLE_NON_NATIVE.getMsg(tbl.getTableName()));
+      HiveStorageHandler handler = tbl.getStorageHandler();
+      if (handler == null || !handler.supports(tbl, op)) {
+        throw new SemanticException(
+            ErrorMsg.ALTER_TABLE_NON_NATIVE.format(op.name(), tbl.getTableName()));
+      }
     }
   }
 

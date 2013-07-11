@@ -1,0 +1,260 @@
+PREHOOK: query: CREATE TABLE hbase_partition(key int, value string) partitioned by (pid string)
+STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+WITH SERDEPROPERTIES ("hbase.columns.mapping" = ":key,cf:string")
+PREHOOK: type: CREATETABLE
+POSTHOOK: query: CREATE TABLE hbase_partition(key int, value string) partitioned by (pid string)
+STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+WITH SERDEPROPERTIES ("hbase.columns.mapping" = ":key,cf:string")
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: default@hbase_partition
+PREHOOK: query: alter table hbase_partition add partition (pid='100')
+PREHOOK: type: ALTERTABLE_ADDPARTS
+PREHOOK: Input: default@hbase_partition
+POSTHOOK: query: alter table hbase_partition add partition (pid='100')
+POSTHOOK: type: ALTERTABLE_ADDPARTS
+POSTHOOK: Input: default@hbase_partition
+POSTHOOK: Output: default@hbase_partition@pid=100
+PREHOOK: query: alter table hbase_partition add partition (pid='200')
+PREHOOK: type: ALTERTABLE_ADDPARTS
+PREHOOK: Input: default@hbase_partition
+POSTHOOK: query: alter table hbase_partition add partition (pid='200')
+POSTHOOK: type: ALTERTABLE_ADDPARTS
+POSTHOOK: Input: default@hbase_partition
+POSTHOOK: Output: default@hbase_partition@pid=200
+PREHOOK: query: from src
+insert into table hbase_partition partition (pid='100') select * where key < 100
+insert into table hbase_partition partition (pid='200') select * where key >= 100 AND key < 200
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: default@hbase_partition@pid=100
+PREHOOK: Output: default@hbase_partition@pid=200
+POSTHOOK: query: from src
+insert into table hbase_partition partition (pid='100') select * where key < 100
+insert into table hbase_partition partition (pid='200') select * where key >= 100 AND key < 200
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: default@hbase_partition@pid=100
+POSTHOOK: Output: default@hbase_partition@pid=200
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=100).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=100).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=200).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=200).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+PREHOOK: query: explain
+select * from hbase_partition where pid='100'
+PREHOOK: type: QUERY
+POSTHOOK: query: explain
+select * from hbase_partition where pid='100'
+POSTHOOK: type: QUERY
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=100).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=100).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=200).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=200).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+ABSTRACT SYNTAX TREE:
+  (TOK_QUERY (TOK_FROM (TOK_TABREF (TOK_TABNAME hbase_partition))) (TOK_INSERT (TOK_DESTINATION (TOK_DIR TOK_TMP_FILE)) (TOK_SELECT (TOK_SELEXPR TOK_ALLCOLREF)) (TOK_WHERE (= (TOK_TABLE_OR_COL pid) '100'))))
+
+STAGE DEPENDENCIES:
+  Stage-0 is a root stage
+
+STAGE PLANS:
+  Stage: Stage-0
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        TableScan
+          alias: hbase_partition
+          Select Operator
+            expressions:
+                  expr: key
+                  type: int
+                  expr: value
+                  type: string
+                  expr: pid
+                  type: string
+            outputColumnNames: _col0, _col1, _col2
+            ListSink
+
+
+PREHOOK: query: select * from hbase_partition where pid='100'
+PREHOOK: type: QUERY
+PREHOOK: Input: default@hbase_partition
+PREHOOK: Input: default@hbase_partition@pid=100
+#### A masked pattern was here ####
+POSTHOOK: query: select * from hbase_partition where pid='100'
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@hbase_partition
+POSTHOOK: Input: default@hbase_partition@pid=100
+#### A masked pattern was here ####
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=100).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=100).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=200).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=200).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+0	val_0	100
+10	val_10	100
+11	val_11	100
+12	val_12	100
+15	val_15	100
+17	val_17	100
+18	val_18	100
+19	val_19	100
+2	val_2	100
+20	val_20	100
+24	val_24	100
+26	val_26	100
+27	val_27	100
+28	val_28	100
+30	val_30	100
+33	val_33	100
+34	val_34	100
+35	val_35	100
+37	val_37	100
+4	val_4	100
+41	val_41	100
+42	val_42	100
+43	val_43	100
+44	val_44	100
+47	val_47	100
+5	val_5	100
+51	val_51	100
+53	val_53	100
+54	val_54	100
+57	val_57	100
+58	val_58	100
+64	val_64	100
+65	val_65	100
+66	val_66	100
+67	val_67	100
+69	val_69	100
+70	val_70	100
+72	val_72	100
+74	val_74	100
+76	val_76	100
+77	val_77	100
+78	val_78	100
+8	val_8	100
+80	val_80	100
+82	val_82	100
+83	val_83	100
+84	val_84	100
+85	val_85	100
+86	val_86	100
+87	val_87	100
+9	val_9	100
+90	val_90	100
+92	val_92	100
+95	val_95	100
+96	val_96	100
+97	val_97	100
+98	val_98	100
+PREHOOK: query: explain
+select * from hbase_partition where pid='200'
+PREHOOK: type: QUERY
+POSTHOOK: query: explain
+select * from hbase_partition where pid='200'
+POSTHOOK: type: QUERY
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=100).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=100).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=200).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=200).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+ABSTRACT SYNTAX TREE:
+  (TOK_QUERY (TOK_FROM (TOK_TABREF (TOK_TABNAME hbase_partition))) (TOK_INSERT (TOK_DESTINATION (TOK_DIR TOK_TMP_FILE)) (TOK_SELECT (TOK_SELEXPR TOK_ALLCOLREF)) (TOK_WHERE (= (TOK_TABLE_OR_COL pid) '200'))))
+
+STAGE DEPENDENCIES:
+  Stage-0 is a root stage
+
+STAGE PLANS:
+  Stage: Stage-0
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        TableScan
+          alias: hbase_partition
+          Select Operator
+            expressions:
+                  expr: key
+                  type: int
+                  expr: value
+                  type: string
+                  expr: pid
+                  type: string
+            outputColumnNames: _col0, _col1, _col2
+            ListSink
+
+
+PREHOOK: query: select * from hbase_partition where pid='200'
+PREHOOK: type: QUERY
+PREHOOK: Input: default@hbase_partition
+PREHOOK: Input: default@hbase_partition@pid=200
+#### A masked pattern was here ####
+POSTHOOK: query: select * from hbase_partition where pid='200'
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@hbase_partition
+POSTHOOK: Input: default@hbase_partition@pid=200
+#### A masked pattern was here ####
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=100).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=100).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=200).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: hbase_partition PARTITION(pid=200).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+100	val_100	200
+103	val_103	200
+104	val_104	200
+105	val_105	200
+111	val_111	200
+113	val_113	200
+114	val_114	200
+116	val_116	200
+118	val_118	200
+119	val_119	200
+120	val_120	200
+125	val_125	200
+126	val_126	200
+128	val_128	200
+129	val_129	200
+131	val_131	200
+133	val_133	200
+134	val_134	200
+136	val_136	200
+137	val_137	200
+138	val_138	200
+143	val_143	200
+145	val_145	200
+146	val_146	200
+149	val_149	200
+150	val_150	200
+152	val_152	200
+153	val_153	200
+155	val_155	200
+156	val_156	200
+157	val_157	200
+158	val_158	200
+160	val_160	200
+162	val_162	200
+163	val_163	200
+164	val_164	200
+165	val_165	200
+166	val_166	200
+167	val_167	200
+168	val_168	200
+169	val_169	200
+170	val_170	200
+172	val_172	200
+174	val_174	200
+175	val_175	200
+176	val_176	200
+177	val_177	200
+178	val_178	200
+179	val_179	200
+180	val_180	200
+181	val_181	200
+183	val_183	200
+186	val_186	200
+187	val_187	200
+189	val_189	200
+190	val_190	200
+191	val_191	200
+192	val_192	200
+193	val_193	200
+194	val_194	200
+195	val_195	200
+196	val_196	200
+197	val_197	200
+199	val_199	200

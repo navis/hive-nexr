@@ -22,6 +22,7 @@ package org.apache.hcatalog.mapreduce;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.ql.metadata.DefaultStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.HiveStorageHandler;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
@@ -32,7 +33,7 @@ import org.apache.hadoop.mapred.OutputFormat;
  * The abstract Class HCatStorageHandler would server as the base class for all
  * the storage handlers required for non-native tables in HCatalog.
  */
-public abstract class HCatStorageHandler implements HiveStorageHandler {
+public abstract class HCatStorageHandler extends DefaultStorageHandler implements HiveStorageHandler {
 
     //TODO move this to HiveStorageHandler
 

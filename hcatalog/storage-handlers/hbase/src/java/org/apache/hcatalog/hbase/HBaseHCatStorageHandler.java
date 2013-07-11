@@ -45,6 +45,7 @@ import org.apache.hadoop.hive.hbase.HBaseSerDe;
 import org.apache.hadoop.hive.metastore.HiveMetaHook;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.MetaException;
+import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
@@ -373,6 +374,31 @@ public class HBaseHCatStorageHandler extends HCatStorageHandler implements HiveM
      */
     @Override
     public void rollbackDropTable(Table table) throws MetaException {
+    }
+
+    @Override
+    public void preCreatePartition(Table table, Partition partition) throws MetaException {
+    }
+
+    @Override
+    public void rollbackCreatePartition(Table table, Partition partition) throws MetaException {
+    }
+
+    @Override
+    public void commitCreatePartition(Table table, Partition partition) throws MetaException {
+    }
+
+    @Override
+    public void preDropPartition(Table table, Partition partition) throws MetaException {
+    }
+
+    @Override
+    public void rollbackDropPartition(Table table, Partition partition) throws MetaException {
+    }
+
+    @Override
+    public void commitDropPartition(Table table, Partition partition, boolean deleteData)
+        throws MetaException {
     }
 
     /*

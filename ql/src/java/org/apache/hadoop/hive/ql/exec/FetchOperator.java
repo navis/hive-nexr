@@ -336,18 +336,23 @@ public class FetchOperator implements Serializable {
       if (iterPartDesc != null) {
         prt = iterPartDesc.next();
       }
-      FileSystem fs = nxt.getFileSystem(job);
-      if (fs.exists(nxt)) {
-        FileStatus[] fStats = listStatusUnderPath(fs, nxt);
-        for (FileStatus fStat : fStats) {
-          if (fStat.getLen() > 0) {
-            currPath = nxt;
-            if (iterPartDesc != null) {
-              currPart = prt;
+      if (isNativeTable) {
+        FileSystem fs = nxt.getFileSystem(job);
+        if (fs.exists(nxt)) {
+          FileStatus[] fStats = listStatusUnderPath(fs, nxt);
+          for (FileStatus fStat : fStats) {
+            if (fStat.getLen() > 0) {
+              currPath = nxt;
+              if (iterPartDesc != null) {
+                currPart = prt;
+              }
+              return;
             }
-            return;
           }
         }
+      } else {
+        currPath = nxt;
+        currPart = prt;
       }
     }
   }
@@ -377,6 +382,10 @@ public class FetchOperator implements Serializable {
       Class<? extends InputFormat> formatter = partDesc.getInputFileFormatClass();
       inputFormat = getInputFormatFromCache(formatter, job);
       Utilities.copyTableJobPropertiesToConf(partDesc.getTableDesc(), job);
+      if (currPart != null) {
+        job.set("partName", Utilities.makePartName(currPart.getPartSpec()));
+      }
+
       InputSplit[] splits = inputFormat.getSplits(job, 1);
       FetchInputFormatSplit[] inputSplits = new FetchInputFormatSplit[splits.length];
       for (int i = 0; i < splits.length; i++) {

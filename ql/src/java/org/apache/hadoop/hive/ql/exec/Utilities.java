@@ -92,6 +92,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
+import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.common.HiveInterruptCallback;
 import org.apache.hadoop.hive.common.HiveInterruptUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -1809,6 +1810,44 @@ public final class Utilities {
   }
 
   public static final Object getInputSummaryLock = new Object();
+
+  // copied from Warehouse for using in runtime
+  public static String makePartName(Map<String, String> partSpec) {
+    StringBuilder builder = new StringBuilder();
+    for (Map.Entry<String, String> entry : partSpec.entrySet()) {
+      builder.append(FileUtils.escapePathName(entry.getKey()));
+      builder.append('=');
+      builder.append(FileUtils.escapePathName(entry.getValue()));
+      builder.append(Path.SEPARATOR);
+    }
+    return builder.toString();
+  }
+
+  public static String makePartName(String[] partKeys, List<String> partVals) {
+    StringBuilder builder = new StringBuilder();
+    for (int i = 0; i < partVals.size(); i++) {
+      builder.append(FileUtils.escapePathName(partKeys[i + (partKeys.length - partVals.size())]));
+      builder.append('=');
+      builder.append(FileUtils.escapePathName(partVals.get(i)));
+      builder.append(Path.SEPARATOR);
+    }
+    return builder.toString();
+  }
+
+  // copied from Warehouse for using in runtime
+  public static LinkedHashMap<String, String> makeSpecFromName(String name) {
+    LinkedHashMap<String, String> partSpec = new LinkedHashMap<String, String>();
+    for (String entry : name.split(Path.SEPARATOR)) {
+      if (entry.isEmpty()) {
+        continue;
+      }
+      int index = entry.indexOf('=');
+      String k = FileUtils.unescapePathName(entry.substring(0, index));
+      String v = FileUtils.unescapePathName(entry.substring(index + 1));
+      partSpec.put(k, v);
+    }
+    return partSpec;
+  }
 
   /**
    * Calculate the total size of input files.

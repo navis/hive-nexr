@@ -89,6 +89,11 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase
     HBaseSplit hbaseSplit = (HBaseSplit) split;
     TableSplit tableSplit = hbaseSplit.getSplit();
     String hbaseTableName = jobConf.get(HBaseSerDe.HBASE_TABLE_NAME);
+    String partName = jobConf.get("partName");
+    if (partName != null) {
+      hbaseTableName += HBaseSerDe.toPartSuffix(partName);
+    }
+
     setHTable(new HTable(HBaseConfiguration.create(jobConf), Bytes.toBytes(hbaseTableName)));
     String hbaseColumnsMapping = jobConf.get(HBaseSerDe.HBASE_COLUMNS_MAPPING);
     List<Integer> readColIDs = ColumnProjectionUtils.getReadColumnIDs(jobConf);

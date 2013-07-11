@@ -1647,14 +1647,9 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     public int add_partitions(final List<Partition> parts) throws MetaException,
         InvalidObjectException, AlreadyExistsException {
       startFunction("add_partition");
-      if (parts.size() == 0) {
-        return 0;
-      }
-
-      Integer ret = null;
       Exception ex = null;
       try {
-        ret = add_partitions_core(getMS(), parts);
+        return parts.isEmpty() ? 0 : add_partitions_core(getMS(), parts);
       } catch (Exception e) {
         ex = e;
         if (e instanceof MetaException) {
@@ -1670,9 +1665,8 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         }
       } finally {
         String tableName = parts.get(0).getTableName();
-        endFunction("add_partition", ret != null, ex, tableName);
+        endFunction("add_partition", ex == null, ex, tableName);
       }
-      return ret;
     }
 
     /**
