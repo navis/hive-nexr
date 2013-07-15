@@ -18,6 +18,7 @@
 
 package org.apache.hive.service.cli;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 
 import org.apache.hadoop.hive.common.type.HiveDecimal;
@@ -229,6 +230,20 @@ public class ColumnValue {
     return null;
   }
 
+  private byte[] getBinaryValue(TStringValue tStringValue) {
+    if (tStringValue.isSetValue()) {
+      return tStringValue.getValue().getBytes();
+    }
+    return null;
+  }
+
+  private BigDecimal getDecimalValue(TStringValue tStringValue) {
+    if (tStringValue.isSetValue()) {
+      return new BigDecimal(tStringValue.getValue());
+    }
+    return null;
+  }
+
   public Object getColumnValue(Type columnType) throws Exception {
     switch (columnType) {
     case BOOLEAN_TYPE:
@@ -249,8 +264,48 @@ public class ColumnValue {
       return getStringValue(tColumnValue.getStringVal());
     case TIMESTAMP_TYPE:
       return getTimestampValue(tColumnValue.getStringVal());
+    case BINARY_TYPE:
+      return getBinaryValue(tColumnValue.getStringVal());
+    case DECIMAL_TYPE:
+      return getDecimalValue(tColumnValue.getStringVal());
     default:
+      if (tColumnValue.getSetField() == TColumnValue._Fields.STRING_VAL) {
+        TStringValue string = tColumnValue.getStringVal();
+        return string.isSetValue() ? string.getValue() : null;
+      }
       throw new IllegalArgumentException("Unrecognized column type:" + columnType);
     }
+  }
+
+  public String toString() {
+    if (tColumnValue.isSetBoolVal()) {
+      TBoolValue boolval = tColumnValue.getBoolVal();
+      return boolval.isSetValue() ? String.valueOf(boolval.isValue()) : null;
+    }
+    if (tColumnValue.isSetByteVal()) {
+      TByteValue byteval = tColumnValue.getByteVal();
+      return byteval.isSetValue() ? String.valueOf(byteval.getValue()) : null;
+    }
+    if (tColumnValue.isSetI16Val()) {
+      TI16Value i16val = tColumnValue.getI16Val();
+      return i16val.isSetValue() ? String.valueOf(i16val.getValue()) : null;
+    }
+    if (tColumnValue.isSetI32Val()) {
+      TI32Value i32val = tColumnValue.getI32Val();
+      return i32val.isSetValue() ? String.valueOf(i32val.getValue()) : null;
+    }
+    if (tColumnValue.isSetI64Val()) {
+      TI64Value i64val = tColumnValue.getI64Val();
+      return i64val.isSetValue() ? String.valueOf(i64val.getValue()) : null;
+    }
+    if (tColumnValue.isSetDoubleVal()) {
+      TDoubleValue doubleval = tColumnValue.getDoubleVal();
+      return doubleval.isSetValue() ? String.valueOf(doubleval.getValue()) : null;
+    }
+    if (tColumnValue.isSetStringVal()) {
+      TStringValue strval = tColumnValue.getStringVal();
+      return strval.isSetValue() ? strval.getValue() : null;
+    }
+    return null;
   }
 }
