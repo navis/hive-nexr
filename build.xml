@@ -944,6 +944,7 @@
       <sourcePath path="${hive.root}/common" />
       <sourcePath path="${hive.root}/contrib" />
       <sourcePath path="${hive.root}/hbase-handler" />
+      <sourcePath path="${hive.root}/jdbc-handler" />
       <sourcePath path="${hive.root}/hwi" />
       <sourcePath path="${hive.root}/jdbc" />
       <sourcePath path="${hive.root}/metastore" />
@@ -959,6 +960,7 @@
       <class location="${build.dir.hive}/common/classes" />
       <class location="${build.dir.hive}/contrib/classes" />
       <class location="${build.dir.hive}/hbase-handler/classes" />
+      <class location="${build.dir.hive}/jdbc-handler/classes" />
       <class location="${build.dir.hive}/hwi/classes" />
       <class location="${build.dir.hive}/jdbc/classes" />
       <class location="${build.dir.hive}/metastore/classes" />
@@ -1055,6 +1057,8 @@
           todir="${mvn.jar.dir}" />
     <copy file="${build.dir.hive}/hbase-handler/hive-hbase-handler-${version}.jar"
           todir="${mvn.jar.dir}" />
+    <copy file="${build.dir.hive}/jdbc-handler/hive-jdbc-handler-${version}.jar"
+          todir="${mvn.jar.dir}" />
     <copy file="${build.dir.hive}/hwi/hive-hwi-${version}.jar"
           todir="${mvn.jar.dir}" />
     <copy file="${build.dir.hive}/jdbc/hive-jdbc-${version}.jar"
@@ -1083,6 +1087,8 @@
           tofile="${mvn.pom.dir}/hive-contrib-${version}.pom" />
     <copy file="${build.dir.hive}/hbase-handler/pom.xml"
           tofile="${mvn.pom.dir}/hive-hbase-handler-${version}.pom" />
+    <copy file="${build.dir.hive}/jdbc-handler/pom.xml"
+          tofile="${mvn.pom.dir}/hive-jdbc-handler-${version}.pom" />
     <copy file="${build.dir.hive}/hwi/pom.xml"
           tofile="${mvn.pom.dir}/hive-hwi-${version}.pom" />
     <copy file="${build.dir.hive}/jdbc/pom.xml"
@@ -1209,6 +1215,9 @@
     </antcall>
     <antcall target="maven-publish-artifact">
       <param name="hive.project" value="hbase-handler" />
+    </antcall>
+    <antcall target="maven-publish-artifact">
+      <param name="hive.project" value="jdbc-handler" />
     </antcall>
     <antcall target="maven-publish-artifact">
       <param name="hive.project" value="hwi" />
