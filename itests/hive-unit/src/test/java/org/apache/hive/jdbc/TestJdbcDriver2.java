@@ -2296,4 +2296,20 @@ public void testParseUrlHttpMode() throws SQLException, JdbcUriParseException,
       assertTrue(accumulatedLogs.contains(expectedLog));
     }
   }
+
+  /**
+   * Support Statement.setQueryTimeout()
+   */
+  @Test
+  public void testQueryTimeout() throws Exception {
+    Statement stmt = con.createStatement();
+    stmt.setQueryTimeout(1);
+    try {
+      stmt.execute("select value, sum(under_col) as sum from " + tableName +
+          " group by value order by sum");
+      assertTrue("Should throw timeout exception", false);
+    } catch (SQLException e) {
+      assertEquals("Invalid error code", 1265, e.getErrorCode());
+    }
+  }
 }

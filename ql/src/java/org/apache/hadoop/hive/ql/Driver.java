@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
@@ -147,6 +148,7 @@ public class Driver implements CommandProcessor {
   // A limit on the number of threads that can be launched
   private int maxthreads;
   private int tryCount = Integer.MAX_VALUE;
+  private long queryTimeout;
 
   private boolean destroyed;
 
@@ -1371,7 +1373,7 @@ public class Driver implements CommandProcessor {
       // At any time, at most maxthreads tasks can be running
       // The main thread polls the TaskRunners to check if they have finished.
 
-      DriverContext driverCxt = new DriverContext(ctx);
+      DriverContext driverCxt = new DriverContext(ctx, queryTimeout);
       driverCxt.prepare(plan);
 
       ctx.setHDFSCleanup(true);
@@ -1531,17 +1533,24 @@ public class Driver implements CommandProcessor {
       throw e;
     } catch (Exception e) {
       ctx.restoreOriginalTracker();
+      int code;
+      // TODO: do better with handling types of Exception here
+      if (e instanceof TimeoutException) {
+        errorMessage = "FAILED: " + e.getMessage();
+        code = 1265;
+      } else {
+        errorMessage = "FAILED: Hive Internal Error: " + Utilities.getNameMessage(e);
+        code = 12;
+      }
       if (SessionState.get() != null) {
         SessionState.get().getHiveHistory().setQueryProperty(queryId, Keys.QUERY_RET_CODE,
-            String.valueOf(12));
+            String.valueOf(code));
       }
-      // TODO: do better with handling types of Exception here
-      errorMessage = "FAILED: Hive Internal Error: " + Utilities.getNameMessage(e);
       SQLState = "08S01";
       downstreamError = e;
       console.printError(errorMessage + "\n"
           + org.apache.hadoop.util.StringUtils.stringifyException(e));
-      return (12);
+      return code;
     } finally {
       if (SessionState.get() != null) {
         SessionState.get().getHiveHistory().endQuery(queryId);
@@ -1794,4 +1803,11 @@ public class Driver implements CommandProcessor {
     this.operationId = opId;
   }
 
+  public void setQueryTimeout(long queryTimeout) {
+    this.queryTimeout = queryTimeout;
+  }
+
+  public long getQueryTimeout() {
+    return queryTimeout;
+  }
 }

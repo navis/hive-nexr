@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -70,6 +71,8 @@ import org.apache.hive.service.server.ThreadWithGarbageCleanup;
  */
 public class SQLOperation extends ExecuteStatementOperation {
 
+  public static final String QUERY_TIMEOUT_SEC = "query.timeout.sec";
+
   private Driver driver = null;
   private CommandProcessorResponse response;
   private TableSchema resultSchema = null;
@@ -93,6 +96,7 @@ public class SQLOperation extends ExecuteStatementOperation {
 
     try {
       driver = new Driver(sqlOperationConf, getParentSession().getUserName());
+      driver.setQueryTimeout(getQueryTimeout());
 
       // set the operation handle information in Driver, so that thrift API users
       // can use the operation handle they receive, to lookup query information in
@@ -174,6 +178,15 @@ public class SQLOperation extends ExecuteStatementOperation {
     setState(OperationState.FINISHED);
   }
 
+  private long getQueryTimeout() {
+    String value = confOverlay.get(QUERY_TIMEOUT_SEC);
+    try {
+      return value == null ? 0 : TimeUnit.SECONDS.toMillis(Long.parseLong(value));
+    } catch (Exception e) {
+      return 0;
+    }
+  }
+
   @Override
   public void runInternal() throws HiveSQLException {
     setState(OperationState.PENDING);
@@ -187,7 +200,7 @@ public class SQLOperation extends ExecuteStatementOperation {
       // ThreadLocal Hive object needs to be set in background thread.
       // The metastore client in Hive is associated with right user.
       final Hive parentHive = getSessionHive();
-      // Current UGI will get used by metastore when metsatore is in embedded mode
+      // Current UGI will get used by metastore when metastore is in embedded mode
       // So this needs to get passed to the new background thread
       final UserGroupInformation currentUGI = getCurrentUGI(opConfig);
       // Runnable impl to call runInternal asynchronously,
@@ -456,7 +469,7 @@ public class SQLOperation extends ExecuteStatementOperation {
   private HiveConf getConfigForOperation() throws HiveSQLException {
     HiveConf sqlOperationConf = getParentSession().getHiveConf();
     if (!getConfOverlay().isEmpty() || shouldRunAsync()) {
-      // clone the partent session config for this query
+      // clone the parent session config for this query
       sqlOperationConf = new HiveConf(sqlOperationConf);
 
       // apply overlay query specific settings, if any

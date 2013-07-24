@@ -31,6 +31,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.hive.service.cli.RowSet;
 import org.apache.hive.service.cli.RowSetFactory;
+import org.apache.hive.service.cli.operation.SQLOperation;
 import org.apache.hive.service.cli.thrift.TCLIService;
 import org.apache.hive.service.cli.thrift.TCancelOperationReq;
 import org.apache.hive.service.cli.thrift.TCancelOperationResp;
@@ -541,7 +542,12 @@ public class HiveStatement implements java.sql.Statement {
   @Override
   public int getQueryTimeout() throws SQLException {
     checkConnection("getQueryTimeout");
-    return 0;
+    String value = sessConf.get(SQLOperation.QUERY_TIMEOUT_SEC);
+    try {
+      return value == null ? 0 : Integer.valueOf(value);
+    } catch (Exception e) {
+      return 0;
+    }
   }
 
   /*
@@ -736,7 +742,7 @@ public class HiveStatement implements java.sql.Statement {
 
   @Override
   public void setQueryTimeout(int seconds) throws SQLException {
-    throw new SQLException("Method not supported");
+    sessConf.put(SQLOperation.QUERY_TIMEOUT_SEC, String.valueOf(seconds));
   }
 
   /*

@@ -39,6 +39,7 @@ import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -66,13 +67,16 @@ public class DriverContext {
 
   final Map<String, StatsTask> statsTasks = new HashMap<String, StatsTask>(1);
 
+  final Timer timer = new Timer();
+
   public DriverContext() {
   }
 
-  public DriverContext(Context ctx) {
+  public DriverContext(Context ctx, long queryTimeout) {
     this.runnable = new ConcurrentLinkedQueue<Task<? extends Serializable>>();
     this.running = new LinkedBlockingQueue<TaskRunner>();
     this.ctx = ctx;
+    timer.setTimeout(queryTimeout);
   }
 
   public synchronized boolean isShutdown() {
@@ -105,8 +109,8 @@ public class DriverContext {
    *
    * @return The result object for any completed/failed task
    */
-  public synchronized TaskRunner pollFinished() throws InterruptedException {
-    while (!shutdown) {
+  public synchronized TaskRunner pollFinished() throws InterruptedException, TimeoutException {
+    while (!shutdown && timer.checkTimeout()) {
       Iterator<TaskRunner> it = running.iterator();
       while (it.hasNext()) {
         TaskRunner runner = it.next();
@@ -220,6 +224,28 @@ public class DriverContext {
     });
     for (String statKey : statKeys) {
       statsTasks.get(statKey).getWork().setSourceTask(mapredTask);
+    }
+  }
+
+  private static class Timer {
+    long prev;
+    long timeout = -1;
+    long elapsed;
+    private void setTimeout(long timeout) {
+      this.timeout = timeout;
+      this.prev = System.currentTimeMillis();
+      this.elapsed = 0;
+    }
+    private boolean checkTimeout() throws TimeoutException {
+      if (timeout > 0) {
+        long current = System.currentTimeMillis();
+        elapsed += current - prev;
+        prev = current;
+        if (elapsed >= timeout) {
+          throw new TimeoutException("Execution Timeout, elapsed " + timeout + "msec");
+        }
+      }
+      return true;
     }
   }
 }
