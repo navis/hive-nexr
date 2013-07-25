@@ -10,6 +10,7 @@ import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.ql.metadata.DefaultStorageHandler;
+import org.apache.hadoop.hive.ql.plan.AlterTableDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.rdbms.db.DBOperation;
 import org.apache.hadoop.hive.serde2.SerDe;
@@ -18,6 +19,15 @@ import org.apache.hadoop.util.StringUtils;
 public class JDBCStorageHandler extends DefaultStorageHandler implements HiveMetaHook {
 
   private Configuration conf;
+
+  @Override
+  public boolean supports(org.apache.hadoop.hive.ql.metadata.Table tbl,
+                          AlterTableDesc.AlterTableTypes alter) {
+    return
+        alter == AlterTableDesc.AlterTableTypes.ADDPROPS ||
+        alter == AlterTableDesc.AlterTableTypes.DROPPROPS ||
+        alter == AlterTableDesc.AlterTableTypes.ADDSERDEPROPS;
+  }
 
   @Override
   public Class<? extends org.apache.hadoop.mapred.InputFormat> getInputFormatClass() {
