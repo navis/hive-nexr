@@ -50,6 +50,7 @@ public class QueryConstructor {
         query = getQueryForMySql(dbProperties, split);
         break;
       case ORACLE:
+      case TIBERO:
         query = getQueryForOracle(dbProperties, split);
         break;
       case SQLSERVER:

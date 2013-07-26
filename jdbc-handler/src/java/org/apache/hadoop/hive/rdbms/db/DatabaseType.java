@@ -7,7 +7,7 @@ import java.sql.SQLException;
 import org.apache.hadoop.hive.rdbms.UnsupportedDatabaseException;
 
 public enum DatabaseType {
-  H2, ORACLE, SYBASE, POSTGRESQL, PHOENIX, SQLSERVER,
+  H2, ORACLE, SYBASE, POSTGRESQL, PHOENIX, SQLSERVER, TIBERO,
   MYSQL { public char quotation() { return '`'; }
   };
 
@@ -67,6 +67,8 @@ public enum DatabaseType {
       databaseType = MYSQL;
     } else if (databaseName.equalsIgnoreCase("sqlserver")) {
       databaseType = SQLSERVER;
+    } else if (databaseName.equalsIgnoreCase("tibero")) {
+      databaseType = TIBERO;
     } else if (databaseName.equalsIgnoreCase("oracle")) {
       databaseType = ORACLE;
     } else if (databaseName.equalsIgnoreCase("h2")) {
