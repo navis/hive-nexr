@@ -136,7 +136,7 @@ public class QueryConstructor {
     query.append(" FROM ");
     query.append(tableName);
     query.append(" ORDER BY ");
-    type.quote(query, fieldNames);
+    type.quote(query, fieldNames[0]);
     query.append(" )");
     query.append(" WHERE LINENUM > ");
     query.append(split.getStart());
