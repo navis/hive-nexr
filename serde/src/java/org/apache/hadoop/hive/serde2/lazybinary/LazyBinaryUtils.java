@@ -123,8 +123,6 @@ public final class LazyBinaryUtils {
     }
   }
 
-  static VInt vInt = new LazyBinaryUtils.VInt();
-
   /**
    * Check a particular field and set its size and offset in bytes based on the
    * field type and the bytes arrays.
@@ -148,6 +146,7 @@ public final class LazyBinaryUtils {
    */
   public static void checkObjectByteInfo(ObjectInspector objectInspector,
       byte[] bytes, int offset, RecordInfo recordInfo) {
+    int[] vInt;
     Category category = objectInspector.getCategory();
     switch (category) {
     case PRIMITIVE:
@@ -185,16 +184,16 @@ public final class LazyBinaryUtils {
         break;
       case STRING:
         // using vint instead of 4 bytes
-        LazyBinaryUtils.readVInt(bytes, offset, vInt);
-        recordInfo.elementOffset = vInt.length;
-        recordInfo.elementSize = vInt.value;
+        vInt = LazyBinaryUtils.readVInt(bytes, offset);
+        recordInfo.elementOffset = (byte) vInt[VINT_LEN];
+        recordInfo.elementSize = vInt[VINT_VAL];
         break;
 
       case BINARY:
         // using vint instead of 4 bytes
-        LazyBinaryUtils.readVInt(bytes, offset, vInt);
-        recordInfo.elementOffset = vInt.length;
-        recordInfo.elementSize = vInt.value;
+        vInt = LazyBinaryUtils.readVInt(bytes, offset);
+        recordInfo.elementOffset = (byte) vInt[VINT_LEN];
+        recordInfo.elementSize = vInt[VINT_VAL];
         break;
       case TIMESTAMP:
         recordInfo.elementOffset = 0;
@@ -205,11 +204,11 @@ public final class LazyBinaryUtils {
         break;
       case DECIMAL:
         // using vint instead of 4 bytes
-        LazyBinaryUtils.readVInt(bytes, offset, vInt);
+        vInt = LazyBinaryUtils.readVInt(bytes, offset);
         recordInfo.elementOffset = 0;
-        recordInfo.elementSize = vInt.length;
-        LazyBinaryUtils.readVInt(bytes, offset + vInt.length, vInt);
-        recordInfo.elementSize += vInt.length + vInt.value;
+        recordInfo.elementSize = vInt[VINT_LEN];
+        vInt = LazyBinaryUtils.readVInt(bytes, offset + vInt[VINT_LEN]);
+        recordInfo.elementSize += vInt[VINT_LEN] + vInt[VINT_VAL];
         break;
       default: {
         throw new RuntimeException("Unrecognized primitive type: "
@@ -271,15 +270,19 @@ public final class LazyBinaryUtils {
   /**
    * A zero-compressed encoded integer.
    */
-  public static class VInt {
-    public VInt() {
-      value = 0;
-      length = 0;
+  private static final ThreadLocal<int[]> VINTs = new ThreadLocal<int[]>() {
+    @Override
+    protected int[] initialValue() {
+      return new int[2];
     }
-
-    public int value;
-    public byte length;
   };
+
+  public static final int VINT_LEN = 0;
+  public static final int VINT_VAL = 1;
+
+  public static int[] readVInt(byte[] bytes, int offset) {
+    return readVInt(bytes, offset, VINTs.get());
+  }
 
   /**
    * Reads a zero-compressed encoded int from a byte array and returns it.
@@ -291,20 +294,23 @@ public final class LazyBinaryUtils {
    * @param vInt
    *          storing the deserialized int and its size in byte
    */
-  public static void readVInt(byte[] bytes, int offset, VInt vInt) {
+  private static int[] readVInt(byte[] bytes, int offset, int[] vInt) {
     byte firstByte = bytes[offset];
-    vInt.length = (byte) WritableUtils.decodeVIntSize(firstByte);
-    if (vInt.length == 1) {
-      vInt.value = firstByte;
-      return;
+    int length = WritableUtils.decodeVIntSize(firstByte);
+    if (length == 1) {
+      vInt[VINT_LEN] = length;
+      vInt[VINT_VAL] = firstByte;
+      return vInt;
     }
     int i = 0;
-    for (int idx = 0; idx < vInt.length - 1; idx++) {
+    for (int idx = 0; idx < length - 1; idx++) {
       byte b = bytes[offset + 1 + idx];
       i = i << 8;
       i = i | (b & 0xFF);
     }
-    vInt.value = (WritableUtils.isNegativeVInt(firstByte) ? (i ^ -1) : i);
+    vInt[VINT_LEN] = length;
+    vInt[VINT_VAL] = (WritableUtils.isNegativeVInt(firstByte) ? (i ^ -1) : i);
+    return vInt;
   }
 
   /**

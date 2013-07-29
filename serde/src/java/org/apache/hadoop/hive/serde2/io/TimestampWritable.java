@@ -32,7 +32,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.serde2.ByteStream.Output;
 import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryUtils;
-import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryUtils.VInt;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableUtils;
 
@@ -85,9 +84,6 @@ public class TimestampWritable implements WritableComparable<TimestampWritable> 
   private final byte[] internalBytes = new byte[9];
   private byte[] externalBytes;
   private int offset;
-
-  /* Reused to read VInts */
-  static private final VInt vInt = new VInt();
 
   /* Constructors */
   public TimestampWritable() {
@@ -386,8 +382,8 @@ public class TimestampWritable implements WritableComparable<TimestampWritable> 
   }
 
   public static int getNanos(byte[] bytes, int offset) {
-    LazyBinaryUtils.readVInt(bytes, offset, vInt);
-    int val = vInt.value;
+    int[] vInt = LazyBinaryUtils.readVInt(bytes, offset);
+    int val = vInt[LazyBinaryUtils.VINT_VAL];
     int len = (int) Math.floor(Math.log10(val)) + 1;
 
     // Reverse the value
