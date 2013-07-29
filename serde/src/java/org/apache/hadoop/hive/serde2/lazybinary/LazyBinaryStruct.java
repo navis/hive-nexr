@@ -29,7 +29,6 @@ import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryUtils.RecordInfo;
 import org.apache.hadoop.hive.serde2.lazybinary.objectinspector.LazyBinaryStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
-import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
 /**
  * LazyBinaryStruct is serialized as follows: start A B A B A B end bytes[] ->
@@ -104,8 +103,7 @@ public class LazyBinaryStruct extends
    */
   private void parse() {
 
-    List<? extends StructField> fieldRefs = ((StructObjectInspector) oi)
-        .getAllStructFieldRefs();
+    List<? extends StructField> fieldRefs = oi.getAllStructFieldRefs();
 
     if (fields == null) {
       fields = new LazyBinaryObject[fieldRefs.size()];

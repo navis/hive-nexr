@@ -27,7 +27,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.serde2.ByteStream.Output;
 import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryUtils;
-import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryUtils.VInt;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableUtils;
 
@@ -37,8 +36,6 @@ public class HiveDecimalWritable implements WritableComparable<HiveDecimalWritab
 
   private byte[] internalStorage = new byte[0];
   private int scale;
-
-  private final VInt vInt = new VInt(); // reusable integer
 
   public HiveDecimalWritable() {
   }
@@ -69,15 +66,16 @@ public class HiveDecimalWritable implements WritableComparable<HiveDecimalWritab
   }
 
   public void setFromBytes(byte[] bytes, int offset, int length) {
-    LazyBinaryUtils.readVInt(bytes, offset, vInt);
-    scale = vInt.value;
-    offset += vInt.length;
-    LazyBinaryUtils.readVInt(bytes, offset, vInt);
-    offset += vInt.length;
-    if (internalStorage.length != vInt.value) {
-      internalStorage = new byte[vInt.value];
+    int[] vInt = LazyBinaryUtils.readVInt(bytes, offset);
+    scale = vInt[LazyBinaryUtils.VINT_VAL];
+    offset += vInt[LazyBinaryUtils.VINT_LEN];
+
+    vInt = LazyBinaryUtils.readVInt(bytes, offset);
+    offset += vInt[LazyBinaryUtils.VINT_LEN];
+    if (internalStorage.length != vInt[LazyBinaryUtils.VINT_VAL]) {
+      internalStorage = new byte[vInt[LazyBinaryUtils.VINT_VAL]];
     }
-    System.arraycopy(bytes, offset, internalStorage, 0, vInt.value);
+    System.arraycopy(bytes, offset, internalStorage, 0, vInt[LazyBinaryUtils.VINT_VAL]);
   }
 
   public HiveDecimal getHiveDecimal() {

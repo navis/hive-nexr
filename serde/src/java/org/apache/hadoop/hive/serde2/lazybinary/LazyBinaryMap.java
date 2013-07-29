@@ -25,7 +25,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryUtils.RecordInfo;
-import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryUtils.VInt;
 import org.apache.hadoop.hive.serde2.lazybinary.objectinspector.LazyBinaryMapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.MapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
@@ -128,7 +127,6 @@ public class LazyBinaryMap extends
   }
 
   boolean nullMapKey = false;
-  VInt vInt = new LazyBinaryUtils.VInt();
   RecordInfo recordInfo = new LazyBinaryUtils.RecordInfo();
 
   /**
@@ -140,8 +138,8 @@ public class LazyBinaryMap extends
     byte[] bytes = this.bytes.getData();
 
     // get the VInt that represents the map size
-    LazyBinaryUtils.readVInt(bytes, start, vInt);
-    mapSize = vInt.value;
+    int[] vInt = LazyBinaryUtils.readVInt(bytes, start);
+    mapSize = vInt[LazyBinaryUtils.VINT_VAL];
     if (0 == mapSize) {
       parsed = true;
       return;
@@ -151,7 +149,7 @@ public class LazyBinaryMap extends
     adjustArraySize(mapSize);
 
     // find out the null-bytes
-    int mapByteStart = start + vInt.length;
+    int mapByteStart = start + vInt[LazyBinaryUtils.VINT_LEN];
     int nullByteCur = mapByteStart;
     int nullByteEnd = mapByteStart + (mapSize * 2 + 7) / 8;
     int lastElementByteEnd = nullByteEnd;

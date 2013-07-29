@@ -24,9 +24,7 @@ import java.util.List;
 import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazy.LazyObject;
 import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryUtils.RecordInfo;
-import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryUtils.VInt;
 import org.apache.hadoop.hive.serde2.lazybinary.objectinspector.LazyBinaryListObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 
 /**
@@ -113,7 +111,6 @@ public class LazyBinaryArray extends
     }
   }
 
-  VInt vInt = new LazyBinaryUtils.VInt();
   RecordInfo recordInfo = new LazyBinaryUtils.RecordInfo();
 
   /**
@@ -125,8 +122,8 @@ public class LazyBinaryArray extends
     byte[] bytes = this.bytes.getData();
 
     // get the vlong that represents the map size
-    LazyBinaryUtils.readVInt(bytes, start, vInt);
-    arraySize = vInt.value;
+    int[] vInt = LazyBinaryUtils.readVInt(bytes, start);
+    arraySize = vInt[LazyBinaryUtils.VINT_VAL];
     if (0 == arraySize) {
       parsed = true;
       return;
@@ -135,14 +132,13 @@ public class LazyBinaryArray extends
     // adjust arrays
     adjustArraySize(arraySize);
     // find out the null-bytes
-    int arryByteStart = start + vInt.length;
+    int arryByteStart = start + vInt[LazyBinaryUtils.VINT_LEN];
     int nullByteCur = arryByteStart;
     int nullByteEnd = arryByteStart + (arraySize + 7) / 8;
     // the begin the real elements
     int lastElementByteEnd = nullByteEnd;
     // the list element object inspector
-    ObjectInspector listEleObjectInspector = ((ListObjectInspector) oi)
-        .getListElementObjectInspector();
+    ObjectInspector listEleObjectInspector = oi.getListElementObjectInspector();
     // parsing elements one by one
     for (int i = 0; i < arraySize; i++) {
       elementIsNull[i] = true;
