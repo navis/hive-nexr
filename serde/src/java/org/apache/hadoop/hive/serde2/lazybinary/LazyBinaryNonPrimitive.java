@@ -19,6 +19,7 @@ package org.apache.hadoop.hive.serde2.lazybinary;
 
 import org.apache.hadoop.hive.serde2.lazy.LazyUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.io.BytesWritable;
 
 /**
  * LazyBinaryNonPrimitive.
@@ -37,6 +38,10 @@ public abstract class LazyBinaryNonPrimitive<OI extends ObjectInspector>
     bytes = null;
     start = 0;
     length = 0;
+  }
+
+  public void copyTo(BytesWritable writable) {
+    writable.set(bytes, start, length);
   }
 
   @Override
