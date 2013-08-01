@@ -198,6 +198,13 @@ public class LazyBinarySerDe extends AbstractSerDe {
           + " can only serialize struct types, but we got: "
           + objInspector.getTypeName());
     }
+    if (obj instanceof LazyBinaryNonPrimitive) {
+      ((LazyBinaryNonPrimitive)obj).copyTo(serializeBytesWritable);
+      serializedSize = serializeBytesWritable.getLength();
+      lastOperationSerialize = true;
+      lastOperationDeserialize = false;
+      return serializeBytesWritable;
+    }
 
     serializeByteStream.reset();
     // serialize the row as a struct
