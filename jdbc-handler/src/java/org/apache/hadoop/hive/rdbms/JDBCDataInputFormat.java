@@ -34,10 +34,11 @@ public class JDBCDataInputFormat extends HiveInputFormat<LongWritable, MapWritab
           ConfigurationUtils.HIVE_JDBC_INPUT_BATCH_SIZE_DEFAULT));
 
     List<Integer> columns = ColumnProjectionUtils.getReadColumnIDs(conf);
+    int rowLimit = ColumnProjectionUtils.getRowLimit(conf);
 
     try {
       Connection connection = DBOperation.createConnection(conf);
-      return new DBRecordReader((JDBCSplit) split, dbProperties, connection, columns);
+      return new DBRecordReader((JDBCSplit) split, dbProperties, connection, columns, rowLimit);
     } catch (IOException e) {
       throw e;
     } catch (Exception e) {

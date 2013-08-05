@@ -7750,7 +7750,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
       SplitSample sample = nameToSplitSample.get(alias);
       if (sample != null && sample.getRowCount() != null) {
-        tsDesc.setRowLimit(sample.getRowCount());
+        tsDesc.setSplitRowLimit(sample.getRowCount());
         nameToSplitSample.remove(alias);
       }
 

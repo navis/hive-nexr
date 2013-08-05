@@ -346,6 +346,11 @@ public class HiveInputFormat<K extends WritableComparable, V extends Writable>
       return;
     }
 
+    int rowLimit = scanDesc.getRowLimit();
+    if (rowLimit > 0) {
+      ColumnProjectionUtils.setRowLimit(jobConf, rowLimit);
+    }
+
     // construct column name list and types for reference by filter push down
     Utilities.setColumnNameList(jobConf, tableScan);
     Utilities.setColumnTypeList(jobConf, tableScan);

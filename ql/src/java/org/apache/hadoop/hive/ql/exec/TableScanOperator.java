@@ -189,7 +189,7 @@ public class TableScanOperator extends Operator<TableScanDesc> implements
     if (conf == null) {
       return;
     }
-    rowLimit = conf.getRowLimit();
+    rowLimit = conf.getSplitRowLimit();
     if (!conf.isGatherStats()) {
       return;
     }

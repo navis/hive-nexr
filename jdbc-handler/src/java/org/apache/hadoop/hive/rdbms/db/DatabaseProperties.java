@@ -135,7 +135,7 @@ public class DatabaseProperties {
   }
 
   public int getBatchSize() {
-    return batchSize;
+    return databaseType == DatabaseType.MYSQL ? Integer.MIN_VALUE : batchSize;
   }
 
   public void setBatchSize(int batchSize) {

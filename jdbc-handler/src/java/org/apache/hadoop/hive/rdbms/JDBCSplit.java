@@ -11,6 +11,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.rdbms.db.DBOperation;
 import org.apache.hadoop.hive.rdbms.db.DatabaseProperties;
 import org.apache.hadoop.hive.rdbms.db.QueryConstructor;
+import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.FileSplit;
 import org.apache.hadoop.mapred.InputSplit;
@@ -69,6 +70,7 @@ public class JDBCSplit extends FileSplit implements InputSplit {
   }
 
   public static JDBCSplit[] getSplits(JobConf conf, int numSplits) throws IOException {
+    int rowLimit = ColumnProjectionUtils.getRowLimit(conf);
     final Path[] tablePaths = FileInputFormat.getInputPaths(conf);
     int maxrow = conf.getInt(ConfigurationUtils.HIVE_JDBC_MAXROW_PER_TASK,
         ConfigurationUtils.HIVE_JDBC_MAXROW_PER_TASK_DEFAULT);
@@ -91,12 +93,16 @@ public class JDBCSplit extends FileSplit implements InputSplit {
 
     QueryConstructor queryConstructor = new QueryConstructor();
     String sql = queryConstructor.constructCountQuery(dbProperties);
-    log.error("total count sql = " + sql);
+    log.info("total count sql = " + sql);
 
     try {
       Connection connection = DBOperation.createConnection(conf);
       long total = DBOperation.getTotalCount(sql, connection);
-      log.error("total count = " + total);
+      log.info("total count = " + total);
+      if (rowLimit > 0 && rowLimit < total) {
+        log.info("revised total count by limit = " + rowLimit);
+        total = rowLimit;
+      }
       long splitSize = total / numSplits;
       if (splitSize == 0) {
         splitSize = total;
@@ -117,7 +123,7 @@ public class JDBCSplit extends FileSplit implements InputSplit {
           split = new JDBCSplit(i * splitSize, (i + 1) * splitSize, tablePaths[0]);
         }
         splits.add(split);
-        log.error(i + " = " + split.getStart() + "~" + split.getEnd());
+        log.info(i + " = " + split.getStart() + "~" + split.getEnd());
         remain -= splitSize;
       }
       return splits.toArray(new JDBCSplit[splits.size()]);

@@ -618,4 +618,8 @@ public class Context {
   public void setTryCount(int tryCount) {
     this.tryCount = tryCount;
   }
+
+  public boolean isFirstOrLast() {
+    return tryCount == 0 || tryCount == Integer.MAX_VALUE;
+  }
 }

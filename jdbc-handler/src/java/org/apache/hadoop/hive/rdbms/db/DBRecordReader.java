@@ -25,6 +25,8 @@ public class DBRecordReader implements RecordReader<LongWritable, RowWritable> {
 
   private static final Logger log = LoggerFactory.getLogger(DBRecordReader.class);
 
+  private DatabaseProperties properties;
+
   private Connection connection;
   private Statement statement;
   private ResultSet results;
@@ -33,22 +35,23 @@ public class DBRecordReader implements RecordReader<LongWritable, RowWritable> {
 
   private ColumnAccess[] columns;
 
-  public DBRecordReader(JDBCSplit split, DatabaseProperties dbProperties, Connection connection,
-                        List<Integer> colIndices) throws Exception {
+  public DBRecordReader(JDBCSplit split, DatabaseProperties properties, Connection connection,
+                        List<Integer> colIndices, int rowLimit) throws Exception {
 
     this.split = split;
+    this.properties = properties;
     this.connection = connection;
 
-    if (dbProperties.getDatabaseType() == null) {
-      dbProperties.setDatabaseType(DatabaseType.getDatabaseType(dbProperties, connection));
+    if (properties.getDatabaseType() == null) {
+      properties.setDatabaseType(DatabaseType.getDatabaseType(properties, connection));
     }
 
     connection.setAutoCommit(false);
 
-    String[] names = dbProperties.getColumnNames();
-    PrimitiveCategory[] types = ConfigurationUtils.toTypes(dbProperties.getColumnTypes());
+    String[] names = properties.getColumnNames();
+    PrimitiveCategory[] types = ConfigurationUtils.toTypes(properties.getColumnTypes());
 
-    Map<String, String> mapping = dbProperties.getInputColumnMappingFields();
+    Map<String, String> mapping = properties.getInputColumnMappingFields();
     List<String> fieldNames = new ArrayList<String>();
     if (colIndices != null && !colIndices.isEmpty()) {
       for (int i : colIndices) {
@@ -59,12 +62,12 @@ public class DBRecordReader implements RecordReader<LongWritable, RowWritable> {
         fieldNames.add(mapping == null ? names[i] : mapping.get(names[i]));
       }
     }
-    dbProperties.setFieldNames(fieldNames.toArray(new String[fieldNames.size()]));
+    properties.setFieldNames(fieldNames.toArray(new String[fieldNames.size()]));
 
-    String sqlQuery = QueryConstructor.constructSelectQueryForReading(dbProperties, split);
-    log.error("select query for split = " + sqlQuery);
+    String sqlQuery = QueryConstructor.constructSelectQueryForReading(properties, split, rowLimit);
+    log.info("select query for split = " + sqlQuery);
     statement = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-    statement.setFetchSize(dbProperties.getBatchSize());
+    statement.setFetchSize(properties.getBatchSize());
 
     results = statement.executeQuery(sqlQuery);
 

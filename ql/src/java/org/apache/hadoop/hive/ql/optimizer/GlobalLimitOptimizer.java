@@ -74,7 +74,7 @@ public class GlobalLimitOptimizer implements Transform {
     // The query only qualifies when there are only one top operator
     // and there is no transformer or UDTF and no block sampling
     // is used.
-    if (ctx.getTryCount() == 0 && topOps.size() == 1
+    if (ctx.isFirstOrLast() && topOps.size() == 1
         && !globalLimitCtx.ifHasTransformOrUDTF() &&
         nameToSplitSample.isEmpty()) {
 
@@ -99,7 +99,10 @@ public class GlobalLimitOptimizer implements Transform {
 
         if (!tab.isPartitioned()) {
           if (qbParseInfo.getDestToWhereExpr().isEmpty()) {
-            globalLimitCtx.enableOpt(tempGlobalLimit);
+            if (HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVELIMITOPTENABLE)) {
+              globalLimitCtx.enableOpt(tempGlobalLimit);
+            }
+            ts.getConf().setRowLimit(tempGlobalLimit);
           }
         } else {
           // check if the pruner only contains partition columns
@@ -125,7 +128,10 @@ public class GlobalLimitOptimizer implements Transform {
             // If there is any unknown partition, create a map-reduce job for
             // the filter to prune correctly
             if ((partsList.getUnknownPartns().size() == 0)) {
-              globalLimitCtx.enableOpt(tempGlobalLimit);
+              if (HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVELIMITOPTENABLE)) {
+                globalLimitCtx.enableOpt(tempGlobalLimit);
+              }
+              ts.getConf().setRowLimit(tempGlobalLimit);
             }
           }
         }

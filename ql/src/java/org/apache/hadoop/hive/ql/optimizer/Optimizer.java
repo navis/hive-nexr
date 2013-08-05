@@ -100,9 +100,7 @@ public class Optimizer {
       transformations.add(new ReduceSinkDeDuplication());
     }
     transformations.add(new NonBlockingOpDeDupProc());
-    if (HiveConf.getBoolVar(hiveConf, HiveConf.ConfVars.HIVELIMITOPTENABLE)) {
-      transformations.add(new GlobalLimitOptimizer());
-    }
+    transformations.add(new GlobalLimitOptimizer());
     transformations.add(new FetchConversionOptimizer());  // must be called last
   }
 

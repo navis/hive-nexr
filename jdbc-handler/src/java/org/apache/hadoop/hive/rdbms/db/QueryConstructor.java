@@ -36,34 +36,52 @@ public class QueryConstructor {
     return query.toString();
   }
 
-  public static String constructSelectQueryForReading(DatabaseProperties dbProperties, JDBCSplit split) {
+  public static String constructSelectQueryForReading(DatabaseProperties dbProperties,
+      JDBCSplit split, int limit) {
     DatabaseType databaseType = dbProperties.getDatabaseType();
-    if (split.getStart() < 0 && split.getEnd() < 0) {
-      return getQueryForSelectAll(dbProperties);
-    }
+    boolean selectAll = split.getStart() < 0 && split.getEnd() < 0;
+
     String query = null;
     switch (databaseType) {
 
       case MYSQL:
       case H2:
       case POSTGRESQL:
-        query = getQueryForMySql(dbProperties, split);
+        query = selectAll ? getQueryForMySql(dbProperties, limit) : getQueryForMySql(dbProperties, split);
         break;
       case ORACLE:
       case TIBERO:
-        query = getQueryForOracle(dbProperties, split);
+        query = selectAll ? getQueryForOracle(dbProperties, limit) : getQueryForOracle(dbProperties, split);
         break;
       case SQLSERVER:
-        query = getQueryForMsSql(dbProperties, split);
+        query = selectAll ? getQueryForMsSql(dbProperties, limit) : getQueryForMsSql(dbProperties, split);
         break;
       case SYBASE:
-        query = getQueryForSybase(dbProperties, split);
+        query = selectAll ? getQueryForSybase(dbProperties, limit) : getQueryForSybase(dbProperties, split);
         break;
       case PHOENIX:
-        query = getQueryForSelectAll(dbProperties);
+        query = getQueryForSelectAll(dbProperties, limit);
         break;
     }
     return query;
+  }
+
+  private static String getQueryForMsSql(DatabaseProperties dbProperties, int limit) {
+    DatabaseType type = dbProperties.getDatabaseType();
+    String tableName = dbProperties.getTableName();
+    String[] fieldNames = dbProperties.getFieldNames();
+
+    StringBuilder query = new StringBuilder();
+    query.append("SELECT ");
+    if (limit > 0) {
+      query.append("TOP ");
+      query.append(limit);
+      query.append(' ');
+    }
+    type.quote(query, fieldNames);
+    query.append(" FROM ");
+    query.append(tableName);
+    return query.toString();
   }
 
   /**
@@ -100,6 +118,23 @@ public class QueryConstructor {
     return query.toString();
   }
 
+  private static String getQueryForMySql(DatabaseProperties dbProperties, int limit) {
+    DatabaseType type = dbProperties.getDatabaseType();
+    String tableName = dbProperties.getTableName();
+    String[] fieldNames = dbProperties.getFieldNames();
+
+    StringBuilder query = new StringBuilder();
+    query.append("SELECT ");
+    type.quote(query, fieldNames);
+    query.append(" FROM ");
+    query.append(tableName);
+    if (limit > 0) {
+      query.append(" LIMIT ");
+      query.append(limit);
+    }
+    return query.toString();
+  }
+
   private static String getQueryForMySql(DatabaseProperties dbProperties, JDBCSplit split) {
     DatabaseType type = dbProperties.getDatabaseType();
     String tableName = dbProperties.getTableName();
@@ -114,6 +149,23 @@ public class QueryConstructor {
 
     query.append(" LIMIT ").append(split.getLength());
     query.append(" OFFSET ").append(split.getStart());
+    return query.toString();
+  }
+
+  private static String getQueryForOracle(DatabaseProperties dbProperties, int limit) {
+    DatabaseType type = dbProperties.getDatabaseType();
+    String tableName = dbProperties.getTableName();
+    String[] fieldNames = dbProperties.getFieldNames();
+
+    StringBuilder query = new StringBuilder();
+    query.append("SELECT ");
+    type.quote(query, fieldNames);
+    query.append(" FROM ");
+    query.append(tableName);
+    if (limit > 0) {
+      query.append(" WHERE ROWNUM < ");
+      query.append(limit);
+    }
     return query.toString();
   }
 
@@ -145,6 +197,26 @@ public class QueryConstructor {
     return query.toString();
   }
 
+  private static String getQueryForSybase(DatabaseProperties dbProperties, int limit) {
+    DatabaseType type = dbProperties.getDatabaseType();
+    String tableName = dbProperties.getTableName();
+    String[] fieldNames = dbProperties.getFieldNames();
+
+    StringBuilder query = new StringBuilder();
+    query.append("SELECT ");
+    if (limit > 0) {
+      query.append("TOP ");
+      query.append(limit);
+      query.append(' ');
+    }
+    type.quote(query, fieldNames);
+    query.append(" FROM ");
+    query.append(tableName);
+    query.append(" ORDER BY ");
+    type.quote(query, fieldNames[0]);
+    return query.toString();
+  }
+
   private static String getQueryForSybase(DatabaseProperties dbProperties, JDBCSplit split) {
     DatabaseType type = dbProperties.getDatabaseType();
     String tableName = dbProperties.getTableName();
@@ -167,16 +239,21 @@ public class QueryConstructor {
     return query.toString();
   }
 
-  private static String getQueryForSelectAll(DatabaseProperties dbProperties) {
+  private static String getQueryForSelectAll(DatabaseProperties dbProperties, int limit) {
     DatabaseType type = dbProperties.getDatabaseType();
     String tableName = dbProperties.getTableName();
     String[] fieldNames = dbProperties.getFieldNames();
 
     StringBuilder query = new StringBuilder();
-    query.append("SELECT ");
+    query.append("SELECT");
+    query.append(' ');
     type.quote(query, fieldNames);
     query.append(" FROM ");
     query.append(tableName);
+    if (limit > 0) {
+      query.append(" LIMIT ");
+      query.append(limit);
+    }
     return query.toString();
   }
 }

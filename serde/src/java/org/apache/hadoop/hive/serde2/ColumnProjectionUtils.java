@@ -31,6 +31,7 @@ import org.apache.hadoop.util.StringUtils;
 public final class ColumnProjectionUtils {
 
   public static final String READ_COLUMN_IDS_CONF_STR = "hive.io.file.readcolumn.ids";
+  public static final String SPLIT_ROW_LIMIT = "hive.split.row.limit";
 
   /**
    * Sets read columns' ids(start from zero) for RCFile's Reader. Once a column
@@ -109,6 +110,14 @@ public final class ColumnProjectionUtils {
    */
   public static void setFullyReadColumns(Configuration conf) {
     conf.set(READ_COLUMN_IDS_CONF_STR, "");
+  }
+
+  public static void setRowLimit(Configuration conf, int rowLimit) {
+    conf.setInt(SPLIT_ROW_LIMIT, rowLimit);
+  }
+
+  public static int getRowLimit(Configuration conf) {
+    return conf.getInt(SPLIT_ROW_LIMIT, -1);
   }
 
   private ColumnProjectionUtils() {

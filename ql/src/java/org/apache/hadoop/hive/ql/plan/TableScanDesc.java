@@ -50,6 +50,8 @@ public class TableScanDesc extends AbstractOperatorDesc {
    *   select count(1) from ss_src2 tablesample (10 ROWS) s;
    * provides first 10 rows from all input splits
    */
+  private int splitRowLimit = -1;
+
   private int rowLimit = -1;
 
   /**
@@ -162,17 +164,25 @@ public class TableScanDesc extends AbstractOperatorDesc {
     this.maxStatsKeyPrefixLength = maxStatsKeyPrefixLength;
   }
 
-  public void setRowLimit(int rowLimit) {
-    this.rowLimit = rowLimit;
+  public void setSplitRowLimit(int splitRowLimit) {
+    this.splitRowLimit = splitRowLimit;
+  }
+
+  public int getSplitRowLimit() {
+    return splitRowLimit;
+  }
+
+  @Explain(displayName = "Row Limit Per Split")
+  public Integer getRowLimitExplain() {
+    return splitRowLimit >= 0 ? splitRowLimit : null;
   }
 
   public int getRowLimit() {
     return rowLimit;
   }
 
-  @Explain(displayName = "Row Limit Per Split")
-  public Integer getRowLimitExplain() {
-    return rowLimit >= 0 ? rowLimit : null;
+  public void setRowLimit(int rowLimit) {
+    this.rowLimit = rowLimit;
   }
 
   public Map<String, Integer> getBucketFileNameMapping() {
