@@ -35,6 +35,8 @@ public class ConfigurationUtils {
   public static final String HIVE_JDBC_MINROW_PER_TASK = "hive.jdbc.minrow.per.task";
   public static final int HIVE_JDBC_MINROW_PER_TASK_DEFAULT = -1;
 
+  public static final String HIVE_JDBC_INPUT_BATCH_SIZE = "hive.jdbc.input.batch.size";
+  public static final int HIVE_JDBC_INPUT_BATCH_SIZE_DEFAULT = 1000;
   public static final String HIVE_JDBC_OUTPUT_BATCH_SIZE = "hive.jdbc.output.batch.size";
   public static final int HIVE_JDBC_OUTPUT_BATCH_SIZE_DEFAULT = 1000;
 
@@ -64,6 +66,7 @@ public class ConfigurationUtils {
       HIVE_JDBC_OUTPUT_SQL_QUERY_BEFORE_DATA_INSERT,
       HIVE_JDBC_MAXROW_PER_TASK,
       HIVE_JDBC_MINROW_PER_TASK,
+      HIVE_JDBC_INPUT_BATCH_SIZE,
       HIVE_JDBC_OUTPUT_BATCH_SIZE);
 
   public static final List<String> UPDATABLE_PROPERTIES = Arrays.asList(
@@ -72,6 +75,7 @@ public class ConfigurationUtils {
       HIVE_JDBC_OUTPUT_SQL_QUERY_BEFORE_DATA_INSERT,
       HIVE_JDBC_MAXROW_PER_TASK,
       HIVE_JDBC_MINROW_PER_TASK,
+      HIVE_JDBC_INPUT_BATCH_SIZE,
       HIVE_JDBC_OUTPUT_BATCH_SIZE
   );
 

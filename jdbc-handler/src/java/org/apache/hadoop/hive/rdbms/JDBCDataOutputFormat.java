@@ -29,9 +29,6 @@ public class JDBCDataOutputFormat implements OutputFormat<NullWritable, MapWrita
       Class<? extends Writable> aClass, boolean b, Properties properties,
       Progressable progressable) throws IOException {
     try {
-      int maxBatch = conf.getInt(ConfigurationUtils.HIVE_JDBC_OUTPUT_BATCH_SIZE,
-          ConfigurationUtils.HIVE_JDBC_OUTPUT_BATCH_SIZE_DEFAULT);
-
       DatabaseProperties dbProperties = new DatabaseProperties();
       dbProperties.setTableName(ConfigurationUtils.getOutputTableName(conf));
       dbProperties.setOutputColumnMappingFields(ConfigurationUtils.getColumnMappingFields(conf));
@@ -41,8 +38,11 @@ public class JDBCDataOutputFormat implements OutputFormat<NullWritable, MapWrita
           conf.get(LIST_COLUMN_TYPES),
           true);
 
+      dbProperties.setBatchSize(conf.getInt(ConfigurationUtils.HIVE_JDBC_OUTPUT_BATCH_SIZE,
+          ConfigurationUtils.HIVE_JDBC_OUTPUT_BATCH_SIZE_DEFAULT));
+
       Connection connection = DBOperation.createConnection(conf);
-      return new DBRecordWriter(dbProperties, connection, maxBatch);
+      return new DBRecordWriter(dbProperties, connection);
     } catch (IOException e) {
       throw e;
     } catch (Exception e) {

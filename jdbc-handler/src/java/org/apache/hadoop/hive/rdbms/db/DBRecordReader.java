@@ -64,6 +64,8 @@ public class DBRecordReader implements RecordReader<LongWritable, RowWritable> {
     String sqlQuery = QueryConstructor.constructSelectQueryForReading(dbProperties, split);
     log.error("select query for split = " + sqlQuery);
     statement = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+    statement.setFetchSize(dbProperties.getBatchSize());
+
     results = statement.executeQuery(sqlQuery);
 
     ResultSetMetaData resultsMetaData = results.getMetaData();

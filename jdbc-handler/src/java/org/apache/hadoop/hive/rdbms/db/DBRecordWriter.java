@@ -27,10 +27,10 @@ public class DBRecordWriter implements RecordWriter {
 
   private int maxBatch;
 
-  public DBRecordWriter(DatabaseProperties dbProperties, Connection connection, int maxBatch) throws Exception {
+  public DBRecordWriter(DatabaseProperties dbProperties, Connection connection) throws Exception {
     this.dbProperties = dbProperties;
     this.connection = connection;
-    this.maxBatch = maxBatch;
+    this.maxBatch = dbProperties.getBatchSize();
 
     if (dbProperties.getDatabaseType() == null) {
       dbProperties.setDatabaseType(DatabaseType.getDatabaseType(dbProperties, connection));

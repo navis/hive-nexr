@@ -30,6 +30,9 @@ public class JDBCDataInputFormat extends HiveInputFormat<LongWritable, MapWritab
         conf.get(ConfigurationUtils.LIST_COLUMN_TYPES),
         false);
 
+    dbProperties.setBatchSize(conf.getInt(ConfigurationUtils.HIVE_JDBC_INPUT_BATCH_SIZE,
+          ConfigurationUtils.HIVE_JDBC_INPUT_BATCH_SIZE_DEFAULT));
+
     List<Integer> columns = ColumnProjectionUtils.getReadColumnIDs(conf);
 
     try {

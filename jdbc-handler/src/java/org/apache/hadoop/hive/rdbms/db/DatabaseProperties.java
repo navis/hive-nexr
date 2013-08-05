@@ -27,6 +27,8 @@ public class DatabaseProperties {
   // db-side
   private String[] fieldNames;
 
+  private transient int batchSize;
+
   public DatabaseType getDatabaseType() {
     return databaseType;
   }
@@ -130,5 +132,13 @@ public class DatabaseProperties {
 
   public void setFieldNames(String[] fieldNames) {
     this.fieldNames = fieldNames;
+  }
+
+  public int getBatchSize() {
+    return batchSize;
+  }
+
+  public void setBatchSize(int batchSize) {
+    this.batchSize = batchSize;
   }
 }
