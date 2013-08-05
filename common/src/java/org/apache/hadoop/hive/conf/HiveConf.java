@@ -635,6 +635,7 @@ public class HiveConf extends Configuration {
     HIVEFETCHTASKCONVERSIONTHRESHOLD("hive.fetch.task.conversion.threshold", -1l),
     HIVEFETCHTASKCONVERSIONINTERM("hive.fetch.task.conversion.interm", false),
     HIVEFETCHTASKCONVERSIONINSERT("hive.fetch.task.conversion.insert", false),
+    HIVEFETCHTASKCONVERSIONHASHMEMORYLIMIT("hive.fetch.task.conversion.hash.memory.limit", 256 << 20),
 
     // Serde for FetchTask
     HIVEFETCHOUTPUTSERDE("hive.fetch.output.serde", "org.apache.hadoop.hive.serde2.DelimitedJSONSerDe"),

@@ -1,5 +1,6 @@
 package org.apache.hadoop.hive.ql.exec;
 
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.io.HiveKey;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
@@ -18,6 +19,9 @@ import java.util.Map;
 import java.util.TreeMap;
 
 public class HashReducer extends ExecReducer implements OutputCollector<HiveKey, Writable> {
+
+  private int limit;
+  private int usage;
 
   private final TableDesc keyDesc;
   private final List<TableDesc> valueDescs;
@@ -48,6 +52,7 @@ public class HashReducer extends ExecReducer implements OutputCollector<HiveKey,
   @Override
   protected void configureJob(JobConf job) {
     initKeyValueDesc(keyDesc, valueDescs);
+    limit = HiveConf.getIntVar(job, HiveConf.ConfVars.HIVEFETCHTASKCONVERSIONHASHMEMORYLIMIT);
   }
 
   public void collect(HiveKey key, Writable value) throws IOException {
@@ -57,13 +62,20 @@ public class HashReducer extends ExecReducer implements OutputCollector<HiveKey,
       akey.setHashCode(key.hashCode());
       akey.set(key.getBytes(), 0, key.getLength());
       tree.put(akey, list = new ArrayList<byte[]>());
+      usage += key.getLength();
     }
     if (value instanceof BytesWritable) {
       BytesWritable bytes = (BytesWritable) value;
       list.add(Arrays.copyOf(bytes.getBytes(), bytes.getLength()));
+      usage += bytes.getLength();
     } else {
       Text text = (Text) value;
       list.add(Arrays.copyOf(text.getBytes(), text.getLength()));
+      usage += text.getLength();
+    }
+    if (limit > 0 && usage > limit) {
+      throw new IOException("Excceded memory limit " + limit +
+          " (see hive.fetch.task.conversion.memory.max)");
     }
   }
 
