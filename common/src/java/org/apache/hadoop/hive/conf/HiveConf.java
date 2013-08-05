@@ -788,6 +788,7 @@ public class HiveConf extends Configuration {
         new StringsValidator("minimal", "more", "all")),
 
     HIVEFETCHTASKCONVERSIONINSERT("hive.fetch.task.conversion.insert", false),
+    HIVEFETCHTASKCONVERSIONHASHMEMORYLIMIT("hive.fetch.task.conversion.hash.memory.limit", 256 << 20),
 
     HIVEFETCHTASKCONVERSIONLISTFETCH("hive.fetch.task.conversion.list.fetch", false),
 
