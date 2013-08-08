@@ -79,6 +79,7 @@ public class GroupByOperator extends Operator<GroupByDesc> {
   private transient ExprNodeEvaluator[][] aggregationParameterFields;
   private transient ObjectInspector[][] aggregationParameterObjectInspectors;
   private transient ObjectInspector[][] aggregationParameterStandardObjectInspectors;
+  protected transient String[][] aggregationParameterColNames;
   private transient Object[][] aggregationParameterObjects;
 
   // so aggregationIsDistinct is a boolean array instead of a single number.
@@ -251,14 +252,17 @@ public class GroupByOperator extends Operator<GroupByDesc> {
     // init aggregationParameterFields
     ArrayList<AggregationDesc> aggrs = conf.getAggregators();
     aggregationParameterFields = new ExprNodeEvaluator[aggrs.size()][];
+    aggregationParameterColNames = new String[aggrs.size()][];
     aggregationParameterObjectInspectors = new ObjectInspector[aggrs.size()][];
     aggregationParameterStandardObjectInspectors = new ObjectInspector[aggrs.size()][];
     aggregationParameterObjects = new Object[aggrs.size()][];
     aggregationIsDistinct = new boolean[aggrs.size()];
     for (int i = 0; i < aggrs.size(); i++) {
       AggregationDesc aggr = aggrs.get(i);
+      ArrayList<String> colNames = aggr.getColNames();
       ArrayList<ExprNodeDesc> parameters = aggr.getParameters();
       aggregationParameterFields[i] = new ExprNodeEvaluator[parameters.size()];
+      aggregationParameterColNames[i] = new String[parameters.size()];
       aggregationParameterObjectInspectors[i] = new ObjectInspector[parameters
           .size()];
       aggregationParameterStandardObjectInspectors[i] = new ObjectInspector[parameters
@@ -267,6 +271,7 @@ public class GroupByOperator extends Operator<GroupByDesc> {
       for (int j = 0; j < parameters.size(); j++) {
         aggregationParameterFields[i][j] = ExprNodeEvaluatorFactory
             .get(parameters.get(j));
+        aggregationParameterColNames[i][j] = colNames.get(j);
         aggregationParameterObjectInspectors[i][j] = aggregationParameterFields[i][j]
             .initialize(rowInspector);
         if (unionExprEval != null) {
@@ -368,8 +373,12 @@ public class GroupByOperator extends Operator<GroupByDesc> {
       objectInspectors[i] = currentKeyObjectInspectors[i];
     }
     for (int i = 0; i < aggregationEvaluators.length; i++) {
+      StructObjectInspector inputOI = ObjectInspectorFactory.getStandardStructObjectInspector(
+          Arrays.asList(aggregationParameterColNames[i]),
+          Arrays.asList(aggregationParameterObjectInspectors[i])
+      );
       objectInspectors[outputKeyLength + i] = aggregationEvaluators[i].init(conf.getAggregators()
-          .get(i).getMode(), aggregationParameterObjectInspectors[i]);
+          .get(i).getMode(), inputOI);
     }
 
     outputObjInspector = ObjectInspectorFactory

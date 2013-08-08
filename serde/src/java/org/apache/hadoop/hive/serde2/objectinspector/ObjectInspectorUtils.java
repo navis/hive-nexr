@@ -1190,6 +1190,15 @@ public final class ObjectInspectorUtils {
     return setOISettablePropertiesMap(oi, oiSettableProperties, returnValue);
   }
 
+  public static ObjectInspector[] toObjectInspectorArray(StructObjectInspector structOI) {
+    List<? extends StructField> fields = structOI.getAllStructFieldRefs();
+    ObjectInspector[] ois = new ObjectInspector[fields.size()];
+    for (int i = 0; i < ois.length; i++) {
+      ois[i] = fields.get(i).getFieldObjectInspector();
+    }
+    return ois;
+  }
+
   private ObjectInspectorUtils() {
     // prevent instantiation
   }

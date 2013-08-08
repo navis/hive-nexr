@@ -194,19 +194,26 @@ public class PTFDeserializer {
 
   static void setupWdwFnEvaluator(WindowFunctionDef def) throws HiveException {
     List<PTFExpressionDef> args = def.getArgs();
+
+    List<String> colNames = new ArrayList<String>();
     List<ObjectInspector> argOIs = new ArrayList<ObjectInspector>();
-    ObjectInspector[] funcArgOIs = null;
 
     if (args != null) {
-      for (PTFExpressionDef arg : args) {
+      for (int i = 0; i < args.size(); i++) {
+        PTFExpressionDef arg = args.get(i);
         argOIs.add(arg.getOI());
+        String recommended = ExprNodeDescUtils.recommendTrivialInputName(arg.getExprNode());
+        if (recommended == null || colNames.contains(recommended)) {
+          recommended = "_wc" + (i + 1);
+        }
+        colNames.add(recommended);
       }
-      funcArgOIs = new ObjectInspector[args.size()];
-      funcArgOIs = argOIs.toArray(funcArgOIs);
     }
 
     GenericUDAFEvaluator wFnEval = def.getWFnEval();
-    ObjectInspector OI = wFnEval.init(GenericUDAFEvaluator.Mode.COMPLETE, funcArgOIs);
+    StructObjectInspector inputOI =
+      ObjectInspectorFactory.getStandardStructObjectInspector(colNames, argOIs);
+    ObjectInspector OI = wFnEval.init(GenericUDAFEvaluator.Mode.COMPLETE, inputOI);
     def.setWFnEval(wFnEval);
     def.setOI(OI);
   }

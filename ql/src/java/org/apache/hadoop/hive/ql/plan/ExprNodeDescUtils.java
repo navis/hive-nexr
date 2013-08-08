@@ -164,6 +164,52 @@ public class ExprNodeDescUtils {
   }
 
   /**
+   * Returns whatever name of sole ExprNodeColumnDesc in expression
+   */
+  public static String recommendTrivialInputName(ExprNodeDesc desc) {
+    if (desc instanceof ExprNodeColumnDesc) {
+      return ((ExprNodeColumnDesc)desc).getColumn();
+    }
+    List<ExprNodeColumnDesc> found = new ArrayList<ExprNodeColumnDesc>();
+    if (!findSingleColumn(desc, found) || found.isEmpty()) {
+      return null;
+    }
+    return found.get(0).getColumn();
+  }
+
+  private static boolean findSingleColumn(ExprNodeDesc expr, List<ExprNodeColumnDesc> found) {
+    List<ExprNodeDesc> children = expr.getChildren();
+    if (children == null || children.isEmpty()) {
+      if (expr instanceof ExprNodeColumnDesc) {
+        found.add((ExprNodeColumnDesc) expr);
+      }
+      return found.size() <= 1;
+    }
+    for (ExprNodeDesc child : children) {
+      if (!findSingleColumn(child, found)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Recommend column names for input expressions.
+   * if there is no recommendation, generate name by appending prefix provided.
+   */
+  public static ArrayList<String> recommendInputNames(List<ExprNodeDesc> descs, String prefix) {
+    ArrayList<String> colNames = new ArrayList<String>(descs.size());
+    for (int i = 0; i < descs.size(); i++) {
+      String recommended = recommendTrivialInputName(descs.get(i));
+      if (recommended == null || colNames.contains(recommended)) {
+        recommended = prefix + (i + 1);
+      }
+      colNames.add(recommended);
+    }
+    return colNames;
+  }
+
+  /**
    * Return false if the expression has any non deterministic function
    */
   public static boolean isDeterministic(ExprNodeDesc desc) {

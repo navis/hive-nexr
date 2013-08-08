@@ -19,6 +19,7 @@
 package org.apache.hadoop.hive.ql.exec;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +33,8 @@ import org.apache.hadoop.hive.ql.plan.UDTFDesc;
 import org.apache.hadoop.hive.ql.plan.api.OperatorType;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDTF;
 import org.apache.hadoop.hive.ql.udf.generic.UDTFCollector;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
@@ -44,7 +47,6 @@ public class UDTFOperator extends Operator<UDTFDesc> implements Serializable {
 
   protected static final Log LOG = LogFactory.getLog(UDTFOperator.class.getName());
 
-  StructObjectInspector udtfInputOI = null;
   Object[] objToSendToUDTF = null;
 
   GenericUDTF genericUDTF;
@@ -63,15 +65,22 @@ public class UDTFOperator extends Operator<UDTFDesc> implements Serializable {
 
     genericUDTF.setCollector(collector);
 
-    udtfInputOI = (StructObjectInspector) inputObjInspectors[0];
+    List<? extends StructField> inputFields =
+        ((StructObjectInspector) inputObjInspectors[0]).getAllStructFieldRefs();
 
-    objToSendToUDTF = new Object[udtfInputOI.getAllStructFieldRefs().size()];
+    List<ObjectInspector> udtfInputOIs = new ArrayList<ObjectInspector>();
+    for (int i = 0; i < inputFields.size(); i++) {
+      udtfInputOIs.add(inputFields.get(i).getFieldObjectInspector());
+    }
+    objToSendToUDTF = new Object[inputFields.size()];
 
     MapredContext context = MapredContext.get();
     if (context != null) {
       context.setup(genericUDTF);
     }
-    StructObjectInspector udtfOutputOI = genericUDTF.initialize(udtfInputOI);
+    StructObjectInspector inputOI =
+        ObjectInspectorFactory.getStandardStructObjectInspector(conf.getColNames(), udtfInputOIs);
+    StructObjectInspector udtfOutputOI = genericUDTF.initialize(inputOI);
 
     if (conf.isOuterLV()) {
       outerObj = Arrays.asList(new Object[udtfOutputOI.getAllStructFieldRefs().size()]);

@@ -197,7 +197,6 @@ import org.apache.hadoop.hive.serde2.objectinspector.ConstantObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
-import org.apache.hadoop.hive.serde2.objectinspector.StandardStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.PrimitiveTypeInfo;
@@ -3977,6 +3976,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
    * Class to store GenericUDAF related information.
    */
   static class GenericUDAFInfo {
+    ArrayList<String> parameterColNames;
     ArrayList<ExprNodeDesc> convertedParameters;
     GenericUDAFEvaluator genericUDAFEvaluator;
     TypeInfo returnType;
@@ -4050,7 +4050,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
    * @throws SemanticException
    *           when the UDAF is not found or has problems.
    */
-  static GenericUDAFInfo getGenericUDAFInfo(GenericUDAFEvaluator evaluator,
+  private GenericUDAFInfo getGenericUDAFInfo(GenericUDAFEvaluator evaluator,
       GenericUDAFEvaluator.Mode emode, ArrayList<ExprNodeDesc> aggParameters)
       throws SemanticException {
 
@@ -4060,15 +4060,16 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     r.genericUDAFEvaluator = evaluator;
 
     // set r.returnType
-    ObjectInspector returnOI = null;
     try {
       ArrayList<ObjectInspector> aggOIs = getWritableObjectInspector(aggParameters);
-      ObjectInspector[] aggOIArray = new ObjectInspector[aggOIs.size()];
-      for (int ii = 0; ii < aggOIs.size(); ++ii) {
-        aggOIArray[ii] = aggOIs.get(ii);
-      }
-      returnOI = r.genericUDAFEvaluator.init(emode, aggOIArray);
+      ArrayList<String> aggColNames =
+        ExprNodeDescUtils.recommendInputNames(aggParameters, autogenColAliasPrfxLbl);
+
+      StructObjectInspector inputOI =
+        ObjectInspectorFactory.getStandardStructObjectInspector(aggColNames, aggOIs);
+      ObjectInspector returnOI = r.genericUDAFEvaluator.init(emode, inputOI);
       r.returnType = TypeInfoUtils.getTypeInfoFromObjectInspector(returnOI);
+      r.parameterColNames = aggColNames;
     } catch (HiveException e) {
       throw new SemanticException(e);
     }
@@ -4258,7 +4259,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       GenericUDAFInfo udaf = getGenericUDAFInfo(genericUDAFEvaluator, amode,
           aggParameters);
       aggregations.add(new AggregationDesc(aggName.toLowerCase(),
-          udaf.genericUDAFEvaluator, udaf.convertedParameters, isDistinct,
+          udaf.genericUDAFEvaluator, udaf.parameterColNames, udaf.convertedParameters, isDistinct,
           amode));
       String field = getColumnInternalName(groupByKeys.size()
           + aggregations.size() - 1);
@@ -4522,7 +4523,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       GenericUDAFInfo udaf = getGenericUDAFInfo(genericUDAFEvaluator, amode,
           aggParameters);
       aggregations.add(new AggregationDesc(aggName.toLowerCase(),
-          udaf.genericUDAFEvaluator, udaf.convertedParameters,
+          udaf.genericUDAFEvaluator, udaf.parameterColNames, udaf.convertedParameters,
           (mode != GroupByDesc.Mode.FINAL && isDistinct), amode));
       String field = getColumnInternalName(groupByKeys.size()
           + aggregations.size() - 1);
@@ -4691,7 +4692,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       GenericUDAFInfo udaf = getGenericUDAFInfo(genericUDAFEvaluator, amode,
           aggParameters);
       aggregations.add(new AggregationDesc(aggName.toLowerCase(),
-          udaf.genericUDAFEvaluator, udaf.convertedParameters, isDistinct,
+          udaf.genericUDAFEvaluator, udaf.parameterColNames, udaf.convertedParameters, isDistinct,
           amode));
       String field = getColumnInternalName(groupByKeys.size()
           + aggregations.size() - 1);
@@ -5233,6 +5234,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           .add(new AggregationDesc(
               aggName.toLowerCase(),
               udaf.genericUDAFEvaluator,
+              udaf.parameterColNames,
               udaf.convertedParameters,
               (mode != GroupByDesc.Mode.FINAL && value.getToken().getType() ==
               HiveParser.TOK_FUNCTIONDI),
@@ -6869,22 +6871,21 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     // resulting output object inspector can be used to make the RowResolver
     // for the UDTF operator
     RowResolver selectRR = opParseCtx.get(input).getRowResolver();
-    ArrayList<ColumnInfo> inputCols = selectRR.getColumnInfos();
 
     // Create the object inspector for the input columns and initialize the UDTF
-    ArrayList<String> colNames = new ArrayList<String>();
-    ObjectInspector[] colOIs = new ObjectInspector[inputCols.size()];
-    for (int i = 0; i < inputCols.size(); i++) {
-      colNames.add(inputCols.get(i).getInternalName());
-      colOIs[i] = inputCols.get(i).getObjectInspector();
+    List<String> colNames = new ArrayList<String>();
+    List<ObjectInspector> colOIs = new ArrayList<ObjectInspector>();
+    for (ColumnInfo column : selectRR.getColumnInfos()) {
+      // use alias name for field name
+      colNames.add(selectRR.reverseLookup(column.getInternalName())[1]);
+      colOIs.add(column.getObjectInspector());
     }
-    StandardStructObjectInspector rowOI =
-        ObjectInspectorFactory.getStandardStructObjectInspector(colNames, Arrays.asList(colOIs));
-    StructObjectInspector outputOI = genericUDTF.initialize(rowOI);
+    StructObjectInspector outputOI = genericUDTF.initialize(
+      ObjectInspectorFactory.getStandardStructObjectInspector(colNames, colOIs));
 
     int numUdtfCols = outputOI.getAllStructFieldRefs().size();
     if (colAliases.isEmpty()) {
-      // user did not specfied alias names, infer names from outputOI
+      // user did not specified alias names, infer names from outputOI
       for (StructField field : outputOI.getAllStructFieldRefs()) {
         colAliases.add(field.getFieldName());
       }
@@ -6924,7 +6925,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
     // Add the UDTFOperator to the operator DAG
     Operator<?> udtf = putOpInsertMap(OperatorFactory.getAndMakeChild(
-        new UDTFDesc(genericUDTF, outerLV), new RowSchema(out_rwsch.getColumnInfos()),
+        new UDTFDesc(genericUDTF, colNames, outerLV), new RowSchema(out_rwsch.getColumnInfos()),
         input), out_rwsch);
     return udtf;
   }

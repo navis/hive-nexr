@@ -27,6 +27,8 @@ import org.apache.hadoop.hive.ql.plan.ptf.WindowFrameDef;
 import org.apache.hadoop.hive.ql.udf.UDFType;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hive.common.util.AnnotationUtils;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
+import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
 /**
  * A Generic User-defined aggregation function (GenericUDAF) for the use with
@@ -98,6 +100,10 @@ public abstract class GenericUDAFEvaluator implements Closeable {
    * @param mapredContext context
    */
   public void configure(MapredContext mapredContext) {
+  }
+
+  public ObjectInspector init(Mode m, StructObjectInspector parameters) throws HiveException {
+    return init(m, ObjectInspectorUtils.toObjectInspectorArray(parameters));
   }
 
   /**

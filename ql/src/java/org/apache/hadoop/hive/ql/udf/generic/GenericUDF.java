@@ -20,6 +20,7 @@ package org.apache.hadoop.hive.ql.udf.generic;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.hadoop.hive.ql.exec.MapredContext;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
@@ -29,6 +30,8 @@ import org.apache.hadoop.hive.ql.udf.UDFType;
 import org.apache.hadoop.hive.serde2.objectinspector.ConstantObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
+import org.apache.hadoop.hive.serde2.objectinspector.StructField;
+import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
 /**
  * A Generic User-defined function (GenericUDF) for the use with Hive.
@@ -40,14 +43,14 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
  * variable length of arguments. 3. It can accept an infinite number of function
  * signature - for example, it's easy to write a GenericUDF that accepts
  * array<int>, array<array<int>> and so on (arbitrary levels of nesting). 4. It
- * can do short-circuit evaluations using DeferedObject.
+ * can do short-circuit evaluations using DeferredObject.
  */
 @UDFType(deterministic = true)
 public abstract class GenericUDF implements Closeable {
 
   /**
-   * A Defered Object allows us to do lazy-evaluation and short-circuiting.
-   * GenericUDF use DeferedObject to pass arguments.
+   * A Deferred Object allows us to do lazy-evaluation and short-circuiting.
+   * GenericUDF use DeferredObject to pass arguments.
    */
   public static interface DeferredObject {
     void prepare(int version) throws HiveException;
@@ -81,6 +84,11 @@ public abstract class GenericUDF implements Closeable {
   public GenericUDF() {
   }
 
+  public ObjectInspector initialize(StructObjectInspector inputOI)
+      throws UDFArgumentException {
+    return initialize(ObjectInspectorUtils.toObjectInspectorArray(inputOI));
+  }
+
   /**
    * Initialize this GenericUDF. This will be called once and only once per
    * GenericUDF instance.
@@ -91,8 +99,9 @@ public abstract class GenericUDF implements Closeable {
    *           Thrown when arguments have wrong types, wrong length, etc.
    * @return The ObjectInspector for the return value
    */
-  public abstract ObjectInspector initialize(ObjectInspector[] arguments)
-      throws UDFArgumentException;
+  public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
+    throw new UDFArgumentException("should not be called directly");
+  }
 
   /**
    * Additionally setup GenericUDF with MapredContext before initializing.
@@ -110,7 +119,7 @@ public abstract class GenericUDF implements Closeable {
    * ConstantObjectInspector returned.  Otherwise, the function behaves exactly
    * like initialize().
    */
-  public ObjectInspector initializeAndFoldConstants(ObjectInspector[] arguments)
+  public ObjectInspector initializeAndFoldConstants(StructObjectInspector arguments)
       throws UDFArgumentException {
 
     ObjectInspector oi = initialize(arguments);
@@ -122,9 +131,11 @@ public abstract class GenericUDF implements Closeable {
       return oi;
     }
 
+    List<? extends StructField> fields = arguments.getAllStructFieldRefs();
+
     boolean allConstant = true;
-    for (int ii = 0; ii < arguments.length; ++ii) {
-      if (!ObjectInspectorUtils.isConstantObjectInspector(arguments[ii])) {
+    for (StructField field : fields) {
+      if (!ObjectInspectorUtils.isConstantObjectInspector(field.getFieldObjectInspector())) {
         allConstant = false;
         break;
       }
@@ -135,11 +146,12 @@ public abstract class GenericUDF implements Closeable {
         FunctionRegistry.isDeterministic(this) &&
         !FunctionRegistry.isStateful(this) &&
         ObjectInspectorUtils.supportsConstantObjectInspector(oi)) {
-      DeferredObject[] argumentValues =
-        new DeferredJavaObject[arguments.length];
-      for (int ii = 0; ii < arguments.length; ++ii) {
+
+      DeferredObject[] argumentValues = new DeferredJavaObject[fields.size()];
+      for (int ii = 0; ii < argumentValues.length; ++ii) {
+        ObjectInspector colOI = fields.get(ii).getFieldObjectInspector();
         argumentValues[ii] = new DeferredJavaObject(
-            ((ConstantObjectInspector)arguments[ii]).getWritableConstantValue());
+            ((ConstantObjectInspector)colOI).getWritableConstantValue());
       }
       try {
         Object constantValue = evaluate(argumentValues);
@@ -168,7 +180,7 @@ public abstract class GenericUDF implements Closeable {
    * Evaluate the GenericUDF with the arguments.
    *
    * @param arguments
-   *          The arguments as DeferedObject, use DeferedObject.get() to get the
+   *          The arguments as DeferredObject, use DeferredObject.get() to get the
    *          actual argument Object. The Objects can be inspected by the
    *          ObjectInspectors passed in the initialize call.
    * @return The
@@ -180,6 +192,21 @@ public abstract class GenericUDF implements Closeable {
    * Get the String to be displayed in explain.
    */
   public abstract String getDisplayString(String[] children);
+
+  // simple utility method
+  protected String toDisplayString(String functionName, String[] children) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(functionName);
+    sb.append('(');
+    for (int i = 0; i < children.length; i++) {
+      sb.append(children[i]);
+      if (i + 1 != children.length) {
+        sb.append(',');
+      }
+    }
+    sb.append(')');
+    return sb.toString();
+  }
 
   /**
    * Close GenericUDF.

@@ -18,10 +18,14 @@
 
 package org.apache.hadoop.hive.ql.exec;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
+import org.apache.hadoop.hive.ql.plan.ExprNodeDescUtils;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFBaseCompare;
@@ -29,7 +33,9 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDFCase;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFWhen;
 import org.apache.hadoop.hive.serde2.objectinspector.ConstantObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
+import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +51,7 @@ public class ExprNodeGenericFuncEvaluator extends ExprNodeEvaluator<ExprNodeGene
 
   transient GenericUDF genericUDF;
   transient Object rowObject;
+  transient List<String> colNames;
   transient ExprNodeEvaluator[] children;
   transient GenericUDF.DeferredObject[] deferredChildren;
   transient GenericUDF.DeferredObject[] childrenNeedingPrepare;
@@ -111,6 +118,7 @@ public class ExprNodeGenericFuncEvaluator extends ExprNodeEvaluator<ExprNodeGene
         }
       }
     }
+    colNames = ExprNodeDescUtils.recommendInputNames(expr.getChildren(), "_c");
     genericUDF = expr.getGenericUDF();
     if (isEager &&
         (genericUDF instanceof GenericUDFCase || genericUDF instanceof GenericUDFWhen)) {
@@ -133,15 +141,17 @@ public class ExprNodeGenericFuncEvaluator extends ExprNodeEvaluator<ExprNodeGene
     this.childrenNeedingPrepare =
         childrenNeedingPrepare.toArray(new GenericUDF.DeferredObject[childrenNeedingPrepare.size()]);
     // Initialize all children first
-    ObjectInspector[] childrenOIs = new ObjectInspector[children.length];
-    for (int i = 0; i < children.length; i++) {
-      childrenOIs[i] = children[i].initialize(rowInspector);
+    List<ObjectInspector> childrenOIs = new ArrayList<ObjectInspector>();
+    for (ExprNodeEvaluator evaluator : children) {
+      childrenOIs.add(evaluator.initialize(rowInspector));
     }
     MapredContext context = MapredContext.get();
     if (context != null) {
       context.setup(genericUDF);
     }
-    outputOI = genericUDF.initializeAndFoldConstants(childrenOIs);
+    StructObjectInspector inputOI =
+      ObjectInspectorFactory.getStandardStructObjectInspector(colNames, childrenOIs);
+    outputOI = genericUDF.initializeAndFoldConstants(inputOI);
     isConstant = ObjectInspectorUtils.isConstantObjectInspector(outputOI)
         && isDeterministic();
     return outputOI;

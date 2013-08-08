@@ -60,6 +60,7 @@ import org.apache.hadoop.hive.ql.parse.WindowingSpec.WindowFrameSpec;
 import org.apache.hadoop.hive.ql.parse.WindowingSpec.WindowFunctionSpec;
 import org.apache.hadoop.hive.ql.parse.WindowingSpec.WindowSpec;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
+import org.apache.hadoop.hive.ql.plan.ExprNodeDescUtils;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
 import org.apache.hadoop.hive.ql.plan.PTFDesc;
 import org.apache.hadoop.hive.ql.plan.PTFDeserializer;
@@ -574,23 +575,30 @@ public class PTFTranslator {
     throw new SemanticException("Unknown Boundary: " + bndSpec);
   }
 
-  static void setupWdwFnEvaluator(WindowFunctionDef def) throws HiveException {
+  void setupWdwFnEvaluator(WindowFunctionDef def) throws HiveException {
     List<PTFExpressionDef> args = def.getArgs();
+
+    List<String> colNames = new ArrayList<String>();
     List<ObjectInspector> argOIs = new ArrayList<ObjectInspector>();
-    ObjectInspector[] funcArgOIs = null;
 
     if (args != null) {
-      for (PTFExpressionDef arg : args) {
+      for (int i = 0; i < args.size(); i++) {
+        PTFExpressionDef arg = args.get(i);
         argOIs.add(arg.getOI());
+        String recommended = ExprNodeDescUtils.recommendTrivialInputName(arg.getExprNode());
+        if (recommended == null || colNames.contains(recommended)) {
+          recommended = "_wc" + (i + 1);
+        }
+        colNames.add(recommended);
       }
-      funcArgOIs = new ObjectInspector[args.size()];
-      funcArgOIs = argOIs.toArray(funcArgOIs);
     }
 
     GenericUDAFEvaluator wFnEval = FunctionRegistry.getGenericWindowingEvaluator(def.getName(),
         argOIs,
         def.isDistinct(), def.isStar());
-    ObjectInspector OI = wFnEval.init(GenericUDAFEvaluator.Mode.COMPLETE, funcArgOIs);
+    StructObjectInspector inputOI =
+      ObjectInspectorFactory.getStandardStructObjectInspector(colNames, argOIs);
+    ObjectInspector OI = wFnEval.init(GenericUDAFEvaluator.Mode.COMPLETE, inputOI);
     def.setWFnEval(wFnEval);
     def.setOI(OI);
   }

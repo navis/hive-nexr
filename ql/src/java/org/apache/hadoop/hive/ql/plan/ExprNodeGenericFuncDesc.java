@@ -38,7 +38,9 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFBaseCompare;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFBridge;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
+import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
@@ -194,9 +196,9 @@ public class ExprNodeGenericFuncDesc extends ExprNodeDesc implements
   public static ExprNodeGenericFuncDesc newInstance(GenericUDF genericUDF,
       String funcText,
       List<ExprNodeDesc> children) throws UDFArgumentException {
-    ObjectInspector[] childrenOIs = new ObjectInspector[children.size()];
-    for (int i = 0; i < childrenOIs.length; i++) {
-      childrenOIs[i] = children.get(i).getWritableObjectInspector();
+    List<ObjectInspector> childrenOIs = new ArrayList<ObjectInspector>(children.size());
+    for (ExprNodeDesc expr : children) {
+      childrenOIs.add(expr.getWritableObjectInspector());
     }
 
     // Check if a bigint is implicitely cast to a double as part of a comparison
@@ -229,7 +231,11 @@ public class ExprNodeGenericFuncDesc extends ExprNodeDesc implements
       }
     }
 
-    ObjectInspector oi = genericUDF.initializeAndFoldConstants(childrenOIs);
+    List<String> colNames = ExprNodeDescUtils.recommendInputNames(children, "_c");
+
+    StructObjectInspector inputOI =
+      ObjectInspectorFactory.getStandardStructObjectInspector(colNames, childrenOIs);
+    ObjectInspector oi = genericUDF.initializeAndFoldConstants(inputOI);
 
     String[] requiredJars = genericUDF.getRequiredJars();
     String[] requiredFiles = genericUDF.getRequiredFiles();

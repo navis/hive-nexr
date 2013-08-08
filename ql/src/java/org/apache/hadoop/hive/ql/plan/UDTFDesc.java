@@ -18,6 +18,8 @@
 
 package org.apache.hadoop.hive.ql.plan;
 
+import java.util.List;
+
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDTF;
 
 /**
@@ -31,13 +33,15 @@ public class UDTFDesc extends AbstractOperatorDesc {
   private static final long serialVersionUID = 1L;
 
   private GenericUDTF genericUDTF;
+  private List<String> colNames;
   private boolean outerLV;
 
   public UDTFDesc() {
   }
 
-  public UDTFDesc(final GenericUDTF genericUDTF, boolean outerLV) {
+  public UDTFDesc(GenericUDTF genericUDTF, List<String> colNames, boolean outerLV) {
     this.genericUDTF = genericUDTF;
+    this.colNames = colNames;
     this.outerLV = outerLV;
   }
 
@@ -52,6 +56,14 @@ public class UDTFDesc extends AbstractOperatorDesc {
   @Explain(displayName = "function name")
   public String getUDTFName() {
     return genericUDTF.toString();
+  }
+
+  public List<String> getColNames() {
+    return colNames;
+  }
+
+  public void setColNames(List<String> colNames) {
+    this.colNames = colNames;
   }
 
   public boolean isOuterLV() {

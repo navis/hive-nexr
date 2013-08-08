@@ -21,9 +21,10 @@ package org.apache.hadoop.hive.ql.plan;
 import java.io.Externalizable;
 import java.io.Serializable;
 
-import org.apache.hadoop.hive.common.JavaUtils;
 import org.apache.hadoop.hive.ql.exec.PTFUtils;
 import org.apache.hadoop.hive.ql.exec.Utilities;
+import java.util.ArrayList;
+
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
 import org.apache.hadoop.util.ReflectionUtils;
 
@@ -40,6 +41,7 @@ public class AggregationDesc implements java.io.Serializable {
   private static final long serialVersionUID = 1L;
   private String genericUDAFName;
 
+  private java.util.ArrayList<String> colNames;
   private java.util.ArrayList<ExprNodeDesc> parameters;
   private boolean distinct;
   private GenericUDAFEvaluator.Mode mode;
@@ -56,9 +58,11 @@ public class AggregationDesc implements java.io.Serializable {
 
   public AggregationDesc(final String genericUDAFName,
       final GenericUDAFEvaluator genericUDAFEvaluator,
+      final java.util.ArrayList<String> colNames,
       final java.util.ArrayList<ExprNodeDesc> parameters,
       final boolean distinct, final GenericUDAFEvaluator.Mode mode) {
     this.genericUDAFName = genericUDAFName;
+    this.colNames = colNames;
     this.parameters = parameters;
     this.distinct = distinct;
     this.mode = mode;
@@ -114,6 +118,14 @@ public class AggregationDesc implements java.io.Serializable {
 
   public void setGenericUDAFWritableEvaluator(GenericUDAFEvaluator genericUDAFWritableEvaluator) {
     this.genericUDAFWritableEvaluator = genericUDAFWritableEvaluator;
+  }
+
+  public ArrayList<String> getColNames() {
+    return colNames;
+  }
+
+  public void setColNames(ArrayList<String> colNames) {
+    this.colNames = colNames;
   }
 
   public java.util.ArrayList<ExprNodeDesc> getParameters() {
