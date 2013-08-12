@@ -2432,7 +2432,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
           col_list.add(exp);
 
           ColumnInfo colInfo = new ColumnInfo(SemanticAnalyzer.getColumnInternalName(pos),
-              exp.getWritableObjectInspector(), tabAlias, false);
+              exp.getWritableObjectInspector(), tabAlias);
           colInfo.setSkewedCol((exp instanceof ExprNodeColumnDesc) ? ((ExprNodeColumnDesc) exp)
               .isSkewedCol() : false);
           if (!out_rwsch.putWithCheck(tabAlias, colAlias, null, colInfo)) {

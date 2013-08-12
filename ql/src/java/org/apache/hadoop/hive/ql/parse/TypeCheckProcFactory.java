@@ -503,8 +503,22 @@ public class TypeCheckProcFactory {
       String tableOrCol = BaseSemanticAnalyzer.unescapeIdentifier(expr
           .getChild(0).getText());
 
-      boolean isTableAlias = input.hasTableAlias(tableOrCol);
-      ColumnInfo colInfo = input.get(null, tableOrCol);
+      ColumnInfo colInfo;
+      boolean isTableAlias = false;
+      if (expr.getChild(0).getType() == HiveParser.Number) {
+        if (parent != null && parent.getType() == HiveParser.DOT) {
+          // aliased index.. resolve later
+          return null;
+        }
+        colInfo = getColumn((ASTNode) expr.getChild(0), input);
+        if (colInfo == null) {
+          ctx.setError(ErrorMsg.INVALID_COLUMN.getMsg(expr.getChild(0)), expr);
+          return null;
+        }
+      } else {
+        isTableAlias = input.hasTableAlias(tableOrCol);
+        colInfo = input.get(null, tableOrCol);
+      }
 
       if (isTableAlias) {
         if (colInfo != null) {
@@ -990,12 +1004,17 @@ public class TypeCheckProcFactory {
     protected ExprNodeDesc processQualifiedColRef(TypeCheckCtx ctx, ASTNode expr,
         Object... nodeOutputs) throws SemanticException {
       RowResolver input = ctx.getInputRR();
-      String tableAlias = BaseSemanticAnalyzer.unescapeIdentifier(expr.getChild(0).getChild(0)
-          .getText());
+      String tableAlias = BaseSemanticAnalyzer.unescapeIdentifier(expr
+          .getChild(0).getChild(0).getText());
       // NOTE: tableAlias must be a valid non-ambiguous table alias,
       // because we've checked that in TOK_TABLE_OR_COL's process method.
-      ColumnInfo colInfo = input.get(tableAlias, ((ExprNodeConstantDesc) nodeOutputs[1]).getValue()
-          .toString());
+      ColumnInfo colInfo;
+      if (expr.getChild(1).getType() == HiveParser.Number) {
+        colInfo = getColumn((ASTNode) expr.getChild(1), input, tableAlias);
+      } else {
+        colInfo = input.get(tableAlias,
+            ((ExprNodeConstantDesc) nodeOutputs[1]).getValue().toString());
+      }
 
       if (colInfo == null) {
         ctx.setError(ErrorMsg.INVALID_COLUMN.getMsg(expr.getChild(1)), expr);
@@ -1181,6 +1200,32 @@ public class TypeCheckProcFactory {
     protected List<String> getReferenceableColumnAliases(TypeCheckCtx ctx) {
       return ctx.getInputRR().getReferenceableColumnAliases(null, -1);
     }
+  }
+
+  // zero based index
+  private static ColumnInfo getColumn(ASTNode expr, RowResolver input) throws SemanticException {
+    if (input.getTableNames().size() > 1) {
+      throw new SemanticException(ErrorMsg.AMBIGUOUS_COLUMN.getMsg(expr));
+    }
+    int index = Integer.valueOf(expr.getText());
+    List<ColumnInfo> columns = input.getRowSchema().getSignature();
+    if (index < columns.size()) {
+      ColumnInfo column = columns.get(index);
+      return column.isAnyVirtualColumn() ? null : column;
+    }
+    return null;
+  }
+
+  // zero based index
+  private static ColumnInfo getColumn(ASTNode expr, RowResolver input, String tableAlias) {
+    int index = Integer.valueOf(expr.getText());
+    HashMap<String, ColumnInfo> fieldMap = input.getFieldMap(tableAlias);
+    if (fieldMap != null && index < fieldMap.size()) {
+      List<ColumnInfo> columns = new ArrayList<ColumnInfo>(fieldMap.values());
+      ColumnInfo column = columns.get(index);
+      return column.isAnyVirtualColumn() ? null : column;
+    }
+    return null;
   }
 
   /**

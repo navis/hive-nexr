@@ -22,7 +22,6 @@ import java.io.Serializable;
 
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 
 /**
@@ -68,13 +67,6 @@ public class ColumnInfo implements Serializable {
     this(internalName, type, tabAlias, isVirtualCol, false);
   }
 
-  public ColumnInfo(String internalName, Class type, String tabAlias,
-      boolean isVirtualCol) {
-    this(internalName, TypeInfoFactory
-        .getPrimitiveTypeInfoFromPrimitiveWritable(type), tabAlias,
-        isVirtualCol, false);
-  }
-
   public ColumnInfo(String internalName, TypeInfo type, String tabAlias,
       boolean isVirtualCol, boolean isHiddenVirtualCol) {
     this(internalName,
@@ -84,9 +76,8 @@ public class ColumnInfo implements Serializable {
          isHiddenVirtualCol);
   }
 
-  public ColumnInfo(String internalName, ObjectInspector objectInspector,
-      String tabAlias, boolean isVirtualCol) {
-    this(internalName, objectInspector, tabAlias, isVirtualCol, false);
+  public ColumnInfo(String internalName, ObjectInspector objectInspector, String tabAlias) {
+    this(internalName, objectInspector, tabAlias, false, false);
   }
 
   public ColumnInfo(String internalName, ObjectInspector objectInspector,
@@ -149,6 +140,10 @@ public class ColumnInfo implements Serializable {
 
   public boolean isHiddenVirtualCol() {
     return isHiddenVirtualCol;
+  }
+
+  public boolean isAnyVirtualColumn() {
+    return isVirtualCol || isHiddenVirtualCol;
   }
 
   /**

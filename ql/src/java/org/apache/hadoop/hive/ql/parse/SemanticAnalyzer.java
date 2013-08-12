@@ -3813,7 +3813,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         col_list.add(exp);
 
         ColumnInfo colInfo = new ColumnInfo(getColumnInternalName(pos),
-            exp.getWritableObjectInspector(), tabAlias, false);
+            exp.getWritableObjectInspector(), tabAlias);
         colInfo.setSkewedCol((exp instanceof ExprNodeColumnDesc) ? ((ExprNodeColumnDesc) exp)
             .isSkewedCol() : false);
         out_rwsch.put(tabAlias, colAlias, colInfo);

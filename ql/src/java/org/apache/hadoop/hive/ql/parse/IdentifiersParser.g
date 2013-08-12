@@ -300,7 +300,7 @@ atomExpression
 
 precedenceFieldExpression
     :
-    atomExpression ((LSQUARE^ expression RSQUARE!) | (DOT^ identifier))*
+    atomExpression ((LSQUARE^ expression RSQUARE!) | (DOT^ DOLLAR! Number) | (DOT^ identifier))*
     ;
 
 precedenceUnaryOperator

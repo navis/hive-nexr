@@ -58,6 +58,8 @@ tableOrColumn
 @after { gParent.popMsg(state); }
     :
     identifier -> ^(TOK_TABLE_OR_COL identifier)
+    |
+    DOLLAR Number -> ^(TOK_TABLE_OR_COL Number)
     ;
 
 expressionList
