@@ -163,7 +163,7 @@ public class QueryConstructor {
     query.append(" FROM ");
     query.append(tableName);
     if (limit > 0) {
-      query.append(" WHERE ROWNUM < ");
+      query.append(" WHERE ROWNUM <= ");
       query.append(limit);
     }
     return query.toString();
