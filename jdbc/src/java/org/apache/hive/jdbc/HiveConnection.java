@@ -67,6 +67,7 @@ public class HiveConnection implements java.sql.Connection {
   private static final String HIVE_ANONYMOUS_USER = "anonymous";
   private static final String HIVE_ANONYMOUS_PASSWD = "anonymous";
 
+  private TSocket socket;
   private TTransport transport;
   private TCLIService.Iface client;
   private boolean isClosed = true;
@@ -104,7 +105,8 @@ public class HiveConnection implements java.sql.Connection {
             connParams.getSessionVars().put(HIVE_AUTH_PASSWD, info.getProperty(HIVE_AUTH_PASSWD));
         }
       }
-      transport = openTransport(connParams);
+      socket = createSocket(connParams);
+      transport = openTransport(connParams, socket);
       client = new TCLIService.Client(new TBinaryProtocol(transport));
     }
 
@@ -134,7 +136,6 @@ public class HiveConnection implements java.sql.Connection {
       }
     } else {
       // for remote JDBC client, try to set the conf var using 'set foo=bar'
-      stmt = createStatement();
       for (Entry<String, String> hiveConf : connParams.getHiveConfs().entrySet()) {
         stmt = createStatement();
         try {
@@ -146,9 +147,12 @@ public class HiveConnection implements java.sql.Connection {
     }
   }
 
-  private TTransport openTransport(Utils.JdbcConnectionParams connParams)
+  private TSocket createSocket(Utils.JdbcConnectionParams connParams) {
+    return new TSocket(connParams.getHost(), connParams.getPort());
+  }
+
+  private TTransport openTransport(Utils.JdbcConnectionParams connParams, TTransport transport)
       throws Exception {
-    TTransport transport = new TSocket(connParams.getHost(), connParams.getPort());
 
     Map<String, String> sessConf = connParams.getSessionVars();
     // handle secure connection if specified
@@ -735,7 +739,9 @@ public class HiveConnection implements java.sql.Connection {
    */
 
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
-    // TODO Auto-generated method stub
+    if (iface == TSocket.class) {
+      return socket != null;
+    }
     throw new SQLException("Method not supported");
   }
 
@@ -746,7 +752,9 @@ public class HiveConnection implements java.sql.Connection {
    */
 
   public <T> T unwrap(Class<T> iface) throws SQLException {
-    // TODO Auto-generated method stub
+    if (iface == TSocket.class) {
+      return (T)socket;
+    }
     throw new SQLException("Method not supported");
   }
 
