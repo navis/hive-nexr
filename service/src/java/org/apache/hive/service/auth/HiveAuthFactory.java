@@ -20,6 +20,7 @@ package org.apache.hive.service.auth;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.text.MessageFormat;
 import java.util.HashMap;
@@ -33,13 +34,13 @@ import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.hive.thrift.HadoopThriftAuthBridge;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hive.service.Constants;
 import org.apache.hive.service.cli.HiveSQLException;
 import org.apache.hive.service.cli.thrift.ThriftCLIService;
 import org.apache.thrift.TProcessorFactory;
 import org.apache.thrift.transport.TSSLTransportFactory;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TSocket;
-import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
 import org.slf4j.Logger;
@@ -206,23 +207,66 @@ public class HiveAuthFactory {
     }
   }
 
-  public static TTransport getSocketTransport(String host, int port, int loginTimeout)
+  public static TSocket getSocketTransport(String host, int port, Map<String, String> config)
       throws TTransportException {
-    return new TSocket(host, port, loginTimeout);
+    TSocket tsocket = new TSocket(host, port);
+    try {
+      return config != null ? configure(tsocket, config) : tsocket;
+    } catch (SocketException e) {
+      throw new TTransportException(e);
+    }
   }
 
-  public static TTransport getSSLSocket(String host, int port, int loginTimeout)
+  public static TSocket getSSLSocket(String host, int port, Map<String, String> config)
       throws TTransportException {
-    return TSSLTransportFactory.getClientSocket(host, port, loginTimeout);
+    TSocket tsocket = TSSLTransportFactory.getClientSocket(host, port);
+    try {
+      return config != null ? configure(tsocket, config) : tsocket;
+    } catch (SocketException e) {
+      throw new TTransportException(e);
+    }
   }
 
-  public static TTransport getSSLSocket(String host, int port, int loginTimeout,
+  public static TSocket getSSLSocket(String host, int port, Map<String, String> config,
       String trustStorePath, String trustStorePassWord) throws TTransportException {
     TSSLTransportFactory.TSSLTransportParameters params =
         new TSSLTransportFactory.TSSLTransportParameters();
     params.setTrustStore(trustStorePath, trustStorePassWord);
     params.requireClientAuth(true);
-    return TSSLTransportFactory.getClientSocket(host, port, loginTimeout, params);
+    TSocket tsocket = TSSLTransportFactory.getClientSocket(host, port, 0, params);
+    try {
+      return config != null ? configure(tsocket, config) : tsocket;
+    } catch (SocketException e) {
+      throw new TTransportException(e);
+    }
+  }
+
+  private static TSocket configure(TSocket tsocket, Map<String, String> sessConf)
+      throws SocketException {
+    String value = sessConf.get(Constants.CONNECT_TIMEOUT);
+    if (value == null) {
+      value = sessConf.get(Constants.SOCKET_TIMEOUT);
+    }
+    if (value != null) {
+      tsocket.getSocket().setSoTimeout(Integer.parseInt(value));
+    }
+    value = sessConf.get(Constants.REUSE_ADDRESS);
+    if (value != null) {
+      tsocket.getSocket().setReuseAddress(Boolean.valueOf(value));
+    }
+    value = sessConf.get(Constants.KEEP_ALIVE);
+    if (value != null) {
+      tsocket.getSocket().setKeepAlive(Boolean.valueOf(value));
+    }
+    value = sessConf.get(Constants.SEND_BUFFER_SIZE);
+    if (value != null) {
+      tsocket.getSocket().setSendBufferSize(Integer.parseInt(value));
+    }
+    value = sessConf.get(Constants.RECV_BUFFER_SIZE);
+    if (value != null) {
+      tsocket.getSocket().setReceiveBufferSize(Integer.parseInt(value));
+    }
+    return tsocket;
   }
 
   public static TServerSocket getServerSocket(String hiveHost, int portNum)

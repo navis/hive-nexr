@@ -54,6 +54,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.shims.ShimLoader;
+import org.apache.hive.service.Constants;
 import org.apache.hive.service.auth.HiveAuthFactory;
 import org.apache.hive.service.auth.KerberosSaslHelper;
 import org.apache.hive.service.auth.PlainSaslHelper;
@@ -78,6 +79,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.THttpClient;
+import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
@@ -116,17 +118,16 @@ public class HiveConnection implements java.sql.Connection {
   private final Map<String, String> hiveConfMap;
   private final Map<String, String> hiveVarMap;
   private final boolean isEmbeddedMode;
+  private TSocket tsocket;
   private TTransport transport;
   private TCLIService.Iface client;   // todo should be replaced by CliServiceClient
   private boolean isClosed = true;
   private SQLWarning warningChain = null;
   private TSessionHandle sessHandle = null;
   private final List<TProtocolVersion> supportedProtocols = new LinkedList<TProtocolVersion>();
-  private int loginTimeout = 0;
   private TProtocolVersion protocol;
 
   public HiveConnection(String uri, Properties info) throws SQLException {
-    setupLoginTimeout();
     jdbcURI = uri;
     // parse the connection uri
     Utils.JdbcConnectionParams connParams;
@@ -135,6 +136,8 @@ public class HiveConnection implements java.sql.Connection {
     } catch (IllegalArgumentException e) {
       throw new SQLException(e);
     }
+    setupLoginTimeout(connParams.getSessionVars());
+
     // extract parsed connection parameters:
     // JDBC URL: jdbc:hive2://<host>:<port>/dbName;sess_var_list?hive_conf_list#hive_var_list
     // each list: <key1>=<val1>;<key2>=<val2> and so on
@@ -339,15 +342,17 @@ public class HiveConnection implements java.sql.Connection {
           saslProps.put(Sasl.QOP, saslQOP.toString());
           saslProps.put(Sasl.SERVER_AUTH, "true");
           boolean assumeSubject = HIVE_AUTH_KERBEROS_AUTH_TYPE_FROM_SUBJECT.equals(sessConfMap.get(HIVE_AUTH_KERBEROS_AUTH_TYPE));
+          tsocket = HiveAuthFactory.getSocketTransport(host, port, sessConfMap);
           transport = KerberosSaslHelper.getKerberosTransport(
               sessConfMap.get(HIVE_AUTH_PRINCIPAL), host,
-              HiveAuthFactory.getSocketTransport(host, port, loginTimeout), saslProps, assumeSubject);
+              tsocket, saslProps, assumeSubject);
         } else {
           // If there's a delegation token available then use token based connection
           String tokenStr = getClientDelegationToken(sessConfMap);
           if (tokenStr != null) {
+            tsocket = HiveAuthFactory.getSocketTransport(host, port, sessConfMap);
             transport = KerberosSaslHelper.getTokenTransport(tokenStr,
-                host, HiveAuthFactory.getSocketTransport(host, port, loginTimeout), saslProps);
+                host, tsocket, saslProps);
           } else {
             // we are using PLAIN Sasl connection with user/password
             String userName = getUserName();
@@ -357,22 +362,22 @@ public class HiveConnection implements java.sql.Connection {
               String sslTrustStore = sessConfMap.get(HIVE_SSL_TRUST_STORE);
               String sslTrustStorePassword = sessConfMap.get(HIVE_SSL_TRUST_STORE_PASSWORD);
               if (sslTrustStore == null || sslTrustStore.isEmpty()) {
-                transport = HiveAuthFactory.getSSLSocket(host, port, loginTimeout);
+                tsocket = HiveAuthFactory.getSSLSocket(host, port, sessConfMap);
               } else {
-                transport = HiveAuthFactory.getSSLSocket(host, port, loginTimeout,
+                tsocket = HiveAuthFactory.getSSLSocket(host, port, sessConfMap,
                     sslTrustStore, sslTrustStorePassword);
               }
             } else {
               // get non-SSL socket transport
-              transport = HiveAuthFactory.getSocketTransport(host, port, loginTimeout);
+              tsocket = HiveAuthFactory.getSocketTransport(host, port, sessConfMap);
             }
             // Overlay the SASL transport on top of the base socket transport (SSL or non-SSL)
-            transport = PlainSaslHelper.getPlainTransport(userName, passwd, transport);
+            transport = PlainSaslHelper.getPlainTransport(userName, passwd, tsocket);
           }
         }
       } else {
         // Raw socket connection (non-sasl)
-        transport = HiveAuthFactory.getSocketTransport(host, port, loginTimeout);
+        transport = tsocket = HiveAuthFactory.getSocketTransport(host, port, sessConfMap);
       }
     } catch (SaslException e) {
       throw new SQLException("Could not create secure connection to "
@@ -501,12 +506,12 @@ public class HiveConnection implements java.sql.Connection {
   }
 
   // copy loginTimeout from driver manager. Thrift timeout needs to be in millis
-  private void setupLoginTimeout() {
-    long timeOut = TimeUnit.SECONDS.toMillis(DriverManager.getLoginTimeout());
-    if (timeOut > Integer.MAX_VALUE) {
-      loginTimeout = Integer.MAX_VALUE;
-    } else {
-      loginTimeout = (int) timeOut;
+  private void setupLoginTimeout(Map<String, String> conf) {
+    if (!conf.containsKey(Constants.CONNECT_TIMEOUT) && !conf.containsKey(Constants.SOCKET_TIMEOUT)) {
+      long timeOut = TimeUnit.SECONDS.toMillis(DriverManager.getLoginTimeout());
+      if (timeOut > 0 && timeOut < Integer.MAX_VALUE) {
+        conf.put(Constants.CONNECT_TIMEOUT, String.valueOf(timeOut));
+      }
     }
   }
 
@@ -1196,8 +1201,7 @@ public class HiveConnection implements java.sql.Connection {
 
   @Override
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
-    // TODO Auto-generated method stub
-    throw new SQLException("Method not supported");
+    return iface.isInstance(tsocket);
   }
 
   /*
@@ -1208,8 +1212,7 @@ public class HiveConnection implements java.sql.Connection {
 
   @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
-    // TODO Auto-generated method stub
-    throw new SQLException("Method not supported");
+    return iface.cast(tsocket);
   }
 
   public TProtocolVersion getProtocol() {
