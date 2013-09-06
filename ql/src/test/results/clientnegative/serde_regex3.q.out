@@ -17,4 +17,3 @@ ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.RegexSerDe'
 STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
 #### A masked pattern was here ####
-FAILED: Execution Error, return code 1 from org.apache.hadoop.hive.ql.exec.DDLTask

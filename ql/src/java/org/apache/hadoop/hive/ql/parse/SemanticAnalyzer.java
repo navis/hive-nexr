@@ -5233,7 +5233,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         table_desc = PlanUtils.getTableDesc(tblDesc, cols, colTypes);
       }
 
-      if (!outputs.add(new WriteEntity(destStr, !isDfsDir))) {
+      if (!outputs.add(new WriteEntity(dest_path, !isDfsDir))) {
         throw new SemanticException(ErrorMsg.OUTPUT_SPECIFIED_MULTIPLE_TIMES
             .getMsg(destStr));
       }
@@ -7959,7 +7959,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       tsDesc.setStatsAggPrefix(k);
 
       // set up WritenEntity for replication
-      outputs.add(new WriteEntity(tab, true));
+      outputs.add(new WriteEntity(tab));
 
       // add WriteEntity for each matching partition
       if (tab.isPartitioned()) {
