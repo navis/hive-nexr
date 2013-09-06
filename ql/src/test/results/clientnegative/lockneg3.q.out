@@ -24,4 +24,4 @@ POSTHOOK: Lineage: tstsrcpart PARTITION(ds=2008-04-08,hr=11).value SIMPLE [(srcp
 PREHOOK: query: UNLOCK TABLE tstsrcpart PARTITION(ds='2008-04-08', hr='11')
 PREHOOK: type: UNLOCKTABLE
 FAILED: Error in metadata: Table tstsrcpart is not locked 
-FAILED: Execution Error, return code 1 from org.apache.hadoop.hive.ql.exec.DDLTask
+FAILED: Execution Error, return code 1 from org.apache.hadoop.hive.ql.exec.DDLTask. Table tstsrcpart is not locked 

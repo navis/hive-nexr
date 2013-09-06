@@ -35,6 +35,7 @@ import org.antlr.runtime.tree.Tree;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Order;
 import org.apache.hadoop.hive.ql.Context;
@@ -1119,4 +1120,82 @@ public abstract class BaseSemanticAnalyzer {
   public boolean isUsingPseudoMR() {
     return usingPseudoMR;
   }
+
+  protected Database getDatabase(String dbName) throws SemanticException {
+    return getDatabase(dbName, true);
+  }
+
+  protected Database getDatabase(String dbName, boolean throwException) throws SemanticException {
+    try {
+      Database database = db.getDatabase(dbName);
+      if (database == null && throwException) {
+        throw new SemanticException(ErrorMsg.DATABASE_NOT_EXISTS.getMsg(dbName));
+      }
+      return database;
+    } catch (HiveException e) {
+      throw new SemanticException(ErrorMsg.DATABASE_NOT_EXISTS.getMsg(dbName), e);
+    }
+  }
+
+  protected Table getTable(String tblName) throws SemanticException {
+    return getTable(null, tblName, true);
+  }
+
+  protected Table getTable(String tblName, boolean throwException) throws SemanticException {
+    return getTable(db.getCurrentDatabase(), tblName, throwException);
+  }
+
+  protected Table getTableWithQN(String qnName, boolean throwException) throws SemanticException {
+    int dot = qnName.indexOf('.');
+    if (dot < 0) {
+      return getTable(db.getCurrentDatabase(), qnName, throwException);
+    }
+    return getTable(qnName.substring(0, dot), qnName.substring(dot + 1), throwException);
+  }
+
+  protected Table getTable(String database, String tblName, boolean throwException)
+      throws SemanticException {
+    try {
+      Table tab = database == null ? db.getTable(tblName, false)
+          : db.getTable(database, tblName, false);
+      if (tab == null && throwException) {
+        throw new SemanticException(ErrorMsg.INVALID_TABLE.getMsg(tblName));
+      }
+      return tab;
+    } catch (HiveException e) {
+      throw new SemanticException(ErrorMsg.INVALID_TABLE.getMsg(tblName), e);
+    }
+  }
+
+  protected Partition getPartition(Table table, Map<String, String> partSpec, boolean throwException)
+      throws SemanticException {
+    try {
+      Partition partition = db.getPartition(table, partSpec, false);
+      if (partition == null && throwException) {
+        throw new SemanticException(toMessage(ErrorMsg.INVALID_PARTITION, partSpec));
+      }
+      return partition;
+    } catch (HiveException e) {
+      throw new SemanticException(toMessage(ErrorMsg.INVALID_PARTITION, partSpec), e);
+    }
+  }
+
+  protected List<Partition> getPartitions(Table table, Map<String, String> partSpec,
+      boolean throwException) throws SemanticException {
+    try {
+      List<Partition> partitions = partSpec == null ? db.getPartitions(table) :
+          db.getPartitions(table, partSpec);
+      if (partitions.isEmpty() && throwException) {
+        throw new SemanticException(toMessage(ErrorMsg.INVALID_PARTITION, partSpec));
+      }
+      return partitions;
+    } catch (HiveException e) {
+      throw new SemanticException(toMessage(ErrorMsg.INVALID_PARTITION, partSpec), e);
+    }
+  }
+
+  protected String toMessage(ErrorMsg message, Object detail) {
+    return detail == null ? message.getMsg() : message.getMsg(detail.toString());
+  }
+
 }

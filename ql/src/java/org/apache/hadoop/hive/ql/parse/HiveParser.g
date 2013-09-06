@@ -161,6 +161,8 @@ TOK_SHOW_TBLPROPERTIES;
 TOK_SHOWLOCKS;
 TOK_LOCKTABLE;
 TOK_UNLOCKTABLE;
+TOK_LOCKDB;
+TOK_UNLOCKDB;
 TOK_SWITCHDATABASE;
 TOK_DROPDATABASE;
 TOK_DROPTABLE;
@@ -269,6 +271,7 @@ TOK_REVOKE_ROLE;
 TOK_SHOW_ROLE_GRANT;
 TOK_SHOW_ROLES;
 TOK_SHOWINDEXES;
+TOK_SHOWDBLOCKS;
 TOK_INDEXCOMMENT;
 TOK_DESCDATABASE;
 TOK_DATABASEPROPERTIES;
@@ -613,6 +616,8 @@ ddlStatement
     | analyzeStatement
     | lockStatement
     | unlockStatement
+    | lockDatabase
+    | unlockDatabase
     | createRoleStatement
     | dropRoleStatement
     | grantPrivileges
@@ -1215,6 +1220,7 @@ showStatement
     -> ^(TOK_SHOW_TABLESTATUS showStmtIdentifier $db_name? partitionSpec?)
     | KW_SHOW KW_TBLPROPERTIES tblName=identifier (LPAREN prptyName=StringLiteral RPAREN)? -> ^(TOK_SHOW_TBLPROPERTIES $tblName $prptyName?)
     | KW_SHOW KW_LOCKS (parttype=partTypeExpr)? (isExtended=KW_EXTENDED)? -> ^(TOK_SHOWLOCKS $parttype? $isExtended?)
+    | KW_SHOW KW_LOCKS KW_DATABASE (dbName=Identifier) (isExtended=KW_EXTENDED)? -> ^(TOK_SHOWDBLOCKS $dbName $isExtended?)
     | KW_SHOW (showOptions=KW_FORMATTED)? (KW_INDEX|KW_INDEXES) KW_ON showStmtIdentifier ((KW_FROM|KW_IN) db_name=identifier)?
     -> ^(TOK_SHOWINDEXES showStmtIdentifier $showOptions? $db_name?)
     ;
@@ -1223,6 +1229,12 @@ lockStatement
 @init { msgs.push("lock statement"); }
 @after { msgs.pop(); }
     : KW_LOCK KW_TABLE tableName partitionSpec? lockMode -> ^(TOK_LOCKTABLE tableName lockMode partitionSpec?)
+    ;
+
+lockDatabase
+@init { msgs.push("lock database statement"); }
+@after { msgs.pop(); }
+    : KW_LOCK KW_DATABASE (dbName=Identifier) lockMode -> ^(TOK_LOCKDB $dbName lockMode)
     ;
 
 lockMode
@@ -1235,6 +1247,12 @@ unlockStatement
 @init { msgs.push("unlock statement"); }
 @after { msgs.pop(); }
     : KW_UNLOCK KW_TABLE tableName partitionSpec?  -> ^(TOK_UNLOCKTABLE tableName partitionSpec?)
+    ;
+
+unlockDatabase
+@init { msgs.push("unlock database statement"); }
+@after { msgs.pop(); }
+    : KW_UNLOCK KW_DATABASE (dbName=Identifier) -> ^(TOK_UNLOCKDB $dbName)
     ;
 
 createRoleStatement

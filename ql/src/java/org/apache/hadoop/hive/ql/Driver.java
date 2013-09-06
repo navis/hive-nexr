@@ -42,6 +42,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.JavaUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
+import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.ql.exec.ConditionalTask;
@@ -55,6 +56,7 @@ import org.apache.hadoop.hive.ql.exec.TaskResult;
 import org.apache.hadoop.hive.ql.exec.TaskRunner;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.history.HiveHistory.Keys;
+import org.apache.hadoop.hive.ql.hooks.Entity;
 import org.apache.hadoop.hive.ql.hooks.ExecuteWithHookContext;
 import org.apache.hadoop.hive.ql.hooks.Hook;
 import org.apache.hadoop.hive.ql.hooks.HookContext;
@@ -513,7 +515,7 @@ public class Driver implements CommandProcessor {
           doAuthorization(sem);
         } catch (AuthorizationException authExp) {
           console.printError("Authorization failed:" + authExp.getMessage()
-              + ". Use show grant to get more details.");
+              + ". Use SHOW GRANT to get more details.");
           errorMessage = authExp.getMessage();
           SQLState = "01542";
           return 403;
@@ -550,7 +552,10 @@ public class Driver implements CommandProcessor {
     HiveOperation op = ss.getHiveOperation();
     Hive db = sem.getDb();
     if (op != null) {
-      if (op.equals(HiveOperation.CREATETABLE_AS_SELECT)
+      if (op.equals(HiveOperation.CREATEDATABASE)) {
+        ss.getAuthorizer().authorize(
+            op.getInputRequiredPrivileges(), op.getOutputRequiredPrivileges());
+      } else if (op.equals(HiveOperation.CREATETABLE_AS_SELECT)
           || op.equals(HiveOperation.CREATETABLE)) {
         ss.getAuthorizer().authorize(
             db.getDatabase(db.getCurrentDatabase()), null,
@@ -567,6 +572,10 @@ public class Driver implements CommandProcessor {
       }
       if (outputs != null && outputs.size() > 0) {
         for (WriteEntity write : outputs) {
+          if (write.getType() == Entity.Type.DATABASE) {
+            ss.getAuthorizer().authorize(write.getDatabase(), null, op.getOutputRequiredPrivileges());
+            continue;
+          }
 
           if (write.getType() == WriteEntity.Type.PARTITION) {
             Partition part = db.getPartition(write.getTable(), write
@@ -594,6 +603,9 @@ public class Driver implements CommandProcessor {
 
       Map<String, Boolean> tableUsePartLevelAuth = new HashMap<String, Boolean>();
       for (ReadEntity read : inputs) {
+        if (read.getType() == Entity.Type.DATABASE) {
+          continue;
+        }
         Table tbl = read.getTable();
         if ((read.getPartition() != null) || (tbl.isPartitioned())) {
           String tblName = tbl.getTableName();
@@ -672,6 +684,10 @@ public class Driver implements CommandProcessor {
       // cache the results for table authorization
       Set<String> tableAuthChecked = new HashSet<String>();
       for (ReadEntity read : inputs) {
+        if (read.getType() == Entity.Type.DATABASE) {
+          ss.getAuthorizer().authorize(read.getDatabase(), op.getInputRequiredPrivileges(), null);
+          continue;
+        }
         Table tbl = read.getTable();
         if (read.getPartition() != null) {
           Partition partition = read.getPartition();
@@ -728,7 +744,7 @@ public class Driver implements CommandProcessor {
    *          partition needs to be locked (in any mode), all its parents should also be locked in
    *          SHARED mode.
    **/
-  private List<HiveLockObj> getLockObjects(Table t, Partition p, HiveLockMode mode)
+  private List<HiveLockObj> getLockObjects(Database d, Table t, Partition p, HiveLockMode mode)
       throws SemanticException {
     List<HiveLockObj> locks = new LinkedList<HiveLockObj>();
 
@@ -737,8 +753,13 @@ public class Driver implements CommandProcessor {
                              String.valueOf(System.currentTimeMillis()),
                              "IMPLICIT",
                              plan.getQueryStr());
+    if (d != null) {
+      locks.add(new HiveLockObj(new HiveLockObject(d.getName(), lockData), mode));
+      return locks;
+    }
 
     if (t != null) {
+      locks.add(new HiveLockObj(new HiveLockObject(t.getDbName(), lockData), mode));
       locks.add(new HiveLockObj(new HiveLockObject(t, lockData), mode));
       mode = HiveLockMode.SHARED;
       locks.add(new HiveLockObj(new HiveLockObject(t.getDbName(), lockData), mode));
@@ -746,6 +767,7 @@ public class Driver implements CommandProcessor {
     }
 
     if (p != null) {
+      locks.add(new HiveLockObj(new HiveLockObject(p.getTable().getDbName(), lockData), mode));
       if (!(p instanceof DummyPartition)) {
         locks.add(new HiveLockObj(new HiveLockObject(p, lockData), mode));
       }
@@ -785,6 +807,7 @@ public class Driver implements CommandProcessor {
       locks.add(new HiveLockObj(new HiveLockObject(p.getTable(), lockData), mode));
       locks.add(new HiveLockObj(new HiveLockObject(p.getTable().getDbName(), lockData), mode));
     }
+
     return locks;
   }
 
@@ -810,24 +833,29 @@ public class Driver implements CommandProcessor {
       // If a lock needs to be acquired on any partition, a read lock needs to be acquired on all
       // its parents also
       for (ReadEntity input : plan.getInputs()) {
-        if (input.getType() == ReadEntity.Type.TABLE) {
-          lockObjects.addAll(getLockObjects(input.getTable(), null, HiveLockMode.SHARED));
+        if (input.getType() == ReadEntity.Type.DATABASE) {
+          lockObjects.addAll(getLockObjects(input.getDatabase(), null, null, HiveLockMode.SHARED));
+        } else if (input.getType() == ReadEntity.Type.TABLE) {
+          lockObjects.addAll(getLockObjects(null, input.getTable(), null, HiveLockMode.SHARED));
         } else {
-          lockObjects.addAll(getLockObjects(null, input.getPartition(), HiveLockMode.SHARED));
+          lockObjects.addAll(getLockObjects(null, null, input.getPartition(), HiveLockMode.SHARED));
         }
       }
 
       for (WriteEntity output : plan.getOutputs()) {
         List<HiveLockObj> lockObj = null;
-        if (output.getTyp() == WriteEntity.Type.TABLE) {
-          lockObj = getLockObjects(output.getTable(), null,
+        if (output.getType() == WriteEntity.Type.DATABASE) {
+          lockObjects.addAll(getLockObjects(output.getDatabase(), null, null,
+              output.isComplete() ? HiveLockMode.EXCLUSIVE : HiveLockMode.SHARED));
+        } else if (output.getTyp() == WriteEntity.Type.TABLE) {
+          lockObj = getLockObjects(null, output.getTable(), null,
               output.isComplete() ? HiveLockMode.EXCLUSIVE : HiveLockMode.SHARED);
         } else if (output.getTyp() == WriteEntity.Type.PARTITION) {
-          lockObj = getLockObjects(null, output.getPartition(), HiveLockMode.EXCLUSIVE);
+          lockObj = getLockObjects(null, null, output.getPartition(), HiveLockMode.EXCLUSIVE);
         }
         // In case of dynamic queries, it is possible to have incomplete dummy partitions
         else if (output.getTyp() == WriteEntity.Type.DUMMYPARTITION) {
-          lockObj = getLockObjects(null, output.getPartition(), HiveLockMode.SHARED);
+          lockObj = getLockObjects(null, null, output.getPartition(), HiveLockMode.SHARED);
         }
 
         if(lockObj != null) {

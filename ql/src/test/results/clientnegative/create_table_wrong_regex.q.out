@@ -9,4 +9,6 @@ PREHOOK: type: CREATETABLE
 FAILED: Error in metadata: java.util.regex.PatternSyntaxException: Unclosed character class near index 7
 [^\](.*)
        ^
-FAILED: Execution Error, return code 1 from org.apache.hadoop.hive.ql.exec.DDLTask
+FAILED: Execution Error, return code 1 from org.apache.hadoop.hive.ql.exec.DDLTask. java.util.regex.PatternSyntaxException: Unclosed character class near index 7
+[^\](.*)
+       ^

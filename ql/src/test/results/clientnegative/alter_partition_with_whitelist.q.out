@@ -23,4 +23,4 @@ PREHOOK: type: ALTERTABLE_RENAMEPART
 PREHOOK: Input: default@part_whitelist_test
 PREHOOK: Output: default@part_whitelist_test@ds=1
 FAILED: Error in metadata: Unable to rename partition.
-FAILED: Execution Error, return code 1 from org.apache.hadoop.hive.ql.exec.DDLTask
+FAILED: Execution Error, return code 1 from org.apache.hadoop.hive.ql.exec.DDLTask. Unable to rename partition.

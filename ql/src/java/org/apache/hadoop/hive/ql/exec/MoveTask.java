@@ -280,7 +280,7 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
           db.loadTable(new Path(tbd.getSourceDir()), tbd.getTable()
               .getTableName(), tbd.getReplace(), tbd.getHoldDDLTime());
           if (work.getOutputs() != null) {
-            work.getOutputs().add(new WriteEntity(table, true));
+            work.getOutputs().add(new WriteEntity(table));
           }
         } else {
           LOG.info("Partition is: " + tbd.getPartitionSpec().toString());

@@ -20,4 +20,4 @@ POSTHOOK: Lineage: tstsrc.value SIMPLE [(src)src.FieldSchema(name:value, type:st
 PREHOOK: query: UNLOCK TABLE tstsrc
 PREHOOK: type: UNLOCKTABLE
 FAILED: Error in metadata: Table tstsrc is not locked 
-FAILED: Execution Error, return code 1 from org.apache.hadoop.hive.ql.exec.DDLTask
+FAILED: Execution Error, return code 1 from org.apache.hadoop.hive.ql.exec.DDLTask. Table tstsrc is not locked 
