@@ -18,6 +18,7 @@
 
 package org.apache.hive.jdbc;
 
+import java.net.SocketException;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -59,13 +60,20 @@ import org.apache.thrift.transport.TTransport;
  *
  */
 public class HiveConnection implements java.sql.Connection {
-  private static final String HIVE_AUTH_TYPE= "auth";
+
+  private static final String HIVE_AUTH_TYPE = "auth";
   private static final String HIVE_AUTH_SIMPLE = "noSasl";
   private static final String HIVE_AUTH_USER = "user";
   private static final String HIVE_AUTH_PRINCIPAL = "principal";
   private static final String HIVE_AUTH_PASSWD = "password";
   private static final String HIVE_ANONYMOUS_USER = "anonymous";
   private static final String HIVE_ANONYMOUS_PASSWD = "anonymous";
+
+  private static final String SOCKET_TIMEOUT = "socketTimeout";
+  private static final String REUSE_ADDRESS = "reuseAddress";
+  private static final String KEEP_ALIVE = "keepAlive";
+  private static final String SEND_BUFFER_SIZE = "sendBufferSize";
+  private static final String RECV_BUFFER_SIZE = "recvBufferSize";
 
   private TSocket socket;
   private TTransport transport;
@@ -147,8 +155,30 @@ public class HiveConnection implements java.sql.Connection {
     }
   }
 
-  private TSocket createSocket(Utils.JdbcConnectionParams connParams) {
-    return new TSocket(connParams.getHost(), connParams.getPort());
+  private TSocket createSocket(Utils.JdbcConnectionParams connParams) throws SocketException {
+    TSocket tsocket = new TSocket(connParams.getHost(), connParams.getPort());
+    Map<String, String> sessConf = connParams.getSessionVars();
+    String value = sessConf.get(SOCKET_TIMEOUT);
+    if (value != null) {
+      tsocket.getSocket().setSoTimeout(Integer.parseInt(value));
+    }
+    value = sessConf.get(REUSE_ADDRESS);
+    if (value != null) {
+      tsocket.getSocket().setReuseAddress(Boolean.valueOf(value));
+    }
+    value = sessConf.get(KEEP_ALIVE);
+    if (value != null) {
+      tsocket.getSocket().setKeepAlive(Boolean.valueOf(value));
+    }
+    value = sessConf.get(SEND_BUFFER_SIZE);
+    if (value != null) {
+      tsocket.getSocket().setSendBufferSize(Integer.parseInt(value));
+    }
+    value = sessConf.get(RECV_BUFFER_SIZE);
+    if (value != null) {
+      tsocket.getSocket().setReceiveBufferSize(Integer.parseInt(value));
+    }
+    return tsocket;
   }
 
   private TTransport openTransport(Utils.JdbcConnectionParams connParams, TTransport transport)
