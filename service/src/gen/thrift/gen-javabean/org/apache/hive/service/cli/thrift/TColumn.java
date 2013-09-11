@@ -40,6 +40,7 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
   private static final org.apache.thrift.protocol.TField I64_COLUMN_FIELD_DESC = new org.apache.thrift.protocol.TField("i64Column", org.apache.thrift.protocol.TType.LIST, (short)5);
   private static final org.apache.thrift.protocol.TField DOUBLE_COLUMN_FIELD_DESC = new org.apache.thrift.protocol.TField("doubleColumn", org.apache.thrift.protocol.TType.LIST, (short)6);
   private static final org.apache.thrift.protocol.TField STRING_COLUMN_FIELD_DESC = new org.apache.thrift.protocol.TField("stringColumn", org.apache.thrift.protocol.TType.LIST, (short)7);
+  private static final org.apache.thrift.protocol.TField BINARY_COLUMN_FIELD_DESC = new org.apache.thrift.protocol.TField("binaryColumn", org.apache.thrift.protocol.TType.LIST, (short)8);
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -49,7 +50,8 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
     I32_COLUMN((short)4, "i32Column"),
     I64_COLUMN((short)5, "i64Column"),
     DOUBLE_COLUMN((short)6, "doubleColumn"),
-    STRING_COLUMN((short)7, "stringColumn");
+    STRING_COLUMN((short)7, "stringColumn"),
+    BINARY_COLUMN((short)8, "binaryColumn");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -78,6 +80,8 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
           return DOUBLE_COLUMN;
         case 7: // STRING_COLUMN
           return STRING_COLUMN;
+        case 8: // BINARY_COLUMN
+          return BINARY_COLUMN;
         default:
           return null;
       }
@@ -141,6 +145,9 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
     tmpMap.put(_Fields.STRING_COLUMN, new org.apache.thrift.meta_data.FieldMetaData("stringColumn", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
             new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TStringValue.class))));
+    tmpMap.put(_Fields.BINARY_COLUMN, new org.apache.thrift.meta_data.FieldMetaData("binaryColumn", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
+            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TBinaryValue.class))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TColumn.class, metaDataMap);
   }
@@ -202,6 +209,12 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
     return x;
   }
 
+  public static TColumn binaryColumn(List<TBinaryValue> value) {
+    TColumn x = new TColumn();
+    x.setBinaryColumn(value);
+    return x;
+  }
+
 
   @Override
   protected void checkType(_Fields setField, Object value) throws ClassCastException {
@@ -241,6 +254,11 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
           break;
         }
         throw new ClassCastException("Was expecting value of type List<TStringValue> for field 'stringColumn', but got " + value.getClass().getSimpleName());
+      case BINARY_COLUMN:
+        if (value instanceof List) {
+          break;
+        }
+        throw new ClassCastException("Was expecting value of type List<TBinaryValue> for field 'binaryColumn', but got " + value.getClass().getSimpleName());
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -391,6 +409,26 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             return null;
           }
+        case BINARY_COLUMN:
+          if (field.type == BINARY_COLUMN_FIELD_DESC.type) {
+            List<TBinaryValue> binaryColumn;
+            {
+              org.apache.thrift.protocol.TList _list57 = iprot.readListBegin();
+              binaryColumn = new ArrayList<TBinaryValue>(_list57.size);
+              for (int _i58 = 0; _i58 < _list57.size; ++_i58)
+              {
+                TBinaryValue _elem59; // required
+                _elem59 = new TBinaryValue();
+                _elem59.read(iprot);
+                binaryColumn.add(_elem59);
+              }
+              iprot.readListEnd();
+            }
+            return binaryColumn;
+          } else {
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            return null;
+          }
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
@@ -406,9 +444,9 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         List<TBoolValue> boolColumn = (List<TBoolValue>)value_;
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, boolColumn.size()));
-          for (TBoolValue _iter57 : boolColumn)
+          for (TBoolValue _iter60 : boolColumn)
           {
-            _iter57.write(oprot);
+            _iter60.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -417,9 +455,9 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         List<TByteValue> byteColumn = (List<TByteValue>)value_;
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, byteColumn.size()));
-          for (TByteValue _iter58 : byteColumn)
+          for (TByteValue _iter61 : byteColumn)
           {
-            _iter58.write(oprot);
+            _iter61.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -428,9 +466,9 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         List<TI16Value> i16Column = (List<TI16Value>)value_;
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, i16Column.size()));
-          for (TI16Value _iter59 : i16Column)
+          for (TI16Value _iter62 : i16Column)
           {
-            _iter59.write(oprot);
+            _iter62.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -439,9 +477,9 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         List<TI32Value> i32Column = (List<TI32Value>)value_;
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, i32Column.size()));
-          for (TI32Value _iter60 : i32Column)
+          for (TI32Value _iter63 : i32Column)
           {
-            _iter60.write(oprot);
+            _iter63.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -450,9 +488,9 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         List<TI64Value> i64Column = (List<TI64Value>)value_;
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, i64Column.size()));
-          for (TI64Value _iter61 : i64Column)
+          for (TI64Value _iter64 : i64Column)
           {
-            _iter61.write(oprot);
+            _iter64.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -461,9 +499,9 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         List<TDoubleValue> doubleColumn = (List<TDoubleValue>)value_;
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, doubleColumn.size()));
-          for (TDoubleValue _iter62 : doubleColumn)
+          for (TDoubleValue _iter65 : doubleColumn)
           {
-            _iter62.write(oprot);
+            _iter65.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -472,9 +510,20 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         List<TStringValue> stringColumn = (List<TStringValue>)value_;
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, stringColumn.size()));
-          for (TStringValue _iter63 : stringColumn)
+          for (TStringValue _iter66 : stringColumn)
           {
-            _iter63.write(oprot);
+            _iter66.write(oprot);
+          }
+          oprot.writeListEnd();
+        }
+        return;
+      case BINARY_COLUMN:
+        List<TBinaryValue> binaryColumn = (List<TBinaryValue>)value_;
+        {
+          oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, binaryColumn.size()));
+          for (TBinaryValue _iter67 : binaryColumn)
+          {
+            _iter67.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -492,14 +541,14 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         case BOOL_COLUMN:
           List<TBoolValue> boolColumn;
           {
-            org.apache.thrift.protocol.TList _list64 = iprot.readListBegin();
-            boolColumn = new ArrayList<TBoolValue>(_list64.size);
-            for (int _i65 = 0; _i65 < _list64.size; ++_i65)
+            org.apache.thrift.protocol.TList _list68 = iprot.readListBegin();
+            boolColumn = new ArrayList<TBoolValue>(_list68.size);
+            for (int _i69 = 0; _i69 < _list68.size; ++_i69)
             {
-              TBoolValue _elem66; // required
-              _elem66 = new TBoolValue();
-              _elem66.read(iprot);
-              boolColumn.add(_elem66);
+              TBoolValue _elem70; // required
+              _elem70 = new TBoolValue();
+              _elem70.read(iprot);
+              boolColumn.add(_elem70);
             }
             iprot.readListEnd();
           }
@@ -507,14 +556,14 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         case BYTE_COLUMN:
           List<TByteValue> byteColumn;
           {
-            org.apache.thrift.protocol.TList _list67 = iprot.readListBegin();
-            byteColumn = new ArrayList<TByteValue>(_list67.size);
-            for (int _i68 = 0; _i68 < _list67.size; ++_i68)
+            org.apache.thrift.protocol.TList _list71 = iprot.readListBegin();
+            byteColumn = new ArrayList<TByteValue>(_list71.size);
+            for (int _i72 = 0; _i72 < _list71.size; ++_i72)
             {
-              TByteValue _elem69; // required
-              _elem69 = new TByteValue();
-              _elem69.read(iprot);
-              byteColumn.add(_elem69);
+              TByteValue _elem73; // required
+              _elem73 = new TByteValue();
+              _elem73.read(iprot);
+              byteColumn.add(_elem73);
             }
             iprot.readListEnd();
           }
@@ -522,14 +571,14 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         case I16_COLUMN:
           List<TI16Value> i16Column;
           {
-            org.apache.thrift.protocol.TList _list70 = iprot.readListBegin();
-            i16Column = new ArrayList<TI16Value>(_list70.size);
-            for (int _i71 = 0; _i71 < _list70.size; ++_i71)
+            org.apache.thrift.protocol.TList _list74 = iprot.readListBegin();
+            i16Column = new ArrayList<TI16Value>(_list74.size);
+            for (int _i75 = 0; _i75 < _list74.size; ++_i75)
             {
-              TI16Value _elem72; // required
-              _elem72 = new TI16Value();
-              _elem72.read(iprot);
-              i16Column.add(_elem72);
+              TI16Value _elem76; // required
+              _elem76 = new TI16Value();
+              _elem76.read(iprot);
+              i16Column.add(_elem76);
             }
             iprot.readListEnd();
           }
@@ -537,14 +586,14 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         case I32_COLUMN:
           List<TI32Value> i32Column;
           {
-            org.apache.thrift.protocol.TList _list73 = iprot.readListBegin();
-            i32Column = new ArrayList<TI32Value>(_list73.size);
-            for (int _i74 = 0; _i74 < _list73.size; ++_i74)
+            org.apache.thrift.protocol.TList _list77 = iprot.readListBegin();
+            i32Column = new ArrayList<TI32Value>(_list77.size);
+            for (int _i78 = 0; _i78 < _list77.size; ++_i78)
             {
-              TI32Value _elem75; // required
-              _elem75 = new TI32Value();
-              _elem75.read(iprot);
-              i32Column.add(_elem75);
+              TI32Value _elem79; // required
+              _elem79 = new TI32Value();
+              _elem79.read(iprot);
+              i32Column.add(_elem79);
             }
             iprot.readListEnd();
           }
@@ -552,14 +601,14 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         case I64_COLUMN:
           List<TI64Value> i64Column;
           {
-            org.apache.thrift.protocol.TList _list76 = iprot.readListBegin();
-            i64Column = new ArrayList<TI64Value>(_list76.size);
-            for (int _i77 = 0; _i77 < _list76.size; ++_i77)
+            org.apache.thrift.protocol.TList _list80 = iprot.readListBegin();
+            i64Column = new ArrayList<TI64Value>(_list80.size);
+            for (int _i81 = 0; _i81 < _list80.size; ++_i81)
             {
-              TI64Value _elem78; // required
-              _elem78 = new TI64Value();
-              _elem78.read(iprot);
-              i64Column.add(_elem78);
+              TI64Value _elem82; // required
+              _elem82 = new TI64Value();
+              _elem82.read(iprot);
+              i64Column.add(_elem82);
             }
             iprot.readListEnd();
           }
@@ -567,14 +616,14 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         case DOUBLE_COLUMN:
           List<TDoubleValue> doubleColumn;
           {
-            org.apache.thrift.protocol.TList _list79 = iprot.readListBegin();
-            doubleColumn = new ArrayList<TDoubleValue>(_list79.size);
-            for (int _i80 = 0; _i80 < _list79.size; ++_i80)
+            org.apache.thrift.protocol.TList _list83 = iprot.readListBegin();
+            doubleColumn = new ArrayList<TDoubleValue>(_list83.size);
+            for (int _i84 = 0; _i84 < _list83.size; ++_i84)
             {
-              TDoubleValue _elem81; // required
-              _elem81 = new TDoubleValue();
-              _elem81.read(iprot);
-              doubleColumn.add(_elem81);
+              TDoubleValue _elem85; // required
+              _elem85 = new TDoubleValue();
+              _elem85.read(iprot);
+              doubleColumn.add(_elem85);
             }
             iprot.readListEnd();
           }
@@ -582,18 +631,33 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         case STRING_COLUMN:
           List<TStringValue> stringColumn;
           {
-            org.apache.thrift.protocol.TList _list82 = iprot.readListBegin();
-            stringColumn = new ArrayList<TStringValue>(_list82.size);
-            for (int _i83 = 0; _i83 < _list82.size; ++_i83)
+            org.apache.thrift.protocol.TList _list86 = iprot.readListBegin();
+            stringColumn = new ArrayList<TStringValue>(_list86.size);
+            for (int _i87 = 0; _i87 < _list86.size; ++_i87)
             {
-              TStringValue _elem84; // required
-              _elem84 = new TStringValue();
-              _elem84.read(iprot);
-              stringColumn.add(_elem84);
+              TStringValue _elem88; // required
+              _elem88 = new TStringValue();
+              _elem88.read(iprot);
+              stringColumn.add(_elem88);
             }
             iprot.readListEnd();
           }
           return stringColumn;
+        case BINARY_COLUMN:
+          List<TBinaryValue> binaryColumn;
+          {
+            org.apache.thrift.protocol.TList _list89 = iprot.readListBegin();
+            binaryColumn = new ArrayList<TBinaryValue>(_list89.size);
+            for (int _i90 = 0; _i90 < _list89.size; ++_i90)
+            {
+              TBinaryValue _elem91; // required
+              _elem91 = new TBinaryValue();
+              _elem91.read(iprot);
+              binaryColumn.add(_elem91);
+            }
+            iprot.readListEnd();
+          }
+          return binaryColumn;
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
@@ -609,9 +673,9 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         List<TBoolValue> boolColumn = (List<TBoolValue>)value_;
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, boolColumn.size()));
-          for (TBoolValue _iter85 : boolColumn)
+          for (TBoolValue _iter92 : boolColumn)
           {
-            _iter85.write(oprot);
+            _iter92.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -620,9 +684,9 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         List<TByteValue> byteColumn = (List<TByteValue>)value_;
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, byteColumn.size()));
-          for (TByteValue _iter86 : byteColumn)
+          for (TByteValue _iter93 : byteColumn)
           {
-            _iter86.write(oprot);
+            _iter93.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -631,9 +695,9 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         List<TI16Value> i16Column = (List<TI16Value>)value_;
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, i16Column.size()));
-          for (TI16Value _iter87 : i16Column)
+          for (TI16Value _iter94 : i16Column)
           {
-            _iter87.write(oprot);
+            _iter94.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -642,9 +706,9 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         List<TI32Value> i32Column = (List<TI32Value>)value_;
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, i32Column.size()));
-          for (TI32Value _iter88 : i32Column)
+          for (TI32Value _iter95 : i32Column)
           {
-            _iter88.write(oprot);
+            _iter95.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -653,9 +717,9 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         List<TI64Value> i64Column = (List<TI64Value>)value_;
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, i64Column.size()));
-          for (TI64Value _iter89 : i64Column)
+          for (TI64Value _iter96 : i64Column)
           {
-            _iter89.write(oprot);
+            _iter96.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -664,9 +728,9 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         List<TDoubleValue> doubleColumn = (List<TDoubleValue>)value_;
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, doubleColumn.size()));
-          for (TDoubleValue _iter90 : doubleColumn)
+          for (TDoubleValue _iter97 : doubleColumn)
           {
-            _iter90.write(oprot);
+            _iter97.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -675,9 +739,20 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         List<TStringValue> stringColumn = (List<TStringValue>)value_;
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, stringColumn.size()));
-          for (TStringValue _iter91 : stringColumn)
+          for (TStringValue _iter98 : stringColumn)
           {
-            _iter91.write(oprot);
+            _iter98.write(oprot);
+          }
+          oprot.writeListEnd();
+        }
+        return;
+      case BINARY_COLUMN:
+        List<TBinaryValue> binaryColumn = (List<TBinaryValue>)value_;
+        {
+          oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, binaryColumn.size()));
+          for (TBinaryValue _iter99 : binaryColumn)
+          {
+            _iter99.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -704,6 +779,8 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
         return DOUBLE_COLUMN_FIELD_DESC;
       case STRING_COLUMN:
         return STRING_COLUMN_FIELD_DESC;
+      case BINARY_COLUMN:
+        return BINARY_COLUMN_FIELD_DESC;
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -822,6 +899,20 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
     value_ = value;
   }
 
+  public List<TBinaryValue> getBinaryColumn() {
+    if (getSetField() == _Fields.BINARY_COLUMN) {
+      return (List<TBinaryValue>)getFieldValue();
+    } else {
+      throw new RuntimeException("Cannot get field 'binaryColumn' because union is currently set to " + getFieldDesc(getSetField()).name);
+    }
+  }
+
+  public void setBinaryColumn(List<TBinaryValue> value) {
+    if (value == null) throw new NullPointerException();
+    setField_ = _Fields.BINARY_COLUMN;
+    value_ = value;
+  }
+
   public boolean isSetBoolColumn() {
     return setField_ == _Fields.BOOL_COLUMN;
   }
@@ -854,6 +945,11 @@ public class TColumn extends org.apache.thrift.TUnion<TColumn, TColumn._Fields> 
 
   public boolean isSetStringColumn() {
     return setField_ == _Fields.STRING_COLUMN;
+  }
+
+
+  public boolean isSetBinaryColumn() {
+    return setField_ == _Fields.BINARY_COLUMN;
   }
 
 

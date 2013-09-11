@@ -467,6 +467,22 @@ class TStringValue
   ::Thrift::Struct.generate_accessors self
 end
 
+class TBinaryValue
+  include ::Thrift::Struct, ::Thrift::Struct_Union
+  VALUE = 1
+
+  FIELDS = {
+    VALUE => {:type => ::Thrift::Types::STRING, :name => 'value', :binary => true, :optional => true}
+  }
+
+  def struct_fields; FIELDS; end
+
+  def validate
+  end
+
+  ::Thrift::Struct.generate_accessors self
+end
+
 class TColumn < ::Thrift::Union
   include ::Thrift::Struct_Union
   class << self
@@ -497,6 +513,10 @@ class TColumn < ::Thrift::Union
     def stringColumn(val)
       TColumn.new(:stringColumn, val)
     end
+
+    def binaryColumn(val)
+      TColumn.new(:binaryColumn, val)
+    end
   end
 
   BOOLCOLUMN = 1
@@ -506,6 +526,7 @@ class TColumn < ::Thrift::Union
   I64COLUMN = 5
   DOUBLECOLUMN = 6
   STRINGCOLUMN = 7
+  BINARYCOLUMN = 8
 
   FIELDS = {
     BOOLCOLUMN => {:type => ::Thrift::Types::LIST, :name => 'boolColumn', :element => {:type => ::Thrift::Types::STRUCT, :class => ::TBoolValue}},
@@ -514,7 +535,8 @@ class TColumn < ::Thrift::Union
     I32COLUMN => {:type => ::Thrift::Types::LIST, :name => 'i32Column', :element => {:type => ::Thrift::Types::STRUCT, :class => ::TI32Value}},
     I64COLUMN => {:type => ::Thrift::Types::LIST, :name => 'i64Column', :element => {:type => ::Thrift::Types::STRUCT, :class => ::TI64Value}},
     DOUBLECOLUMN => {:type => ::Thrift::Types::LIST, :name => 'doubleColumn', :element => {:type => ::Thrift::Types::STRUCT, :class => ::TDoubleValue}},
-    STRINGCOLUMN => {:type => ::Thrift::Types::LIST, :name => 'stringColumn', :element => {:type => ::Thrift::Types::STRUCT, :class => ::TStringValue}}
+    STRINGCOLUMN => {:type => ::Thrift::Types::LIST, :name => 'stringColumn', :element => {:type => ::Thrift::Types::STRUCT, :class => ::TStringValue}},
+    BINARYCOLUMN => {:type => ::Thrift::Types::LIST, :name => 'binaryColumn', :element => {:type => ::Thrift::Types::STRUCT, :class => ::TBinaryValue}}
   }
 
   def struct_fields; FIELDS; end
@@ -556,6 +578,10 @@ class TColumnValue < ::Thrift::Union
     def stringVal(val)
       TColumnValue.new(:stringVal, val)
     end
+
+    def binaryVal(val)
+      TColumnValue.new(:binaryVal, val)
+    end
   end
 
   BOOLVAL = 1
@@ -565,6 +591,7 @@ class TColumnValue < ::Thrift::Union
   I64VAL = 5
   DOUBLEVAL = 6
   STRINGVAL = 7
+  BINARYVAL = 8
 
   FIELDS = {
     BOOLVAL => {:type => ::Thrift::Types::STRUCT, :name => 'boolVal', :class => ::TBoolValue},
@@ -573,7 +600,8 @@ class TColumnValue < ::Thrift::Union
     I32VAL => {:type => ::Thrift::Types::STRUCT, :name => 'i32Val', :class => ::TI32Value},
     I64VAL => {:type => ::Thrift::Types::STRUCT, :name => 'i64Val', :class => ::TI64Value},
     DOUBLEVAL => {:type => ::Thrift::Types::STRUCT, :name => 'doubleVal', :class => ::TDoubleValue},
-    STRINGVAL => {:type => ::Thrift::Types::STRUCT, :name => 'stringVal', :class => ::TStringValue}
+    STRINGVAL => {:type => ::Thrift::Types::STRUCT, :name => 'stringVal', :class => ::TStringValue},
+    BINARYVAL => {:type => ::Thrift::Types::STRUCT, :name => 'binaryVal', :class => ::TBinaryValue}
   }
 
   def struct_fields; FIELDS; end

@@ -226,14 +226,12 @@ public final class SerDeUtils {
    * This method is kept consistent with {@link HiveResultSetMetaData#hiveTypeToSqlType}.
    */
   public static Object toThriftPayload(Object row, ObjectInspector rowOI) {
+    if (row == null) {
+      return null;
+    }
     if (rowOI.getCategory() == ObjectInspector.Category.PRIMITIVE) {
       Object obj = ObjectInspectorUtils.copyToStandardObject(row, rowOI,
           ObjectInspectorUtils.ObjectInspectorCopyOption.JAVA);
-      if (((PrimitiveObjectInspector)rowOI).getPrimitiveCategory() ==
-          PrimitiveObjectInspector.PrimitiveCategory.BINARY) {
-        // todo HIVE-5269
-        return new String((byte[])obj);
-      }
       return obj;
     }
     // for now, expose non-primitive as a string

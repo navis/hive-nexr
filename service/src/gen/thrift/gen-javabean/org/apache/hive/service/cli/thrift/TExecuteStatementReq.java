@@ -542,15 +542,15 @@ public class TExecuteStatementReq implements org.apache.thrift.TBase<TExecuteSta
           case 3: // CONF_OVERLAY
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map144 = iprot.readMapBegin();
-                struct.confOverlay = new HashMap<String,String>(2*_map144.size);
-                for (int _i145 = 0; _i145 < _map144.size; ++_i145)
+                org.apache.thrift.protocol.TMap _map152 = iprot.readMapBegin();
+                struct.confOverlay = new HashMap<String,String>(2*_map152.size);
+                for (int _i153 = 0; _i153 < _map152.size; ++_i153)
                 {
-                  String _key146; // required
-                  String _val147; // required
-                  _key146 = iprot.readString();
-                  _val147 = iprot.readString();
-                  struct.confOverlay.put(_key146, _val147);
+                  String _key154; // required
+                  String _val155; // required
+                  _key154 = iprot.readString();
+                  _val155 = iprot.readString();
+                  struct.confOverlay.put(_key154, _val155);
                 }
                 iprot.readMapEnd();
               }
@@ -587,10 +587,10 @@ public class TExecuteStatementReq implements org.apache.thrift.TBase<TExecuteSta
           oprot.writeFieldBegin(CONF_OVERLAY_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.confOverlay.size()));
-            for (Map.Entry<String, String> _iter148 : struct.confOverlay.entrySet())
+            for (Map.Entry<String, String> _iter156 : struct.confOverlay.entrySet())
             {
-              oprot.writeString(_iter148.getKey());
-              oprot.writeString(_iter148.getValue());
+              oprot.writeString(_iter156.getKey());
+              oprot.writeString(_iter156.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -624,10 +624,10 @@ public class TExecuteStatementReq implements org.apache.thrift.TBase<TExecuteSta
       if (struct.isSetConfOverlay()) {
         {
           oprot.writeI32(struct.confOverlay.size());
-          for (Map.Entry<String, String> _iter149 : struct.confOverlay.entrySet())
+          for (Map.Entry<String, String> _iter157 : struct.confOverlay.entrySet())
           {
-            oprot.writeString(_iter149.getKey());
-            oprot.writeString(_iter149.getValue());
+            oprot.writeString(_iter157.getKey());
+            oprot.writeString(_iter157.getValue());
           }
         }
       }
@@ -644,15 +644,15 @@ public class TExecuteStatementReq implements org.apache.thrift.TBase<TExecuteSta
       BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map150 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-          struct.confOverlay = new HashMap<String,String>(2*_map150.size);
-          for (int _i151 = 0; _i151 < _map150.size; ++_i151)
+          org.apache.thrift.protocol.TMap _map158 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+          struct.confOverlay = new HashMap<String,String>(2*_map158.size);
+          for (int _i159 = 0; _i159 < _map158.size; ++_i159)
           {
-            String _key152; // required
-            String _val153; // required
-            _key152 = iprot.readString();
-            _val153 = iprot.readString();
-            struct.confOverlay.put(_key152, _val153);
+            String _key160; // required
+            String _val161; // required
+            _key160 = iprot.readString();
+            _val161 = iprot.readString();
+            struct.confOverlay.put(_key160, _val161);
           }
         }
         struct.setConfOverlayIsSet(true);

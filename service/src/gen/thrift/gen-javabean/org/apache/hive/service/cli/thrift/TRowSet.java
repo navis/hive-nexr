@@ -545,14 +545,14 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
           case 2: // ROWS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list100 = iprot.readListBegin();
-                struct.rows = new ArrayList<TRow>(_list100.size);
-                for (int _i101 = 0; _i101 < _list100.size; ++_i101)
+                org.apache.thrift.protocol.TList _list108 = iprot.readListBegin();
+                struct.rows = new ArrayList<TRow>(_list108.size);
+                for (int _i109 = 0; _i109 < _list108.size; ++_i109)
                 {
-                  TRow _elem102; // required
-                  _elem102 = new TRow();
-                  _elem102.read(iprot);
-                  struct.rows.add(_elem102);
+                  TRow _elem110; // required
+                  _elem110 = new TRow();
+                  _elem110.read(iprot);
+                  struct.rows.add(_elem110);
                 }
                 iprot.readListEnd();
               }
@@ -564,14 +564,14 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
           case 3: // COLUMNS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list103 = iprot.readListBegin();
-                struct.columns = new ArrayList<TColumn>(_list103.size);
-                for (int _i104 = 0; _i104 < _list103.size; ++_i104)
+                org.apache.thrift.protocol.TList _list111 = iprot.readListBegin();
+                struct.columns = new ArrayList<TColumn>(_list111.size);
+                for (int _i112 = 0; _i112 < _list111.size; ++_i112)
                 {
-                  TColumn _elem105; // required
-                  _elem105 = new TColumn();
-                  _elem105.read(iprot);
-                  struct.columns.add(_elem105);
+                  TColumn _elem113; // required
+                  _elem113 = new TColumn();
+                  _elem113.read(iprot);
+                  struct.columns.add(_elem113);
                 }
                 iprot.readListEnd();
               }
@@ -600,9 +600,9 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
         oprot.writeFieldBegin(ROWS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.rows.size()));
-          for (TRow _iter106 : struct.rows)
+          for (TRow _iter114 : struct.rows)
           {
-            _iter106.write(oprot);
+            _iter114.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -613,9 +613,9 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
           oprot.writeFieldBegin(COLUMNS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.columns.size()));
-            for (TColumn _iter107 : struct.columns)
+            for (TColumn _iter115 : struct.columns)
             {
-              _iter107.write(oprot);
+              _iter115.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -642,9 +642,9 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
       oprot.writeI64(struct.startRowOffset);
       {
         oprot.writeI32(struct.rows.size());
-        for (TRow _iter108 : struct.rows)
+        for (TRow _iter116 : struct.rows)
         {
-          _iter108.write(oprot);
+          _iter116.write(oprot);
         }
       }
       BitSet optionals = new BitSet();
@@ -655,9 +655,9 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
       if (struct.isSetColumns()) {
         {
           oprot.writeI32(struct.columns.size());
-          for (TColumn _iter109 : struct.columns)
+          for (TColumn _iter117 : struct.columns)
           {
-            _iter109.write(oprot);
+            _iter117.write(oprot);
           }
         }
       }
@@ -669,28 +669,28 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
       struct.startRowOffset = iprot.readI64();
       struct.setStartRowOffsetIsSet(true);
       {
-        org.apache.thrift.protocol.TList _list110 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-        struct.rows = new ArrayList<TRow>(_list110.size);
-        for (int _i111 = 0; _i111 < _list110.size; ++_i111)
+        org.apache.thrift.protocol.TList _list118 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+        struct.rows = new ArrayList<TRow>(_list118.size);
+        for (int _i119 = 0; _i119 < _list118.size; ++_i119)
         {
-          TRow _elem112; // required
-          _elem112 = new TRow();
-          _elem112.read(iprot);
-          struct.rows.add(_elem112);
+          TRow _elem120; // required
+          _elem120 = new TRow();
+          _elem120.read(iprot);
+          struct.rows.add(_elem120);
         }
       }
       struct.setRowsIsSet(true);
       BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TList _list113 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.columns = new ArrayList<TColumn>(_list113.size);
-          for (int _i114 = 0; _i114 < _list113.size; ++_i114)
+          org.apache.thrift.protocol.TList _list121 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.columns = new ArrayList<TColumn>(_list121.size);
+          for (int _i122 = 0; _i122 < _list121.size; ++_i122)
           {
-            TColumn _elem115; // required
-            _elem115 = new TColumn();
-            _elem115.read(iprot);
-            struct.columns.add(_elem115);
+            TColumn _elem123; // required
+            _elem123 = new TColumn();
+            _elem123.read(iprot);
+            struct.columns.add(_elem123);
           }
         }
         struct.setColumnsIsSet(true);

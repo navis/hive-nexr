@@ -31,22 +31,22 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TRow implements org.apache.thrift.TBase<TRow, TRow._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TRow");
+public class TBinaryValue implements org.apache.thrift.TBase<TBinaryValue, TBinaryValue._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TBinaryValue");
 
-  private static final org.apache.thrift.protocol.TField COL_VALS_FIELD_DESC = new org.apache.thrift.protocol.TField("colVals", org.apache.thrift.protocol.TType.LIST, (short)1);
+  private static final org.apache.thrift.protocol.TField VALUE_FIELD_DESC = new org.apache.thrift.protocol.TField("value", org.apache.thrift.protocol.TType.STRING, (short)1);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
-    schemes.put(StandardScheme.class, new TRowStandardSchemeFactory());
-    schemes.put(TupleScheme.class, new TRowTupleSchemeFactory());
+    schemes.put(StandardScheme.class, new TBinaryValueStandardSchemeFactory());
+    schemes.put(TupleScheme.class, new TBinaryValueTupleSchemeFactory());
   }
 
-  private List<TColumnValue> colVals; // required
+  private ByteBuffer value; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    COL_VALS((short)1, "colVals");
+    VALUE((short)1, "value");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -61,8 +61,8 @@ public class TRow implements org.apache.thrift.TBase<TRow, TRow._Fields>, java.i
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // COL_VALS
-          return COL_VALS;
+        case 1: // VALUE
+          return VALUE;
         default:
           return null;
       }
@@ -103,93 +103,77 @@ public class TRow implements org.apache.thrift.TBase<TRow, TRow._Fields>, java.i
   }
 
   // isset id assignments
+  private _Fields optionals[] = {_Fields.VALUE};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.COL_VALS, new org.apache.thrift.meta_data.FieldMetaData("colVals", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TColumnValue.class))));
+    tmpMap.put(_Fields.VALUE, new org.apache.thrift.meta_data.FieldMetaData("value", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING        , true)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TRow.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TBinaryValue.class, metaDataMap);
   }
 
-  public TRow() {
-  }
-
-  public TRow(
-    List<TColumnValue> colVals)
-  {
-    this();
-    this.colVals = colVals;
+  public TBinaryValue() {
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public TRow(TRow other) {
-    if (other.isSetColVals()) {
-      List<TColumnValue> __this__colVals = new ArrayList<TColumnValue>();
-      for (TColumnValue other_element : other.colVals) {
-        __this__colVals.add(new TColumnValue(other_element));
-      }
-      this.colVals = __this__colVals;
+  public TBinaryValue(TBinaryValue other) {
+    if (other.isSetValue()) {
+      this.value = org.apache.thrift.TBaseHelper.copyBinary(other.value);
+;
     }
   }
 
-  public TRow deepCopy() {
-    return new TRow(this);
+  public TBinaryValue deepCopy() {
+    return new TBinaryValue(this);
   }
 
   @Override
   public void clear() {
-    this.colVals = null;
+    this.value = null;
   }
 
-  public int getColValsSize() {
-    return (this.colVals == null) ? 0 : this.colVals.size();
+  public byte[] getValue() {
+    setValue(org.apache.thrift.TBaseHelper.rightSize(value));
+    return value == null ? null : value.array();
   }
 
-  public java.util.Iterator<TColumnValue> getColValsIterator() {
-    return (this.colVals == null) ? null : this.colVals.iterator();
+  public ByteBuffer bufferForValue() {
+    return value;
   }
 
-  public void addToColVals(TColumnValue elem) {
-    if (this.colVals == null) {
-      this.colVals = new ArrayList<TColumnValue>();
-    }
-    this.colVals.add(elem);
+  public void setValue(byte[] value) {
+    setValue(value == null ? (ByteBuffer)null : ByteBuffer.wrap(value));
   }
 
-  public List<TColumnValue> getColVals() {
-    return this.colVals;
+  public void setValue(ByteBuffer value) {
+    this.value = value;
   }
 
-  public void setColVals(List<TColumnValue> colVals) {
-    this.colVals = colVals;
+  public void unsetValue() {
+    this.value = null;
   }
 
-  public void unsetColVals() {
-    this.colVals = null;
+  /** Returns true if field value is set (has been assigned a value) and false otherwise */
+  public boolean isSetValue() {
+    return this.value != null;
   }
 
-  /** Returns true if field colVals is set (has been assigned a value) and false otherwise */
-  public boolean isSetColVals() {
-    return this.colVals != null;
-  }
-
-  public void setColValsIsSet(boolean value) {
+  public void setValueIsSet(boolean value) {
     if (!value) {
-      this.colVals = null;
+      this.value = null;
     }
   }
 
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case COL_VALS:
+    case VALUE:
       if (value == null) {
-        unsetColVals();
+        unsetValue();
       } else {
-        setColVals((List<TColumnValue>)value);
+        setValue((ByteBuffer)value);
       }
       break;
 
@@ -198,8 +182,8 @@ public class TRow implements org.apache.thrift.TBase<TRow, TRow._Fields>, java.i
 
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case COL_VALS:
-      return getColVals();
+    case VALUE:
+      return getValue();
 
     }
     throw new IllegalStateException();
@@ -212,8 +196,8 @@ public class TRow implements org.apache.thrift.TBase<TRow, TRow._Fields>, java.i
     }
 
     switch (field) {
-    case COL_VALS:
-      return isSetColVals();
+    case VALUE:
+      return isSetValue();
     }
     throw new IllegalStateException();
   }
@@ -222,21 +206,21 @@ public class TRow implements org.apache.thrift.TBase<TRow, TRow._Fields>, java.i
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof TRow)
-      return this.equals((TRow)that);
+    if (that instanceof TBinaryValue)
+      return this.equals((TBinaryValue)that);
     return false;
   }
 
-  public boolean equals(TRow that) {
+  public boolean equals(TBinaryValue that) {
     if (that == null)
       return false;
 
-    boolean this_present_colVals = true && this.isSetColVals();
-    boolean that_present_colVals = true && that.isSetColVals();
-    if (this_present_colVals || that_present_colVals) {
-      if (!(this_present_colVals && that_present_colVals))
+    boolean this_present_value = true && this.isSetValue();
+    boolean that_present_value = true && that.isSetValue();
+    if (this_present_value || that_present_value) {
+      if (!(this_present_value && that_present_value))
         return false;
-      if (!this.colVals.equals(that.colVals))
+      if (!this.value.equals(that.value))
         return false;
     }
 
@@ -247,28 +231,28 @@ public class TRow implements org.apache.thrift.TBase<TRow, TRow._Fields>, java.i
   public int hashCode() {
     HashCodeBuilder builder = new HashCodeBuilder();
 
-    boolean present_colVals = true && (isSetColVals());
-    builder.append(present_colVals);
-    if (present_colVals)
-      builder.append(colVals);
+    boolean present_value = true && (isSetValue());
+    builder.append(present_value);
+    if (present_value)
+      builder.append(value);
 
     return builder.toHashCode();
   }
 
-  public int compareTo(TRow other) {
+  public int compareTo(TBinaryValue other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
-    TRow typedOther = (TRow)other;
+    TBinaryValue typedOther = (TBinaryValue)other;
 
-    lastComparison = Boolean.valueOf(isSetColVals()).compareTo(typedOther.isSetColVals());
+    lastComparison = Boolean.valueOf(isSetValue()).compareTo(typedOther.isSetValue());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetColVals()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.colVals, typedOther.colVals);
+    if (isSetValue()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.value, typedOther.value);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -290,26 +274,24 @@ public class TRow implements org.apache.thrift.TBase<TRow, TRow._Fields>, java.i
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("TRow(");
+    StringBuilder sb = new StringBuilder("TBinaryValue(");
     boolean first = true;
 
-    sb.append("colVals:");
-    if (this.colVals == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.colVals);
+    if (isSetValue()) {
+      sb.append("value:");
+      if (this.value == null) {
+        sb.append("null");
+      } else {
+        org.apache.thrift.TBaseHelper.toString(this.value, sb);
+      }
+      first = false;
     }
-    first = false;
     sb.append(")");
     return sb.toString();
   }
 
   public void validate() throws org.apache.thrift.TException {
     // check for required fields
-    if (!isSetColVals()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'colVals' is unset! Struct:" + toString());
-    }
-
     // check for sub-struct validity
   }
 
@@ -329,15 +311,15 @@ public class TRow implements org.apache.thrift.TBase<TRow, TRow._Fields>, java.i
     }
   }
 
-  private static class TRowStandardSchemeFactory implements SchemeFactory {
-    public TRowStandardScheme getScheme() {
-      return new TRowStandardScheme();
+  private static class TBinaryValueStandardSchemeFactory implements SchemeFactory {
+    public TBinaryValueStandardScheme getScheme() {
+      return new TBinaryValueStandardScheme();
     }
   }
 
-  private static class TRowStandardScheme extends StandardScheme<TRow> {
+  private static class TBinaryValueStandardScheme extends StandardScheme<TBinaryValue> {
 
-    public void read(org.apache.thrift.protocol.TProtocol iprot, TRow struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol iprot, TBinaryValue struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TField schemeField;
       iprot.readStructBegin();
       while (true)
@@ -347,21 +329,10 @@ public class TRow implements org.apache.thrift.TBase<TRow, TRow._Fields>, java.i
           break;
         }
         switch (schemeField.id) {
-          case 1: // COL_VALS
-            if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
-              {
-                org.apache.thrift.protocol.TList _list100 = iprot.readListBegin();
-                struct.colVals = new ArrayList<TColumnValue>(_list100.size);
-                for (int _i101 = 0; _i101 < _list100.size; ++_i101)
-                {
-                  TColumnValue _elem102; // required
-                  _elem102 = new TColumnValue();
-                  _elem102.read(iprot);
-                  struct.colVals.add(_elem102);
-                }
-                iprot.readListEnd();
-              }
-              struct.setColValsIsSet(true);
+          case 1: // VALUE
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+              struct.value = iprot.readBinary();
+              struct.setValueIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -375,21 +346,16 @@ public class TRow implements org.apache.thrift.TBase<TRow, TRow._Fields>, java.i
       struct.validate();
     }
 
-    public void write(org.apache.thrift.protocol.TProtocol oprot, TRow struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot, TBinaryValue struct) throws org.apache.thrift.TException {
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      if (struct.colVals != null) {
-        oprot.writeFieldBegin(COL_VALS_FIELD_DESC);
-        {
-          oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.colVals.size()));
-          for (TColumnValue _iter103 : struct.colVals)
-          {
-            _iter103.write(oprot);
-          }
-          oprot.writeListEnd();
+      if (struct.value != null) {
+        if (struct.isSetValue()) {
+          oprot.writeFieldBegin(VALUE_FIELD_DESC);
+          oprot.writeBinary(struct.value);
+          oprot.writeFieldEnd();
         }
-        oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
@@ -397,41 +363,35 @@ public class TRow implements org.apache.thrift.TBase<TRow, TRow._Fields>, java.i
 
   }
 
-  private static class TRowTupleSchemeFactory implements SchemeFactory {
-    public TRowTupleScheme getScheme() {
-      return new TRowTupleScheme();
+  private static class TBinaryValueTupleSchemeFactory implements SchemeFactory {
+    public TBinaryValueTupleScheme getScheme() {
+      return new TBinaryValueTupleScheme();
     }
   }
 
-  private static class TRowTupleScheme extends TupleScheme<TRow> {
+  private static class TBinaryValueTupleScheme extends TupleScheme<TBinaryValue> {
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol prot, TRow struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol prot, TBinaryValue struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
-      {
-        oprot.writeI32(struct.colVals.size());
-        for (TColumnValue _iter104 : struct.colVals)
-        {
-          _iter104.write(oprot);
-        }
+      BitSet optionals = new BitSet();
+      if (struct.isSetValue()) {
+        optionals.set(0);
+      }
+      oprot.writeBitSet(optionals, 1);
+      if (struct.isSetValue()) {
+        oprot.writeBinary(struct.value);
       }
     }
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol prot, TRow struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol prot, TBinaryValue struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
-      {
-        org.apache.thrift.protocol.TList _list105 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-        struct.colVals = new ArrayList<TColumnValue>(_list105.size);
-        for (int _i106 = 0; _i106 < _list105.size; ++_i106)
-        {
-          TColumnValue _elem107; // required
-          _elem107 = new TColumnValue();
-          _elem107.read(iprot);
-          struct.colVals.add(_elem107);
-        }
+      BitSet incoming = iprot.readBitSet(1);
+      if (incoming.get(0)) {
+        struct.value = iprot.readBinary();
+        struct.setValueIsSet(true);
       }
-      struct.setColValsIsSet(true);
     }
   }
 

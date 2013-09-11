@@ -267,6 +267,11 @@ struct TStringValue {
   1: optional string value
 }
 
+struct TBinaryValue {
+  // NULL if value is unset
+  1: optional binary value
+}
+
 union TColumn {
   1: list<TBoolValue> boolColumn
   2: list<TByteValue> byteColumn
@@ -275,6 +280,7 @@ union TColumn {
   5: list<TI64Value> i64Column
   6: list<TDoubleValue> doubleColumn
   7: list<TStringValue> stringColumn
+  8: list<TBinaryValue> binaryColumn
 }
 
 // A single column value in a result set.
@@ -290,7 +296,8 @@ union TColumnValue {
   4: TI32Value    i32Val       // INT
   5: TI64Value    i64Val       // BIGINT, TIMESTAMP
   6: TDoubleValue doubleVal    // FLOAT, DOUBLE
-  7: TStringValue stringVal    // STRING, LIST, MAP, STRUCT, UNIONTYPE, BINARY, DECIMAL, VOID
+  7: TStringValue stringVal    // STRING, LIST, MAP, STRUCT, UNIONTYPE, DECIMAL, NULL
+  8: TBinaryValue binaryVal    // BINARY
 }
 
 // Represents a row in a rowset.

@@ -941,8 +941,54 @@ class TStringValue {
 
 void swap(TStringValue &a, TStringValue &b);
 
+typedef struct _TBinaryValue__isset {
+  _TBinaryValue__isset() : value(false) {}
+  bool value;
+} _TBinaryValue__isset;
+
+class TBinaryValue {
+ public:
+
+  static const char* ascii_fingerprint; // = "66E694018C17E5B65A59AE8F55CCA3CD";
+  static const uint8_t binary_fingerprint[16]; // = {0x66,0xE6,0x94,0x01,0x8C,0x17,0xE5,0xB6,0x5A,0x59,0xAE,0x8F,0x55,0xCC,0xA3,0xCD};
+
+  TBinaryValue() : value() {
+  }
+
+  virtual ~TBinaryValue() throw() {}
+
+  std::string value;
+
+  _TBinaryValue__isset __isset;
+
+  void __set_value(const std::string& val) {
+    value = val;
+    __isset.value = true;
+  }
+
+  bool operator == (const TBinaryValue & rhs) const
+  {
+    if (__isset.value != rhs.__isset.value)
+      return false;
+    else if (__isset.value && !(value == rhs.value))
+      return false;
+    return true;
+  }
+  bool operator != (const TBinaryValue &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TBinaryValue & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(TBinaryValue &a, TBinaryValue &b);
+
 typedef struct _TColumn__isset {
-  _TColumn__isset() : boolColumn(false), byteColumn(false), i16Column(false), i32Column(false), i64Column(false), doubleColumn(false), stringColumn(false) {}
+  _TColumn__isset() : boolColumn(false), byteColumn(false), i16Column(false), i32Column(false), i64Column(false), doubleColumn(false), stringColumn(false), binaryColumn(false) {}
   bool boolColumn;
   bool byteColumn;
   bool i16Column;
@@ -950,13 +996,14 @@ typedef struct _TColumn__isset {
   bool i64Column;
   bool doubleColumn;
   bool stringColumn;
+  bool binaryColumn;
 } _TColumn__isset;
 
 class TColumn {
  public:
 
-  static const char* ascii_fingerprint; // = "B39B4E4E565DB31DC891D62FDC3208DC";
-  static const uint8_t binary_fingerprint[16]; // = {0xB3,0x9B,0x4E,0x4E,0x56,0x5D,0xB3,0x1D,0xC8,0x91,0xD6,0x2F,0xDC,0x32,0x08,0xDC};
+  static const char* ascii_fingerprint; // = "6A1A7F0836F31986E3212216A1D53D06";
+  static const uint8_t binary_fingerprint[16]; // = {0x6A,0x1A,0x7F,0x08,0x36,0xF3,0x19,0x86,0xE3,0x21,0x22,0x16,0xA1,0xD5,0x3D,0x06};
 
   TColumn() {
   }
@@ -970,6 +1017,7 @@ class TColumn {
   std::vector<TI64Value>  i64Column;
   std::vector<TDoubleValue>  doubleColumn;
   std::vector<TStringValue>  stringColumn;
+  std::vector<TBinaryValue>  binaryColumn;
 
   _TColumn__isset __isset;
 
@@ -1001,6 +1049,10 @@ class TColumn {
     stringColumn = val;
   }
 
+  void __set_binaryColumn(const std::vector<TBinaryValue> & val) {
+    binaryColumn = val;
+  }
+
   bool operator == (const TColumn & rhs) const
   {
     if (!(boolColumn == rhs.boolColumn))
@@ -1016,6 +1068,8 @@ class TColumn {
     if (!(doubleColumn == rhs.doubleColumn))
       return false;
     if (!(stringColumn == rhs.stringColumn))
+      return false;
+    if (!(binaryColumn == rhs.binaryColumn))
       return false;
     return true;
   }
@@ -1033,7 +1087,7 @@ class TColumn {
 void swap(TColumn &a, TColumn &b);
 
 typedef struct _TColumnValue__isset {
-  _TColumnValue__isset() : boolVal(false), byteVal(false), i16Val(false), i32Val(false), i64Val(false), doubleVal(false), stringVal(false) {}
+  _TColumnValue__isset() : boolVal(false), byteVal(false), i16Val(false), i32Val(false), i64Val(false), doubleVal(false), stringVal(false), binaryVal(false) {}
   bool boolVal;
   bool byteVal;
   bool i16Val;
@@ -1041,13 +1095,14 @@ typedef struct _TColumnValue__isset {
   bool i64Val;
   bool doubleVal;
   bool stringVal;
+  bool binaryVal;
 } _TColumnValue__isset;
 
 class TColumnValue {
  public:
 
-  static const char* ascii_fingerprint; // = "C2DDD988447EA7999A8285AA38AAE9AD";
-  static const uint8_t binary_fingerprint[16]; // = {0xC2,0xDD,0xD9,0x88,0x44,0x7E,0xA7,0x99,0x9A,0x82,0x85,0xAA,0x38,0xAA,0xE9,0xAD};
+  static const char* ascii_fingerprint; // = "732FCA3EB6DEA77690296E3F386F8467";
+  static const uint8_t binary_fingerprint[16]; // = {0x73,0x2F,0xCA,0x3E,0xB6,0xDE,0xA7,0x76,0x90,0x29,0x6E,0x3F,0x38,0x6F,0x84,0x67};
 
   TColumnValue() {
   }
@@ -1061,6 +1116,7 @@ class TColumnValue {
   TI64Value i64Val;
   TDoubleValue doubleVal;
   TStringValue stringVal;
+  TBinaryValue binaryVal;
 
   _TColumnValue__isset __isset;
 
@@ -1092,6 +1148,10 @@ class TColumnValue {
     stringVal = val;
   }
 
+  void __set_binaryVal(const TBinaryValue& val) {
+    binaryVal = val;
+  }
+
   bool operator == (const TColumnValue & rhs) const
   {
     if (!(boolVal == rhs.boolVal))
@@ -1107,6 +1167,8 @@ class TColumnValue {
     if (!(doubleVal == rhs.doubleVal))
       return false;
     if (!(stringVal == rhs.stringVal))
+      return false;
+    if (!(binaryVal == rhs.binaryVal))
       return false;
     return true;
   }
@@ -1127,8 +1189,8 @@ void swap(TColumnValue &a, TColumnValue &b);
 class TRow {
  public:
 
-  static const char* ascii_fingerprint; // = "E73FD1FCA0CA58A669FC3E02FB68D534";
-  static const uint8_t binary_fingerprint[16]; // = {0xE7,0x3F,0xD1,0xFC,0xA0,0xCA,0x58,0xA6,0x69,0xFC,0x3E,0x02,0xFB,0x68,0xD5,0x34};
+  static const char* ascii_fingerprint; // = "99AF3D0597DDA00BF09BB2A98402239F";
+  static const uint8_t binary_fingerprint[16]; // = {0x99,0xAF,0x3D,0x05,0x97,0xDD,0xA0,0x0B,0xF0,0x9B,0xB2,0xA9,0x84,0x02,0x23,0x9F};
 
   TRow() {
   }
@@ -1168,8 +1230,8 @@ typedef struct _TRowSet__isset {
 class TRowSet {
  public:
 
-  static const char* ascii_fingerprint; // = "698727A24268879440EE0DAFE68FC1C5";
-  static const uint8_t binary_fingerprint[16]; // = {0x69,0x87,0x27,0xA2,0x42,0x68,0x87,0x94,0x40,0xEE,0x0D,0xAF,0xE6,0x8F,0xC1,0xC5};
+  static const char* ascii_fingerprint; // = "AE2923283250406F5034170469433DDB";
+  static const uint8_t binary_fingerprint[16]; // = {0xAE,0x29,0x23,0x28,0x32,0x50,0x40,0x6F,0x50,0x34,0x17,0x04,0x69,0x43,0x3D,0xDB};
 
   TRowSet() : startRowOffset(0) {
   }
@@ -3141,8 +3203,8 @@ typedef struct _TFetchResultsResp__isset {
 class TFetchResultsResp {
  public:
 
-  static const char* ascii_fingerprint; // = "29891EA4D71B4283E8715DA5B95F2763";
-  static const uint8_t binary_fingerprint[16]; // = {0x29,0x89,0x1E,0xA4,0xD7,0x1B,0x42,0x83,0xE8,0x71,0x5D,0xA5,0xB9,0x5F,0x27,0x63};
+  static const char* ascii_fingerprint; // = "3657F3CAF86F7B41B9D1B6308665A66A";
+  static const uint8_t binary_fingerprint[16]; // = {0x36,0x57,0xF3,0xCA,0xF8,0x6F,0x7B,0x41,0xB9,0xD1,0xB6,0x30,0x86,0x65,0xA6,0x6A};
 
   TFetchResultsResp() : hasMoreRows(0) {
   }

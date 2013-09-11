@@ -40,6 +40,7 @@ public class TColumnValue extends org.apache.thrift.TUnion<TColumnValue, TColumn
   private static final org.apache.thrift.protocol.TField I64_VAL_FIELD_DESC = new org.apache.thrift.protocol.TField("i64Val", org.apache.thrift.protocol.TType.STRUCT, (short)5);
   private static final org.apache.thrift.protocol.TField DOUBLE_VAL_FIELD_DESC = new org.apache.thrift.protocol.TField("doubleVal", org.apache.thrift.protocol.TType.STRUCT, (short)6);
   private static final org.apache.thrift.protocol.TField STRING_VAL_FIELD_DESC = new org.apache.thrift.protocol.TField("stringVal", org.apache.thrift.protocol.TType.STRUCT, (short)7);
+  private static final org.apache.thrift.protocol.TField BINARY_VAL_FIELD_DESC = new org.apache.thrift.protocol.TField("binaryVal", org.apache.thrift.protocol.TType.STRUCT, (short)8);
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -49,7 +50,8 @@ public class TColumnValue extends org.apache.thrift.TUnion<TColumnValue, TColumn
     I32_VAL((short)4, "i32Val"),
     I64_VAL((short)5, "i64Val"),
     DOUBLE_VAL((short)6, "doubleVal"),
-    STRING_VAL((short)7, "stringVal");
+    STRING_VAL((short)7, "stringVal"),
+    BINARY_VAL((short)8, "binaryVal");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -78,6 +80,8 @@ public class TColumnValue extends org.apache.thrift.TUnion<TColumnValue, TColumn
           return DOUBLE_VAL;
         case 7: // STRING_VAL
           return STRING_VAL;
+        case 8: // BINARY_VAL
+          return BINARY_VAL;
         default:
           return null;
       }
@@ -134,6 +138,8 @@ public class TColumnValue extends org.apache.thrift.TUnion<TColumnValue, TColumn
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TDoubleValue.class)));
     tmpMap.put(_Fields.STRING_VAL, new org.apache.thrift.meta_data.FieldMetaData("stringVal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TStringValue.class)));
+    tmpMap.put(_Fields.BINARY_VAL, new org.apache.thrift.meta_data.FieldMetaData("binaryVal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TBinaryValue.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TColumnValue.class, metaDataMap);
   }
@@ -195,6 +201,12 @@ public class TColumnValue extends org.apache.thrift.TUnion<TColumnValue, TColumn
     return x;
   }
 
+  public static TColumnValue binaryVal(TBinaryValue value) {
+    TColumnValue x = new TColumnValue();
+    x.setBinaryVal(value);
+    return x;
+  }
+
 
   @Override
   protected void checkType(_Fields setField, Object value) throws ClassCastException {
@@ -234,6 +246,11 @@ public class TColumnValue extends org.apache.thrift.TUnion<TColumnValue, TColumn
           break;
         }
         throw new ClassCastException("Was expecting value of type TStringValue for field 'stringVal', but got " + value.getClass().getSimpleName());
+      case BINARY_VAL:
+        if (value instanceof TBinaryValue) {
+          break;
+        }
+        throw new ClassCastException("Was expecting value of type TBinaryValue for field 'binaryVal', but got " + value.getClass().getSimpleName());
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -314,6 +331,16 @@ public class TColumnValue extends org.apache.thrift.TUnion<TColumnValue, TColumn
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             return null;
           }
+        case BINARY_VAL:
+          if (field.type == BINARY_VAL_FIELD_DESC.type) {
+            TBinaryValue binaryVal;
+            binaryVal = new TBinaryValue();
+            binaryVal.read(iprot);
+            return binaryVal;
+          } else {
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            return null;
+          }
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
@@ -352,6 +379,10 @@ public class TColumnValue extends org.apache.thrift.TUnion<TColumnValue, TColumn
       case STRING_VAL:
         TStringValue stringVal = (TStringValue)value_;
         stringVal.write(oprot);
+        return;
+      case BINARY_VAL:
+        TBinaryValue binaryVal = (TBinaryValue)value_;
+        binaryVal.write(oprot);
         return;
       default:
         throw new IllegalStateException("Cannot write union with unknown field " + setField_);
@@ -398,6 +429,11 @@ public class TColumnValue extends org.apache.thrift.TUnion<TColumnValue, TColumn
           stringVal = new TStringValue();
           stringVal.read(iprot);
           return stringVal;
+        case BINARY_VAL:
+          TBinaryValue binaryVal;
+          binaryVal = new TBinaryValue();
+          binaryVal.read(iprot);
+          return binaryVal;
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
@@ -437,6 +473,10 @@ public class TColumnValue extends org.apache.thrift.TUnion<TColumnValue, TColumn
         TStringValue stringVal = (TStringValue)value_;
         stringVal.write(oprot);
         return;
+      case BINARY_VAL:
+        TBinaryValue binaryVal = (TBinaryValue)value_;
+        binaryVal.write(oprot);
+        return;
       default:
         throw new IllegalStateException("Cannot write union with unknown field " + setField_);
     }
@@ -459,6 +499,8 @@ public class TColumnValue extends org.apache.thrift.TUnion<TColumnValue, TColumn
         return DOUBLE_VAL_FIELD_DESC;
       case STRING_VAL:
         return STRING_VAL_FIELD_DESC;
+      case BINARY_VAL:
+        return BINARY_VAL_FIELD_DESC;
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -577,6 +619,20 @@ public class TColumnValue extends org.apache.thrift.TUnion<TColumnValue, TColumn
     value_ = value;
   }
 
+  public TBinaryValue getBinaryVal() {
+    if (getSetField() == _Fields.BINARY_VAL) {
+      return (TBinaryValue)getFieldValue();
+    } else {
+      throw new RuntimeException("Cannot get field 'binaryVal' because union is currently set to " + getFieldDesc(getSetField()).name);
+    }
+  }
+
+  public void setBinaryVal(TBinaryValue value) {
+    if (value == null) throw new NullPointerException();
+    setField_ = _Fields.BINARY_VAL;
+    value_ = value;
+  }
+
   public boolean isSetBoolVal() {
     return setField_ == _Fields.BOOL_VAL;
   }
@@ -609,6 +665,11 @@ public class TColumnValue extends org.apache.thrift.TUnion<TColumnValue, TColumn
 
   public boolean isSetStringVal() {
     return setField_ == _Fields.STRING_VAL;
+  }
+
+
+  public boolean isSetBinaryVal() {
+    return setField_ == _Fields.BINARY_VAL;
   }
 
 

@@ -44,6 +44,7 @@ import java.util.Map;
 
 import org.apache.hive.service.cli.TableSchema;
 import org.apache.hive.service.cli.Type;
+import org.apache.hive.service.cli.thrift.TBinaryValue;
 import org.apache.hive.service.cli.thrift.TBoolValue;
 import org.apache.hive.service.cli.thrift.TByteValue;
 import org.apache.hive.service.cli.thrift.TColumnValue;
@@ -439,10 +440,10 @@ public abstract class HiveBaseResultSet implements ResultSet {
     return null;
   }
 
-  private byte[] getBinaryValue(TStringValue tString) {
-    if (tString.isSetValue()) {
+  private byte[] getBinaryValue(TBinaryValue tBinary) {
+    if (tBinary.isSetValue()) {
       wasNull = false;
-      return tString.getValue().getBytes();
+      return tBinary.getValue();
     }
     wasNull = true;
     return null;
@@ -490,7 +491,7 @@ public abstract class HiveBaseResultSet implements ResultSet {
     case STRING_TYPE:
       return getStringValue(tColumnValue.getStringVal());
     case BINARY_TYPE:
-      return getBinaryValue(tColumnValue.getStringVal());
+      return getBinaryValue(tColumnValue.getBinaryVal());
     case TIMESTAMP_TYPE:
       return getTimestampValue(tColumnValue.getStringVal());
     case DECIMAL_TYPE:
