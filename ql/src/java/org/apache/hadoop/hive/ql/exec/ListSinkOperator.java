@@ -18,20 +18,15 @@
 
 package org.apache.hadoop.hive.ql.exec;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.common.JavaUtils;
-import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.ListSinkDesc;
 import org.apache.hadoop.hive.ql.plan.api.OperatorType;
 import org.apache.hadoop.hive.serde.serdeConstants;
-import org.apache.hadoop.hive.serde2.DelimitedJSONSerDe;
-import org.apache.hadoop.hive.serde2.SerDe;
-import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.util.ReflectionUtils;
 
 /**
@@ -40,45 +35,43 @@ import org.apache.hadoop.util.ReflectionUtils;
  */
 public class ListSinkOperator extends Operator<ListSinkDesc> {
 
-  private transient SerDe mSerde;
+  public static final String OUTPUT_FORMATTER = "output.formatter";
 
-  private transient ArrayList<String> res;
+  private transient List res;
+  private transient FetchFormatter fetcher;
   private transient int numRows;
 
   @Override
   protected void initializeOp(Configuration hconf) throws HiveException {
     try {
-      mSerde = initializeSerde(hconf);
-      initializeChildren(hconf);
+      fetcher = initializefetcher(hconf);
     } catch (Exception e) {
       throw new HiveException(e);
     }
+    super.initializeOp(hconf);
   }
 
-  private SerDe initializeSerde(Configuration conf) throws Exception {
-    String serdeName = HiveConf.getVar(conf, HiveConf.ConfVars.HIVEFETCHOUTPUTSERDE);
-    Class<? extends SerDe> serdeClass = Class.forName(serdeName, true,
-        JavaUtils.getClassLoader()).asSubclass(SerDe.class);
-    // cast only needed for Hadoop 0.17 compatibility
-    SerDe serde = ReflectionUtils.newInstance(serdeClass, null);
-
-    Properties serdeProp = new Properties();
-
-    // this is the default serialization format
-    if (serde instanceof DelimitedJSONSerDe) {
-      serdeProp.put(serdeConstants.SERIALIZATION_FORMAT, "" + Utilities.tabCode);
-      serdeProp.put(serdeConstants.SERIALIZATION_NULL_FORMAT, getConf().getSerializationNullFormat());
+  private FetchFormatter initializefetcher(Configuration conf) throws Exception {
+    String converterName = conf.get(OUTPUT_FORMATTER);
+    FetchFormatter fetcher;
+    if (converterName != null) {
+      Class<? extends FetchFormatter> fetcherClass = Class.forName(converterName, true,
+          JavaUtils.getClassLoader()).asSubclass(FetchFormatter.class);
+      fetcher = ReflectionUtils.newInstance(fetcherClass, null);
+    } else {
+      fetcher = new DefaultFetchFormatter();
     }
-    serde.initialize(conf, serdeProp);
-    return serde;
+
+    // selectively used by fetch formatter
+    Properties props = new Properties();
+    props.put(serdeConstants.SERIALIZATION_FORMAT, "" + Utilities.tabCode);
+    props.put(serdeConstants.SERIALIZATION_NULL_FORMAT, getConf().getSerializationNullFormat());
+
+    fetcher.initialize(conf, props);
+    return fetcher;
   }
 
-  public ListSinkOperator initialize(SerDe mSerde) {
-    this.mSerde = mSerde;
-    return this;
-  }
-
-  public void reset(ArrayList<String> res) {
+  public void reset(List res) {
     this.res = res;
     this.numRows = 0;
   }
@@ -87,15 +80,15 @@ public class ListSinkOperator extends Operator<ListSinkDesc> {
     return numRows;
   }
 
-  public List<String> getList() {
+  public List getList() {
     return res;
   }
 
   public void processOp(Object row, int tag) throws HiveException {
     try {
-      res.add(mSerde.serialize(row, outputObjInspector).toString());
+      res.add(fetcher.convert(row, inputObjInspectors[0]));
       numRows++;
-    } catch (SerDeException e) {
+    } catch (Exception e) {
       throw new HiveException(e);
     }
   }

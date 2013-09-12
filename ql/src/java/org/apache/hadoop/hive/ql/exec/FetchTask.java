@@ -96,6 +96,7 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
     if (work.isPseudoMR()) {
       setupTmpDir(source, job, new HashSet<Operator>());
       if (sink != null) {
+        // pseudoMR push
         sink.reset(new ArrayList<String>());
       }
     }
@@ -183,7 +184,7 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
     this.maxRows = maxRows;
   }
 
-  public boolean fetch(ArrayList<String> res) throws IOException, CommandNeedRetryException {
+  public boolean fetch(List res) throws IOException, CommandNeedRetryException {
     try {
       return work.isPseudoMRListFetch() ? fetchFromList(res) : fetchAndPush(res);
     } catch (CommandNeedRetryException e) {
@@ -195,7 +196,7 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
     }
   }
 
-  public boolean fetchFromList(ArrayList<String> res) throws Exception {
+  private boolean fetchFromList(List res) throws Exception {
     int rowsRet = getRetRows();
     if (rowsRet <= 0) {
       return false;
@@ -209,10 +210,13 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
     return true;
   }
 
-  public boolean fetchAndPush(ArrayList<String> res) throws Exception {
+  private boolean fetchAndPush(List res) throws Exception {
     sink.reset(res);
+    int rowsRet = work.getLeastNumRows();
+    if (rowsRet <= 0) {
+      rowsRet = work.getLimit() >= 0 ? Math.min(work.getLimit() - totalRows, maxRows) : maxRows;
+    }
     try {
-      int rowsRet = getRetRows();
       if (rowsRet <= 0) {
         fetch.clearFetchContext();
         return false;

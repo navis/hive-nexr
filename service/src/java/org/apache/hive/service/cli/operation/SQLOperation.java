@@ -37,11 +37,10 @@ import org.apache.hadoop.hive.ql.processors.CommandProcessorResponse;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.SerDe;
+import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeUtils;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
-import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils.ObjectInspectorCopyOption;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.io.BytesWritable;
@@ -64,12 +63,10 @@ public class SQLOperation extends ExecuteStatementOperation {
   private Schema mResultSchema = null;
   private SerDe serde = null;
 
-
   public SQLOperation(HiveSession parentSession, String statement, Map<String, String> confOverlay) {
     // TODO: call setRemoteUser in ExecuteStatementOperation or higher.
     super(parentSession, statement, confOverlay);
   }
-
 
   public void prepare() throws HiveSQLException {
   }
@@ -84,9 +81,8 @@ public class SQLOperation extends ExecuteStatementOperation {
     assert driver == null;
     setState(OperationState.RUNNING);
 
-    HiveSession session = getParentSession();
+    HiveConf hiveConf = getParentSession().getHiveConf();
     try {
-      HiveConf hiveConf = session.getHiveConf();
       driver = new Driver(hiveConf);
       // In Hive server mode, we are not able to retry in the FetchTask
       // case, when calling fetch queries since execute() has returned.
@@ -184,66 +180,66 @@ public class SQLOperation extends ExecuteStatementOperation {
   }
 
 
+  private transient final List<Object> convey = new ArrayList<Object>();
+
   @Override
   public RowSet getNextRowSet(FetchOrientation orientation, long maxRows) throws HiveSQLException {
     assertState(OperationState.FINISHED);
-    ArrayList<String> rows = new ArrayList<String>();
-    driver.setMaxRows((int)maxRows);
-
     try {
-      driver.getResults(rows);
-
-      getSerDe();
-      StructObjectInspector soi = (StructObjectInspector) serde.getObjectInspector();
-      List<? extends StructField> fieldRefs = soi.getAllStructFieldRefs();
-      RowSet rowSet = new RowSet();
-
-      Object[] deserializedFields = new Object[fieldRefs.size()];
-      Object rowObj;
-      ObjectInspector fieldOI;
-
-      for (String rowString : rows) {
-        rowObj = serde.deserialize(new BytesWritable(rowString.getBytes()));
-        for (int i = 0; i < fieldRefs.size(); i++) {
-          StructField fieldRef = fieldRefs.get(i);
-          fieldOI = fieldRef.getFieldObjectInspector();
-          deserializedFields[i] = convertLazyToJava(soi.getStructFieldData(rowObj, fieldRef), fieldOI);
-        }
-        rowSet.addRow(resultSchema, deserializedFields);
+      driver.setMaxRows((int) maxRows);
+      if (driver.getResults(convey)) {
+        return decode(convey);
       }
-      return rowSet;
+      return new RowSet();
     } catch (IOException e) {
       throw new HiveSQLException(e);
     } catch (CommandNeedRetryException e) {
       throw new HiveSQLException(e);
     } catch (Exception e) {
       throw new HiveSQLException(e);
+    } finally {
+      convey.clear();
     }
   }
 
-  /**
-   * Convert a LazyObject to a standard Java object in compliance with JDBC 3.0 (see JDBC 3.0
-   * Specification, Table B-3: Mapping from JDBC Types to Java Object Types).
-   *
-   * This method is kept consistent with {@link HiveResultSetMetaData#hiveTypeToSqlType}.
-   */
-  private static Object convertLazyToJava(Object o, ObjectInspector oi) {
-    Object obj = ObjectInspectorUtils.copyToStandardObject(o, oi, ObjectInspectorCopyOption.JAVA);
-
-    if (obj == null) {
-      return null;
+  private RowSet decode(List<Object> rows) throws Exception {
+    if (driver.isFetchingTable()) {
+      return prepareFromRow(rows);
     }
-    if(oi.getTypeName().equals(serdeConstants.BINARY_TYPE_NAME)) {
-      return new String((byte[])obj);
-    }
-    // for now, expose non-primitive as a string
-    // TODO: expose non-primitive as a structured object while maintaining JDBC compliance
-    if (oi.getCategory() != ObjectInspector.Category.PRIMITIVE) {
-      return SerDeUtils.getJSONString(o, oi); 
-    }
-    return obj;
+    return decodeFromString(rows);
   }
 
+  // already encoded to thriftable object in ThriftFormatter
+  private RowSet prepareFromRow(List<Object> rows) throws Exception {
+    RowSet rowSet = new RowSet();
+    for (Object row : rows) {
+      rowSet.addRow(resultSchema, (Object[]) row);
+    }
+    return rowSet;
+  }
+
+  private RowSet decodeFromString(List<Object> rows) throws SQLException, SerDeException {
+    getSerDe();
+    StructObjectInspector soi = (StructObjectInspector) serde.getObjectInspector();
+    List<? extends StructField> fieldRefs = soi.getAllStructFieldRefs();
+    RowSet rowSet = new RowSet();
+
+    Object[] deserializedFields = new Object[fieldRefs.size()];
+    Object rowObj;
+    ObjectInspector fieldOI;
+
+    for (Object rowString : rows) {
+      rowObj = serde.deserialize(new BytesWritable(((String)rowString).getBytes()));
+      for (int i = 0; i < fieldRefs.size(); i++) {
+        StructField fieldRef = fieldRefs.get(i);
+        fieldOI = fieldRef.getFieldObjectInspector();
+        Object fieldData = soi.getStructFieldData(rowObj, fieldRef);
+        deserializedFields[i] = SerDeUtils.toThriftPayload(fieldData, fieldOI);
+      }
+      rowSet.addRow(resultSchema, deserializedFields);
+    }
+    return rowSet;
+  }
 
   private SerDe getSerDe() throws SQLException {
     if (serde != null) {

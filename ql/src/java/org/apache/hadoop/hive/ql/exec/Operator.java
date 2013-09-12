@@ -477,6 +477,10 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
     this.inputObjInspectors = inputObjInspectors;
   }
 
+  public ObjectInspector getOutputObjInspector() {
+    return outputObjInspector;
+  }
+
   /**
    * Process the row.
    *
