@@ -594,9 +594,9 @@ public class GroupByOperator extends Operator<GroupByDesc> {
             if (lastInvoke[ai] == null) {
               lastInvoke[ai] = new Object[o.length];
             }
-            if (ObjectInspectorUtils.compare(o,
+            if (!ObjectInspectorUtils.equals(o,
                 aggregationParameterObjectInspectors[ai], lastInvoke[ai],
-                aggregationParameterStandardObjectInspectors[ai]) != 0) {
+                aggregationParameterStandardObjectInspectors[ai])) {
               aggregationEvaluators[ai].aggregate(aggs[ai], o);
               for (int pi = 0; pi < o.length; pi++) {
                 lastInvoke[ai][pi] = ObjectInspectorUtils.copyToStandardObject(
@@ -644,10 +644,10 @@ public class GroupByOperator extends Operator<GroupByDesc> {
             if (lastInvoke[i] == null) {
               lastInvoke[i] = new Object[o.length];
             }
-            if (ObjectInspectorUtils.compare(o,
+            if (!ObjectInspectorUtils.equals(o,
                 aggregationParameterObjectInspectors[i],
                 lastInvoke[i],
-                aggregationParameterStandardObjectInspectors[i]) != 0) {
+                aggregationParameterStandardObjectInspectors[i])) {
               aggregationEvaluators[i].aggregate(aggs[i], o);
               for (int pi = 0; pi < o.length; pi++) {
                 lastInvoke[i][pi] = ObjectInspectorUtils.copyToStandardObject(

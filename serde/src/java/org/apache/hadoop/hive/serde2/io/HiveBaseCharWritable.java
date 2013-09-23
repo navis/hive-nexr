@@ -26,7 +26,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hive.common.util.HiveStringUtils;
 
 public abstract class HiveBaseCharWritable {
-  protected Text value = new Text();
+  protected final Text value = new Text();
 
   public HiveBaseCharWritable() {
   }

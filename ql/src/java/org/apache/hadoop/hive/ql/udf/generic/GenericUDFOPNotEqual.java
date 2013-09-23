@@ -97,8 +97,8 @@ public class GenericUDFOPNotEqual extends GenericUDFBaseCompare {
           soi1.getPrimitiveJavaObject(o1)));
       break;
     case SAME_TYPE:
-      result.set(ObjectInspectorUtils.compare(
-          o0, argumentOIs[0], o1, argumentOIs[1]) != 0);
+      result.set(!ObjectInspectorUtils.equals(
+          o0, argumentOIs[0], o1, argumentOIs[1]));
       break;
     default:
       Object converted_o0 = converter0.convert(o0);
@@ -109,9 +109,9 @@ public class GenericUDFOPNotEqual extends GenericUDFBaseCompare {
       if (converted_o1 == null) {
         return null;
       }
-      result.set(ObjectInspectorUtils.compare(
+      result.set(!ObjectInspectorUtils.equals(
           converted_o0, compareOI,
-          converted_o1, compareOI) != 0);
+          converted_o1, compareOI));
     }
     return result;
   }

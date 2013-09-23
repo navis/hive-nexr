@@ -97,8 +97,8 @@ public class GenericUDFReflect extends AbstractGenericUDFReflect {
     // We compare class name/method name using ObjectInspectorUtils.compare(...), to avoid
     // any object conversion (which may cause object creation) in most cases, when the class
     // name/method name is constant Java String, or constant Text (StringWritable).
-    if (className == null || ObjectInspectorUtils.compare(className, classNameOI, newClassName,
-        inputClassNameOI) != 0) {
+    if (className == null || !ObjectInspectorUtils.equals(className, classNameOI, newClassName,
+        inputClassNameOI)) {
       className = ObjectInspectorUtils.copyToStandardObject(newClassName, inputClassNameOI);
       String classNameString = classNameOI.getPrimitiveJavaObject(className);
       try {
@@ -119,8 +119,8 @@ public class GenericUDFReflect extends AbstractGenericUDFReflect {
     // Skip method finding if the method name didn't change, and class name didn't change.
     Object newMethodName = arguments[1].get();
 
-    if (methodName == null || ObjectInspectorUtils.compare(methodName, methodNameOI, newMethodName,
-        inputMethodNameOI) != 0 || classNameChanged) {
+    if (methodName == null || !ObjectInspectorUtils.equals(methodName, methodNameOI, newMethodName,
+        inputMethodNameOI) || classNameChanged) {
       methodName = ObjectInspectorUtils.copyToStandardObject(newMethodName, inputMethodNameOI);
       String methodNameString = methodNameOI.getPrimitiveJavaObject(methodName);
       try {

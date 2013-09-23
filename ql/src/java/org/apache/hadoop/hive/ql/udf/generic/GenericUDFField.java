@@ -76,8 +76,8 @@ public class GenericUDFField extends GenericUDF {
       if (arguments[i].get() == null) {
         continue;
       }
-      if (ObjectInspectorUtils.compare(arguments[0].get(), argumentOIs[0],
-          arguments[i].get(), argumentOIs[i]) == 0) {
+      if (ObjectInspectorUtils.equals(arguments[0].get(), argumentOIs[0],
+          arguments[i].get(), argumentOIs[i])) {
         r.set(i);
         return r;
       }

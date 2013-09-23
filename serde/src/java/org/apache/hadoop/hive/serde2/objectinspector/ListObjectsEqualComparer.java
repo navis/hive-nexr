@@ -124,8 +124,7 @@ public class ListObjectsEqualComparer {
         return (soi0.getPrimitiveJavaObject(o0).equals(
             soi1.getPrimitiveJavaObject(o1)));
       default:
-        return (ObjectInspectorUtils.compare(
-            o0, oi0, o1, oi1) == 0);
+        return ObjectInspectorUtils.equals(o0, oi0, o1, oi1);
       }
     }
   }

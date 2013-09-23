@@ -177,11 +177,11 @@ public class GenericUDFIn extends GenericUDF {
       }
     } else {
       for (int i = 1; i < arguments.length; i++) {
-        if (ObjectInspectorUtils.compare(
+        if (ObjectInspectorUtils.equals(
             conversionHelper.convertIfNecessary(
                 arguments[0].get(), argumentOIs[0]), compareOI,
             conversionHelper.convertIfNecessary(
-                arguments[i].get(), argumentOIs[i]), compareOI) == 0) {
+                arguments[i].get(), argumentOIs[i]), compareOI)) {
           bw.set(true);
           return bw;
         }

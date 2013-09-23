@@ -18,6 +18,11 @@
 package org.apache.hadoop.hive.serde2.objectinspector;
 
 public interface MapEqualComparer {
+
+  public static final MapEqualComparer FULL = new FullMapEqualComparer();
+  public static final MapEqualComparer CROSS = new CrossMapEqualComparer();
+  public static final MapEqualComparer SIMPLE = new SimpleMapEqualComparer();
+
   /*
    * Compare the two map objects for equality.
    */

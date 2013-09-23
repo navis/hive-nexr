@@ -19,7 +19,6 @@ package org.apache.hadoop.hive.serde2.io;
 
 import org.apache.hadoop.hive.common.type.HiveBaseChar;
 import org.apache.hadoop.hive.common.type.HiveChar;
-import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hive.common.util.HiveStringUtils;
@@ -27,7 +26,7 @@ import org.apache.hive.common.util.HiveStringUtils;
 /**
  * HiveCharWritable.
  * String values will be padded to full char length.
- * Character legnth, comparison, hashCode should ignore trailing spaces.
+ * Character length, comparison, hashCode should ignore trailing spaces.
  */
 public class HiveCharWritable extends HiveBaseCharWritable 
     implements WritableComparable<HiveCharWritable> {
@@ -84,6 +83,10 @@ public class HiveCharWritable extends HiveBaseCharWritable
 
   public Text getPaddedValue() {
     return getTextValue();
+  }
+
+  public int getUnpaddedLength() {
+    return HiveStringUtils.getUnpaddedLength(getStrippedValue());
   }
 
   public int getCharacterLength() {

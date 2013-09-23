@@ -117,8 +117,8 @@ public class GenericUDFArrayContains extends GenericUDF {
     for (int i=0; i<arrayLength; ++i) {
       Object listElement = arrayOI.getListElement(array, i);
       if (listElement != null) {
-        if (ObjectInspectorUtils.compare(value, valueOI,
-            listElement, arrayElementOI) == 0) {
+        if (ObjectInspectorUtils.equals(value, valueOI,
+            listElement, arrayElementOI)) {
           result.set(true);
           break;
         }

@@ -129,7 +129,7 @@ public class TestLazyBinarySerDe extends TestCase {
     Object[] deserialized = new Object[rows.length];
     for (int i = 0; i < rows.length; i++) {
       deserialized[i] = serde.deserialize(bytes[i]);
-      if (0 != ObjectInspectorUtils.compare(rows[i], rowOI, deserialized[i],
+      if (!ObjectInspectorUtils.equals(rows[i], rowOI, deserialized[i],
           serdeOI)) {
         System.out.println("structs[" + i + "] = "
             + SerDeUtils.getJSONString(rows[i], rowOI));
@@ -462,9 +462,9 @@ public class TestLazyBinarySerDe extends TestCase {
         boolean bEqual = false;
         for (Map.Entry<?, ?> entryoutput : outputmp.entrySet()) {
           // find the same key
-          if (0 == ObjectInspectorUtils.compare(entryoutput.getKey(),
+          if (ObjectInspectorUtils.equals(entryoutput.getKey(),
               lazympkeyoi, entryinput.getKey(), inputmpkeyoi)) {
-            if (0 != ObjectInspectorUtils.compare(entryoutput.getValue(),
+            if (!ObjectInspectorUtils.equals(entryoutput.getValue(),
                 lazympvalueoi, entryinput.getValue(), inputmpvalueoi)) {
               assertEquals(entryoutput.getValue(), entryinput.getValue());
             } else {

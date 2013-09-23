@@ -958,4 +958,15 @@ public class HiveStringUtils {
     }
     return false;
   }
+
+  public static int getUnpaddedLength(Text t) {
+    byte[] bytes = t.getBytes();
+    int offset = t.getLength() - 1;
+    for (; offset >= 0; offset--) {
+      if (bytes[offset] != ' ') {
+        break;
+      }
+    }
+    return offset + 1;
+  }
 }
