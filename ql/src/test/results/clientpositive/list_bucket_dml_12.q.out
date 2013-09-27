@@ -165,7 +165,6 @@ STAGE PLANS:
     Stats-Aggr Operator
 #### A masked pattern was here ####
 
-
 PREHOOK: query: insert overwrite table list_bucketing_mul_col partition (ds = '2008-04-08', hr = '11')
 select 1, key, 1, value, 1 from src
 PREHOOK: type: QUERY
@@ -369,8 +368,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
-PREHOOK: query: select * from list_bucketing_mul_col 
+PREHOOK: query: select * from list_bucketing_mul_col
 where ds='2008-04-08' and hr='11' and col2 = "466" and col4 = "val_466"
 PREHOOK: type: QUERY
 PREHOOK: Input: default@list_bucketing_mul_col
@@ -514,8 +512,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
-PREHOOK: query: select * from list_bucketing_mul_col 
+PREHOOK: query: select * from list_bucketing_mul_col
 where ds='2008-04-08' and hr='11' and col2 = "382" and col4 = "val_382"
 PREHOOK: type: QUERY
 PREHOOK: Input: default@list_bucketing_mul_col

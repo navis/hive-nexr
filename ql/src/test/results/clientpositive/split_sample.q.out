@@ -158,7 +158,6 @@ STAGE PLANS:
     Fetch Operator
       limit: 10
 
-
 PREHOOK: query: select key, value from ss_src2 tablesample(1 percent) limit 10
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ss_src2
@@ -429,7 +428,6 @@ STAGE PLANS:
     Fetch Operator
       limit: 10
 
-
 PREHOOK: query: select count(distinct key) from ss_src2 tablesample(70 percent) limit 10
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ss_src2
@@ -540,7 +538,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: select key from (select key from ss_src2 tablesample(1 percent) limit 10) subq
 PREHOOK: type: QUERY
@@ -4131,7 +4128,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: select * from (
 select t1.key as k1, t2.key as k from ss_src1 tablesample(80 percent) t1 full outer join ss_src2 tablesample(2 percent) t2 on t1.key=t2.key
 ) subq where k in (199, 10199, 20199) or k1 in (199, 10199, 20199)
@@ -4257,7 +4253,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: select count(1) from ss_src2 tablesample(1 percent)
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ss_src2
@@ -4378,7 +4373,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: select count(1) from ss_src2 tablesample(100B)
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ss_src2
@@ -4472,7 +4466,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: select count(1) from ss_src2 tablesample(1K)
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ss_src2
@@ -4546,7 +4539,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: select key, value from ss_src2 tablesample(0 ROWS)
 PREHOOK: type: QUERY
@@ -4637,7 +4629,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: select count(1) from ss_src2 tablesample(10 ROWS)
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ss_src2
@@ -4727,7 +4718,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: select count(1) from ss_src2 tablesample(100 ROWS)
 PREHOOK: type: QUERY

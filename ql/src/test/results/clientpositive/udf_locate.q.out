@@ -114,7 +114,6 @@ STAGE PLANS:
     Fetch Operator
       limit: 1
 
-
 PREHOOK: query: SELECT locate('abc', 'abcd'),
        locate('ccc', 'abcabc'),
        locate('23', 123),

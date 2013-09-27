@@ -62,7 +62,6 @@ STAGE PLANS:
     Fetch Operator
       limit: 1
 
-
 PREHOOK: query: SELECT
   repeat("Facebook", 3),
   repeat("", 4),

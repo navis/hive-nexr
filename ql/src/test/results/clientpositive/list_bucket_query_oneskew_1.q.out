@@ -264,7 +264,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: -- List Bucketing Query
 SELECT x FROM fact_daily WHERE ds='1' and x=484
 PREHOOK: type: QUERY
@@ -380,7 +379,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: -- List Bucketing Query
 SELECT x FROM fact_daily WHERE ds='1' and x=495
 PREHOOK: type: QUERY
@@ -491,7 +489,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: SELECT x FROM fact_daily WHERE ds='1' and x=1
 PREHOOK: type: QUERY

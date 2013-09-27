@@ -35,7 +35,6 @@ STAGE PLANS:
     Fetch Operator
       limit: 1
 
-
 PREHOOK: query: SELECT IF(false, 1, cast(2 as smallint)) + 3 FROM src LIMIT 1
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src

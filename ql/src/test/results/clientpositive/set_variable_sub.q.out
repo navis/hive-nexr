@@ -38,7 +38,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: EXPLAIN SELECT * FROM src where key="value1"
 PREHOOK: type: QUERY
 POSTHOOK: query: EXPLAIN SELECT * FROM src where key="value1"
@@ -79,7 +78,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: EXPLAIN SELECT * FROM src where key="1"
 PREHOOK: type: QUERY
 POSTHOOK: query: EXPLAIN SELECT * FROM src where key="1"
@@ -119,7 +117,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 hivevar:a=1
 hivevar:b=a

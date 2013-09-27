@@ -78,7 +78,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: SELECT concat_ws(dest1.c1, dest1.c2, dest1.c3),
        concat_ws(',', dest1.c1, dest1.c2, dest1.c3),
        concat_ws(NULL, dest1.c1, dest1.c2, dest1.c3),
@@ -162,7 +161,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: 1
-
 
 PREHOOK: query: SELECT concat_ws('.', array('www', 'face', 'book', 'com'), '1234'),
        concat_ws('-', 'www', array('face', 'book', 'com'), '1234'),

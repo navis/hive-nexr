@@ -56,7 +56,6 @@ STAGE PLANS:
     Fetch Operator
       limit: 1
 
-
 PREHOOK: query: -- Test Primitive Types
 SELECT printf("Hello World %d %s", 100, "days") FROM src LIMIT 1
 PREHOOK: type: QUERY

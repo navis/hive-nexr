@@ -185,7 +185,6 @@ STAGE PLANS:
                   serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
                   name: default.outputtbl1
 
-
 PREHOOK: query: INSERT OVERWRITE TABLE outputTbl1
 SELECT * FROM
 (

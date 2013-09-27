@@ -116,7 +116,6 @@ STAGE PLANS:
       limit: -1
       pseudoMR: pull
 
-
 PREHOOK: query: select * from (select * from src) a join (select * from src) b on a.key=b.key
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
@@ -1221,7 +1220,6 @@ STAGE PLANS:
       limit: -1
       pseudoMR: pull
 
-
 PREHOOK: query: select * from (select * from src a union all select * from src b) c
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
@@ -2295,7 +2293,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
       pseudoMR: pull
-
 
 PREHOOK: query: SELECT * FROM src LATERAL VIEW explode(array(key, value)) myTable AS myCol
 PREHOOK: type: QUERY
@@ -3385,7 +3382,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
       pseudoMR: pull
-
 
 PREHOOK: query: select a.* from (select key from src union all select key from src union all select key from src) a
 PREHOOK: type: QUERY
@@ -5038,7 +5034,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
       pseudoMR: pull
-
 
 PREHOOK: query: select a.* from (select key from src) a left outer join (select * from(select key from src union all select key from src) a)b on a.key=b.key
 PREHOOK: type: QUERY

@@ -69,7 +69,6 @@ STAGE PLANS:
     Fetch Operator
       limit: 3
 
-
 PREHOOK: query: SELECT CASE src_thrift.lint[0]
         WHEN 0 THEN src_thrift.lint[0] + 1
         WHEN 1 THEN src_thrift.lint[0] + 2

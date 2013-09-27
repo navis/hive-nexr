@@ -116,7 +116,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: SELECT key, value FROM src WHERE key > 80 AND key < 100 ORDER BY key
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
@@ -284,7 +283,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: SELECT key, value FROM src WHERE key > 80 AND key < 100 ORDER BY key
 PREHOOK: type: QUERY

@@ -191,7 +191,6 @@ STAGE PLANS:
                   serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
                   name: default.outputtbl1
 
-
 PREHOOK: query: insert overwrite table outputTbl1
 SELECT a.key, a.values, a.values
 FROM (
@@ -428,7 +427,6 @@ STAGE PLANS:
                   output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
                   serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
                   name: default.outputtbl1
-
 
 PREHOOK: query: insert overwrite table outputTbl1
 SELECT a.key, concat(a.values, a.values), concat(a.values, a.values)

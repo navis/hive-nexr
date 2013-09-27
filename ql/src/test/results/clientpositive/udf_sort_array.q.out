@@ -58,7 +58,6 @@ STAGE PLANS:
     Fetch Operator
       limit: 1
 
-
 PREHOOK: query: SELECT sort_array(array("f", "a", "g", "c", "b", "d", "e")) FROM src LIMIT 1
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src

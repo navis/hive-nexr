@@ -131,7 +131,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: SELECT a, b, avg(c), count(*) from T1 group by a, b with cube
 PREHOOK: type: QUERY
 PREHOOK: Input: default@t1
@@ -304,7 +303,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: SELECT a, b, avg(c), count(*) from T1 group by a, b with cube
 PREHOOK: type: QUERY

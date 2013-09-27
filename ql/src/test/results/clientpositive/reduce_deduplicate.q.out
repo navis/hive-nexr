@@ -158,7 +158,6 @@ STAGE PLANS:
     Stats-Aggr Operator
 #### A masked pattern was here ####
 
-
 PREHOOK: query: insert overwrite table bucket5_1
 select * from src cluster by key
 PREHOOK: type: QUERY
@@ -405,5 +404,4 @@ STAGE PLANS:
   Stage: Stage-2
     Stats-Aggr Operator
 #### A masked pattern was here ####
-
 

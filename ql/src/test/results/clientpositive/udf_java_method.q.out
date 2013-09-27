@@ -138,7 +138,6 @@ STAGE PLANS:
     Fetch Operator
       limit: 1
 
-
 PREHOOK: query: SELECT java_method("java.lang.String", "valueOf", 1),
        java_method("java.lang.String", "isEmpty"),
        java_method("java.lang.Math", "max", 2, 3),

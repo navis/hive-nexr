@@ -60,7 +60,6 @@ STAGE PLANS:
     Fetch Operator
       limit: 1
 
-
 PREHOOK: query: SELECT
   rpad('hi', 1, '?'),
   rpad('hi', 5, '.'),

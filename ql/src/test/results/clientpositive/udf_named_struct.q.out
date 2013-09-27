@@ -49,7 +49,6 @@ STAGE PLANS:
     Fetch Operator
       limit: 1
 
-
 PREHOOK: query: SELECT named_struct("foo", 1, "bar", 2),
        named_struct("foo", 1, "bar", 2).foo FROM src LIMIT 1
 PREHOOK: type: QUERY

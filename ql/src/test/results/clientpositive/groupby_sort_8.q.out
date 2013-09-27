@@ -98,7 +98,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: select count(distinct key) from T1
 PREHOOK: type: QUERY
 PREHOOK: Input: default@t1

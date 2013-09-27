@@ -108,7 +108,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: select * from src a left semi join src b on a.key=b.key + 300 order by a.value
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src

@@ -67,7 +67,6 @@ STAGE PLANS:
     Fetch Operator
       limit: 1
 
-
 PREHOOK: query: FROM src_thrift
 SELECT size(src_thrift.lint), 
        size(src_thrift.lintstring), 

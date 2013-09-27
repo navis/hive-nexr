@@ -266,6 +266,7 @@ TOK_PRIV_OBJECT_COL;
 TOK_GRANT_ROLE;
 TOK_REVOKE_ROLE;
 TOK_SHOW_ROLE_GRANT;
+TOK_SHOW_ROLES;
 TOK_SHOWINDEXES;
 TOK_INDEXCOMMENT;
 TOK_DESCDATABASE;
@@ -617,6 +618,7 @@ ddlStatement
     | revokePrivileges
     | showGrants
     | showRoleGrants
+    | showRoles
     | grantRole
     | revokeRole
     ;
@@ -1284,6 +1286,13 @@ showRoleGrants
 @after {msgs.pop();}
     : KW_SHOW KW_ROLE KW_GRANT principalName
     -> ^(TOK_SHOW_ROLE_GRANT principalName)
+    ;
+
+showRoles
+@init {msgs.push("show role grants");}
+@after {msgs.pop();}
+    : KW_SHOW KW_ROLES
+    -> ^(TOK_SHOW_ROLES)
     ;
 
 showGrants

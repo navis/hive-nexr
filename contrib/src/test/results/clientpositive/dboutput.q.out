@@ -79,8 +79,7 @@ STAGE PLANS:
     Fetch Operator
       limit: 1
 
-
-PREHOOK: query: FROM src 
+PREHOOK: query: FROM src
 
 SELECT dboutput ( 'jdbc:derby:../build/test_dboutput_db;create=true','','',
 'CREATE TABLE app_info ( kkey INTEGER NOT NULL, vvalue VARCHAR(255) NOT NULL, UNIQUE(kkey))' ),

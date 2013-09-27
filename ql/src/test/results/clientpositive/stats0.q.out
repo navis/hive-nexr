@@ -133,7 +133,6 @@ STAGE PLANS:
     Stats-Aggr Operator
 #### A masked pattern was here ####
 
-
 PREHOOK: query: insert overwrite table stats_non_partitioned
 select * from src
 PREHOOK: type: QUERY
@@ -728,7 +727,6 @@ STAGE PLANS:
 
   Stage: Stage-2
     Stats-Aggr Operator
-
 
 PREHOOK: query: insert overwrite table stats_partitioned partition (ds='1')
 select * from src
@@ -1622,7 +1620,6 @@ STAGE PLANS:
           hdfs directory: true
 #### A masked pattern was here ####
 
-
 PREHOOK: query: insert overwrite table stats_non_partitioned
 select * from src
 PREHOOK: type: QUERY
@@ -2283,7 +2280,6 @@ STAGE PLANS:
       files:
           hdfs directory: true
 #### A masked pattern was here ####
-
 
 PREHOOK: query: insert overwrite table stats_partitioned partition (ds='1')
 select * from src

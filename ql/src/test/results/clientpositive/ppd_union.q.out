@@ -96,7 +96,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: FROM (
   FROM src select src.key, src.value WHERE src.key < '100'
     UNION ALL
@@ -377,7 +376,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: FROM (
   FROM src select src.key, src.value WHERE src.key < '100'

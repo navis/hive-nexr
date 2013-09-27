@@ -771,6 +771,17 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
           ((FSDataOutputStream) outStream).close();
           outStream = null;
         }
+      } else if (operation.equals(RoleDDLDesc.RoleOperation.SHOW_ROLES)) {
+        List<String> roleNames = db.getAllRoleNames();
+        Path resFile = new Path(roleDDLDesc.getResFile());
+        FileSystem fs = resFile.getFileSystem(conf);
+        outStream = fs.create(resFile);
+        for (String roleName : roleNames) {
+          outStream.writeBytes("role name: " + roleName);
+          outStream.write(terminator);
+        }
+        ((FSDataOutputStream) outStream).close();
+        outStream = null;
       } else {
         throw new HiveException("Unkown role operation "
             + operation.getOperationName());

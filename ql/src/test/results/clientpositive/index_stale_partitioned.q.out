@@ -138,7 +138,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: SELECT * FROM temp WHERE key  = 86 AND foo = 'bar'
 PREHOOK: type: QUERY
 PREHOOK: Input: default@temp

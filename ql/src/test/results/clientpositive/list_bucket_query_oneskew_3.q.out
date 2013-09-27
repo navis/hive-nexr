@@ -424,7 +424,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: -- List Bucketing Query
 SELECT x,y,z FROM fact_daily WHERE ds='1' and not (x = 86)
 PREHOOK: type: QUERY

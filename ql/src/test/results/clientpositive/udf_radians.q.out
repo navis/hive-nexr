@@ -35,7 +35,6 @@ STAGE PLANS:
     Fetch Operator
       limit: 1
 
-
 PREHOOK: query: select radians(57.2958) FROM src LIMIT 1
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
@@ -104,7 +103,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: 1
-
 
 PREHOOK: query: select radians(57.2958) FROM src LIMIT 1
 PREHOOK: type: QUERY

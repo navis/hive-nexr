@@ -184,7 +184,6 @@ STAGE PLANS:
   Stage: Stage-4
     Stats-Aggr Operator
 
-
 PREHOOK: query: INSERT OVERWRITE TABLE T2 SELECT * FROM (
 SELECT tmp1.name as name FROM (
   SELECT name, 'MMM' AS n FROM T1) tmp1 
@@ -258,7 +257,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: SELECT COUNT(1) FROM T2
 PREHOOK: type: QUERY
@@ -344,7 +342,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: SELECT COUNT(1) FROM T3
 PREHOOK: type: QUERY
