@@ -29,6 +29,7 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
+import org.apache.hadoop.hive.ql.exec.LLRowResolver;
 import org.apache.hadoop.hive.ql.exec.PTFOperator;
 import org.apache.hadoop.hive.ql.exec.PTFPartition;
 import org.apache.hadoop.hive.ql.exec.WindowFunctionInfo;
@@ -74,7 +75,15 @@ public class WindowingTableFunction extends TableFunctionEvaluator {
     WindowTableFunctionDef wTFnDef = (WindowTableFunctionDef) getTableDef();
     Order order = wTFnDef.getOrder().getExpressions().get(0).getOrder();
 
-    for(WindowFunctionDef wFn : wTFnDef.getWindowFunctions()) {
+    final List<WindowFunctionDef> functions = wTFnDef.getWindowFunctions();
+    final LLRowResolver[] resolvers = LLRowResolver.toResolver(functions);
+
+    for (int wi = 0; wi < functions.size(); wi++) {
+      if (resolvers != null && resolvers[wi] != null) {
+        oColumns.add(null);
+        continue;
+      }
+      WindowFunctionDef wFn = functions.get(wi);
       boolean processWindow = processWindow(wFn);
       pItr.reset();
       if ( !processWindow ) {
@@ -88,18 +97,41 @@ public class WindowingTableFunction extends TableFunctionEvaluator {
       }
     }
 
+    PTFPartitionIterator iterator;
+    if (resolvers != null) {
+      iterator = iPart.iterator(resolvers);
+    } else {
+      iterator = iPart.iterator();
+    }
+
     /*
      * Output Columns in the following order
      * - the columns representing the output from Window Fns
      * - the input Rows columns
      */
 
-    for(int i=0; i < iPart.size(); i++) {
-      ArrayList oRow = new ArrayList();
-      Object iRow = iPart.getAt(i);
+    ArrayList oRow = new ArrayList();
+    while (iterator.hasNext()) {
 
-      for(int j=0; j < oColumns.size(); j++) {
-        oRow.add(oColumns.get(j).get(i));
+      int ir = iterator.getIndex();
+
+      for (List<?> columns : oColumns) {
+        if (columns != null) {
+          oRow.add(columns.get(ir));
+        } else {
+          oRow.add(null);
+        }
+      }
+      Object iRow = iterator.next();
+
+      if (resolvers != null) {
+        Object[] cached = (Object[])iRow;
+        for (int iw = 0; iw < resolvers.length; iw++) {
+          if (resolvers[iw] != null) {
+            oRow.set(iw, cached[iw]);
+          }
+        }
+        iRow = cached[cached.length - 1];
       }
 
       for(StructField f : inputOI.getAllStructFieldRefs()) {
@@ -107,6 +139,7 @@ public class WindowingTableFunction extends TableFunctionEvaluator {
       }
 
       outP.append(oRow);
+      oRow.clear();
     }
   }
 

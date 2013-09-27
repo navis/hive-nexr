@@ -115,6 +115,10 @@ public class PTFPartition {
     return new PItr(0, size());
   }
 
+  public PTFPartitionIterator<Object> iterator(LLRowResolver[] resolvers) {
+    return new RowResolvingPItr(0, size(), resolvers);
+  }
+
   public PTFPartitionIterator<Object> range(int start, int end) {
     assert (start >= 0);
     assert (end <= size());
@@ -127,6 +131,33 @@ public class PTFPartition {
       elems.close();
     } catch (HiveException e) {
       LOG.error(e.toString(), e);
+    }
+  }
+
+  class RowResolvingPItr extends PItr {
+
+    final LLRowResolver[] resolvers;
+    final Object[] buffer;
+
+    public RowResolvingPItr(int start, int end, LLRowResolver[] resolvers) {
+      super(start, end);
+      this.resolvers = resolvers;
+      this.buffer = new Object[resolvers.length + 1];
+    }
+
+    @Override
+    public Object next() {
+      for (int i = 0; i < resolvers.length; i++) {
+        if (resolvers[i] != null) {
+          try {
+            buffer[i] = resolvers[i].evaluateAndCopy(this);
+          } catch (HiveException e) {
+            throw new RuntimeException(e);
+          }
+        }
+      }
+      buffer[resolvers.length] = super.next();
+      return buffer;
     }
   }
 
@@ -180,10 +211,25 @@ public class PTFPartition {
     }
 
     @Override
+    public final boolean hasLead(int amt) {
+      return idx + amt < end;
+    }
+
+    @Override
     public Object lead(int amt) throws HiveException {
       int i = idx + amt;
       i = i >= end ? end - 1 : i;
       return getAt(i);
+    }
+
+    @Override
+    public final boolean hasLag(int amt) {
+      return idx - amt >= start;
+    }
+
+    @Override
+    public Object current() throws HiveException {
+      return getAt(idx);
     }
 
     @Override
@@ -212,7 +258,7 @@ public class PTFPartition {
     public void reset() {
       idx = start;
     }
-  };
+  }
 
   /*
    * provide an Iterator on the rows in a Partiton.
@@ -222,9 +268,15 @@ public class PTFPartition {
   public static interface PTFPartitionIterator<T> extends Iterator<T> {
     int getIndex();
 
+    boolean hasLead(int amt);
+
+    boolean hasLag(int amt);
+
     T lead(int amt) throws HiveException;
 
     T lag(int amt) throws HiveException;
+
+    T current() throws HiveException;
 
     /*
      * after a lead and lag call, allow Object associated with SerDe and writable associated with
