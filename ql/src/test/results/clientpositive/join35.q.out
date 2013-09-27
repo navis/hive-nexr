@@ -864,7 +864,6 @@ STAGE PLANS:
       Truncated Path -> Alias:
         /src [null-subquery2:subq1-subquery2:x1]
 
-
 PREHOOK: query: INSERT OVERWRITE TABLE dest_j1
 SELECT x.key, x.value, subq1.cnt
 FROM 

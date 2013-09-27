@@ -54,7 +54,6 @@ STAGE PLANS:
     Fetch Operator
       limit: 1
 
-
 PREHOOK: query: SELECT NVL( 1 , 2 ) AS COL1,
        NVL( NULL, 5 ) AS COL2
 FROM src LIMIT 1

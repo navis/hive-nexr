@@ -159,7 +159,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: select m1, m2, f2 from fact join dim1 on fact.d1=dim1.f1
 PREHOOK: type: QUERY
 PREHOOK: Input: default@dim1
@@ -281,7 +280,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: select m1, m2, f2, f4 from fact join dim1 on fact.d1=dim1.f1 join dim2 on fact.d2=dim2.f3
 PREHOOK: type: QUERY
@@ -407,7 +405,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: select m1, m2, f2, f4 from fact join dim1 on fact.d1= dim1.f1 join dim2 on dim1.f2 = dim2.f3
 PREHOOK: type: QUERY
 PREHOOK: Input: default@dim1
@@ -531,7 +528,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: select m1, m2, f2, f4 from fact Left outer join dim1 on fact.d1= dim1.f1 Left outer join dim2 on dim1.f2 = dim2.f3
 PREHOOK: type: QUERY
@@ -812,7 +808,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: Select m1, m2, f2, f4, f6, f8, f10, f12, f14
  from fact 

@@ -379,7 +379,6 @@ STAGE PLANS:
                   input format: org.apache.hadoop.mapred.SequenceFileInputFormat
                   output format: org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat
 
-
 PREHOOK: query: insert overwrite table union_subq_union 
 select * from (
 

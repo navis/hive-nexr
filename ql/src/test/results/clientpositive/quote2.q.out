@@ -95,7 +95,6 @@ STAGE PLANS:
     Fetch Operator
       limit: 1
 
-
 PREHOOK: query: SELECT
     'abc',        "abc",
     'abc\'',      "abc\"",

@@ -136,7 +136,6 @@ STAGE PLANS:
               serde: org.apache.hadoop.hive.serde2.columnar.ColumnarSerDe
               name: default.outputtbl1
 
-
 PREHOOK: query: insert overwrite table outputTbl1 partition (ds)
 SELECT *
 FROM (

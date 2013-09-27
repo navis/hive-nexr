@@ -58,7 +58,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: explain
 select `key`, value from src cluster by `key`, value
 PREHOOK: type: QUERY
@@ -116,5 +115,4 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 

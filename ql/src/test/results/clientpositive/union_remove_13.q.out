@@ -220,7 +220,6 @@ STAGE PLANS:
       Local Work:
         Map Reduce Local Work
 
-
 PREHOOK: query: insert overwrite table outputTbl1
 SELECT * FROM
 (

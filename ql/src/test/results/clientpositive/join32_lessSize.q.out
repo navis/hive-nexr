@@ -351,7 +351,6 @@ STAGE PLANS:
     Stats-Aggr Operator
 #### A masked pattern was here ####
 
-
 PREHOOK: query: INSERT OVERWRITE TABLE dest_j1
 SELECT x.key, z.value, y.value
 FROM src1 x JOIN src y ON (x.key = y.key) 
@@ -1419,7 +1418,6 @@ STAGE PLANS:
         /src1 [z]
 #### A masked pattern was here ####
 
-
 PREHOOK: query: select * from dest_j1 x order by x.key
 PREHOOK: type: QUERY
 PREHOOK: Input: default@dest_j1
@@ -1864,7 +1862,6 @@ STAGE PLANS:
   Stage: Stage-3
     Stats-Aggr Operator
 #### A masked pattern was here ####
-
 
 PREHOOK: query: INSERT OVERWRITE TABLE dest_j2
 SELECT res.key, z.value, res.value
@@ -2353,7 +2350,6 @@ STAGE PLANS:
     Stats-Aggr Operator
 #### A masked pattern was here ####
 
-
 PREHOOK: query: INSERT OVERWRITE TABLE dest_j2
 SELECT res.key, z.value, res.value
 FROM (select x.key, x.value from src1 x LEFT OUTER JOIN src y ON (x.key = y.key)) res 
@@ -2653,7 +2649,6 @@ STAGE PLANS:
   Stage: Stage-3
     Stats-Aggr Operator
 
-
 PREHOOK: query: EXPLAIN
 INSERT OVERWRITE TABLE dest_j2
 SELECT res.key, y.value, res.value
@@ -2809,5 +2804,4 @@ STAGE PLANS:
 
   Stage: Stage-3
     Stats-Aggr Operator
-
 

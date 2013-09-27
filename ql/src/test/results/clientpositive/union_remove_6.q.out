@@ -264,7 +264,6 @@ STAGE PLANS:
                   input format: org.apache.hadoop.mapred.SequenceFileInputFormat
                   output format: org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat
 
-
 PREHOOK: query: FROM (
   SELECT key, count(1) as values from inputTbl1 group by key
   UNION ALL

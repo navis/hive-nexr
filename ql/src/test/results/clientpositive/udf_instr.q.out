@@ -98,7 +98,6 @@ STAGE PLANS:
     Fetch Operator
       limit: 1
 
-
 PREHOOK: query: SELECT instr('abcd', 'abc'),
        instr('abcabc', 'ccc'),
        instr(123, '23'),

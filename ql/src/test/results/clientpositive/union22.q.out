@@ -705,7 +705,6 @@ STAGE PLANS:
         /dst_union22/ds=1 [null-subquery2:subq-subquery2:a]
         /dst_union22_delta/ds=1 [null-subquery2:subq-subquery2:b:dst_union22_delta]
 
-
 PREHOOK: query: insert overwrite table dst_union22 partition (ds='2')
 select * from
 (

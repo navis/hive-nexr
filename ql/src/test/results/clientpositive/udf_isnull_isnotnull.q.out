@@ -71,7 +71,6 @@ STAGE PLANS:
     Fetch Operator
       limit: 1
 
-
 PREHOOK: query: SELECT NULL IS NULL,
        1 IS NOT NULL, 
        'my string' IS NOT NULL
@@ -143,7 +142,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: 1
-
 
 PREHOOK: query: FROM src_thrift
 SELECT src_thrift.lint IS NOT NULL, 

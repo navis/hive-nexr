@@ -363,7 +363,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: select * from fact_daily where ds = '1' and  hr='1' and key='145'
 PREHOOK: type: QUERY
 PREHOOK: Input: default@fact_daily
@@ -507,7 +506,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: select count(*) from fact_daily where ds = '1' and  hr='1'
 PREHOOK: type: QUERY
 PREHOOK: Input: default@fact_daily
@@ -644,7 +642,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: SELECT * FROM fact_daily WHERE ds='1' and hr='2' and (key='484' and value='val_484')
 PREHOOK: type: QUERY
 PREHOOK: Input: default@fact_daily
@@ -780,7 +777,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: SELECT * FROM fact_daily WHERE ds='1' and hr='3' and (key='327' and value='val_327')
 PREHOOK: type: QUERY

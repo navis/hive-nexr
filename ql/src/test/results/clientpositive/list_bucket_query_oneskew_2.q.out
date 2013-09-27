@@ -284,7 +284,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: -- List Bucketing Query
 select x from (select * from fact_daily where ds = '1') subq where x = 484
 PREHOOK: type: QUERY
@@ -563,7 +562,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: -- List Bucketing Query
 select y, count(1) from fact_daily where ds ='1' and x = 484 group by y
 PREHOOK: type: QUERY
@@ -720,7 +718,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: -- List Bucketing Query
 select x, c from (select x, count(1) as c from fact_daily where ds = '1' group by x) subq where x = 484

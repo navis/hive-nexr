@@ -55,8 +55,7 @@ STAGE PLANS:
     Fetch Operator
       limit: 1
 
-
-PREHOOK: query: SELECT map(), map(1, "a", 2, "b", 3, "c"), map(1, 2, "a", "b"), 
+PREHOOK: query: SELECT map(), map(1, "a", 2, "b", 3, "c"), map(1, 2, "a", "b"),
 map(1, "a", 2, "b", 3, "c")[2],  map(1, 2, "a", "b")["a"], map(1, array("a"))[1][0] FROM src LIMIT 1
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src

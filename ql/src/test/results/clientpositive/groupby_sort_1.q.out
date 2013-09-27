@@ -338,7 +338,6 @@ STAGE PLANS:
           hdfs directory: true
 #### A masked pattern was here ####
 
-
 PREHOOK: query: INSERT OVERWRITE TABLE outputTbl1
 SELECT key, count(1) FROM T1 GROUP BY key
 PREHOOK: type: QUERY
@@ -566,7 +565,6 @@ STAGE PLANS:
   Stage: Stage-2
     Stats-Aggr Operator
 #### A masked pattern was here ####
-
 
 PREHOOK: query: INSERT OVERWRITE TABLE outputTbl2
 SELECT key, val, count(1) FROM T1 GROUP BY key, val
@@ -954,7 +952,6 @@ STAGE PLANS:
       files:
           hdfs directory: true
 #### A masked pattern was here ####
-
 
 PREHOOK: query: INSERT OVERWRITE TABLE outputTbl1
 SELECT key, count(1) FROM (SELECT key, val FROM T1) subq1 GROUP BY key
@@ -1348,7 +1345,6 @@ STAGE PLANS:
           hdfs directory: true
 #### A masked pattern was here ####
 
-
 PREHOOK: query: INSERT OVERWRITE TABLE outputTbl1
 SELECT k, count(1) FROM (SELECT key as k, val as v FROM T1) subq1 GROUP BY k
 PREHOOK: type: QUERY
@@ -1729,7 +1725,6 @@ STAGE PLANS:
           hdfs directory: true
 #### A masked pattern was here ####
 
-
 PREHOOK: query: INSERT OVERWRITE TABLE outputTbl3
 SELECT 1, key, count(1) FROM T1 GROUP BY 1, key
 PREHOOK: type: QUERY
@@ -2008,7 +2003,6 @@ STAGE PLANS:
     Stats-Aggr Operator
 #### A masked pattern was here ####
 
-
 PREHOOK: query: INSERT OVERWRITE TABLE outputTbl4
 SELECT key, 1, val, count(1) FROM T1 GROUP BY key, 1, val
 PREHOOK: type: QUERY
@@ -2278,7 +2272,6 @@ STAGE PLANS:
   Stage: Stage-2
     Stats-Aggr Operator
 #### A masked pattern was here ####
-
 
 PREHOOK: query: INSERT OVERWRITE TABLE outputTbl3
 SELECT key, key + 1, count(1) FROM T1 GROUP BY key, key + 1
@@ -2573,7 +2566,6 @@ STAGE PLANS:
   Stage: Stage-2
     Stats-Aggr Operator
 #### A masked pattern was here ####
-
 
 PREHOOK: query: INSERT OVERWRITE TABLE outputTbl1
 SELECT key + key, sum(cnt) from
@@ -3090,7 +3082,6 @@ STAGE PLANS:
       files:
           hdfs directory: true
 #### A masked pattern was here ####
-
 
 PREHOOK: query: INSERT OVERWRITE TABLE outputTbl1
 SELECT * FROM (
@@ -3737,7 +3728,6 @@ STAGE PLANS:
           hdfs directory: true
 #### A masked pattern was here ####
 
-
 PREHOOK: query: INSERT OVERWRITE TABLE outputTbl1
 SELECT * FROM (
 SELECT key, count(1) as cnt FROM T1 GROUP BY key
@@ -4089,7 +4079,6 @@ STAGE PLANS:
   Stage: Stage-2
     Stats-Aggr Operator
 #### A masked pattern was here ####
-
 
 PREHOOK: query: INSERT OVERWRITE TABLE outputTbl1
 SELECT subq1.key, subq1.cnt+subq2.cnt FROM 
@@ -4536,7 +4525,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: CREATE TABLE T2(key STRING, val STRING)
 CLUSTERED BY (key, val) SORTED BY (key, val) INTO 2 BUCKETS STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
@@ -4826,7 +4814,6 @@ STAGE PLANS:
   Stage: Stage-2
     Stats-Aggr Operator
 #### A masked pattern was here ####
-
 
 PREHOOK: query: INSERT OVERWRITE TABLE outputTbl1
 SELECT key, count(1) FROM T2 GROUP BY key
@@ -5303,7 +5290,6 @@ STAGE PLANS:
       files:
           hdfs directory: true
 #### A masked pattern was here ####
-
 
 PREHOOK: query: INSERT OVERWRITE TABLE outputTbl4
 SELECT key, 1, val, count(1) FROM T2 GROUP BY key, 1, val
@@ -5799,7 +5785,6 @@ STAGE PLANS:
       files:
           hdfs directory: true
 #### A masked pattern was here ####
-
 
 PREHOOK: query: INSERT OVERWRITE TABLE outputTbl5
 SELECT key, 1, val, 2, count(1) FROM T2 GROUP BY key, 1, val, 2
@@ -6310,7 +6295,6 @@ STAGE PLANS:
       files:
           hdfs directory: true
 #### A masked pattern was here ####
-
 
 PREHOOK: query: INSERT OVERWRITE TABLE outputTbl4
 SELECT key, constant, val, count(1) from 
@@ -6842,7 +6826,6 @@ STAGE PLANS:
           hdfs directory: true
 #### A masked pattern was here ####
 
-
 PREHOOK: query: INSERT OVERWRITE TABLE outputTbl4
 select key, constant3, val, count(1) from
 (
@@ -7277,7 +7260,6 @@ STAGE PLANS:
   Stage: Stage-4
     Stats-Aggr Operator
 
-
 PREHOOK: query: FROM T2
 INSERT OVERWRITE TABLE DEST1 SELECT key, count(1) GROUP BY key
 INSERT OVERWRITE TABLE DEST2 SELECT key, val, count(1) GROUP BY key, val
@@ -7691,7 +7673,6 @@ STAGE PLANS:
 
   Stage: Stage-4
     Stats-Aggr Operator
-
 
 PREHOOK: query: FROM (select key, val from T2 where key = 8) x
 INSERT OVERWRITE TABLE DEST1 SELECT key, count(1) GROUP BY key

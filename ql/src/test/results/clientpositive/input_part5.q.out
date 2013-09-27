@@ -109,7 +109,6 @@ STAGE PLANS:
           hdfs directory: true
 #### A masked pattern was here ####
 
-
 PREHOOK: query: insert overwrite table tmptable
 SELECT x.* FROM SRCPART x WHERE x.ds = '2008-04-08' and x.key < 100
 PREHOOK: type: QUERY

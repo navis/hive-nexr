@@ -206,7 +206,6 @@ STAGE PLANS:
   Stage: Stage-6
     Stats-Aggr Operator
 
-
 PREHOOK: query: FROM src
 INSERT OVERWRITE TABLE e1
     SELECT key, COUNT(*) WHERE key>450 GROUP BY key ORDER BY key
@@ -473,7 +472,6 @@ STAGE PLANS:
 
   Stage: Stage-6
     Stats-Aggr Operator
-
 
 PREHOOK: query: FROM src
 INSERT OVERWRITE TABLE e1

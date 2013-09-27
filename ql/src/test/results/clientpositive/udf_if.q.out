@@ -67,7 +67,6 @@ STAGE PLANS:
     Fetch Operator
       limit: 1
 
-
 PREHOOK: query: SELECT IF(TRUE, 1, 2) AS COL1,
        IF(FALSE, CAST(NULL AS STRING), CAST(1 AS STRING)) AS COL2,
        IF(1=1, IF(2=2, 1, 2), IF(3=3, 3, 4)) AS COL3,
@@ -141,7 +140,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: 1
-
 
 PREHOOK: query: SELECT IF(TRUE, CAST(128 AS SMALLINT), CAST(1 AS TINYINT)) AS COL1,
        IF(FALSE, 1, 1.1) AS COL2,

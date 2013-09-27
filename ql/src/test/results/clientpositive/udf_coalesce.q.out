@@ -118,7 +118,6 @@ STAGE PLANS:
     Fetch Operator
       limit: 1
 
-
 PREHOOK: query: SELECT COALESCE(1),
        COALESCE(1, 2),
        COALESCE(NULL, 2),
@@ -209,7 +208,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: SELECT COALESCE(src_thrift.lint[1], 999),
        COALESCE(src_thrift.lintstring[0].mystring, '999'),

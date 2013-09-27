@@ -57,7 +57,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: SELECT value from (
   select explode(array(key, value)) as (value) from (
     select * FROM src WHERE key > 400

@@ -64,7 +64,6 @@ STAGE PLANS:
     Fetch Operator
       limit: 1
 
-
 PREHOOK: query: SELECT format_number(12332.123456, 4),
     format_number(12332.1,4),
     format_number(12332.2,0)

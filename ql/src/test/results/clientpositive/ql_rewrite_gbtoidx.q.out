@@ -144,7 +144,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: select l_shipdate, count(l_shipdate)
 from lineitem
 group by l_shipdate
@@ -339,7 +338,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: select l_shipdate, count(l_shipdate)
 from lineitem
@@ -579,7 +577,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: select year(l_shipdate) as year,
         month(l_shipdate) as month,
         count(l_shipdate) as monthly_shipments
@@ -771,7 +768,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: select year(l_shipdate) as year,
         month(l_shipdate) as month,
@@ -1094,7 +1090,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: explain  select l_shipdate, cnt
 from (select l_shipdate, count(l_shipdate) as cnt from lineitem group by l_shipdate
 union all
@@ -1226,7 +1221,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: CREATE TABLE tbl(key int, value int)
 PREHOOK: type: CREATETABLE
 POSTHOOK: query: CREATE TABLE tbl(key int, value int)
@@ -1347,7 +1341,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: EXPLAIN select key, count(key) from tbl group by key
 PREHOOK: type: QUERY
 POSTHOOK: query: EXPLAIN select key, count(key) from tbl group by key
@@ -1430,7 +1423,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: EXPLAIN select count(1) from tbl
 PREHOOK: type: QUERY
 POSTHOOK: query: EXPLAIN select count(1) from tbl
@@ -1492,7 +1484,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: EXPLAIN select count(key) from tbl
 PREHOOK: type: QUERY
@@ -1559,7 +1550,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: EXPLAIN select key FROM tbl GROUP BY key
 PREHOOK: type: QUERY
@@ -1631,7 +1621,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: EXPLAIN select key FROM tbl GROUP BY value, key
 PREHOOK: type: QUERY
@@ -1714,7 +1703,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: EXPLAIN select key FROM tbl WHERE key = 3 GROUP BY key
 PREHOOK: type: QUERY
 POSTHOOK: query: EXPLAIN select key FROM tbl WHERE key = 3 GROUP BY key
@@ -1790,7 +1778,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: EXPLAIN select key FROM tbl WHERE value = 2 GROUP BY key
 PREHOOK: type: QUERY
 POSTHOOK: query: EXPLAIN select key FROM tbl WHERE value = 2 GROUP BY key
@@ -1865,7 +1852,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: EXPLAIN select key FROM tbl GROUP BY key, substr(key,2,3)
 PREHOOK: type: QUERY
@@ -1945,7 +1931,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: EXPLAIN select key, value FROM tbl GROUP BY value, key
 PREHOOK: type: QUERY
@@ -2029,7 +2014,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: EXPLAIN select key, value FROM tbl WHERE value = 1 GROUP BY key, value
 PREHOOK: type: QUERY
@@ -2118,6 +2102,76 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
+PREHOOK: query: EXPLAIN select DISTINCT key FROM tbl
+PREHOOK: type: QUERY
+POSTHOOK: query: EXPLAIN select DISTINCT key FROM tbl
+POSTHOOK: type: QUERY
+POSTHOOK: Lineage: default__lineitem_lineitem_lshipdate_idx__._bucketname SIMPLE [(lineitem)lineitem.FieldSchema(name:INPUT__FILE__NAME, type:string, comment:), ]
+POSTHOOK: Lineage: default__lineitem_lineitem_lshipdate_idx__._count_of_l_shipdate EXPRESSION [(lineitem)lineitem.FieldSchema(name:l_shipdate, type:string, comment:null), ]
+POSTHOOK: Lineage: default__lineitem_lineitem_lshipdate_idx__._offsets EXPRESSION [(lineitem)lineitem.FieldSchema(name:BLOCK__OFFSET__INSIDE__FILE, type:bigint, comment:), ]
+POSTHOOK: Lineage: default__lineitem_lineitem_lshipdate_idx__.l_shipdate SIMPLE [(lineitem)lineitem.FieldSchema(name:l_shipdate, type:string, comment:null), ]
+POSTHOOK: Lineage: default__tbl_tbl_key_idx__._bucketname SIMPLE [(tbl)tbl.FieldSchema(name:INPUT__FILE__NAME, type:string, comment:), ]
+POSTHOOK: Lineage: default__tbl_tbl_key_idx__._count_of_key EXPRESSION [(tbl)tbl.FieldSchema(name:key, type:int, comment:null), ]
+POSTHOOK: Lineage: default__tbl_tbl_key_idx__._offsets EXPRESSION [(tbl)tbl.FieldSchema(name:BLOCK__OFFSET__INSIDE__FILE, type:bigint, comment:), ]
+POSTHOOK: Lineage: default__tbl_tbl_key_idx__.key SIMPLE [(tbl)tbl.FieldSchema(name:key, type:int, comment:null), ]
+ABSTRACT SYNTAX TREE:
+  (TOK_QUERY (TOK_FROM (TOK_TABREF (TOK_TABNAME tbl))) (TOK_INSERT (TOK_DESTINATION (TOK_DIR TOK_TMP_FILE)) (TOK_SELECTDI (TOK_SELEXPR (TOK_TABLE_OR_COL key)))))
+
+STAGE DEPENDENCIES:
+  Stage-1 is a root stage
+  Stage-0 is a root stage
+
+STAGE PLANS:
+  Stage: Stage-1
+    Map Reduce
+      Alias -> Map Operator Tree:
+        tbl 
+          TableScan
+            alias: tbl
+            Select Operator
+              expressions:
+                    expr: key
+                    type: int
+              outputColumnNames: key
+              Group By Operator
+                bucketGroup: false
+                keys:
+                      expr: key
+                      type: int
+                mode: hash
+                outputColumnNames: _col0
+                Reduce Output Operator
+                  key expressions:
+                        expr: _col0
+                        type: int
+                  sort order: +
+                  Map-reduce partition columns:
+                        expr: _col0
+                        type: int
+                  tag: -1
+      Reduce Operator Tree:
+        Group By Operator
+          bucketGroup: false
+          keys:
+                expr: KEY._col0
+                type: int
+          mode: mergepartial
+          outputColumnNames: _col0
+          Select Operator
+            expressions:
+                  expr: _col0
+                  type: int
+            outputColumnNames: _col0
+            File Output Operator
+              compressed: false
+              GlobalTableId: 0
+              table:
+                  input format: org.apache.hadoop.mapred.TextInputFormat
+                  output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+
+  Stage: Stage-0
+    Fetch Operator
+      limit: -1
 
 PREHOOK: query: EXPLAIN select DISTINCT key FROM tbl
 PREHOOK: type: QUERY
@@ -2190,7 +2244,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: EXPLAIN select DISTINCT key FROM tbl
 PREHOOK: type: QUERY
 POSTHOOK: query: EXPLAIN select DISTINCT key FROM tbl
@@ -2261,79 +2314,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
-
-PREHOOK: query: EXPLAIN select DISTINCT key FROM tbl
-PREHOOK: type: QUERY
-POSTHOOK: query: EXPLAIN select DISTINCT key FROM tbl
-POSTHOOK: type: QUERY
-POSTHOOK: Lineage: default__lineitem_lineitem_lshipdate_idx__._bucketname SIMPLE [(lineitem)lineitem.FieldSchema(name:INPUT__FILE__NAME, type:string, comment:), ]
-POSTHOOK: Lineage: default__lineitem_lineitem_lshipdate_idx__._count_of_l_shipdate EXPRESSION [(lineitem)lineitem.FieldSchema(name:l_shipdate, type:string, comment:null), ]
-POSTHOOK: Lineage: default__lineitem_lineitem_lshipdate_idx__._offsets EXPRESSION [(lineitem)lineitem.FieldSchema(name:BLOCK__OFFSET__INSIDE__FILE, type:bigint, comment:), ]
-POSTHOOK: Lineage: default__lineitem_lineitem_lshipdate_idx__.l_shipdate SIMPLE [(lineitem)lineitem.FieldSchema(name:l_shipdate, type:string, comment:null), ]
-POSTHOOK: Lineage: default__tbl_tbl_key_idx__._bucketname SIMPLE [(tbl)tbl.FieldSchema(name:INPUT__FILE__NAME, type:string, comment:), ]
-POSTHOOK: Lineage: default__tbl_tbl_key_idx__._count_of_key EXPRESSION [(tbl)tbl.FieldSchema(name:key, type:int, comment:null), ]
-POSTHOOK: Lineage: default__tbl_tbl_key_idx__._offsets EXPRESSION [(tbl)tbl.FieldSchema(name:BLOCK__OFFSET__INSIDE__FILE, type:bigint, comment:), ]
-POSTHOOK: Lineage: default__tbl_tbl_key_idx__.key SIMPLE [(tbl)tbl.FieldSchema(name:key, type:int, comment:null), ]
-ABSTRACT SYNTAX TREE:
-  (TOK_QUERY (TOK_FROM (TOK_TABREF (TOK_TABNAME tbl))) (TOK_INSERT (TOK_DESTINATION (TOK_DIR TOK_TMP_FILE)) (TOK_SELECTDI (TOK_SELEXPR (TOK_TABLE_OR_COL key)))))
-
-STAGE DEPENDENCIES:
-  Stage-1 is a root stage
-  Stage-0 is a root stage
-
-STAGE PLANS:
-  Stage: Stage-1
-    Map Reduce
-      Alias -> Map Operator Tree:
-        tbl 
-          TableScan
-            alias: tbl
-            Select Operator
-              expressions:
-                    expr: key
-                    type: int
-              outputColumnNames: key
-              Group By Operator
-                bucketGroup: false
-                keys:
-                      expr: key
-                      type: int
-                mode: hash
-                outputColumnNames: _col0
-                Reduce Output Operator
-                  key expressions:
-                        expr: _col0
-                        type: int
-                  sort order: +
-                  Map-reduce partition columns:
-                        expr: _col0
-                        type: int
-                  tag: -1
-      Reduce Operator Tree:
-        Group By Operator
-          bucketGroup: false
-          keys:
-                expr: KEY._col0
-                type: int
-          mode: mergepartial
-          outputColumnNames: _col0
-          Select Operator
-            expressions:
-                  expr: _col0
-                  type: int
-            outputColumnNames: _col0
-            File Output Operator
-              compressed: false
-              GlobalTableId: 0
-              table:
-                  input format: org.apache.hadoop.mapred.TextInputFormat
-                  output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
-
-  Stage: Stage-0
-    Fetch Operator
-      limit: -1
-
 
 PREHOOK: query: EXPLAIN select DISTINCT key, value FROM tbl
 PREHOOK: type: QUERY
@@ -2417,7 +2397,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: EXPLAIN select DISTINCT key, value FROM tbl WHERE value = 2
 PREHOOK: type: QUERY
@@ -2506,7 +2485,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: EXPLAIN select DISTINCT key, value FROM tbl WHERE value = 2 AND key = 3
 PREHOOK: type: QUERY
 POSTHOOK: query: EXPLAIN select DISTINCT key, value FROM tbl WHERE value = 2 AND key = 3
@@ -2593,7 +2571,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: EXPLAIN select DISTINCT key, value FROM tbl WHERE value = key
 PREHOOK: type: QUERY
@@ -2682,7 +2659,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: EXPLAIN select DISTINCT key, substr(value,2,3) FROM tbl WHERE value = key
 PREHOOK: type: QUERY
 POSTHOOK: query: EXPLAIN select DISTINCT key, substr(value,2,3) FROM tbl WHERE value = key
@@ -2770,7 +2746,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: EXPLAIN select DISTINCT key, substr(value,2,3) FROM tbl
 PREHOOK: type: QUERY
 POSTHOOK: query: EXPLAIN select DISTINCT key, substr(value,2,3) FROM tbl
@@ -2853,7 +2828,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: EXPLAIN select * FROM (select DISTINCT key, value FROM tbl) v1 WHERE v1.value = 2
 PREHOOK: type: QUERY
@@ -2941,7 +2915,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: DROP TABLE tbl
 PREHOOK: type: DROPTABLE
@@ -3211,7 +3184,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: ALTER INDEX tbl_part_index ON tblpart PARTITION (ds='2008-04-08', hr=12) REBUILD
 PREHOOK: type: ALTERINDEX_REBUILD
 PREHOOK: Input: default@tblpart
@@ -3435,7 +3407,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: DROP INDEX tbl_part_index on tblpart
 PREHOOK: type: DROPINDEX
@@ -3802,7 +3773,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: select key, count(key) from tbl group by key order by key
 PREHOOK: type: QUERY
 PREHOOK: Input: default@tbl
@@ -3987,7 +3957,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: select key, count(key) from tbl group by key order by key
 PREHOOK: type: QUERY

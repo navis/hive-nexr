@@ -170,7 +170,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: select * from srcpart a where a.ds='2008-04-08' order by a.key, a.hr
 PREHOOK: type: QUERY
 PREHOOK: Input: default@srcpart
@@ -1360,7 +1359,6 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-
 PREHOOK: query: select * from srcpart a where a.ds='2008-04-08' and key < 200 order by a.key, a.hr
 PREHOOK: type: QUERY
 PREHOOK: Input: default@srcpart
@@ -1927,7 +1925,6 @@ STAGE PLANS:
   Stage: Stage-0
     Fetch Operator
       limit: -1
-
 
 PREHOOK: query: select * from srcpart a where a.ds='2008-04-08' and rand(100) < 0.1 order by a.key, a.hr
 PREHOOK: type: QUERY
