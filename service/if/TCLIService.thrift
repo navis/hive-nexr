@@ -984,6 +984,25 @@ struct TRunReq {
   2: required TOperationHandle operationHandle
 }
 
+struct TSessionInfo {
+  1: required TSessionHandle sessionHandle
+  2: optional i64 startTime
+}
+struct TSessionsRes {
+  1: optional list<TSessionInfo> sessions
+}
+
+struct TOperationInfo {
+  1: required TOperationState status
+  2: required TOperationHandle operationHandle
+  3: optional string query
+  4: optional i64 startTime
+}
+
+struct TOperationsRes {
+  1: optional list<TOperationInfo> operations
+}
+
 service TCLIService {
 
   TOpenSessionResp OpenSession(1:TOpenSessionReq req);
@@ -1023,4 +1042,8 @@ service TCLIService {
   TStatus Run(1:TRunReq req);
 
   TStatus ExecuteTransient(1:TExecuteStatementReq req);
+
+  TSessionsRes GetSessions();
+
+  TOperationsRes GetOperations();
 }

@@ -42,6 +42,8 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print '  TCompileRes Compile(TExecuteStatementReq req)'
   print '  TStatus Run(TRunReq req)'
   print '  TStatus ExecuteTransient(TExecuteStatementReq req)'
+  print '  TSessionsRes GetSessions()'
+  print '  TOperationsRes GetOperations()'
   print ''
   sys.exit(0)
 
@@ -206,6 +208,18 @@ elif cmd == 'ExecuteTransient':
     print 'ExecuteTransient requires 1 args'
     sys.exit(1)
   pp.pprint(client.ExecuteTransient(eval(args[0]),))
+
+elif cmd == 'GetSessions':
+  if len(args) != 0:
+    print 'GetSessions requires 0 args'
+    sys.exit(1)
+  pp.pprint(client.GetSessions())
+
+elif cmd == 'GetOperations':
+  if len(args) != 0:
+    print 'GetOperations requires 0 args'
+    sys.exit(1)
+  pp.pprint(client.GetOperations())
 
 else:
   print 'Unrecognized method %s' % cmd

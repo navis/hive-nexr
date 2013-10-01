@@ -70,6 +70,8 @@ public class HiveSessionImpl implements HiveSession {
   private final HiveConf hiveConf;
   private final SessionState sessionState;
 
+  private final long startTime;
+
   private static final String FETCH_WORK_SERDE_CLASS =
       "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe";
   private static final Log LOG = LogFactory.getLog(HiveSessionImpl.class);
@@ -97,6 +99,7 @@ public class HiveSessionImpl implements HiveSession {
 
     this.hiveConf = hiveConf;
     this.sessionState = new SessionState(hiveConf);
+    this.startTime = System.currentTimeMillis();
   }
 
   private SessionManager getSessionManager() {
@@ -138,6 +141,10 @@ public class HiveSessionImpl implements HiveSession {
 
   public HiveConf getHiveConf() {
     return hiveConf;
+  }
+
+  public long getStartTime() {
+    return startTime;
   }
 
   public IMetaStoreClient getMetaStoreClient() throws HiveSQLException {
@@ -358,7 +365,11 @@ public class HiveSessionImpl implements HiveSession {
       }
       // Iterate through the opHandles and close their operations
       for (OperationHandle opHandle : opHandleSet) {
-        operationManager.closeOperation(opHandle);
+        try {
+          operationManager.closeOperation(opHandle);
+        } catch (HiveSQLException e) {
+          LOG.info("Operation " + opHandle + " is closed already");
+        }
       }
       opHandleSet.clear();
       HiveHistory hiveHist = sessionState.getHiveHistory();

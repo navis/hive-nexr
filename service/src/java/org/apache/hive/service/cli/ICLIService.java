@@ -21,9 +21,15 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hive.service.CompileResult;
+import org.apache.hive.service.OperationInfo;
+import org.apache.hive.service.SessionInfo;
 
 
 public interface ICLIService {
+
+  public abstract List<SessionInfo> getSessions() throws HiveSQLException;
+
+  public abstract List<OperationInfo> getOperations() throws HiveSQLException;
 
   public abstract SessionHandle openSession(String username, String password,
       Map<String, String> configuration)

@@ -56,6 +56,8 @@ public interface HiveSession {
 
   public HiveConf getHiveConf();
 
+  public long getStartTime();
+
   public IMetaStoreClient getMetaStoreClient() throws HiveSQLException;
 
   /**
