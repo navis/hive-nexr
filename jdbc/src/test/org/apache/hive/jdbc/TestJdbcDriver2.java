@@ -1274,4 +1274,32 @@ public class TestJdbcDriver2 extends TestCase {
     assertFalse(res.next());
   }
 
+  public void testShowGrant() throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute("grant select on table " + dataTypeTableName + " to user hive_test_user");
+    stmt.execute("show grant user hive_test_user on table " + dataTypeTableName);
+
+    ResultSet res = stmt.getResultSet();
+    assertTrue(res.next());
+    assertEquals("database", res.getString(1));
+    assertEquals("default", res.getString(2));
+    assertTrue(res.next());
+    assertEquals("table", res.getString(1));
+    assertEquals(dataTypeTableName, res.getString(2));
+    assertTrue(res.next());
+    assertEquals("principalName", res.getString(1));
+    assertEquals("hive_test_user", res.getString(2));
+    assertTrue(res.next());
+    assertEquals("principalType", res.getString(1));
+    assertEquals("USER", res.getString(2));
+    assertTrue(res.next());
+    assertEquals("privilege", res.getString(1));
+    assertEquals("Select", res.getString(2));
+    assertTrue(res.next());
+    assertEquals("grantTime", res.getString(1));
+    assertTrue(res.next());
+    assertEquals("grantor", res.getString(1));
+    assertFalse(res.next());
+    res.close();
+  }
 }
