@@ -117,7 +117,9 @@ public class SQLOperation extends ExecuteStatementOperation {
     try {
       response = driver.executePlan(false);
       if (0 != response.getResponseCode()) {
-        setState(OperationState.ERROR);
+        if (getState() != OperationState.CANCELED) {
+          setState(OperationState.ERROR);
+        }
         throw new HiveSQLException("Error while executing statement: " + statement + " by "
             + response.toDetailedMessage(), response.getSQLState(), response.getResponseCode());
       }

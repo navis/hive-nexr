@@ -35,9 +35,12 @@ import org.apache.hadoop.hive.ql.session.SessionState;
  **/
 
 public class TaskRunner extends Thread {
+
   protected Task<? extends Serializable> tsk;
   protected TaskResult result;
   protected SessionState ss;
+
+  protected Thread runner;
 
   public TaskRunner(Task<? extends Serializable> tsk, TaskResult result) {
     this.tsk = tsk;
@@ -49,10 +52,27 @@ public class TaskRunner extends Thread {
     return tsk;
   }
 
+  public TaskResult getTaskResult() {
+    return result;
+  }
+
+  public Thread getRunner() {
+    return runner;
+  }
+
+  public boolean isRunning() {
+    return result.isRunning();
+  }
+
   @Override
   public void run() {
-    SessionState.start(ss);
-    runSequential();
+    runner = Thread.currentThread();
+    try {
+      SessionState.start(ss);
+      runSequential();
+    } finally {
+      runner = null;
+    }
   }
 
   /**

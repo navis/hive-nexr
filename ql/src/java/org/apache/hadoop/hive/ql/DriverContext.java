@@ -19,11 +19,16 @@
 package org.apache.hadoop.hive.ql;
 
 import java.io.Serializable;
-import java.util.LinkedList;
+import java.util.Iterator;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.ql.exec.Task;
-import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.hive.ql.exec.TaskRunner;
+import org.apache.hadoop.hive.ql.session.SessionState;
 
 /**
  * DriverContext.
@@ -31,25 +36,94 @@ import org.apache.hadoop.mapred.JobConf;
  */
 public class DriverContext {
 
-  Queue<Task<? extends Serializable>> runnable = new LinkedList<Task<? extends Serializable>>();
+  private static final Log LOG = LogFactory.getLog(Driver.class.getName());
+  private static final SessionState.LogHelper console = new SessionState.LogHelper(LOG);
+
+  private static final int SLEEP_TIME = 2000;
+
+  private Queue<Task<? extends Serializable>> runnable;
+  private Queue<TaskRunner> running;
 
   // how many jobs have been started
-  int curJobNo;
+  private int curJobNo;
 
-  Context ctx;
+  private Context ctx;
+  private volatile boolean shutdown;
 
   public DriverContext() {
-    this.runnable = null;
-    this.ctx = null;
   }
 
-  public DriverContext(Queue<Task<? extends Serializable>> runnable, Context ctx) {
-    this.runnable = runnable;
+  public DriverContext(Context ctx) {
+    this.runnable = new ConcurrentLinkedQueue<Task<? extends Serializable>>();
+    this.running = new LinkedBlockingQueue<TaskRunner>();
     this.ctx = ctx;
+  }
+
+  public boolean isShutdown() {
+    return shutdown;
+  }
+
+  public boolean isRunning() {
+    return !shutdown && (!running.isEmpty() || !runnable.isEmpty());
   }
 
   public Queue<Task<? extends Serializable>> getRunnable() {
     return runnable;
+  }
+
+  public void launching(TaskRunner runner) {
+    running.add(runner);
+  }
+
+  public Task<? extends Serializable> getRunnable(int maxthreads) {
+    if (runnable.peek() != null && running.size() < maxthreads) {
+      return runnable.remove();
+    }
+    return null;
+  }
+
+  /**
+   * Polls running tasks to see if a task has ended.
+   *
+   * @return The result object for any completed/failed task
+   */
+  public TaskRunner pollFinished() throws InterruptedException {
+    while (!shutdown) {
+      Iterator<TaskRunner> it = running.iterator();
+      while (it.hasNext()) {
+        TaskRunner runner = it.next();
+        if (runner != null && !runner.isRunning()) {
+          it.remove();
+          return runner;
+        }
+      }
+      Thread.sleep(SLEEP_TIME);
+    }
+    return null;
+  }
+
+  /**
+   * Cleans up remaining tasks in case of failure
+   */
+  public void shutdown() {
+    LOG.warn("Shutting down query " + ctx.getCmd());
+    shutdown = true;
+    for (TaskRunner runner : running) {
+      if (runner.isRunning()) {
+        Task<?> task = runner.getTask();
+        LOG.warn("Shutting down task : " + task);
+        try {
+          task.shutdown();
+        } catch (Exception e) {
+          console.printError("Exception on shutting down task " + task.getId() + ": " + e);
+        }
+        Thread thread = runner.getRunner();
+        if (thread != null) {
+          thread.interrupt();
+        }
+      }
+    }
+    running.clear();
   }
 
   /**
@@ -82,5 +156,4 @@ public class DriverContext {
   public void incCurJobNo(int amount) {
     this.curJobNo = this.curJobNo + amount;
   }
-  
 }

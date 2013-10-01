@@ -100,7 +100,9 @@ public class HiveStatement implements java.sql.Statement {
     if (isClosed) {
       throw new SQLException("Can't cancel after statement has been closed");
     }
-
+    if (stmtHandle == null) {
+      return;
+    }
     TCancelOperationReq cancelReq = new TCancelOperationReq();
     cancelReq.setOperationHandle(stmtHandle);
     try {
