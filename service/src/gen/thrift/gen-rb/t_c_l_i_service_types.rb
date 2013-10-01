@@ -1480,3 +1480,81 @@ class TRunReq
   ::Thrift::Struct.generate_accessors self
 end
 
+class TSessionInfo
+  include ::Thrift::Struct, ::Thrift::Struct_Union
+  SESSIONHANDLE = 1
+  STARTTIME = 2
+
+  FIELDS = {
+    SESSIONHANDLE => {:type => ::Thrift::Types::STRUCT, :name => 'sessionHandle', :class => ::TSessionHandle},
+    STARTTIME => {:type => ::Thrift::Types::I64, :name => 'startTime', :optional => true}
+  }
+
+  def struct_fields; FIELDS; end
+
+  def validate
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field sessionHandle is unset!') unless @sessionHandle
+  end
+
+  ::Thrift::Struct.generate_accessors self
+end
+
+class TSessionsRes
+  include ::Thrift::Struct, ::Thrift::Struct_Union
+  SESSIONS = 1
+
+  FIELDS = {
+    SESSIONS => {:type => ::Thrift::Types::LIST, :name => 'sessions', :element => {:type => ::Thrift::Types::STRUCT, :class => ::TSessionInfo}, :optional => true}
+  }
+
+  def struct_fields; FIELDS; end
+
+  def validate
+  end
+
+  ::Thrift::Struct.generate_accessors self
+end
+
+class TOperationInfo
+  include ::Thrift::Struct, ::Thrift::Struct_Union
+  STATUS = 1
+  OPERATIONHANDLE = 2
+  QUERY = 3
+  STARTTIME = 4
+
+  FIELDS = {
+    STATUS => {:type => ::Thrift::Types::I32, :name => 'status', :enum_class => ::TOperationState},
+    OPERATIONHANDLE => {:type => ::Thrift::Types::STRUCT, :name => 'operationHandle', :class => ::TOperationHandle},
+    QUERY => {:type => ::Thrift::Types::STRING, :name => 'query', :optional => true},
+    STARTTIME => {:type => ::Thrift::Types::I64, :name => 'startTime', :optional => true}
+  }
+
+  def struct_fields; FIELDS; end
+
+  def validate
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field status is unset!') unless @status
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field operationHandle is unset!') unless @operationHandle
+    unless @status.nil? || ::TOperationState::VALID_VALUES.include?(@status)
+      raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Invalid value of field status!')
+    end
+  end
+
+  ::Thrift::Struct.generate_accessors self
+end
+
+class TOperationsRes
+  include ::Thrift::Struct, ::Thrift::Struct_Union
+  OPERATIONS = 1
+
+  FIELDS = {
+    OPERATIONS => {:type => ::Thrift::Types::LIST, :name => 'operations', :element => {:type => ::Thrift::Types::STRUCT, :class => ::TOperationInfo}, :optional => true}
+  }
+
+  def struct_fields; FIELDS; end
+
+  def validate
+  end
+
+  ::Thrift::Struct.generate_accessors self
+end
+

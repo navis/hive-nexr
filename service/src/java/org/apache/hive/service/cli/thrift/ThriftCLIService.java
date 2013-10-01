@@ -31,6 +31,8 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hive.service.AbstractService;
 import org.apache.hive.service.CompileResult;
+import org.apache.hive.service.OperationInfo;
+import org.apache.hive.service.SessionInfo;
 import org.apache.hive.service.auth.HiveAuthFactory;
 import org.apache.hive.service.cli.CLIService;
 import org.apache.hive.service.cli.FetchOrientation;
@@ -437,6 +439,30 @@ public class ThriftCLIService extends AbstractService implements TCLIService.Ifa
       e.printStackTrace();
       return HiveSQLException.toTStatus(e);
     }
+  }
+
+  @Override
+  public TSessionsRes GetSessions() throws TException {
+    TSessionsRes res = new TSessionsRes();
+    for (SessionInfo session : cliService.getSessions()) {
+      TSessionInfo tSession = new TSessionInfo(session.getSessionHandle());
+      tSession.setStartTime(session.getStartTime());
+      res.addToSessions(tSession);
+    }
+    return res;
+  }
+
+  @Override
+  public TOperationsRes GetOperations() throws TException {
+    TOperationsRes res = new TOperationsRes();
+    for (OperationInfo operation : cliService.getOperations()) {
+      TOperationHandle operationHandle = operation.getOperationHandle();
+      TOperationInfo tOperation = new TOperationInfo(operation.getStatus(), operationHandle);
+      tOperation.setStartTime(operation.getStartTime());
+      tOperation.setQuery(operation.getQuery());
+      res.addToOperations(tOperation);
+    }
+    return res;
   }
 
   @Override

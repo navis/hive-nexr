@@ -3362,6 +3362,222 @@ class TRunReq {
 
 void swap(TRunReq &a, TRunReq &b);
 
+typedef struct _TSessionInfo__isset {
+  _TSessionInfo__isset() : startTime(false) {}
+  bool startTime;
+} _TSessionInfo__isset;
+
+class TSessionInfo {
+ public:
+
+  static const char* ascii_fingerprint; // = "74FED9F7B6BB8BDB5BB02BDC66895350";
+  static const uint8_t binary_fingerprint[16]; // = {0x74,0xFE,0xD9,0xF7,0xB6,0xBB,0x8B,0xDB,0x5B,0xB0,0x2B,0xDC,0x66,0x89,0x53,0x50};
+
+  TSessionInfo() : startTime(0) {
+  }
+
+  virtual ~TSessionInfo() throw() {}
+
+  TSessionHandle sessionHandle;
+  int64_t startTime;
+
+  _TSessionInfo__isset __isset;
+
+  void __set_sessionHandle(const TSessionHandle& val) {
+    sessionHandle = val;
+  }
+
+  void __set_startTime(const int64_t val) {
+    startTime = val;
+    __isset.startTime = true;
+  }
+
+  bool operator == (const TSessionInfo & rhs) const
+  {
+    if (!(sessionHandle == rhs.sessionHandle))
+      return false;
+    if (__isset.startTime != rhs.__isset.startTime)
+      return false;
+    else if (__isset.startTime && !(startTime == rhs.startTime))
+      return false;
+    return true;
+  }
+  bool operator != (const TSessionInfo &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TSessionInfo & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(TSessionInfo &a, TSessionInfo &b);
+
+typedef struct _TSessionsRes__isset {
+  _TSessionsRes__isset() : sessions(false) {}
+  bool sessions;
+} _TSessionsRes__isset;
+
+class TSessionsRes {
+ public:
+
+  static const char* ascii_fingerprint; // = "7C5AECF7734E038F4A75EB753013C743";
+  static const uint8_t binary_fingerprint[16]; // = {0x7C,0x5A,0xEC,0xF7,0x73,0x4E,0x03,0x8F,0x4A,0x75,0xEB,0x75,0x30,0x13,0xC7,0x43};
+
+  TSessionsRes() {
+  }
+
+  virtual ~TSessionsRes() throw() {}
+
+  std::vector<TSessionInfo>  sessions;
+
+  _TSessionsRes__isset __isset;
+
+  void __set_sessions(const std::vector<TSessionInfo> & val) {
+    sessions = val;
+    __isset.sessions = true;
+  }
+
+  bool operator == (const TSessionsRes & rhs) const
+  {
+    if (__isset.sessions != rhs.__isset.sessions)
+      return false;
+    else if (__isset.sessions && !(sessions == rhs.sessions))
+      return false;
+    return true;
+  }
+  bool operator != (const TSessionsRes &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TSessionsRes & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(TSessionsRes &a, TSessionsRes &b);
+
+typedef struct _TOperationInfo__isset {
+  _TOperationInfo__isset() : query(false), startTime(false) {}
+  bool query;
+  bool startTime;
+} _TOperationInfo__isset;
+
+class TOperationInfo {
+ public:
+
+  static const char* ascii_fingerprint; // = "6288B3B16C58123857C2AD058C66AECD";
+  static const uint8_t binary_fingerprint[16]; // = {0x62,0x88,0xB3,0xB1,0x6C,0x58,0x12,0x38,0x57,0xC2,0xAD,0x05,0x8C,0x66,0xAE,0xCD};
+
+  TOperationInfo() : status((TOperationState::type)0), query(), startTime(0) {
+  }
+
+  virtual ~TOperationInfo() throw() {}
+
+  TOperationState::type status;
+  TOperationHandle operationHandle;
+  std::string query;
+  int64_t startTime;
+
+  _TOperationInfo__isset __isset;
+
+  void __set_status(const TOperationState::type val) {
+    status = val;
+  }
+
+  void __set_operationHandle(const TOperationHandle& val) {
+    operationHandle = val;
+  }
+
+  void __set_query(const std::string& val) {
+    query = val;
+    __isset.query = true;
+  }
+
+  void __set_startTime(const int64_t val) {
+    startTime = val;
+    __isset.startTime = true;
+  }
+
+  bool operator == (const TOperationInfo & rhs) const
+  {
+    if (!(status == rhs.status))
+      return false;
+    if (!(operationHandle == rhs.operationHandle))
+      return false;
+    if (__isset.query != rhs.__isset.query)
+      return false;
+    else if (__isset.query && !(query == rhs.query))
+      return false;
+    if (__isset.startTime != rhs.__isset.startTime)
+      return false;
+    else if (__isset.startTime && !(startTime == rhs.startTime))
+      return false;
+    return true;
+  }
+  bool operator != (const TOperationInfo &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TOperationInfo & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(TOperationInfo &a, TOperationInfo &b);
+
+typedef struct _TOperationsRes__isset {
+  _TOperationsRes__isset() : operations(false) {}
+  bool operations;
+} _TOperationsRes__isset;
+
+class TOperationsRes {
+ public:
+
+  static const char* ascii_fingerprint; // = "CEFE855D4837B713040CF5BE8F9B9378";
+  static const uint8_t binary_fingerprint[16]; // = {0xCE,0xFE,0x85,0x5D,0x48,0x37,0xB7,0x13,0x04,0x0C,0xF5,0xBE,0x8F,0x9B,0x93,0x78};
+
+  TOperationsRes() {
+  }
+
+  virtual ~TOperationsRes() throw() {}
+
+  std::vector<TOperationInfo>  operations;
+
+  _TOperationsRes__isset __isset;
+
+  void __set_operations(const std::vector<TOperationInfo> & val) {
+    operations = val;
+    __isset.operations = true;
+  }
+
+  bool operator == (const TOperationsRes & rhs) const
+  {
+    if (__isset.operations != rhs.__isset.operations)
+      return false;
+    else if (__isset.operations && !(operations == rhs.operations))
+      return false;
+    return true;
+  }
+  bool operator != (const TOperationsRes &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TOperationsRes & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(TOperationsRes &a, TOperationsRes &b);
+
 }}}}} // namespace
 
 #endif

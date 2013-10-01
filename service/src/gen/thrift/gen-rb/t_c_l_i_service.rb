@@ -296,6 +296,36 @@ module TCLIService
       raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'ExecuteTransient failed: unknown result')
     end
 
+    def GetSessions()
+      send_GetSessions()
+      return recv_GetSessions()
+    end
+
+    def send_GetSessions()
+      send_message('GetSessions', GetSessions_args)
+    end
+
+    def recv_GetSessions()
+      result = receive_message(GetSessions_result)
+      return result.success unless result.success.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'GetSessions failed: unknown result')
+    end
+
+    def GetOperations()
+      send_GetOperations()
+      return recv_GetOperations()
+    end
+
+    def send_GetOperations()
+      send_message('GetOperations', GetOperations_args)
+    end
+
+    def recv_GetOperations()
+      result = receive_message(GetOperations_result)
+      return result.success unless result.success.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'GetOperations failed: unknown result')
+    end
+
   end
 
   class Processor
@@ -432,6 +462,20 @@ module TCLIService
       result = ExecuteTransient_result.new()
       result.success = @handler.ExecuteTransient(args.req)
       write_result(result, oprot, 'ExecuteTransient', seqid)
+    end
+
+    def process_GetSessions(seqid, iprot, oprot)
+      args = read_args(iprot, GetSessions_args)
+      result = GetSessions_result.new()
+      result.success = @handler.GetSessions()
+      write_result(result, oprot, 'GetSessions', seqid)
+    end
+
+    def process_GetOperations(seqid, iprot, oprot)
+      args = read_args(iprot, GetOperations_args)
+      result = GetOperations_result.new()
+      result.success = @handler.GetOperations()
+      write_result(result, oprot, 'GetOperations', seqid)
     end
 
   end
@@ -1036,6 +1080,68 @@ module TCLIService
 
     FIELDS = {
       SUCCESS => {:type => ::Thrift::Types::STRUCT, :name => 'success', :class => ::TStatus}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class GetSessions_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+
+    FIELDS = {
+
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class GetSessions_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::STRUCT, :name => 'success', :class => ::TSessionsRes}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class GetOperations_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+
+    FIELDS = {
+
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class GetOperations_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::STRUCT, :name => 'success', :class => ::TOperationsRes}
     }
 
     def struct_fields; FIELDS; end

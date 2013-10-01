@@ -117,6 +117,16 @@ class TCLIServiceHandler : virtual public TCLIServiceIf {
     printf("ExecuteTransient\n");
   }
 
+  void GetSessions(TSessionsRes& _return) {
+    // Your implementation goes here
+    printf("GetSessions\n");
+  }
+
+  void GetOperations(TOperationsRes& _return) {
+    // Your implementation goes here
+    printf("GetOperations\n");
+  }
+
 };
 
 int main(int argc, char **argv) {

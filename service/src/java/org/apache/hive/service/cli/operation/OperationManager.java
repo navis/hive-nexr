@@ -18,6 +18,7 @@
 
 package org.apache.hive.service.cli.operation;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -168,5 +169,9 @@ public class OperationManager extends AbstractService {
       FetchOrientation orientation, long maxRows)
       throws HiveSQLException {
     return getOperation(opHandle).getNextRowSet(orientation, maxRows);
+  }
+
+  public List<Operation> getOperations() {
+    return new ArrayList<Operation>(handleToOperation.values());
   }
 }

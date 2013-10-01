@@ -20,11 +20,15 @@ package org.apache.hive.service.cli.thrift;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.hive.service.CompileResult;
+import org.apache.hive.service.OperationInfo;
+import org.apache.hive.service.SessionInfo;
 import org.apache.hive.service.auth.PlainSaslHelper;
 import org.apache.hive.service.cli.CLIServiceClient;
 import org.apache.hive.service.cli.ColumnDescriptor;
@@ -61,9 +65,46 @@ public class ThriftCLIServiceClient extends CLIServiceClient {
     }
   }
 
+  @Override
+  public List<SessionInfo> getSessions() throws HiveSQLException {
+    try {
+      TSessionsRes sessionsRes = cliService.GetSessions();
+      List<TSessionInfo> sessions = sessionsRes.getSessions();
+      if (sessions == null || sessions.isEmpty()) {
+        return Collections.emptyList();
+      }
+      List<SessionInfo> result = new ArrayList<SessionInfo>();
+      for (TSessionInfo session : sessions) {
+        result.add(new SessionInfo(session.getSessionHandle(), session.getStartTime()));
+      }
+      return result;
+    } catch (Exception e) {
+      throw new HiveSQLException(e);
+    }
+  }
+
+  @Override
+  public List<OperationInfo> getOperations() throws HiveSQLException {
+    try {
+      TOperationsRes operationsRes = cliService.GetOperations();
+      List<TOperationInfo> operations = operationsRes.getOperations();
+      if (operations == null || operations.isEmpty()) {
+        return Collections.emptyList();
+      }
+      List<OperationInfo> result = new ArrayList<OperationInfo>();
+      for (TOperationInfo top : operations) {
+        result.add(new OperationInfo(top.getStatus(), top.getOperationHandle(),
+            top.getQuery(), top.getStartTime()));
+      }
+      return result;
+    } catch (Exception e) {
+      throw new HiveSQLException(e);
+    }
+  }
+
   /* (non-Javadoc)
-   * @see org.apache.hive.service.cli.ICLIService#openSession(java.lang.String, java.lang.String, java.util.Map)
-   */
+     * @see org.apache.hive.service.cli.ICLIService#openSession(java.lang.String, java.lang.String, java.util.Map)
+     */
   @Override
   public SessionHandle openSession(String username, String password,
       Map<String, String> configuration)

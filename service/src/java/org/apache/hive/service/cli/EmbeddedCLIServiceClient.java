@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hive.service.CompileResult;
+import org.apache.hive.service.OperationInfo;
+import org.apache.hive.service.SessionInfo;
 
 
 /**
@@ -35,9 +37,19 @@ public class EmbeddedCLIServiceClient extends CLIServiceClient {
     this.cliService = cliService;
   }
 
+  @Override
+  public List<SessionInfo> getSessions() throws HiveSQLException {
+    return cliService.getSessions();
+  }
+
+  @Override
+  public List<OperationInfo> getOperations() throws HiveSQLException {
+    return cliService.getOperations();
+  }
+
   /* (non-Javadoc)
-   * @see org.apache.hive.service.cli.CLIServiceClient#openSession(java.lang.String, java.lang.String, java.util.Map)
-   */
+     * @see org.apache.hive.service.cli.CLIServiceClient#openSession(java.lang.String, java.lang.String, java.util.Map)
+     */
   @Override
   public SessionHandle openSession(String username, String password,
       Map<String, String> configuration) throws HiveSQLException {

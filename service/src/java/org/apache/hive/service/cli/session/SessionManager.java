@@ -19,6 +19,7 @@
 package org.apache.hive.service.cli.session;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -26,6 +27,7 @@ import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hive.service.CompositeService;
 import org.apache.hive.service.cli.HiveSQLException;
 import org.apache.hive.service.cli.SessionHandle;
+import org.apache.hive.service.cli.operation.Operation;
 import org.apache.hive.service.cli.operation.OperationManager;
 
 /**
@@ -66,6 +68,10 @@ public class SessionManager extends CompositeService {
   public synchronized void stop() {
     // TODO
     super.stop();
+  }
+
+  public Map<SessionHandle, HiveSession> getSessions() {
+    return new HashMap<SessionHandle, HiveSession>(handleToSession);
   }
 
   public SessionHandle openSession(String username, String password, Map<String, String> sessionConf)
@@ -167,5 +173,9 @@ public class SessionManager extends CompositeService {
     SessionHandle handle = openSession(null, null, null);
     this.inheritToClient = inheritToClient;
     return serverSession = handleToSession.get(handle);
+  }
+
+  public List<Operation> getOperations() {
+    return operationManager.getOperations();
   }
 }

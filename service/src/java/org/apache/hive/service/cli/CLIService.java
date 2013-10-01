@@ -19,6 +19,7 @@
 package org.apache.hive.service.cli;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -34,10 +35,17 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hive.service.CompileResult;
 import org.apache.hive.service.CompositeService;
+import org.apache.hive.service.OperationInfo;
+import org.apache.hive.service.SessionInfo;
 import org.apache.hive.service.ServiceException;
 import org.apache.hive.service.auth.HiveAuthFactory;
+import org.apache.hive.service.cli.operation.ExecuteStatementOperation;
+import org.apache.hive.service.cli.operation.Operation;
 import org.apache.hive.service.cli.session.HiveSession;
 import org.apache.hive.service.cli.session.SessionManager;
+import org.apache.hive.service.cli.thrift.TOperationHandle;
+import org.apache.hive.service.cli.thrift.TOperationState;
+import org.apache.hive.service.cli.thrift.TSessionHandle;
 
 /**
  * CLIService.
@@ -94,6 +102,31 @@ public class CLIService extends CompositeService implements ICLIService {
       metastoreClient.close();
     }
     super.stop();
+  }
+
+  public List<SessionInfo> getSessions() {
+    List<SessionInfo> operations = new ArrayList<SessionInfo>();
+    for (Map.Entry<SessionHandle, HiveSession> entry : sessionManager.getSessions().entrySet()) {
+      TSessionHandle sessionHandle = entry.getKey().toTSessionHandle();
+      long startTime = entry.getValue().getStartTime();
+      operations.add(new SessionInfo(sessionHandle, startTime));
+    }
+    return operations;
+  }
+
+  public List<OperationInfo> getOperations() {
+    List<OperationInfo> operations = new ArrayList<OperationInfo>();
+    for (Operation operation : sessionManager.getOperations()) {
+      TOperationState status = operation.getState().toTOperationState();
+      TOperationHandle operationHandle = operation.getHandle().toTOperationHandle();
+      long startTime = operation.getStartTime();
+      String statement = null;
+      if (operation instanceof ExecuteStatementOperation) {
+        statement = ((ExecuteStatementOperation) operation).getStatement();
+      }
+      operations.add(new OperationInfo(status, operationHandle, statement, startTime));
+    }
+    return operations;
   }
 
   public HiveSession openServerSession(boolean inheritToClient) throws HiveSQLException {

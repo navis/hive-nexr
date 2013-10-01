@@ -40,6 +40,8 @@ public abstract class Operation {
   public static final long DEFAULT_FETCH_MAX_ROWS = 100;
   protected boolean hasResultSet;
 
+  protected long startTime = -1;
+
   protected Operation(HiveSession parentSession, OperationType opType) {
     super();
     this.parentSession = parentSession;
@@ -74,6 +76,10 @@ public abstract class Operation {
     return hasResultSet;
   }
 
+  public long getStartTime() {
+    return startTime;
+  }
+
   protected void setHasResultSet(boolean hasResultSet) {
     this.hasResultSet = hasResultSet;
     opHandle.setHasResultSet(hasResultSet);
@@ -81,6 +87,9 @@ public abstract class Operation {
 
   protected final OperationState setState(OperationState newState) throws HiveSQLException {
     state.validateTransition(newState);
+    if (state == OperationState.INITIALIZED && newState == OperationState.RUNNING) {
+      startTime = System.currentTimeMillis();
+    }
     this.state = newState;
     return this.state;
   }

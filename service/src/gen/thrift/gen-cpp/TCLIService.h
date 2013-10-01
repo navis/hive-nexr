@@ -34,6 +34,8 @@ class TCLIServiceIf {
   virtual void Compile(TCompileRes& _return, const TExecuteStatementReq& req) = 0;
   virtual void Run(TStatus& _return, const TRunReq& req) = 0;
   virtual void ExecuteTransient(TStatus& _return, const TExecuteStatementReq& req) = 0;
+  virtual void GetSessions(TSessionsRes& _return) = 0;
+  virtual void GetOperations(TOperationsRes& _return) = 0;
 };
 
 class TCLIServiceIfFactory {
@@ -118,6 +120,12 @@ class TCLIServiceNull : virtual public TCLIServiceIf {
     return;
   }
   void ExecuteTransient(TStatus& /* _return */, const TExecuteStatementReq& /* req */) {
+    return;
+  }
+  void GetSessions(TSessionsRes& /* _return */) {
+    return;
+  }
+  void GetOperations(TOperationsRes& /* _return */) {
     return;
   }
 };
@@ -2174,6 +2182,194 @@ class TCLIService_ExecuteTransient_presult {
 
 };
 
+
+class TCLIService_GetSessions_args {
+ public:
+
+  TCLIService_GetSessions_args() {
+  }
+
+  virtual ~TCLIService_GetSessions_args() throw() {}
+
+
+  bool operator == (const TCLIService_GetSessions_args & /* rhs */) const
+  {
+    return true;
+  }
+  bool operator != (const TCLIService_GetSessions_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TCLIService_GetSessions_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class TCLIService_GetSessions_pargs {
+ public:
+
+
+  virtual ~TCLIService_GetSessions_pargs() throw() {}
+
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _TCLIService_GetSessions_result__isset {
+  _TCLIService_GetSessions_result__isset() : success(false) {}
+  bool success;
+} _TCLIService_GetSessions_result__isset;
+
+class TCLIService_GetSessions_result {
+ public:
+
+  TCLIService_GetSessions_result() {
+  }
+
+  virtual ~TCLIService_GetSessions_result() throw() {}
+
+  TSessionsRes success;
+
+  _TCLIService_GetSessions_result__isset __isset;
+
+  void __set_success(const TSessionsRes& val) {
+    success = val;
+  }
+
+  bool operator == (const TCLIService_GetSessions_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const TCLIService_GetSessions_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TCLIService_GetSessions_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _TCLIService_GetSessions_presult__isset {
+  _TCLIService_GetSessions_presult__isset() : success(false) {}
+  bool success;
+} _TCLIService_GetSessions_presult__isset;
+
+class TCLIService_GetSessions_presult {
+ public:
+
+
+  virtual ~TCLIService_GetSessions_presult() throw() {}
+
+  TSessionsRes* success;
+
+  _TCLIService_GetSessions_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+
+class TCLIService_GetOperations_args {
+ public:
+
+  TCLIService_GetOperations_args() {
+  }
+
+  virtual ~TCLIService_GetOperations_args() throw() {}
+
+
+  bool operator == (const TCLIService_GetOperations_args & /* rhs */) const
+  {
+    return true;
+  }
+  bool operator != (const TCLIService_GetOperations_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TCLIService_GetOperations_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class TCLIService_GetOperations_pargs {
+ public:
+
+
+  virtual ~TCLIService_GetOperations_pargs() throw() {}
+
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _TCLIService_GetOperations_result__isset {
+  _TCLIService_GetOperations_result__isset() : success(false) {}
+  bool success;
+} _TCLIService_GetOperations_result__isset;
+
+class TCLIService_GetOperations_result {
+ public:
+
+  TCLIService_GetOperations_result() {
+  }
+
+  virtual ~TCLIService_GetOperations_result() throw() {}
+
+  TOperationsRes success;
+
+  _TCLIService_GetOperations_result__isset __isset;
+
+  void __set_success(const TOperationsRes& val) {
+    success = val;
+  }
+
+  bool operator == (const TCLIService_GetOperations_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const TCLIService_GetOperations_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TCLIService_GetOperations_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _TCLIService_GetOperations_presult__isset {
+  _TCLIService_GetOperations_presult__isset() : success(false) {}
+  bool success;
+} _TCLIService_GetOperations_presult__isset;
+
+class TCLIService_GetOperations_presult {
+ public:
+
+
+  virtual ~TCLIService_GetOperations_presult() throw() {}
+
+  TOperationsRes* success;
+
+  _TCLIService_GetOperations_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
 class TCLIServiceClient : virtual public TCLIServiceIf {
  public:
   TCLIServiceClient(boost::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) :
@@ -2251,6 +2447,12 @@ class TCLIServiceClient : virtual public TCLIServiceIf {
   void ExecuteTransient(TStatus& _return, const TExecuteStatementReq& req);
   void send_ExecuteTransient(const TExecuteStatementReq& req);
   void recv_ExecuteTransient(TStatus& _return);
+  void GetSessions(TSessionsRes& _return);
+  void send_GetSessions();
+  void recv_GetSessions(TSessionsRes& _return);
+  void GetOperations(TOperationsRes& _return);
+  void send_GetOperations();
+  void recv_GetOperations(TOperationsRes& _return);
  protected:
   boost::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
   boost::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
@@ -2285,6 +2487,8 @@ class TCLIServiceProcessor : public ::apache::thrift::TDispatchProcessor {
   void process_Compile(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_Run(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_ExecuteTransient(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_GetSessions(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_GetOperations(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
  public:
   TCLIServiceProcessor(boost::shared_ptr<TCLIServiceIf> iface) :
     iface_(iface) {
@@ -2307,6 +2511,8 @@ class TCLIServiceProcessor : public ::apache::thrift::TDispatchProcessor {
     processMap_["Compile"] = &TCLIServiceProcessor::process_Compile;
     processMap_["Run"] = &TCLIServiceProcessor::process_Run;
     processMap_["ExecuteTransient"] = &TCLIServiceProcessor::process_ExecuteTransient;
+    processMap_["GetSessions"] = &TCLIServiceProcessor::process_GetSessions;
+    processMap_["GetOperations"] = &TCLIServiceProcessor::process_GetOperations;
   }
 
   virtual ~TCLIServiceProcessor() {}
@@ -2522,6 +2728,26 @@ class TCLIServiceMultiface : virtual public TCLIServiceIf {
       ifaces_[i]->ExecuteTransient(_return, req);
     }
     ifaces_[i]->ExecuteTransient(_return, req);
+    return;
+  }
+
+  void GetSessions(TSessionsRes& _return) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->GetSessions(_return);
+    }
+    ifaces_[i]->GetSessions(_return);
+    return;
+  }
+
+  void GetOperations(TOperationsRes& _return) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->GetOperations(_return);
+    }
+    ifaces_[i]->GetOperations(_return);
     return;
   }
 

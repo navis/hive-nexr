@@ -996,6 +996,7 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
   public void shutdown() {
     super.shutdown();
     if (rj != null) {
+      LOG.warn("Killing MapReduce Job " + rj.getID());
       try {
         rj.killJob();
       } catch (Exception e) {
