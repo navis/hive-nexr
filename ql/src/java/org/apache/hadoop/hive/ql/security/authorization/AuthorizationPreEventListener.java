@@ -18,6 +18,8 @@
 
 package org.apache.hadoop.hive.ql.security.authorization;
 
+import java.util.Iterator;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -38,6 +40,8 @@ import org.apache.hadoop.hive.metastore.events.PreDropDatabaseEvent;
 import org.apache.hadoop.hive.metastore.events.PreDropPartitionEvent;
 import org.apache.hadoop.hive.metastore.events.PreDropTableEvent;
 import org.apache.hadoop.hive.metastore.events.PreEventContext;
+import org.apache.hadoop.hive.metastore.events.PreGetDatabasesEvent;
+import org.apache.hadoop.hive.metastore.events.PreGetTablesEvent;
 import org.apache.hadoop.hive.ql.metadata.AuthorizationException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.HiveUtils;
@@ -106,6 +110,12 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
       break;
     case LOAD_PARTITION_DONE:
       // noop for now
+      break;
+    case GET_DATABASES:
+      authorizeGetDatabase((PreGetDatabasesEvent)context);
+      break;
+    case GET_TABLES:
+      authorizeGetTables((PreGetTablesEvent) context);
       break;
     default:
       break;
@@ -224,6 +234,39 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
     } catch (HiveException e) {
       throw metaException(e);
     }
+  }
+
+  private void authorizeGetDatabase(PreGetDatabasesEvent context) throws MetaException {
+    Iterator<String> databases = context.getDatabases().iterator();
+    while (databases.hasNext()) {
+      try {
+        Database database = context.getHandler().get_database(databases.next());
+        authorizer.authorize(database, new Privilege[] {Privilege.SHOW_DATABASE}, null);
+      } catch (AuthorizationException e) {
+        databases.remove();
+      } catch (NoSuchObjectException e) {
+        databases.remove();
+      } catch (HiveException e) {
+        throw metaException(e);
+      }
+    }
+  }
+
+  private void authorizeGetTables(PreGetTablesEvent context) throws MetaException {
+//    Iterator<String> tables = context.getTables().iterator();
+//    while (tables.hasNext()) {
+//      try {
+//        Table table = getTableFromApiTable(
+//            context.getHandler().get_table(context.getDatabase(), tables.next()));
+//        authorizer.authorize(table, new Privilege[] {Privilege.SELECT}, null);
+//      } catch (AuthorizationException e) {
+//        tables.remove();
+//      } catch (NoSuchObjectException e) {
+//        tables.remove();
+//      } catch (HiveException e) {
+//        throw metaException(e);
+//      }
+//    }
   }
 
   private Table getTableFromApiTable(org.apache.hadoop.hive.metastore.api.Table apiTable) {

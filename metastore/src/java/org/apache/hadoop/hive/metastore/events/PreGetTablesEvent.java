@@ -18,49 +18,26 @@
 
 package org.apache.hadoop.hive.metastore.events;
 
-import org.apache.hadoop.hive.metastore.HiveMetaStore.HMSHandler;
+import java.util.List;
 
+import org.apache.hadoop.hive.metastore.HiveMetaStore;
 
-/**
- * Base class for all the events which are defined for metastore.
- */
+public class PreGetTablesEvent extends PreEventContext {
 
-public abstract class PreEventContext {
+  private final String database;
+  private final List<String> tables;
 
-  public static enum PreEventType {
-    CREATE_TABLE,
-    DROP_TABLE,
-    ALTER_TABLE,
-    ADD_PARTITION,
-    DROP_PARTITION,
-    ALTER_PARTITION,
-    CREATE_DATABASE,
-    DROP_DATABASE,
-    LOAD_PARTITION_DONE,
-    GET_DATABASES,
-    GET_TABLES
+  public PreGetTablesEvent(String database, List<String> tables, HiveMetaStore.HMSHandler handler) {
+    super(PreEventType.GET_TABLES, handler);
+    this.database = database;
+    this.tables = tables;
   }
 
-  private final PreEventType eventType;
-  private final HMSHandler handler;
-
-  public PreEventContext(PreEventType eventType, HMSHandler  handler) {
-    this.eventType = eventType;
-    this.handler = handler;
+  public String getDatabase() {
+    return database;
   }
 
-  /**
-   * @return the event type
-   */
-  public PreEventType getEventType() {
-    return eventType;
+  public List<String> getTables() {
+    return tables;
   }
-
-  /**
-   * @return the handler
-   */
-  public HMSHandler getHandler() {
-    return handler;
-  }
-
 }

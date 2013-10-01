@@ -106,6 +106,8 @@ import org.apache.hadoop.hive.metastore.events.PreDropDatabaseEvent;
 import org.apache.hadoop.hive.metastore.events.PreDropPartitionEvent;
 import org.apache.hadoop.hive.metastore.events.PreDropTableEvent;
 import org.apache.hadoop.hive.metastore.events.PreEventContext;
+import org.apache.hadoop.hive.metastore.events.PreGetDatabasesEvent;
+import org.apache.hadoop.hive.metastore.events.PreGetTablesEvent;
 import org.apache.hadoop.hive.metastore.events.PreLoadPartitionDoneEvent;
 import org.apache.hadoop.hive.metastore.model.MDBPrivilege;
 import org.apache.hadoop.hive.metastore.model.MGlobalPrivilege;
@@ -828,6 +830,9 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       Exception ex = null;
       try {
         ret = getMS().getDatabases(pattern);
+        if (!ret.isEmpty()) {
+          firePreEvent(new PreGetDatabasesEvent(ret, this));
+        }
       } catch (Exception e) {
         ex = e;
         if (e instanceof MetaException) {
@@ -850,6 +855,9 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       Exception ex = null;
       try {
         ret = getMS().getAllDatabases();
+        if (!ret.isEmpty()) {
+          firePreEvent(new PreGetDatabasesEvent(ret, this));
+        }
       } catch (Exception e) {
         ex = e;
         if (e instanceof MetaException) {
@@ -2382,6 +2390,9 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       Exception ex = null;
       try {
         ret = getMS().getTables(dbname, pattern);
+        if (!ret.isEmpty()) {
+          firePreEvent(new PreGetTablesEvent(dbname, ret, this));
+        }
       } catch (Exception e) {
         ex = e;
         if (e instanceof MetaException) {
@@ -2404,6 +2415,9 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       Exception ex = null;
       try {
         ret = getMS().getAllTables(dbname);
+        if (!ret.isEmpty()) {
+          firePreEvent(new PreGetTablesEvent(dbname, ret, this));
+        }
       } catch (Exception e) {
         ex = e;
         if (e instanceof MetaException) {
