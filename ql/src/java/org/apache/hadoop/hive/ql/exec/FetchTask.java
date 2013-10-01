@@ -133,10 +133,14 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
 
   // used for pseudo mr mode, push
   public int execute(DriverContext driverContext) {
+    int counter = 0;
     boolean success = true;
     try {
       // push to list
       while (fetch.pushRow() && !limitExceeded()) {
+        if (++counter % 10000 == 0 && Thread.interrupted()) {
+          throw new InterruptedException("interrupted");
+        }
       }
       fetch.clearFetchContext(false);
       return 0;
