@@ -33,7 +33,7 @@ import org.apache.hadoop.hive.conf.HiveConf;
  */
 public class CompositeService extends AbstractService {
 
-  private static final Log LOG = LogFactory.getLog(CompositeService.class);
+  protected static final Log LOG = LogFactory.getLog(CompositeService.class);
 
   private final List<Service> serviceList = new ArrayList<Service>();
 

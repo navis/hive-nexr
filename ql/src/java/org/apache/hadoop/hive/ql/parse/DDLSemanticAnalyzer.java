@@ -478,6 +478,7 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
         principalDesc, privHiveObj, cols);
     rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(),
         showGrant), conf));
+    setFetchTask(createFetchTask(ShowGrantDesc.getSchema()));
   }
 
   private void analyzeGrant(ASTNode ast) throws SemanticException {
@@ -638,6 +639,7 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
     createRoleDesc.setResFile(ctx.getResFile().toString());
     rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(),
         createRoleDesc), conf));
+    setFetchTask(createFetchTask(RoleDDLDesc.getSchema()));
   }
 
   private void analyzeAlterDatabase(ASTNode ast) throws SemanticException {
