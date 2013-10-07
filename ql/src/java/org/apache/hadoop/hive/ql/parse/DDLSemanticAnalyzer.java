@@ -470,12 +470,13 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
           "For user-level privileges, column sets should be null. columns="
               + cols.toString());
     }
+    boolean tabular = HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_SHOW_GRANT_TABULAR);
 
     ShowGrantDesc showGrant = new ShowGrantDesc(ctx.getResFile().toString(),
-        principalDesc, privHiveObj, cols);
+        principalDesc, privHiveObj, cols, tabular);
     rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(),
         showGrant), conf));
-    setFetchTask(createFetchTask(ShowGrantDesc.getSchema()));
+    setFetchTask(createFetchTask(ShowGrantDesc.getSchema(tabular)));
   }
 
   private PrincipalDesc getPrincipalDesc(ASTNode principal) {
@@ -647,22 +648,28 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
       principalType = PrincipalType.ROLE;
       break;
     }
+
+    boolean tabular = HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_SHOW_GRANT_TABULAR);
+
     String principalName = unescapeIdentifier(child.getChild(0).getText());
     RoleDDLDesc createRoleDesc = new RoleDDLDesc(principalName, principalType,
         RoleDDLDesc.RoleOperation.SHOW_ROLE_GRANT, null);
+    createRoleDesc.setTabular(tabular);
     createRoleDesc.setResFile(ctx.getResFile().toString());
     rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(),
         createRoleDesc), conf));
-    setFetchTask(createFetchTask(RoleDDLDesc.getSchema()));
+    setFetchTask(createFetchTask(RoleDDLDesc.getSchema(tabular)));
   }
 
   private void analyzeShowRoles(ASTNode ast) {
+    boolean tabular = HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_SHOW_GRANT_TABULAR);
     RoleDDLDesc showRolesDesc = new RoleDDLDesc(null, null,
         RoleDDLDesc.RoleOperation.SHOW_ROLES, null);
+    showRolesDesc.setTabular(tabular);
     showRolesDesc.setResFile(ctx.getResFile().toString());
     rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(),
         showRolesDesc), conf));
-    setFetchTask(createFetchTask(RoleDDLDesc.getSchema()));
+    setFetchTask(createFetchTask(RoleDDLDesc.getSchema(tabular)));
   }
 
   private void analyzeAlterDatabase(ASTNode ast) throws SemanticException {

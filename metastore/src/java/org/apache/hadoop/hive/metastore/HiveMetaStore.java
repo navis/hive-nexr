@@ -3544,12 +3544,17 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       try {
 
         List<Role> result = new ArrayList<Role>();
-        List<MRoleMap> roleMap = getMS().listRoles(principalName, principalType);
-        if (roleMap != null) {
-          for (MRoleMap role : roleMap) {
-            MRole r = role.getRole();
-            result.add(new Role(r.getRoleName(), r
-                .getCreateTime(), r.getOwnerName()));
+        List<MRoleMap> roleMaps = getMS().listRoles(principalName, principalType);
+        if (roleMaps != null) {
+          for (MRoleMap roleMap : roleMaps) {
+            MRole mrole = roleMap.getRole();
+            Role role = new Role(mrole.getRoleName(), mrole.getCreateTime(), mrole.getOwnerName());
+            role.setPrincipalName(roleMap.getPrincipalName());
+            role.setPrincipalType(roleMap.getPrincipalType());
+            role.setGrantOption(roleMap.getGrantOption());
+            role.setGrantTime(roleMap.getAddTime());
+            role.setGrantor(roleMap.getGrantor());
+            result.add(role);
           }
         }
         ret = result;

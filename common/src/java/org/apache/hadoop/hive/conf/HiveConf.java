@@ -667,6 +667,8 @@ public class HiveConf extends Configuration {
     HIVE_AUTHORIZATION_TABLE_OWNER_GRANTS("hive.security.authorization.createtable.owner.grants",
         ""),
 
+    HIVE_SHOW_GRANT_TABULAR("hive.show.grant.tabular", false),
+
     // Print column names in output
     HIVE_CLI_PRINT_HEADER("hive.cli.print.header", false),
 

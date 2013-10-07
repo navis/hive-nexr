@@ -39,13 +39,27 @@ public class RoleDDLDesc extends DDLDesc implements Serializable {
   
   private String roleOwnerName;
 
+  private boolean tabular;
+
   /**
    * thrift ddl for the result of show role.
    */
-  private static String schema = "role#string";
+  private static final String tabularSchema =
+      "role,principal_name,principal_type,grant_option,grant_time,grantor#" +
+      "string:string:string:boolean:bigint:string";
 
-  public static String getSchema() {
-    return schema;
+  private static final String simpleSchema = "role#string";
+
+  public static String getSchema(boolean tabular) {
+    return tabular ? tabularSchema : simpleSchema;
+  }
+
+  public boolean isTabular() {
+    return tabular;
+  }
+
+  public void setTabular(boolean tabular) {
+    this.tabular = tabular;
   }
 
   public static enum RoleOperation {
