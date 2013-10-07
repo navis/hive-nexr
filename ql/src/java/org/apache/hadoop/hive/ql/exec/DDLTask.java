@@ -592,7 +592,9 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
           }
         }
       }
-      writeToFile(writeGrantInfo(privs), showGrantDesc.getResFile());
+      String datum =
+          showGrantDesc.isTabular() ? writeGrantInfoTabular(privs) : writeGrantInfo(privs);
+      writeToFile(datum, showGrantDesc.getResFile());
     } catch (FileNotFoundException e) {
       LOG.info("show table status: " + stringifyException(e));
       return 1;
@@ -751,26 +753,17 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       } else if (operation.equals(RoleDDLDesc.RoleOperation.DROP_ROLE)) {
         db.dropRole(roleDDLDesc.getName());
       } else if (operation.equals(RoleDDLDesc.RoleOperation.SHOW_ROLE_GRANT)) {
-        List<Role> roles = db.showRoleGrant(roleDDLDesc.getName(), roleDDLDesc
-            .getPrincipalType());
-        if (roles != null && roles.size() > 0) {
-          Path resFile = new Path(roleDDLDesc.getResFile());
-          FileSystem fs = resFile.getFileSystem(conf);
-          outStream = fs.create(resFile);
-          for (Role role : roles) {
-            outStream.writeBytes(role.getRoleName());
-            outStream.write(terminator);
-          }
-          ((FSDataOutputStream) outStream).close();
-          outStream = null;
-        }
+        List<Role> roles = db.showRoleGrant(roleDDLDesc.getName(), roleDDLDesc.getPrincipalType());
+        String datum =
+          roleDDLDesc.isTabular() ? writeRoleInfoTabular(roles) : writeRoleInfo(roles);
+        writeToFile(datum, roleDDLDesc.getResFile());
       } else if (operation.equals(RoleDDLDesc.RoleOperation.SHOW_ROLES)) {
         List<String> roleNames = db.getAllRoleNames();
         Path resFile = new Path(roleDDLDesc.getResFile());
         FileSystem fs = resFile.getFileSystem(conf);
         outStream = fs.create(resFile);
         for (String roleName : roleNames) {
-          outStream.writeBytes("role name: " + roleName);
+          outStream.writeBytes(roleName);
           outStream.write(terminator);
         }
         ((FSDataOutputStream) outStream).close();
@@ -2873,6 +2866,39 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
     return 0;
   }
 
+  static String writeRoleInfo(List<Role> roles) {
+    if (roles == null || roles.isEmpty()) {
+      return "";
+    }
+    StringBuilder builder = new StringBuilder();
+    for (Role role : roles) {
+      if (builder.length() > 0) {
+        builder.append((char)terminator);
+      }
+      builder.append(role.getRoleName());
+    }
+    return builder.toString();
+  }
+
+  static String writeRoleInfoTabular(List<Role> roles) {
+    if (roles == null || roles.isEmpty()) {
+      return "";
+    }
+    StringBuilder builder = new StringBuilder();
+    for (Role role : roles) {
+      if (builder.length() > 0) {
+        builder.append((char)terminator);
+      }
+      builder.append(role.getRoleName());
+      builder.append((char)separator).append(role.getPrincipalName());
+      builder.append((char)separator).append(role.getPrincipalType());
+      builder.append((char)separator).append(role.isGrantOption());
+      builder.append((char)separator).append(role.getCreateTime() * 1000L);
+      builder.append((char)separator).append(role.getGrantor());
+    }
+    return builder.toString();
+  }
+
   static String writeGrantInfo(List<HiveObjectPrivilege> privileges) {
     if (privileges == null || privileges.isEmpty()) {
       return "";
@@ -2916,6 +2942,47 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       writeKeyValuePair(builder, "grantTime", "" + createTime);
       if (grantor != null) {
         writeKeyValuePair(builder, "grantor", grantor);
+      }
+    }
+    return builder.toString();
+  }
+
+  static String writeGrantInfoTabular(List<HiveObjectPrivilege> privileges) {
+    if (privileges == null || privileges.isEmpty()) {
+      return "";
+    }
+    StringBuilder builder = new StringBuilder();
+    for (HiveObjectPrivilege privilege : privileges) {
+      if (builder.length() > 0) {
+        builder.append((char)terminator);
+      }
+      PrivilegeGrantInfo grantInfo = privilege.getGrantInfo();
+      HiveObjectRef resource = privilege.getHiveObject();
+
+      if (resource.getDbName() != null) {
+        builder.append(resource.getDbName());
+      }
+      builder.append((char) separator);
+      if (resource.getObjectName() != null) {
+        builder.append(resource.getObjectName());
+      }
+      builder.append((char)separator);
+      if (resource.getPartValues() != null) {
+        builder.append(resource.getPartValues());
+      }
+      builder.append((char)separator);
+      if (resource.getColumnName() != null) {
+        builder.append(resource.getColumnName());
+      }
+
+      builder.append((char)separator).append(privilege.getPrincipalName());
+      builder.append((char)separator).append(privilege.getPrincipalType());
+      builder.append((char)separator).append(grantInfo.getPrivilege());
+
+      builder.append((char)separator).append(grantInfo.isGrantOption());
+      builder.append((char)separator).append(grantInfo.getCreateTime() * 1000L);
+      if (grantInfo.getGrantor() != null) {
+        builder.append((char)separator).append(grantInfo.getGrantor());
       }
     }
     return builder.toString();
