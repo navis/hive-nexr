@@ -81,8 +81,10 @@ public class TaskRunner extends Thread {
 
   public void runSequential() {
     int exitVal = -101;
+    Task<?> localized = null;
     try {
-      exitVal = localizeMRTask(tsk).executeTask();
+      localized = localizeMRTask(tsk);
+      exitVal = localized.executeTask();
     } catch (Throwable t) {
       t.printStackTrace();
     } finally {
@@ -90,6 +92,9 @@ public class TaskRunner extends Thread {
         LogFactory.getLog(TaskRunner.class.getName()).warn("Task for " + tsk.getId() +
             " was interrupted while execution");
       }
+    }
+    if (exitVal != 0 && localized != null) {
+      result.setErrorMsg(localized.getErrorMsg());
     }
     result.setExitVal(exitVal);
   }

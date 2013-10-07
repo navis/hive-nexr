@@ -219,6 +219,13 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       HiveConf.getVar(conf, ConfVars.METASTORE_INT_EXTRACTED);
   }
 
+  private transient String errorMsg;
+
+  @Override
+  public String getErrorMsg() {
+    return errorMsg;
+  }
+
   @Override
   public int execute(DriverContext driverContext) {
 
@@ -434,14 +441,17 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       formatter.consoleError(console, "Table " + e.getTableName() + " does not exist",
                              formatter.MISSING);
       LOG.debug(stringifyException(e));
+      errorMsg = e.getMessage();
       return 1;
     } catch (AlreadyExistsException e) {
       formatter.consoleError(console, e.getMessage(), formatter.CONFLICT);
+      errorMsg = e.getMessage();
       return 1;
     } catch (NoSuchObjectException e) {
       formatter.consoleError(console, e.getMessage(),
                              "\n" + stringifyException(e),
                              formatter.MISSING);
+      errorMsg = e.getMessage();
       return 1;
     } catch (HiveException e) {
       formatter.consoleError(console,
@@ -449,11 +459,13 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
                              "\n" + stringifyException(e),
                              formatter.ERROR);
       LOG.debug(stringifyException(e));
+      errorMsg = e.getMessage();
       return 1;
     } catch (Exception e) {
       formatter.consoleError(console, "Failed with exception " + e.getMessage(),
                              "\n" + stringifyException(e),
                              formatter.ERROR);
+      errorMsg = e.getMessage();
       return (1);
     }
     assert false;

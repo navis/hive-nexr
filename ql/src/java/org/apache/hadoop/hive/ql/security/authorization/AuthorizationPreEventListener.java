@@ -131,7 +131,7 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
           HiveOperation.CREATEDATABASE.getOutputRequiredPrivileges());
     } catch (AuthorizationException e) {
       throw invalidOperationException(e);
-    } catch (HiveException e) {
+    } catch (Exception e) {
       throw metaException(e);
     }
   }
@@ -144,7 +144,7 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
           HiveOperation.DROPDATABASE.getOutputRequiredPrivileges());
     } catch (AuthorizationException e) {
       throw invalidOperationException(e);
-    } catch (HiveException e) {
+    } catch (Exception e) {
       throw metaException(e);
     }
   }
@@ -157,7 +157,7 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
           HiveOperation.CREATETABLE.getOutputRequiredPrivileges());
     } catch (AuthorizationException e) {
       throw invalidOperationException(e);
-    } catch (HiveException e) {
+    } catch (Exception e) {
       throw metaException(e);
     }
   }
@@ -170,7 +170,7 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
           HiveOperation.DROPTABLE.getOutputRequiredPrivileges());
     } catch (AuthorizationException e) {
       throw invalidOperationException(e);
-    } catch (HiveException e) {
+    } catch (Exception e) {
       throw metaException(e);
     }
   }
@@ -183,7 +183,7 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
           new Privilege[]{Privilege.ALTER_METADATA});
     } catch (AuthorizationException e) {
       throw invalidOperationException(e);
-    } catch (HiveException e) {
+    } catch (Exception e) {
       throw metaException(e);
     }
   }
@@ -199,7 +199,7 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
       throw invalidOperationException(e);
     } catch (NoSuchObjectException e) {
       throw invalidOperationException(e);
-    } catch (HiveException e) {
+    } catch (Exception e) {
       throw metaException(e);
     }
   }
@@ -215,7 +215,7 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
       throw invalidOperationException(e);
     } catch (NoSuchObjectException e) {
       throw invalidOperationException(e);
-    } catch (HiveException e) {
+    } catch (Exception e) {
       throw metaException(e);
     }
   }
@@ -231,7 +231,7 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
       throw invalidOperationException(e);
     } catch (NoSuchObjectException e) {
       throw invalidOperationException(e);
-    } catch (HiveException e) {
+    } catch (Exception e) {
       throw metaException(e);
     }
   }
@@ -246,7 +246,7 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
         databases.remove();
       } catch (NoSuchObjectException e) {
         databases.remove();
-      } catch (HiveException e) {
+      } catch (Exception e) {
         throw metaException(e);
       }
     }
@@ -263,7 +263,7 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
 //        tables.remove();
 //      } catch (NoSuchObjectException e) {
 //        tables.remove();
-//      } catch (HiveException e) {
+//      } catch (Exception e) {
 //        throw metaException(e);
 //      }
 //    }
@@ -310,7 +310,10 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
     return ex;
   }
 
-  private MetaException metaException(HiveException e) {
+  private MetaException metaException(Exception e) {
+    if (e instanceof MetaException) {
+      return (MetaException)e;
+    }
     MetaException ex =  new MetaException(e.getMessage());
     ex.initCause(e);
     return ex;

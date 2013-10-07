@@ -186,6 +186,10 @@ public abstract class Task<T extends Serializable> implements Serializable, Node
    */
   protected abstract int execute(DriverContext driverContext);
 
+  public String getErrorMsg() {
+    return null;
+  }
+
   public void setChildTasks(List<Task<? extends Serializable>> childTasks) {
     this.childTasks = childTasks;
   }

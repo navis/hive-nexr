@@ -514,6 +514,8 @@ public class Driver implements CommandProcessor {
         } catch (AuthorizationException authExp) {
           console.printError("Authorization failed:" + authExp.getMessage()
               + ". Use show grant to get more details.");
+          errorMessage = authExp.getMessage();
+          SQLState = "01542";
           return 403;
         } finally {
           perfLogger.PerfLogEnd(LOG, PerfLogger.DO_AUTHORIZATION);
@@ -1248,6 +1250,8 @@ public class Driver implements CommandProcessor {
             ErrorMsg em = ErrorMsg.getErrorMsg(exitVal);
             if (em != null) {
               errorMessage += ". " +  em.getMsg();
+            } else if (result.getErrorMsg() != null) {
+              errorMessage += ". " +  result.getErrorMsg();
             }
             SQLState = "08S01";
             console.printError(errorMessage);

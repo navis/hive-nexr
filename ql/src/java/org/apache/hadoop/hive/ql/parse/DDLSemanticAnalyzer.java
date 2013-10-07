@@ -415,12 +415,17 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
     }
   }
 
-  private void analyzeGrantRevokeRole(boolean grant, ASTNode ast) {
+  private void analyzeGrantRevokeRole(boolean grant, ASTNode ast) throws SemanticException {
     List<PrincipalDesc> principalDesc = analyzePrincipalListDef(
         (ASTNode) ast.getChild(0));
     List<String> roles = new ArrayList<String>();
     for (int i = 1; i < ast.getChildCount(); i++) {
       roles.add(unescapeIdentifier(ast.getChild(i).getText()));
+    }
+    for (PrincipalDesc principal : principalDesc) {
+      if (principal.getType() == PrincipalType.ROLE && roles.contains(principal.getName())) {
+        throw new SemanticException("Granting or revoking on the role itself");
+      }
     }
     String roleOwnerName = "";
     if (SessionState.get() != null

@@ -24,6 +24,7 @@ package org.apache.hadoop.hive.ql.exec;
 
 public class TaskResult {
   protected int exitVal;
+  protected String errorMsg;
   protected boolean runStatus;
 
   public TaskResult() {
@@ -46,5 +47,13 @@ public class TaskResult {
 
   public void setRunning(boolean val) {
     runStatus = val;
+  }
+
+  public String getErrorMsg() {
+    return errorMsg;
+  }
+
+  public void setErrorMsg(String errorMsg) {
+    this.errorMsg = errorMsg;
   }
 }
