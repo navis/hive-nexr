@@ -27,13 +27,10 @@ import org.apache.hadoop.hive.metastore.HiveMetaStore.HMSHandler;
 import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.metastore.api.HiveObjectRef;
 import org.apache.hadoop.hive.metastore.api.HiveObjectType;
-import org.apache.hadoop.hive.metastore.api.MetaException;
-import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.PrincipalPrivilegeSet;
 import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.security.HiveAuthenticationProvider;
-import org.apache.thrift.TException;
 
 public abstract class HiveAuthorizationProviderBase implements
     HiveAuthorizationProvider {
@@ -68,9 +65,7 @@ public abstract class HiveAuthorizationProviderBase implements
             tableName, partValues, col);
         try {
           return handler.get_privilege_set(hiveObj, userName, groupNames);
-        } catch (MetaException e) {
-          throw new HiveException(e);
-        } catch (TException e) {
+        } catch (Exception e) {
           throw new HiveException(e);
         }
       }
@@ -82,9 +77,7 @@ public abstract class HiveAuthorizationProviderBase implements
       } else {
         try {
           return handler.get_database(dbName);
-        } catch (NoSuchObjectException e) {
-          throw new HiveException(e);
-        } catch (MetaException e) {
+        } catch (Exception e) {
           throw new HiveException(e);
         }
       }

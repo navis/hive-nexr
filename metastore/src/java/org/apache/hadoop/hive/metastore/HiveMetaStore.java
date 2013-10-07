@@ -620,16 +620,13 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     }
 
     public Database get_database(final String name) throws NoSuchObjectException,
-        MetaException {
+        TException {
       startFunction("get_database", ": " + name);
       Database db = null;
       Exception ex = null;
       try {
         db = getMS().getDatabase(name);
-      } catch (MetaException e) {
-        ex = e;
-        throw e;
-      } catch (NoSuchObjectException e) {
+      } catch (TException e) {
         ex = e;
         throw e;
       } catch (Exception e) {
@@ -3457,7 +3454,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       try {
         ret = getMS().getColumnPrivilegeSet(
             dbName, tableName, partName, columnName, userName, groupNames);
-      } catch (MetaException e) {
+      } catch (TException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -3473,7 +3470,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       PrincipalPrivilegeSet ret = null;
       try {
         ret = getMS().getDBPrivilegeSet(dbName, userName, groupNames);
-      } catch (MetaException e) {
+      } catch (TException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -3491,7 +3488,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       try {
         ret = getMS().getPartitionPrivilegeSet(dbName, tableName, partName,
             userName, groupNames);
-      } catch (MetaException e) {
+      } catch (TException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -3508,7 +3505,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       try {
         ret = getMS().getTablePrivilegeSet(dbName, tableName, userName,
             groupNames);
-      } catch (MetaException e) {
+      } catch (TException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -3528,7 +3525,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         RawStore ms = getMS();
         Role role = ms.getRole(roleName);
         ret = ms.grantRole(role, userName, principalType, grantor, grantorType, grantOption);
-      } catch (MetaException e) {
+      } catch (TException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -3558,7 +3555,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           }
         }
         ret = result;
-      } catch (MetaException e) {
+      } catch (TException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -3575,7 +3572,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       Boolean ret = null;
       try {
         ret = getMS().addRole(role.getRoleName(), role.getOwnerName());
-      } catch (MetaException e) {
+      } catch (TException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -3591,7 +3588,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       Boolean ret = null;
       try {
         ret = getMS().removeRole(roleName);
-      } catch (MetaException e) {
+      } catch (TException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -3606,7 +3603,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       List<String> ret = null;
       try {
         ret = getMS().listRoleNames();
-      } catch (MetaException e) {
+      } catch (TException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -3622,7 +3619,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       Boolean ret = null;
       try {
         ret = getMS().grantPrivileges(privileges);
-      } catch (MetaException e) {
+      } catch (TException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -3640,7 +3637,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         RawStore ms = getMS();
         Role mRole = ms.getRole(roleName);
         ret = ms.revokeRole(mRole, userName, principalType);
-      } catch (MetaException e) {
+      } catch (TException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -3656,7 +3653,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       Boolean ret = null;
       try {
         ret = getMS().revokePrivileges(privileges);
-      } catch (MetaException e) {
+      } catch (TException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -3671,7 +3668,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       PrincipalPrivilegeSet ret = null;
       try {
         ret = getMS().getUserPrivilegeSet(userName, groupNames);
-      } catch (MetaException e) {
+      } catch (TException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -3772,7 +3769,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           result.add(secObj);
         }
         return result;
-      } catch (MetaException e) {
+      } catch (TException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -3813,7 +3810,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           result.add(secObj);
         }
         return result;
-      } catch (MetaException e) {
+      } catch (TException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -3850,7 +3847,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           result.add(secObj);
         }
         return result;
-      } catch (MetaException e) {
+      } catch (TException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -3892,7 +3889,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           result.add(secObj);
         }
         return result;
-      } catch (MetaException e) {
+      } catch (TException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -3930,7 +3927,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           result.add(secObj);
         }
         return result;
-      } catch (MetaException e) {
+      } catch (TException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -3964,7 +3961,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           result.add(secUser);
         }
         return result;
-      } catch (MetaException e) {
+      } catch (TException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
