@@ -55,7 +55,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: EXPLAIN
+PREHOOK: query: EXPLAIN 
 SELECT * FROM
 (
 SELECT key, randum123
@@ -307,7 +307,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: EXPLAIN
+PREHOOK: query: EXPLAIN 
 SELECT * FROM
 (
 SELECT key, randum123

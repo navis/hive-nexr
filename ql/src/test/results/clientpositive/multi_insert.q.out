@@ -3631,7 +3631,7 @@ STAGE PLANS:
           hdfs directory: false
 #### A masked pattern was here ####
 
-PREHOOK: query: from src
+PREHOOK: query: from src 
 #### A masked pattern was here ####
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
@@ -3801,7 +3801,7 @@ STAGE PLANS:
           hdfs directory: false
 #### A masked pattern was here ####
 
-PREHOOK: query: from src
+PREHOOK: query: from src 
 #### A masked pattern was here ####
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
@@ -3971,7 +3971,7 @@ STAGE PLANS:
           hdfs directory: false
 #### A masked pattern was here ####
 
-PREHOOK: query: from src
+PREHOOK: query: from src 
 #### A masked pattern was here ####
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
@@ -4141,7 +4141,7 @@ STAGE PLANS:
           hdfs directory: false
 #### A masked pattern was here ####
 
-PREHOOK: query: from src
+PREHOOK: query: from src 
 #### A masked pattern was here ####
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src

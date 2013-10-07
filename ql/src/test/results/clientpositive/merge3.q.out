@@ -281,7 +281,7 @@ STAGE PLANS:
           hdfs directory: true
 #### A masked pattern was here ####
 
-PREHOOK: query: create table merge_src2 as
+PREHOOK: query: create table merge_src2 as 
 select key, value from merge_src
 PREHOOK: type: CREATETABLE_AS_SELECT
 PREHOOK: Input: default@merge_src

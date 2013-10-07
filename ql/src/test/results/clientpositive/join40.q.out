@@ -741,7 +741,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: select src1.key, src2.value
+PREHOOK: query: select src1.key, src2.value 
 FROM src src1 JOIN src src2 ON (src1.key = src2.key)
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src

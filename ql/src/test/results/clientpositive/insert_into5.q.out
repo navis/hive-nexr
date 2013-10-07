@@ -467,7 +467,7 @@ STAGE PLANS:
           hdfs directory: true
 #### A masked pattern was here ####
 
-PREHOOK: query: INSERT INTO TABLE insert_into5b PARTITION (ds='1')
+PREHOOK: query: INSERT INTO TABLE insert_into5b PARTITION (ds='1') 
   SELECT key, value FROM insert_into5b
 PREHOOK: type: QUERY
 PREHOOK: Input: default@insert_into5b

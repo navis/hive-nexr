@@ -430,7 +430,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: select * from
+PREHOOK: query: select * from	
 (      
   select a.key, a.val as val1, b.val as val2 from T1 a join T2 b on a.key = b.key
     union all 	

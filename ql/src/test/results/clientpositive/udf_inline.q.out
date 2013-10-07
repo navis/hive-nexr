@@ -52,7 +52,7 @@ STAGE PLANS:
     Fetch Operator
       limit: 2
 
-PREHOOK: query: SELECT inline(
+PREHOOK: query: SELECT inline( 
   ARRAY(
     STRUCT (1,'dude!'),
     STRUCT (2,'Wheres'),

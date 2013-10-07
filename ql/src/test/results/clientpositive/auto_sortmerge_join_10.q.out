@@ -230,7 +230,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: select count(*) from
+PREHOOK: query: select count(*) from 
   (
   select * from
   (select a.key as key, a.value as value from tbl1 a where key < 6
@@ -445,7 +445,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: select count(*) from
+PREHOOK: query: select count(*) from 
   (select a.key as key, count(*) as value from tbl1 a where key < 6 group by a.key) subq1 
     join
   (select a.key as key, a.value as value from tbl2 a where key < 6) subq2

@@ -103,7 +103,7 @@ STAGE PLANS:
           hdfs directory: true
 #### A masked pattern was here ####
 
-PREHOOK: query: FROM src1
+PREHOOK: query: FROM src1 
 INSERT OVERWRITE TABLE ppd_constant_expr SELECT 4 + NULL, src1.key - NULL, NULL + NULL
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src1
@@ -255,7 +255,7 @@ STAGE PLANS:
           hdfs directory: true
 #### A masked pattern was here ####
 
-PREHOOK: query: FROM src1
+PREHOOK: query: FROM src1 
 INSERT OVERWRITE TABLE ppd_constant_expr SELECT 4 + NULL, src1.key - NULL, NULL + NULL
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src1

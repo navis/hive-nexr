@@ -62,7 +62,7 @@ STAGE PLANS:
     Fetch Operator
       limit: 1
 
-PREHOOK: query: SELECT
+PREHOOK: query: SELECT 
   split('a b c', ' '),
   split('oneAtwoBthreeC', '[ABC]'),
   split('', '.'),
