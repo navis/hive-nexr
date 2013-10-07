@@ -434,39 +434,32 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
   }
 
   private void analyzeShowGrant(ASTNode ast) throws SemanticException {
-    PrivilegeObjectDesc privHiveObj = null;
-
-    ASTNode principal = (ASTNode) ast.getChild(0);
-    PrincipalType type = PrincipalType.USER;
-    switch (principal.getType()) {
-    case HiveParser.TOK_USER:
-      type = PrincipalType.USER;
-      break;
-    case HiveParser.TOK_GROUP:
-      type = PrincipalType.GROUP;
-      break;
-    case HiveParser.TOK_ROLE:
-      type = PrincipalType.ROLE;
-      break;
-    }
-    String principalName = unescapeIdentifier(principal.getChild(0).getText());
-    PrincipalDesc principalDesc = new PrincipalDesc(principalName, type);
+    PrincipalDesc principalDesc = null;
+    PrivilegeObjectDesc privHiveObj = null; // NULL for GLOBAL, EMPTY for ALL
     List<String> cols = null;
-    if (ast.getChildCount() > 1) {
-      ASTNode child = (ASTNode) ast.getChild(1);
-      if (child.getToken().getType() == HiveParser.TOK_PRIV_OBJECT_COL) {
-        privHiveObj = new PrivilegeObjectDesc();
-        privHiveObj.setObject(unescapeIdentifier(child.getChild(0).getText()));
-        if (child.getChildCount() > 1) {
-          for (int i = 1; i < child.getChildCount(); i++) {
-            ASTNode grandChild = (ASTNode) child.getChild(i);
-            if (grandChild.getToken().getType() == HiveParser.TOK_PARTSPEC) {
-              privHiveObj.setPartSpec(DDLSemanticAnalyzer.getPartSpec(grandChild));
-            } else if (grandChild.getToken().getType() == HiveParser.TOK_TABCOLNAME) {
-              cols = getColumnNames((ASTNode) grandChild);
-            } else {
-              privHiveObj.setTable(child.getChild(i) != null);
-            }
+
+    ASTNode param = null;
+    if (ast.getChildCount() > 0) {
+      param = (ASTNode) ast.getChild(0);
+      if (param.getType() == HiveParser.TOK_USER ||
+          param.getType() == HiveParser.TOK_GROUP ||
+          param.getType() == HiveParser.TOK_ROLE) {
+        principalDesc = getPrincipalDesc(param);
+        param = (ASTNode) ast.getChild(1);
+      }
+    }
+    if (param != null) {
+      privHiveObj = new PrivilegeObjectDesc();  // ALL
+      if (param.getType() == HiveParser.TOK_PRIV_OBJECT_COL) {
+        privHiveObj.setObject(unescapeIdentifier(param.getChild(0).getText()));
+        for (int i = 1; i < param.getChildCount(); i++) {
+          ASTNode grandChild = (ASTNode) param.getChild(i);
+          if (grandChild.getToken().getType() == HiveParser.TOK_PARTSPEC) {
+            privHiveObj.setPartSpec(DDLSemanticAnalyzer.getPartSpec(grandChild));
+          } else if (grandChild.getToken().getType() == HiveParser.TOK_TABCOLNAME) {
+            cols = getColumnNames((ASTNode) grandChild);
+          } else {
+            privHiveObj.setTable(param.getChild(i) != null);
           }
         }
       }
@@ -483,6 +476,23 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
     rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(),
         showGrant), conf));
     setFetchTask(createFetchTask(ShowGrantDesc.getSchema()));
+  }
+
+  private PrincipalDesc getPrincipalDesc(ASTNode principal) {
+    String principalName = unescapeIdentifier(principal.getChild(0).getText());
+    PrincipalType type = PrincipalType.USER;
+    switch (principal.getType()) {
+      case HiveParser.TOK_USER:
+        type = PrincipalType.USER;
+        break;
+      case HiveParser.TOK_GROUP:
+        type = PrincipalType.GROUP;
+        break;
+      case HiveParser.TOK_ROLE:
+        type = PrincipalType.ROLE;
+        break;
+    }
+    return new PrincipalDesc(principalName, type);
   }
 
   private void analyzeGrant(ASTNode ast) throws SemanticException {

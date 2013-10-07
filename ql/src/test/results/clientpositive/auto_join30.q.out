@@ -301,7 +301,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: FROM
+PREHOOK: query: FROM 
 (SELECT src.* FROM src sort by key) x
 JOIN 
 (SELECT src.* FROM src sort by value) Y
@@ -565,7 +565,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: FROM
+PREHOOK: query: FROM 
 (SELECT src.* FROM src sort by key) x
 LEFT OUTER JOIN 
 (SELECT src.* FROM src sort by value) Y
@@ -829,7 +829,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: FROM
+PREHOOK: query: FROM 
 (SELECT src.* FROM src sort by key) x
 RIGHT OUTER JOIN 
 (SELECT src.* FROM src sort by value) Y

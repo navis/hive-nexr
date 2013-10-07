@@ -193,7 +193,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: SELECT src1.c1, src2.c4
+PREHOOK: query: SELECT src1.c1, src2.c4 
 FROM
 (SELECT src.key as c1, src.value as c2 from src where src.key <> '302' ) src1
 JOIN
@@ -1924,7 +1924,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: SELECT src1.c1, src2.c4
+PREHOOK: query: SELECT src1.c1, src2.c4 
 FROM
 (SELECT src.key as c1, src.value as c2 from src where src.key <> '302' ) src1
 JOIN

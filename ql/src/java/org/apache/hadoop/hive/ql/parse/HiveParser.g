@@ -251,6 +251,7 @@ TOK_PRINCIPAL_NAME;
 TOK_USER;
 TOK_GROUP;
 TOK_ROLE;
+TOK_RESOURCE_ALL;
 TOK_GRANT_WITH_OPTION;
 TOK_PRIV_ALL;
 TOK_PRIV_ALTER_METADATA;
@@ -1298,14 +1299,16 @@ showRoles
 showGrants
 @init {msgs.push("show grants");}
 @after {msgs.pop();}
-    : KW_SHOW KW_GRANT principalName privilegeIncludeColObject?
-    -> ^(TOK_SHOW_GRANT principalName privilegeIncludeColObject?)
+    : KW_SHOW KW_GRANT principalName? (KW_ON privilegeIncludeColObject)?
+    -> ^(TOK_SHOW_GRANT principalName? privilegeIncludeColObject?)
     ;
 
 privilegeIncludeColObject
 @init {msgs.push("privilege object including columns");}
 @after {msgs.pop();}
-    : KW_ON (table=KW_TABLE|KW_DATABASE) identifier (LPAREN cols=columnNameList RPAREN)? partitionSpec?
+    : KW_ALL -> ^(TOK_RESOURCE_ALL)
+    |
+    (table=KW_TABLE|KW_DATABASE) identifier (LPAREN cols=columnNameList RPAREN)? partitionSpec?
     -> ^(TOK_PRIV_OBJECT_COL identifier $table? $cols? partitionSpec?)
     ;
 

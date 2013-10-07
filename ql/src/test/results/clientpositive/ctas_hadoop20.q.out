@@ -500,7 +500,6 @@ ABSTRACT SYNTAX TREE:
 STAGE DEPENDENCIES:
 
 STAGE PLANS:
-STAGE PLANS:
 PREHOOK: query: create table if not exists nzhang_ctas3 as select key, value from src sort by key, value limit 2
 PREHOOK: type: CREATETABLE
 POSTHOOK: query: create table if not exists nzhang_ctas3 as select key, value from src sort by key, value limit 2

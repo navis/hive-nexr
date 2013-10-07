@@ -24,6 +24,7 @@ import java.util.Map;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.hive.metastore.api.ColumnStatistics;
 import org.apache.hadoop.hive.metastore.api.Database;
+import org.apache.hadoop.hive.metastore.api.HiveObjectPrivilege;
 import org.apache.hadoop.hive.metastore.api.Index;
 import org.apache.hadoop.hive.metastore.api.InvalidInputException;
 import org.apache.hadoop.hive.metastore.api.InvalidObjectException;
@@ -420,5 +421,33 @@ public interface RawStore extends Configurable {
  public abstract long cleanupEvents();
 
 
+  List<HiveObjectPrivilege> listPrincipalDBGrantsAll(
+      String principalName, PrincipalType principalType);
 
+  List<HiveObjectPrivilege> listPrincipalTableGrantsAll(
+      String principalName, PrincipalType principalType);
+
+  List<HiveObjectPrivilege> listPrincipalPartitionGrantsAll(
+      String principalName, PrincipalType principalType);
+
+  List<HiveObjectPrivilege> listPrincipalTableColumnGrantsAll(
+      String principalName, PrincipalType principalType);
+
+  List<HiveObjectPrivilege> listPrincipalPartitionColumnGrantsAll(
+      String principalName, PrincipalType principalType);
+
+  List<HiveObjectPrivilege> listGlobalGrantsAll();
+
+  List<HiveObjectPrivilege> listDBGrantsAll(String dbName);
+
+  List<HiveObjectPrivilege> listPartitionColumnGrantsAll(
+      String dbName, String tableName, String partitionName, String columnName);
+
+  List<HiveObjectPrivilege> listTableGrantsAll(String dbName, String tableName);
+
+  List<HiveObjectPrivilege> listPartitionGrantsAll(
+      String dbName, String tableName, String partitionName);
+
+  List<HiveObjectPrivilege> listTableColumnGrantsAll(
+      String dbName, String tableName, String columnName);
 }

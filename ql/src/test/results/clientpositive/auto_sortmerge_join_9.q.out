@@ -259,7 +259,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: select key, count(*) from
+PREHOOK: query: select key, count(*) from 
 (
   select a.key as key, a.value as val1, b.value as val2 from tbl1 a join tbl2 b on a.key = b.key
 ) subq1
@@ -989,7 +989,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: select count(*) from
+PREHOOK: query: select count(*) from 
   (select a.key as key, a.value as value from tbl1 a where key < 6) subq1 
     join
   (select a.key as key, a.value as value from tbl2 a where key < 6) subq2
@@ -1114,7 +1114,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: select count(*) from
+PREHOOK: query: select count(*) from 
   (
   select * from
     (
@@ -1263,7 +1263,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: select count(*) from
+PREHOOK: query: select count(*) from 
   (
   select * from
     (
@@ -1402,7 +1402,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: select count(*) from
+PREHOOK: query: select count(*) from 
   (select a.key as key, concat(a.value, a.value) as value from tbl1 a where key < 8) subq1 
     join
   (select a.key as key, concat(a.value, a.value) as value from tbl2 a where key < 8) subq2
@@ -1553,7 +1553,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: select count(*) from
+PREHOOK: query: select count(*) from 
   (select a.key +1 as key, concat(a.value, a.value) as value from tbl1 a) subq1 
     join
   (select a.key +1 as key, concat(a.value, a.value) as value from tbl2 a) subq2
@@ -1664,7 +1664,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: select count(*) from
+PREHOOK: query: select count(*) from 
   (select a.key as key, a.value as value from tbl1 a where key < 6) subq1 
     join tbl2 a on subq1.key = a.key
 PREHOOK: type: QUERY
@@ -1886,7 +1886,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: select count(*) from
+PREHOOK: query: select count(*) from 
   (select a.key as key, a.value as value from tbl1 a where key < 6) subq1 
     join
   (select a.key as key, a.value as value from tbl2 a where key < 6) subq2

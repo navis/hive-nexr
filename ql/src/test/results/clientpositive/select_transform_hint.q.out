@@ -82,7 +82,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: SELECT /*+MAPJOIN(a)*/
+PREHOOK: query: SELECT /*+MAPJOIN(a)*/ 
 TRANSFORM(a.key, a.value) USING 'cat' AS (tkey, tvalue)
 FROM src a join src b
 on a.key = b.key
@@ -1208,7 +1208,7 @@ STAGE PLANS:
     Fetch Operator
       limit: -1
 
-PREHOOK: query: SELECT /*+STREAMTABLE(a)*/
+PREHOOK: query: SELECT /*+STREAMTABLE(a)*/ 
 TRANSFORM(a.key, a.value) USING 'cat' AS (tkey, tvalue)
 FROM src a join src b
 on a.key = b.key
