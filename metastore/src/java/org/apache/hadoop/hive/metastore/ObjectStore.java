@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -104,6 +105,7 @@ import org.apache.hadoop.hive.metastore.model.MPartitionColumnPrivilege;
 import org.apache.hadoop.hive.metastore.model.MPartitionColumnStatistics;
 import org.apache.hadoop.hive.metastore.model.MPartitionEvent;
 import org.apache.hadoop.hive.metastore.model.MPartitionPrivilege;
+import org.apache.hadoop.hive.metastore.model.MPrincipalDesc;
 import org.apache.hadoop.hive.metastore.model.MRole;
 import org.apache.hadoop.hive.metastore.model.MRoleMap;
 import org.apache.hadoop.hive.metastore.model.MSerDeInfo;
@@ -1428,7 +1430,7 @@ public class ObjectStore implements RawStore, Configurable {
           if ("TRUE".equalsIgnoreCase(mtbl.getParameters().get("PARTITION_LEVEL_PRIVILEGE"))) {
             String partName = Warehouse.makePartName(this.convertToFieldSchemas(mtbl
                 .getPartitionKeys()), part.getValues());
-            PrincipalPrivilegeSet partAuth = this.getPartitionPrivilegeSet(dbName,
+            List<String> partAuth = this.getPartitionPrivilegeSet(dbName,
                 tblName, partName, userName, groupNames);
             part.setPrivileges(partAuth);
           }
@@ -1462,7 +1464,7 @@ public class ObjectStore implements RawStore, Configurable {
       if ("TRUE".equalsIgnoreCase(mtbl.getParameters().get("PARTITION_LEVEL_PRIVILEGE"))) {
         String partName = Warehouse.makePartName(this.convertToFieldSchemas(mtbl
             .getPartitionKeys()), partVals);
-        PrincipalPrivilegeSet partAuth = this.getPartitionPrivilegeSet(dbName,
+        List<String> partAuth = this.getPartitionPrivilegeSet(dbName,
             tblName, partName, user_name, group_names);
         part.setPrivileges(partAuth);
       }
@@ -1610,7 +1612,7 @@ public class ObjectStore implements RawStore, Configurable {
             "TRUE".equalsIgnoreCase(mtbl.getParameters().get("PARTITION_LEVEL_PRIVILEGE"))) {
           String partName = Warehouse.makePartName(this.convertToFieldSchemas(mtbl
               .getPartitionKeys()), part.getValues());
-          PrincipalPrivilegeSet partAuth = getPartitionPrivilegeSet(db_name,
+          List<String> partAuth = getPartitionPrivilegeSet(db_name,
               tbl_name, partName, userName, groupNames);
           part.setPrivileges(partAuth);
         }
@@ -2595,18 +2597,29 @@ public class ObjectStore implements RawStore, Configurable {
     return success;
   }
 
-  private List<MRoleMap> listRoles(String userName,
-      List<String> groupNames) {
-    List<MRoleMap> ret = new ArrayList<MRoleMap>();
-    if(userName != null) {
-      ret.addAll(listRoles(userName, PrincipalType.USER));
+  private Set<MPrincipalDesc> listPrincipals(String userName, List<String> groupNames) {
+    Set<MPrincipalDesc> visited = new LinkedHashSet<MPrincipalDesc>();
+    if (userName != null) {
+      visited.add(new MPrincipalDesc(userName, PrincipalType.USER.toString()));
+      iterateRoles(listRoles(userName, PrincipalType.USER), visited);
     }
     if (groupNames != null) {
-      for (String groupName: groupNames) {
-        ret.addAll(listRoles(groupName, PrincipalType.GROUP));
+      for (String groupName : groupNames) {
+        visited.add(new MPrincipalDesc(groupName, PrincipalType.GROUP.toString()));
+        iterateRoles(listRoles(groupName, PrincipalType.GROUP), visited);
       }
     }
-    return ret;
+    return visited;
+  }
+
+  private Set<MPrincipalDesc> iterateRoles(List<MRoleMap> roles, Set<MPrincipalDesc> visited) {
+    for (MRoleMap roleMap : roles) {
+      MRole role = roleMap.getRole();
+      if (visited.add(new MPrincipalDesc(role.getRoleName(), PrincipalType.ROLE.toString()))) {
+        iterateRoles(listRoles(role.getRoleName(), PrincipalType.ROLE), visited);
+      }
+    }
+    return visited;
   }
 
   @SuppressWarnings("unchecked")
@@ -2717,43 +2730,17 @@ public class ObjectStore implements RawStore, Configurable {
   }
 
   @Override
-  public PrincipalPrivilegeSet getUserPrivilegeSet(String userName,
+  public List<String> getUserPrivilegeSet(String userName,
       List<String> groupNames) throws InvalidObjectException, MetaException {
     boolean commited = false;
-    PrincipalPrivilegeSet ret = new PrincipalPrivilegeSet();
+    Set<String> result = new HashSet<String>();
     try {
       openTransaction();
-      if (userName != null) {
-        List<MGlobalPrivilege> user = this.listPrincipalGlobalGrants(userName, PrincipalType.USER);
-        if(user.size()>0) {
-          Map<String, List<PrivilegeGrantInfo>> userPriv = new HashMap<String, List<PrivilegeGrantInfo>>();
-          List<PrivilegeGrantInfo> grantInfos = new ArrayList<PrivilegeGrantInfo>(user.size());
-          for (int i = 0; i < user.size(); i++) {
-            MGlobalPrivilege item = user.get(i);
-            grantInfos.add(new PrivilegeGrantInfo(item.getPrivilege(), item
-                .getCreateTime(), item.getGrantor(), getPrincipalTypeFromStr(item
-                .getGrantorType()), item.getGrantOption()));
-          }
-          userPriv.put(userName, grantInfos);
-          ret.setUserPrivileges(userPriv);
+      for (MPrincipalDesc principal : listPrincipals(userName, groupNames)) {
+        for (MGlobalPrivilege grant : listPrincipalGlobalGrants(
+            principal.getName(), PrincipalType.valueOf(principal.getType()))) {
+          result.add(grant.getPrivilege().toLowerCase());
         }
-      }
-      if (groupNames != null && groupNames.size() > 0) {
-        Map<String, List<PrivilegeGrantInfo>> groupPriv = new HashMap<String, List<PrivilegeGrantInfo>>();
-        for(String groupName: groupNames) {
-          List<MGlobalPrivilege> group = this.listPrincipalGlobalGrants(groupName, PrincipalType.GROUP);
-          if(group.size()>0) {
-            List<PrivilegeGrantInfo> grantInfos = new ArrayList<PrivilegeGrantInfo>(group.size());
-            for (int i = 0; i < group.size(); i++) {
-              MGlobalPrivilege item = group.get(i);
-              grantInfos.add(new PrivilegeGrantInfo(item.getPrivilege(), item
-                  .getCreateTime(), item.getGrantor(), getPrincipalTypeFromStr(item
-                  .getGrantorType()), item.getGrantOption()));
-            }
-            groupPriv.put(groupName, grantInfos);
-          }
-        }
-        ret.setGroupPrivileges(groupPriv);
       }
       commited = commitTransaction();
     } finally {
@@ -2761,7 +2748,7 @@ public class ObjectStore implements RawStore, Configurable {
         rollbackTransaction();
       }
     }
-    return ret;
+    return new ArrayList<String>(result);
   }
 
   public List<PrivilegeGrantInfo> getDBPrivilege(String dbName,
@@ -2789,38 +2776,20 @@ public class ObjectStore implements RawStore, Configurable {
 
 
   @Override
-  public PrincipalPrivilegeSet getDBPrivilegeSet(String dbName,
+  public List<String> getDBPrivilegeSet(String dbName,
       String userName, List<String> groupNames) throws InvalidObjectException,
       MetaException {
     boolean commited = false;
     dbName = dbName.toLowerCase().trim();
 
-    PrincipalPrivilegeSet ret = new PrincipalPrivilegeSet();
+    Set<String> result = new HashSet<String>();
     try {
       openTransaction();
-      if (userName != null) {
-        Map<String, List<PrivilegeGrantInfo>> dbUserPriv = new HashMap<String, List<PrivilegeGrantInfo>>();
-        dbUserPriv.put(userName, getDBPrivilege(dbName, userName,
-            PrincipalType.USER));
-        ret.setUserPrivileges(dbUserPriv);
-      }
-      if (groupNames != null && groupNames.size() > 0) {
-        Map<String, List<PrivilegeGrantInfo>> dbGroupPriv = new HashMap<String, List<PrivilegeGrantInfo>>();
-        for (String groupName : groupNames) {
-          dbGroupPriv.put(groupName, getDBPrivilege(dbName, groupName,
-              PrincipalType.GROUP));
+      for (MPrincipalDesc principal : listPrincipals(userName, groupNames)) {
+        for (PrivilegeGrantInfo grant : getDBPrivilege(
+            dbName, principal.getName(), PrincipalType.valueOf(principal.getType()))) {
+          result.add(grant.getPrivilege().toLowerCase());
         }
-        ret.setGroupPrivileges(dbGroupPriv);
-      }
-      List<MRoleMap> roles = listRoles(userName, groupNames);
-      if (roles != null && roles.size() > 0) {
-        Map<String, List<PrivilegeGrantInfo>> dbRolePriv = new HashMap<String, List<PrivilegeGrantInfo>>();
-        for (MRoleMap role : roles) {
-          String name = role.getRole().getRoleName();
-          dbRolePriv
-              .put(name, getDBPrivilege(dbName, name, PrincipalType.ROLE));
-        }
-        ret.setRolePrivileges(dbRolePriv);
       }
       commited = commitTransaction();
     } finally {
@@ -2828,43 +2797,25 @@ public class ObjectStore implements RawStore, Configurable {
         rollbackTransaction();
       }
     }
-    return ret;
+    return new ArrayList<String>(result);
   }
 
   @Override
-  public PrincipalPrivilegeSet getPartitionPrivilegeSet(String dbName,
+  public List<String> getPartitionPrivilegeSet(String dbName,
       String tableName, String partition, String userName,
       List<String> groupNames) throws InvalidObjectException, MetaException {
     boolean commited = false;
-    PrincipalPrivilegeSet ret = new PrincipalPrivilegeSet();
     tableName = tableName.toLowerCase().trim();
     dbName = dbName.toLowerCase().trim();
 
+    Set<String> result = new HashSet<String>();
     try {
       openTransaction();
-      if (userName != null) {
-        Map<String, List<PrivilegeGrantInfo>> partUserPriv = new HashMap<String, List<PrivilegeGrantInfo>>();
-        partUserPriv.put(userName, getPartitionPrivilege(dbName,
-            tableName, partition, userName, PrincipalType.USER));
-        ret.setUserPrivileges(partUserPriv);
-      }
-      if (groupNames != null && groupNames.size() > 0) {
-        Map<String, List<PrivilegeGrantInfo>> partGroupPriv = new HashMap<String, List<PrivilegeGrantInfo>>();
-        for (String groupName : groupNames) {
-          partGroupPriv.put(groupName, getPartitionPrivilege(dbName, tableName,
-              partition, groupName, PrincipalType.GROUP));
+      for (MPrincipalDesc principal : listPrincipals(userName, groupNames)) {
+        for (PrivilegeGrantInfo grant : getPartitionPrivilege(dbName, tableName, partition,
+            principal.getName(), PrincipalType.valueOf(principal.getType()))) {
+          result.add(grant.getPrivilege().toLowerCase());
         }
-        ret.setGroupPrivileges(partGroupPriv);
-      }
-      List<MRoleMap> roles = listRoles(userName, groupNames);
-      if (roles != null && roles.size() > 0) {
-        Map<String, List<PrivilegeGrantInfo>> partRolePriv = new HashMap<String, List<PrivilegeGrantInfo>>();
-        for (MRoleMap role : roles) {
-          String roleName = role.getRole().getRoleName();
-          partRolePriv.put(roleName, getPartitionPrivilege(dbName, tableName,
-              partition, roleName, PrincipalType.ROLE));
-        }
-        ret.setRolePrivileges(partRolePriv);
       }
       commited = commitTransaction();
     } finally {
@@ -2872,43 +2823,25 @@ public class ObjectStore implements RawStore, Configurable {
         rollbackTransaction();
       }
     }
-    return ret;
+    return new ArrayList<String>(result);
   }
 
   @Override
-  public PrincipalPrivilegeSet getTablePrivilegeSet(String dbName,
+  public List<String> getTablePrivilegeSet(String dbName,
       String tableName, String userName, List<String> groupNames)
       throws InvalidObjectException, MetaException {
     boolean commited = false;
-    PrincipalPrivilegeSet ret = new PrincipalPrivilegeSet();
     tableName = tableName.toLowerCase().trim();
     dbName = dbName.toLowerCase().trim();
 
+    Set<String> result = new HashSet<String>();
     try {
       openTransaction();
-      if (userName != null) {
-        Map<String, List<PrivilegeGrantInfo>> tableUserPriv = new HashMap<String, List<PrivilegeGrantInfo>>();
-        tableUserPriv.put(userName, getTablePrivilege(dbName,
-            tableName, userName, PrincipalType.USER));
-        ret.setUserPrivileges(tableUserPriv);
-      }
-      if (groupNames != null && groupNames.size() > 0) {
-        Map<String, List<PrivilegeGrantInfo>> tableGroupPriv = new HashMap<String, List<PrivilegeGrantInfo>>();
-        for (String groupName : groupNames) {
-          tableGroupPriv.put(groupName, getTablePrivilege(dbName, tableName,
-              groupName, PrincipalType.GROUP));
+      for (MPrincipalDesc principal : listPrincipals(userName, groupNames)) {
+        for (PrivilegeGrantInfo grant : getTablePrivilege(
+            dbName, tableName, principal.getName(), PrincipalType.valueOf(principal.getType()))) {
+          result.add(grant.getPrivilege().toLowerCase());
         }
-        ret.setGroupPrivileges(tableGroupPriv);
-      }
-      List<MRoleMap> roles = listRoles(userName, groupNames);
-      if (roles != null && roles.size() > 0) {
-        Map<String, List<PrivilegeGrantInfo>> tableRolePriv = new HashMap<String, List<PrivilegeGrantInfo>>();
-        for (MRoleMap role : roles) {
-          String roleName = role.getRole().getRoleName();
-          tableRolePriv.put(roleName, getTablePrivilege(dbName, tableName,
-              roleName, PrincipalType.ROLE));
-        }
-        ret.setRolePrivileges(tableRolePriv);
       }
       commited = commitTransaction();
     } finally {
@@ -2916,11 +2849,11 @@ public class ObjectStore implements RawStore, Configurable {
         rollbackTransaction();
       }
     }
-    return ret;
+    return new ArrayList<String>(result);
   }
 
   @Override
-  public PrincipalPrivilegeSet getColumnPrivilegeSet(String dbName,
+  public List<String> getColumnPrivilegeSet(String dbName,
       String tableName, String partitionName, String columnName,
       String userName, List<String> groupNames) throws InvalidObjectException,
       MetaException {
@@ -2929,32 +2862,15 @@ public class ObjectStore implements RawStore, Configurable {
     columnName = columnName.toLowerCase().trim();
 
     boolean commited = false;
-    PrincipalPrivilegeSet ret = new PrincipalPrivilegeSet();
+
+    Set<String> result = new HashSet<String>();
     try {
       openTransaction();
-      if (userName != null) {
-        Map<String, List<PrivilegeGrantInfo>> columnUserPriv = new HashMap<String, List<PrivilegeGrantInfo>>();
-        columnUserPriv.put(userName, getColumnPrivilege(dbName, tableName,
-            columnName, partitionName, userName, PrincipalType.USER));
-        ret.setUserPrivileges(columnUserPriv);
-      }
-      if (groupNames != null && groupNames.size() > 0) {
-        Map<String, List<PrivilegeGrantInfo>> columnGroupPriv = new HashMap<String, List<PrivilegeGrantInfo>>();
-        for (String groupName : groupNames) {
-          columnGroupPriv.put(groupName, getColumnPrivilege(dbName, tableName,
-              columnName, partitionName, groupName, PrincipalType.GROUP));
+      for (MPrincipalDesc principal : listPrincipals(userName, groupNames)) {
+        for (PrivilegeGrantInfo grant : getColumnPrivilege(dbName, tableName, columnName,
+            partitionName, principal.getName(), PrincipalType.valueOf(principal.getType()))) {
+          result.add(grant.getPrivilege().toLowerCase());
         }
-        ret.setGroupPrivileges(columnGroupPriv);
-      }
-      List<MRoleMap> roles = listRoles(userName, groupNames);
-      if (roles != null && roles.size() > 0) {
-        Map<String, List<PrivilegeGrantInfo>> columnRolePriv = new HashMap<String, List<PrivilegeGrantInfo>>();
-        for (MRoleMap role : roles) {
-          String roleName = role.getRole().getRoleName();
-          columnRolePriv.put(roleName, getColumnPrivilege(dbName, tableName,
-              columnName, partitionName, roleName, PrincipalType.ROLE));
-        }
-        ret.setRolePrivileges(columnRolePriv);
       }
       commited = commitTransaction();
     } finally {
@@ -2962,7 +2878,7 @@ public class ObjectStore implements RawStore, Configurable {
         rollbackTransaction();
       }
     }
-    return ret;
+    return new ArrayList<String>(result);
   }
 
   private List<PrivilegeGrantInfo> getPartitionPrivilege(String dbName,

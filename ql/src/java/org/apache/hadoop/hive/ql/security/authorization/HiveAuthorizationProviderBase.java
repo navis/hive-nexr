@@ -27,7 +27,6 @@ import org.apache.hadoop.hive.metastore.HiveMetaStore.HMSHandler;
 import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.metastore.api.HiveObjectRef;
 import org.apache.hadoop.hive.metastore.api.HiveObjectType;
-import org.apache.hadoop.hive.metastore.api.PrincipalPrivilegeSet;
 import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.security.HiveAuthenticationProvider;
@@ -54,7 +53,7 @@ public abstract class HiveAuthorizationProviderBase implements
       this.handler = handler;
     }
 
-    public PrincipalPrivilegeSet get_privilege_set(HiveObjectType column, String dbName,
+    public List<String> get_privilege_set(HiveObjectType column, String dbName,
         String tableName, List<String> partValues, String col, String userName,
         List<String> groupNames) throws HiveException {
       if (hiveClient != null) {

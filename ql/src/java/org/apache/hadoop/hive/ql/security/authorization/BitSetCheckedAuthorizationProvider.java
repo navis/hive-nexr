@@ -20,13 +20,10 @@ package org.apache.hadoop.hive.ql.security.authorization;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.metastore.api.HiveObjectType;
-import org.apache.hadoop.hive.metastore.api.PrincipalPrivilegeSet;
 import org.apache.hadoop.hive.metastore.api.PrivilegeGrantInfo;
 import org.apache.hadoop.hive.ql.metadata.AuthorizationException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
@@ -176,7 +173,7 @@ public abstract class BitSetCheckedAuthorizationProvider extends
       boolean[] inputCheck2 = checker2.inputCheck;
       boolean[] outputCheck2 = checker2.outputCheck;
 
-      PrincipalPrivilegeSet partColumnPrivileges = hive_db
+      List<String> partColumnPrivileges = hive_db
           .get_privilege_set(HiveObjectType.COLUMN, table.getDbName(), table.getTableName(),
               partValues, col, this.getAuthenticator().getUserName(), this
                   .getAuthenticator().getGroupNames());
@@ -200,7 +197,7 @@ public abstract class BitSetCheckedAuthorizationProvider extends
   protected boolean authorizeUserPriv(Privilege[] inputRequiredPriv,
       boolean[] inputCheck, Privilege[] outputRequiredPriv,
       boolean[] outputCheck) throws HiveException {
-    PrincipalPrivilegeSet privileges = hive_db.get_privilege_set(
+    List<String> privileges = hive_db.get_privilege_set(
         HiveObjectType.GLOBAL, null, null, null, null, this.getAuthenticator()
             .getUserName(), this.getAuthenticator().getGroupNames());
     return authorizePrivileges(privileges, inputRequiredPriv, inputCheck,
@@ -230,7 +227,7 @@ public abstract class BitSetCheckedAuthorizationProvider extends
       return true;
     }
 
-    PrincipalPrivilegeSet dbPrivileges = hive_db.get_privilege_set(
+    List<String> dbPrivileges = hive_db.get_privilege_set(
         HiveObjectType.DATABASE, db.getName(), null, null, null, this
             .getAuthenticator().getUserName(), this.getAuthenticator()
             .getGroupNames());
@@ -263,7 +260,7 @@ public abstract class BitSetCheckedAuthorizationProvider extends
       return true;
     }
 
-    PrincipalPrivilegeSet tablePrivileges = hive_db.get_privilege_set(
+    List<String> tablePrivileges = hive_db.get_privilege_set(
         HiveObjectType.TABLE, table.getDbName(), table.getTableName(), null,
         null, this.getAuthenticator().getUserName(), this.getAuthenticator()
             .getGroupNames());
@@ -297,7 +294,7 @@ public abstract class BitSetCheckedAuthorizationProvider extends
       return true;
     }
 
-    PrincipalPrivilegeSet partPrivileges = part.getTPartition().getPrivileges();
+    List<String> partPrivileges = part.getTPartition().getPrivileges();
     if (partPrivileges == null) {
       partPrivileges = hive_db.get_privilege_set(HiveObjectType.PARTITION, part
           .getTable().getDbName(), part.getTable().getTableName(), part
@@ -313,7 +310,7 @@ public abstract class BitSetCheckedAuthorizationProvider extends
     return false;
   }
 
-  protected boolean authorizePrivileges(PrincipalPrivilegeSet privileges,
+  protected boolean authorizePrivileges(List<String> privileges,
       Privilege[] inputPriv, boolean[] inputCheck, Privilege[] outputPriv,
       boolean[] outputCheck) throws HiveException {
 
@@ -332,8 +329,7 @@ public abstract class BitSetCheckedAuthorizationProvider extends
    *
    * @param container
    */
-  private boolean matchPrivs(Privilege[] inputPriv,
-      PrincipalPrivilegeSet privileges, boolean[] check) {
+  private boolean matchPrivs(Privilege[] inputPriv, List<String> privileges, boolean[] check) {
 
     if (inputPriv == null) {
       return true;
@@ -343,78 +339,17 @@ public abstract class BitSetCheckedAuthorizationProvider extends
       return false;
     }
 
-    /*
-     * user grants
-     */
-    Set<String> privSet = new HashSet<String>();
-    if (privileges.getUserPrivileges() != null
-        && privileges.getUserPrivileges().size() > 0) {
-      Collection<List<PrivilegeGrantInfo>> privCollection = privileges.getUserPrivileges().values();
-
-      List<String> userPrivs = getPrivilegeStringList(privCollection);
-      if (userPrivs != null && userPrivs.size() > 0) {
-        for (String priv : userPrivs) {
-          if (priv == null || priv.trim().equals("")) {
-            continue;
-          }
-            if (priv.equalsIgnoreCase(Privilege.ALL.toString())) {
-              setBooleanArray(check, true);
-              return true;
-            }
-            privSet.add(priv.toLowerCase());
-        }
-      }
-    }
-
-    /*
-     * group grants
-     */
-    if (privileges.getGroupPrivileges() != null
-        && privileges.getGroupPrivileges().size() > 0) {
-      Collection<List<PrivilegeGrantInfo>> groupPrivCollection = privileges
-          .getGroupPrivileges().values();
-      List<String> groupPrivs = getPrivilegeStringList(groupPrivCollection);
-      if (groupPrivs != null && groupPrivs.size() > 0) {
-        for (String priv : groupPrivs) {
-          if (priv == null || priv.trim().equals("")) {
-            continue;
-          }
-          if (priv.equalsIgnoreCase(Privilege.ALL.toString())) {
-            setBooleanArray(check, true);
-            return true;
-          }
-          privSet.add(priv.toLowerCase());
-        }
-      }
-    }
-
-    /*
-     * roles grants
-     */
-    if (privileges.getRolePrivileges() != null
-        && privileges.getRolePrivileges().size() > 0) {
-      Collection<List<PrivilegeGrantInfo>> rolePrivsCollection = privileges
-          .getRolePrivileges().values();
-      ;
-      List<String> rolePrivs = getPrivilegeStringList(rolePrivsCollection);
-      if (rolePrivs != null && rolePrivs.size() > 0) {
-        for (String priv : rolePrivs) {
-          if (priv == null || priv.trim().equals("")) {
-            continue;
-          }
-          if (priv.equalsIgnoreCase(Privilege.ALL.toString())) {
-            setBooleanArray(check, true);
-            return true;
-          }
-          privSet.add(priv.toLowerCase());
-        }
+    for (String priv : privileges) {
+      if (priv.equalsIgnoreCase(Privilege.ALL.toString())) {
+        setBooleanArray(check, true);
+        return true;
       }
     }
 
     for (int i = 0; i < inputPriv.length; i++) {
       String toMatch = inputPriv[i].toString();
       if (!check[i]) {
-        check[i] = privSet.contains(toMatch.toLowerCase());
+        check[i] = privileges.contains(toMatch.toLowerCase());
       }
     }
 

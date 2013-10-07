@@ -1997,7 +1997,7 @@ private void constructOneLBLocationMap(FileStatus fSta,
    * @return the privilege set
    * @throws HiveException
    */
-  public PrincipalPrivilegeSet get_privilege_set(HiveObjectType objectType,
+  public List<String> get_privilege_set(HiveObjectType objectType,
       String db_name, String table_name, List<String> part_values,
       String column_name, String user_name, List<String> group_names)
       throws HiveException {

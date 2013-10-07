@@ -184,7 +184,7 @@ struct Partition {
   5: i32          lastAccessTime,
   6: StorageDescriptor   sd,
   7: map<string, string> parameters,
-  8: optional PrincipalPrivilegeSet privileges
+  8: optional list<string> privileges
 }
 
 struct Index {
@@ -605,7 +605,7 @@ service ThriftHiveMetastore extends fb303.FacebookService
                         throws(1:MetaException o1)
   list<Role> list_roles(1:string principal_name, 2:PrincipalType principal_type) throws(1:MetaException o1)
 
-  PrincipalPrivilegeSet get_privilege_set(1:HiveObjectRef hiveObject, 2:string user_name, 
+  list<string> get_privilege_set(1:HiveObjectRef hiveObject, 2:string user_name,
     3: list<string> group_names) throws(1:MetaException o1)
   list<HiveObjectPrivilege> list_privileges(1:string principal_name, 2:PrincipalType principal_type, 
     3: HiveObjectRef hiveObject) throws(1:MetaException o1)
