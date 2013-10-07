@@ -917,7 +917,7 @@ public interface IMetaStoreClient {
    * @throws MetaException
    * @throws TException
    */
-  public PrincipalPrivilegeSet get_privilege_set(HiveObjectRef hiveObject,
+  public List<String> get_privilege_set(HiveObjectRef hiveObject,
       String user_name, List<String> group_names) throws MetaException,
       TException;
 

@@ -75,7 +75,6 @@ import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.PartitionEventType;
-import org.apache.hadoop.hive.metastore.api.PrincipalPrivilegeSet;
 import org.apache.hadoop.hive.metastore.api.PrincipalType;
 import org.apache.hadoop.hive.metastore.api.PrivilegeBag;
 import org.apache.hadoop.hive.metastore.api.PrivilegeGrantInfo;
@@ -3404,7 +3403,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     }
 
     @Override
-    public PrincipalPrivilegeSet get_privilege_set(HiveObjectRef hiveObject,
+    public List<String> get_privilege_set(HiveObjectRef hiveObject,
         String userName, List<String> groupNames) throws MetaException,
         TException {
       if (hiveObject.getObjectType() == HiveObjectType.COLUMN) {
@@ -3444,13 +3443,13 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       return partName;
     }
 
-    public PrincipalPrivilegeSet get_column_privilege_set(final String dbName,
+    public List<String> get_column_privilege_set(final String dbName,
         final String tableName, final String partName, final String columnName,
         final String userName, final List<String> groupNames) throws MetaException,
         TException {
       incrementCounter("get_column_privilege_set");
 
-      PrincipalPrivilegeSet ret = null;
+      List<String> ret = null;
       try {
         ret = getMS().getColumnPrivilegeSet(
             dbName, tableName, partName, columnName, userName, groupNames);
@@ -3462,12 +3461,12 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       return ret;
     }
 
-    public PrincipalPrivilegeSet get_db_privilege_set(final String dbName,
+    public List<String> get_db_privilege_set(final String dbName,
         final String userName, final List<String> groupNames) throws MetaException,
         TException {
       incrementCounter("get_db_privilege_set");
 
-      PrincipalPrivilegeSet ret = null;
+      List<String> ret = null;
       try {
         ret = getMS().getDBPrivilegeSet(dbName, userName, groupNames);
       } catch (TException e) {
@@ -3478,13 +3477,13 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       return ret;
     }
 
-    public PrincipalPrivilegeSet get_partition_privilege_set(
+    public List<String> get_partition_privilege_set(
         final String dbName, final String tableName, final String partName,
         final String userName, final List<String> groupNames)
         throws MetaException, TException {
       incrementCounter("get_partition_privilege_set");
 
-      PrincipalPrivilegeSet ret = null;
+      List<String> ret = null;
       try {
         ret = getMS().getPartitionPrivilegeSet(dbName, tableName, partName,
             userName, groupNames);
@@ -3496,12 +3495,12 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       return ret;
     }
 
-    public PrincipalPrivilegeSet get_table_privilege_set(final String dbName,
+    public List<String> get_table_privilege_set(final String dbName,
         final String tableName, final String userName,
         final List<String> groupNames) throws MetaException, TException {
       incrementCounter("get_table_privilege_set");
 
-      PrincipalPrivilegeSet ret = null;
+      List<String> ret = null;
       try {
         ret = getMS().getTablePrivilegeSet(dbName, tableName, userName,
             groupNames);
@@ -3661,11 +3660,11 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       return ret;
     }
 
-    public PrincipalPrivilegeSet get_user_privilege_set(final String userName,
+    public List<String> get_user_privilege_set(final String userName,
         final List<String> groupNames) throws MetaException, TException {
       incrementCounter("get_user_privilege_set");
 
-      PrincipalPrivilegeSet ret = null;
+      List<String> ret = null;
       try {
         ret = getMS().getUserPrivilegeSet(userName, groupNames);
       } catch (TException e) {

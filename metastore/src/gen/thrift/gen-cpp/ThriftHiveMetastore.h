@@ -89,7 +89,7 @@ class ThriftHiveMetastoreIf : virtual public  ::facebook::fb303::FacebookService
   virtual bool grant_role(const std::string& role_name, const std::string& principal_name, const PrincipalType::type principal_type, const std::string& grantor, const PrincipalType::type grantorType, const bool grant_option) = 0;
   virtual bool revoke_role(const std::string& role_name, const std::string& principal_name, const PrincipalType::type principal_type) = 0;
   virtual void list_roles(std::vector<Role> & _return, const std::string& principal_name, const PrincipalType::type principal_type) = 0;
-  virtual void get_privilege_set(PrincipalPrivilegeSet& _return, const HiveObjectRef& hiveObject, const std::string& user_name, const std::vector<std::string> & group_names) = 0;
+  virtual void get_privilege_set(std::vector<std::string> & _return, const HiveObjectRef& hiveObject, const std::string& user_name, const std::vector<std::string> & group_names) = 0;
   virtual void list_privileges(std::vector<HiveObjectPrivilege> & _return, const std::string& principal_name, const PrincipalType::type principal_type, const HiveObjectRef& hiveObject) = 0;
   virtual bool grant_privileges(const PrivilegeBag& privileges) = 0;
   virtual bool revoke_privileges(const PrivilegeBag& privileges) = 0;
@@ -363,7 +363,7 @@ class ThriftHiveMetastoreNull : virtual public ThriftHiveMetastoreIf , virtual p
   void list_roles(std::vector<Role> & /* _return */, const std::string& /* principal_name */, const PrincipalType::type /* principal_type */) {
     return;
   }
-  void get_privilege_set(PrincipalPrivilegeSet& /* _return */, const HiveObjectRef& /* hiveObject */, const std::string& /* user_name */, const std::vector<std::string> & /* group_names */) {
+  void get_privilege_set(std::vector<std::string> & /* _return */, const HiveObjectRef& /* hiveObject */, const std::string& /* user_name */, const std::vector<std::string> & /* group_names */) {
     return;
   }
   void list_privileges(std::vector<HiveObjectPrivilege> & /* _return */, const std::string& /* principal_name */, const PrincipalType::type /* principal_type */, const HiveObjectRef& /* hiveObject */) {
@@ -11004,12 +11004,12 @@ class ThriftHiveMetastore_get_privilege_set_result {
 
   virtual ~ThriftHiveMetastore_get_privilege_set_result() throw() {}
 
-  PrincipalPrivilegeSet success;
+  std::vector<std::string>  success;
   MetaException o1;
 
   _ThriftHiveMetastore_get_privilege_set_result__isset __isset;
 
-  void __set_success(const PrincipalPrivilegeSet& val) {
+  void __set_success(const std::vector<std::string> & val) {
     success = val;
   }
 
@@ -11048,7 +11048,7 @@ class ThriftHiveMetastore_get_privilege_set_presult {
 
   virtual ~ThriftHiveMetastore_get_privilege_set_presult() throw() {}
 
-  PrincipalPrivilegeSet* success;
+  std::vector<std::string> * success;
   MetaException o1;
 
   _ThriftHiveMetastore_get_privilege_set_presult__isset __isset;
@@ -12140,9 +12140,9 @@ class ThriftHiveMetastoreClient : virtual public ThriftHiveMetastoreIf, public  
   void list_roles(std::vector<Role> & _return, const std::string& principal_name, const PrincipalType::type principal_type);
   void send_list_roles(const std::string& principal_name, const PrincipalType::type principal_type);
   void recv_list_roles(std::vector<Role> & _return);
-  void get_privilege_set(PrincipalPrivilegeSet& _return, const HiveObjectRef& hiveObject, const std::string& user_name, const std::vector<std::string> & group_names);
+  void get_privilege_set(std::vector<std::string> & _return, const HiveObjectRef& hiveObject, const std::string& user_name, const std::vector<std::string> & group_names);
   void send_get_privilege_set(const HiveObjectRef& hiveObject, const std::string& user_name, const std::vector<std::string> & group_names);
-  void recv_get_privilege_set(PrincipalPrivilegeSet& _return);
+  void recv_get_privilege_set(std::vector<std::string> & _return);
   void list_privileges(std::vector<HiveObjectPrivilege> & _return, const std::string& principal_name, const PrincipalType::type principal_type, const HiveObjectRef& hiveObject);
   void send_list_privileges(const std::string& principal_name, const PrincipalType::type principal_type, const HiveObjectRef& hiveObject);
   void recv_list_privileges(std::vector<HiveObjectPrivilege> & _return);
@@ -13070,7 +13070,7 @@ class ThriftHiveMetastoreMultiface : virtual public ThriftHiveMetastoreIf, publi
     return;
   }
 
-  void get_privilege_set(PrincipalPrivilegeSet& _return, const HiveObjectRef& hiveObject, const std::string& user_name, const std::vector<std::string> & group_names) {
+  void get_privilege_set(std::vector<std::string> & _return, const HiveObjectRef& hiveObject, const std::string& user_name, const std::vector<std::string> & group_names) {
     size_t sz = ifaces_.size();
     size_t i = 0;
     for (; i < (sz - 1); ++i) {

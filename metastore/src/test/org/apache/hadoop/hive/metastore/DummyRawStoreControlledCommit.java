@@ -34,7 +34,6 @@ import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.PartitionEventType;
-import org.apache.hadoop.hive.metastore.api.PrincipalPrivilegeSet;
 import org.apache.hadoop.hive.metastore.api.PrincipalType;
 import org.apache.hadoop.hive.metastore.api.PrivilegeBag;
 import org.apache.hadoop.hive.metastore.api.Role;
@@ -345,26 +344,26 @@ public class DummyRawStoreControlledCommit implements RawStore, Configurable {
   }
 
   @Override
-  public PrincipalPrivilegeSet getUserPrivilegeSet(String userName,
+  public List<String> getUserPrivilegeSet(String userName,
       List<String> groupNames) throws InvalidObjectException, MetaException {
     return objectStore.getUserPrivilegeSet(userName, groupNames);
   }
 
   @Override
-  public PrincipalPrivilegeSet getDBPrivilegeSet(String dbName, String userName,
+  public List<String> getDBPrivilegeSet(String dbName, String userName,
       List<String> groupNames) throws InvalidObjectException, MetaException {
     return objectStore.getDBPrivilegeSet(dbName, userName, groupNames);
   }
 
   @Override
-  public PrincipalPrivilegeSet getTablePrivilegeSet(String dbName, String tableName,
+  public List<String> getTablePrivilegeSet(String dbName, String tableName,
       String userName, List<String> groupNames)
       throws InvalidObjectException, MetaException {
     return objectStore.getTablePrivilegeSet(dbName, tableName, userName, groupNames);
   }
 
   @Override
-  public PrincipalPrivilegeSet getPartitionPrivilegeSet(String dbName, String tableName,
+  public List<String> getPartitionPrivilegeSet(String dbName, String tableName,
       String partition, String userName, List<String> groupNames)
       throws InvalidObjectException, MetaException {
     return objectStore.getPartitionPrivilegeSet(dbName, tableName, partition,
@@ -372,7 +371,7 @@ public class DummyRawStoreControlledCommit implements RawStore, Configurable {
   }
 
   @Override
-  public PrincipalPrivilegeSet getColumnPrivilegeSet(String dbName, String tableName,
+  public List<String> getColumnPrivilegeSet(String dbName, String tableName,
       String partitionName, String columnName, String userName, List<String> groupNames)
       throws InvalidObjectException, MetaException {
     return objectStore.getColumnPrivilegeSet(dbName, tableName, partitionName,

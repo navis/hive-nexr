@@ -33,7 +33,6 @@ import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.PartitionEventType;
-import org.apache.hadoop.hive.metastore.api.PrincipalPrivilegeSet;
 import org.apache.hadoop.hive.metastore.api.PrincipalType;
 import org.apache.hadoop.hive.metastore.api.PrivilegeBag;
 import org.apache.hadoop.hive.metastore.api.Role;
@@ -207,19 +206,19 @@ public interface RawStore extends Configurable {
   public abstract boolean revokeRole(Role role, String userName, PrincipalType principalType)
       throws MetaException, NoSuchObjectException;
 
-  public abstract PrincipalPrivilegeSet getUserPrivilegeSet(String userName,
+  public abstract List<String> getUserPrivilegeSet(String userName,
       List<String> groupNames) throws InvalidObjectException, MetaException;
 
-  public abstract PrincipalPrivilegeSet getDBPrivilegeSet (String dbName, String userName,
+  public abstract List<String> getDBPrivilegeSet (String dbName, String userName,
       List<String> groupNames)  throws InvalidObjectException, MetaException;
 
-  public abstract PrincipalPrivilegeSet getTablePrivilegeSet (String dbName, String tableName,
+  public abstract List<String> getTablePrivilegeSet (String dbName, String tableName,
       String userName, List<String> groupNames) throws InvalidObjectException, MetaException;
 
-  public abstract PrincipalPrivilegeSet getPartitionPrivilegeSet (String dbName, String tableName,
+  public abstract List<String> getPartitionPrivilegeSet (String dbName, String tableName,
       String partition, String userName, List<String> groupNames) throws InvalidObjectException, MetaException;
 
-  public abstract PrincipalPrivilegeSet getColumnPrivilegeSet (String dbName, String tableName, String partitionName,
+  public abstract List<String> getColumnPrivilegeSet (String dbName, String tableName, String partitionName,
       String columnName, String userName, List<String> groupNames) throws InvalidObjectException, MetaException;
 
   public abstract List<MGlobalPrivilege> listPrincipalGlobalGrants(String principalName,

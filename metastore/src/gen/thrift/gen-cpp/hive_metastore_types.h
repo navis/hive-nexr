@@ -1207,8 +1207,8 @@ typedef struct _Partition__isset {
 class Partition {
  public:
 
-  static const char* ascii_fingerprint; // = "31A52241B88A426C34087FE38343FF51";
-  static const uint8_t binary_fingerprint[16]; // = {0x31,0xA5,0x22,0x41,0xB8,0x8A,0x42,0x6C,0x34,0x08,0x7F,0xE3,0x83,0x43,0xFF,0x51};
+  static const char* ascii_fingerprint; // = "B55784BC65868B53B7CB999F325ECC79";
+  static const uint8_t binary_fingerprint[16]; // = {0xB5,0x57,0x84,0xBC,0x65,0x86,0x8B,0x53,0xB7,0xCB,0x99,0x9F,0x32,0x5E,0xCC,0x79};
 
   Partition() : dbName(), tableName(), createTime(0), lastAccessTime(0) {
   }
@@ -1222,7 +1222,7 @@ class Partition {
   int32_t lastAccessTime;
   StorageDescriptor sd;
   std::map<std::string, std::string>  parameters;
-  PrincipalPrivilegeSet privileges;
+  std::vector<std::string>  privileges;
 
   _Partition__isset __isset;
 
@@ -1254,7 +1254,7 @@ class Partition {
     parameters = val;
   }
 
-  void __set_privileges(const PrincipalPrivilegeSet& val) {
+  void __set_privileges(const std::vector<std::string> & val) {
     privileges = val;
     __isset.privileges = true;
   }
