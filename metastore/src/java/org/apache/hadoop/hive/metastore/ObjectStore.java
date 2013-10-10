@@ -3380,9 +3380,13 @@ public class ObjectStore implements RawStore, Configurable {
     return committed;
   }
 
+  private List<MRoleMap> listRoleMembers(MRole mRol) {
+    return listRoleMembers(mRol.getRoleName());
+  }
+
   @SuppressWarnings("unchecked")
-  private List<MRoleMap> listRoleMembers(
-      MRole mRol) {
+  @Override
+  public List<MRoleMap> listRoleMembers(String roleName) {
     boolean success = false;
     List<MRoleMap> mRoleMemeberList = null;
     try {
@@ -3392,8 +3396,7 @@ public class ObjectStore implements RawStore, Configurable {
           "role.roleName == t1");
       query.declareParameters("java.lang.String t1");
       query.setUnique(false);
-      mRoleMemeberList = (List<MRoleMap>) query.execute(
-          mRol.getRoleName());
+      mRoleMemeberList = (List<MRoleMap>) query.execute(roleName);
       LOG.debug("Done executing query for listMSecurityUserRoleMember");
       pm.retrieveAll(mRoleMemeberList);
       success = commitTransaction();

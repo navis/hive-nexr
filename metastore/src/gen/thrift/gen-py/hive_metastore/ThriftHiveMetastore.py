@@ -652,6 +652,13 @@ class Iface(fb303.FacebookService.Iface):
     """
     pass
 
+  def list_role_members(self, role_name):
+    """
+    Parameters:
+     - role_name
+    """
+    pass
+
   def get_privilege_set(self, hiveObject, user_name, group_names):
     """
     Parameters:
@@ -3462,6 +3469,38 @@ class Client(fb303.FacebookService.Client, Iface):
       raise result.o1
     raise TApplicationException(TApplicationException.MISSING_RESULT, "list_roles failed: unknown result");
 
+  def list_role_members(self, role_name):
+    """
+    Parameters:
+     - role_name
+    """
+    self.send_list_role_members(role_name)
+    return self.recv_list_role_members()
+
+  def send_list_role_members(self, role_name):
+    self._oprot.writeMessageBegin('list_role_members', TMessageType.CALL, self._seqid)
+    args = list_role_members_args()
+    args.role_name = role_name
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_list_role_members(self, ):
+    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(self._iprot)
+      self._iprot.readMessageEnd()
+      raise x
+    result = list_role_members_result()
+    result.read(self._iprot)
+    self._iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    if result.o1 is not None:
+      raise result.o1
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "list_role_members failed: unknown result");
+
   def get_privilege_set(self, hiveObject, user_name, group_names):
     """
     Parameters:
@@ -3805,6 +3844,7 @@ class Processor(fb303.FacebookService.Processor, Iface, TProcessor):
     self._processMap["grant_role"] = Processor.process_grant_role
     self._processMap["revoke_role"] = Processor.process_revoke_role
     self._processMap["list_roles"] = Processor.process_list_roles
+    self._processMap["list_role_members"] = Processor.process_list_role_members
     self._processMap["get_privilege_set"] = Processor.process_get_privilege_set
     self._processMap["list_privileges"] = Processor.process_list_privileges
     self._processMap["grant_privileges"] = Processor.process_grant_privileges
@@ -5037,6 +5077,20 @@ class Processor(fb303.FacebookService.Processor, Iface, TProcessor):
     except MetaException as o1:
       result.o1 = o1
     oprot.writeMessageBegin("list_roles", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_list_role_members(self, seqid, iprot, oprot):
+    args = list_role_members_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = list_role_members_result()
+    try:
+      result.success = self._handler.list_role_members(args.role_name)
+    except MetaException as o1:
+      result.o1 = o1
+    oprot.writeMessageBegin("list_role_members", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -17759,6 +17813,147 @@ class list_roles_result:
   def __ne__(self, other):
     return not (self == other)
 
+class list_role_members_args:
+  """
+  Attributes:
+   - role_name
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'role_name', None, None, ), # 1
+  )
+
+  def __init__(self, role_name=None,):
+    self.role_name = role_name
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.role_name = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('list_role_members_args')
+    if self.role_name is not None:
+      oprot.writeFieldBegin('role_name', TType.STRING, 1)
+      oprot.writeString(self.role_name)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class list_role_members_result:
+  """
+  Attributes:
+   - success
+   - o1
+  """
+
+  thrift_spec = (
+    (0, TType.LIST, 'success', (TType.STRUCT,(Role, Role.thrift_spec)), None, ), # 0
+    (1, TType.STRUCT, 'o1', (MetaException, MetaException.thrift_spec), None, ), # 1
+  )
+
+  def __init__(self, success=None, o1=None,):
+    self.success = success
+    self.o1 = o1
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.LIST:
+          self.success = []
+          (_etype546, _size543) = iprot.readListBegin()
+          for _i547 in xrange(_size543):
+            _elem548 = Role()
+            _elem548.read(iprot)
+            self.success.append(_elem548)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 1:
+        if ftype == TType.STRUCT:
+          self.o1 = MetaException()
+          self.o1.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('list_role_members_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.LIST, 0)
+      oprot.writeListBegin(TType.STRUCT, len(self.success))
+      for iter549 in self.success:
+        iter549.write(oprot)
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    if self.o1 is not None:
+      oprot.writeFieldBegin('o1', TType.STRUCT, 1)
+      self.o1.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
 class get_privilege_set_args:
   """
   Attributes:
@@ -17802,10 +17997,10 @@ class get_privilege_set_args:
       elif fid == 3:
         if ftype == TType.LIST:
           self.group_names = []
-          (_etype546, _size543) = iprot.readListBegin()
-          for _i547 in xrange(_size543):
-            _elem548 = iprot.readString();
-            self.group_names.append(_elem548)
+          (_etype553, _size550) = iprot.readListBegin()
+          for _i554 in xrange(_size550):
+            _elem555 = iprot.readString();
+            self.group_names.append(_elem555)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -17830,8 +18025,8 @@ class get_privilege_set_args:
     if self.group_names is not None:
       oprot.writeFieldBegin('group_names', TType.LIST, 3)
       oprot.writeListBegin(TType.STRING, len(self.group_names))
-      for iter549 in self.group_names:
-        oprot.writeString(iter549)
+      for iter556 in self.group_names:
+        oprot.writeString(iter556)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -17880,10 +18075,10 @@ class get_privilege_set_result:
       if fid == 0:
         if ftype == TType.LIST:
           self.success = []
-          (_etype553, _size550) = iprot.readListBegin()
-          for _i554 in xrange(_size550):
-            _elem555 = iprot.readString();
-            self.success.append(_elem555)
+          (_etype560, _size557) = iprot.readListBegin()
+          for _i561 in xrange(_size557):
+            _elem562 = iprot.readString();
+            self.success.append(_elem562)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -17906,8 +18101,8 @@ class get_privilege_set_result:
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.LIST, 0)
       oprot.writeListBegin(TType.STRING, len(self.success))
-      for iter556 in self.success:
-        oprot.writeString(iter556)
+      for iter563 in self.success:
+        oprot.writeString(iter563)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.o1 is not None:
@@ -18045,11 +18240,11 @@ class list_privileges_result:
       if fid == 0:
         if ftype == TType.LIST:
           self.success = []
-          (_etype560, _size557) = iprot.readListBegin()
-          for _i561 in xrange(_size557):
-            _elem562 = HiveObjectPrivilege()
-            _elem562.read(iprot)
-            self.success.append(_elem562)
+          (_etype567, _size564) = iprot.readListBegin()
+          for _i568 in xrange(_size564):
+            _elem569 = HiveObjectPrivilege()
+            _elem569.read(iprot)
+            self.success.append(_elem569)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -18072,8 +18267,8 @@ class list_privileges_result:
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.LIST, 0)
       oprot.writeListBegin(TType.STRUCT, len(self.success))
-      for iter563 in self.success:
-        iter563.write(oprot)
+      for iter570 in self.success:
+        iter570.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.o1 is not None:
@@ -18398,10 +18593,10 @@ class set_ugi_args:
       elif fid == 2:
         if ftype == TType.LIST:
           self.group_names = []
-          (_etype567, _size564) = iprot.readListBegin()
-          for _i568 in xrange(_size564):
-            _elem569 = iprot.readString();
-            self.group_names.append(_elem569)
+          (_etype574, _size571) = iprot.readListBegin()
+          for _i575 in xrange(_size571):
+            _elem576 = iprot.readString();
+            self.group_names.append(_elem576)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -18422,8 +18617,8 @@ class set_ugi_args:
     if self.group_names is not None:
       oprot.writeFieldBegin('group_names', TType.LIST, 2)
       oprot.writeListBegin(TType.STRING, len(self.group_names))
-      for iter570 in self.group_names:
-        oprot.writeString(iter570)
+      for iter577 in self.group_names:
+        oprot.writeString(iter577)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -18472,10 +18667,10 @@ class set_ugi_result:
       if fid == 0:
         if ftype == TType.LIST:
           self.success = []
-          (_etype574, _size571) = iprot.readListBegin()
-          for _i575 in xrange(_size571):
-            _elem576 = iprot.readString();
-            self.success.append(_elem576)
+          (_etype581, _size578) = iprot.readListBegin()
+          for _i582 in xrange(_size578):
+            _elem583 = iprot.readString();
+            self.success.append(_elem583)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -18498,8 +18693,8 @@ class set_ugi_result:
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.LIST, 0)
       oprot.writeListBegin(TType.STRING, len(self.success))
-      for iter577 in self.success:
-        oprot.writeString(iter577)
+      for iter584 in self.success:
+        oprot.writeString(iter584)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.o1 is not None:

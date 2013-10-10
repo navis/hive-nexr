@@ -89,6 +89,7 @@ class ThriftHiveMetastoreIf : virtual public  ::facebook::fb303::FacebookService
   virtual bool grant_role(const std::string& role_name, const std::string& principal_name, const PrincipalType::type principal_type, const std::string& grantor, const PrincipalType::type grantorType, const bool grant_option) = 0;
   virtual bool revoke_role(const std::string& role_name, const std::string& principal_name, const PrincipalType::type principal_type) = 0;
   virtual void list_roles(std::vector<Role> & _return, const std::string& principal_name, const PrincipalType::type principal_type) = 0;
+  virtual void list_role_members(std::vector<Role> & _return, const std::string& role_name) = 0;
   virtual void get_privilege_set(std::vector<std::string> & _return, const HiveObjectRef& hiveObject, const std::string& user_name, const std::vector<std::string> & group_names) = 0;
   virtual void list_privileges(std::vector<HiveObjectPrivilege> & _return, const std::string& principal_name, const PrincipalType::type principal_type, const HiveObjectRef& hiveObject) = 0;
   virtual bool grant_privileges(const PrivilegeBag& privileges) = 0;
@@ -361,6 +362,9 @@ class ThriftHiveMetastoreNull : virtual public ThriftHiveMetastoreIf , virtual p
     return _return;
   }
   void list_roles(std::vector<Role> & /* _return */, const std::string& /* principal_name */, const PrincipalType::type /* principal_type */) {
+    return;
+  }
+  void list_role_members(std::vector<Role> & /* _return */, const std::string& /* role_name */) {
     return;
   }
   void get_privilege_set(std::vector<std::string> & /* _return */, const HiveObjectRef& /* hiveObject */, const std::string& /* user_name */, const std::vector<std::string> & /* group_names */) {
@@ -10921,6 +10925,124 @@ class ThriftHiveMetastore_list_roles_presult {
 
 };
 
+typedef struct _ThriftHiveMetastore_list_role_members_args__isset {
+  _ThriftHiveMetastore_list_role_members_args__isset() : role_name(false) {}
+  bool role_name;
+} _ThriftHiveMetastore_list_role_members_args__isset;
+
+class ThriftHiveMetastore_list_role_members_args {
+ public:
+
+  ThriftHiveMetastore_list_role_members_args() : role_name() {
+  }
+
+  virtual ~ThriftHiveMetastore_list_role_members_args() throw() {}
+
+  std::string role_name;
+
+  _ThriftHiveMetastore_list_role_members_args__isset __isset;
+
+  void __set_role_name(const std::string& val) {
+    role_name = val;
+  }
+
+  bool operator == (const ThriftHiveMetastore_list_role_members_args & rhs) const
+  {
+    if (!(role_name == rhs.role_name))
+      return false;
+    return true;
+  }
+  bool operator != (const ThriftHiveMetastore_list_role_members_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const ThriftHiveMetastore_list_role_members_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class ThriftHiveMetastore_list_role_members_pargs {
+ public:
+
+
+  virtual ~ThriftHiveMetastore_list_role_members_pargs() throw() {}
+
+  const std::string* role_name;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _ThriftHiveMetastore_list_role_members_result__isset {
+  _ThriftHiveMetastore_list_role_members_result__isset() : success(false), o1(false) {}
+  bool success;
+  bool o1;
+} _ThriftHiveMetastore_list_role_members_result__isset;
+
+class ThriftHiveMetastore_list_role_members_result {
+ public:
+
+  ThriftHiveMetastore_list_role_members_result() {
+  }
+
+  virtual ~ThriftHiveMetastore_list_role_members_result() throw() {}
+
+  std::vector<Role>  success;
+  MetaException o1;
+
+  _ThriftHiveMetastore_list_role_members_result__isset __isset;
+
+  void __set_success(const std::vector<Role> & val) {
+    success = val;
+  }
+
+  void __set_o1(const MetaException& val) {
+    o1 = val;
+  }
+
+  bool operator == (const ThriftHiveMetastore_list_role_members_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    if (!(o1 == rhs.o1))
+      return false;
+    return true;
+  }
+  bool operator != (const ThriftHiveMetastore_list_role_members_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const ThriftHiveMetastore_list_role_members_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _ThriftHiveMetastore_list_role_members_presult__isset {
+  _ThriftHiveMetastore_list_role_members_presult__isset() : success(false), o1(false) {}
+  bool success;
+  bool o1;
+} _ThriftHiveMetastore_list_role_members_presult__isset;
+
+class ThriftHiveMetastore_list_role_members_presult {
+ public:
+
+
+  virtual ~ThriftHiveMetastore_list_role_members_presult() throw() {}
+
+  std::vector<Role> * success;
+  MetaException o1;
+
+  _ThriftHiveMetastore_list_role_members_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
 typedef struct _ThriftHiveMetastore_get_privilege_set_args__isset {
   _ThriftHiveMetastore_get_privilege_set_args__isset() : hiveObject(false), user_name(false), group_names(false) {}
   bool hiveObject;
@@ -12140,6 +12262,9 @@ class ThriftHiveMetastoreClient : virtual public ThriftHiveMetastoreIf, public  
   void list_roles(std::vector<Role> & _return, const std::string& principal_name, const PrincipalType::type principal_type);
   void send_list_roles(const std::string& principal_name, const PrincipalType::type principal_type);
   void recv_list_roles(std::vector<Role> & _return);
+  void list_role_members(std::vector<Role> & _return, const std::string& role_name);
+  void send_list_role_members(const std::string& role_name);
+  void recv_list_role_members(std::vector<Role> & _return);
   void get_privilege_set(std::vector<std::string> & _return, const HiveObjectRef& hiveObject, const std::string& user_name, const std::vector<std::string> & group_names);
   void send_get_privilege_set(const HiveObjectRef& hiveObject, const std::string& user_name, const std::vector<std::string> & group_names);
   void recv_get_privilege_set(std::vector<std::string> & _return);
@@ -12247,6 +12372,7 @@ class ThriftHiveMetastoreProcessor : public  ::facebook::fb303::FacebookServiceP
   void process_grant_role(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_revoke_role(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_list_roles(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_list_role_members(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_get_privilege_set(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_list_privileges(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_grant_privileges(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
@@ -12332,6 +12458,7 @@ class ThriftHiveMetastoreProcessor : public  ::facebook::fb303::FacebookServiceP
     processMap_["grant_role"] = &ThriftHiveMetastoreProcessor::process_grant_role;
     processMap_["revoke_role"] = &ThriftHiveMetastoreProcessor::process_revoke_role;
     processMap_["list_roles"] = &ThriftHiveMetastoreProcessor::process_list_roles;
+    processMap_["list_role_members"] = &ThriftHiveMetastoreProcessor::process_list_role_members;
     processMap_["get_privilege_set"] = &ThriftHiveMetastoreProcessor::process_get_privilege_set;
     processMap_["list_privileges"] = &ThriftHiveMetastoreProcessor::process_list_privileges;
     processMap_["grant_privileges"] = &ThriftHiveMetastoreProcessor::process_grant_privileges;
@@ -13067,6 +13194,16 @@ class ThriftHiveMetastoreMultiface : virtual public ThriftHiveMetastoreIf, publi
       ifaces_[i]->list_roles(_return, principal_name, principal_type);
     }
     ifaces_[i]->list_roles(_return, principal_name, principal_type);
+    return;
+  }
+
+  void list_role_members(std::vector<Role> & _return, const std::string& role_name) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->list_role_members(_return, role_name);
+    }
+    ifaces_[i]->list_role_members(_return, role_name);
     return;
   }
 

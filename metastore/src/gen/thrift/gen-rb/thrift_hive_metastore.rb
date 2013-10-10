@@ -1260,6 +1260,22 @@ module ThriftHiveMetastore
       raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'list_roles failed: unknown result')
     end
 
+    def list_role_members(role_name)
+      send_list_role_members(role_name)
+      return recv_list_role_members()
+    end
+
+    def send_list_role_members(role_name)
+      send_message('list_role_members', List_role_members_args, :role_name => role_name)
+    end
+
+    def recv_list_role_members()
+      result = receive_message(List_role_members_result)
+      return result.success unless result.success.nil?
+      raise result.o1 unless result.o1.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'list_role_members failed: unknown result')
+    end
+
     def get_privilege_set(hiveObject, user_name, group_names)
       send_get_privilege_set(hiveObject, user_name, group_names)
       return recv_get_privilege_set()
@@ -2383,6 +2399,17 @@ module ThriftHiveMetastore
         result.o1 = o1
       end
       write_result(result, oprot, 'list_roles', seqid)
+    end
+
+    def process_list_role_members(seqid, iprot, oprot)
+      args = read_args(iprot, List_role_members_args)
+      result = List_role_members_result.new()
+      begin
+        result.success = @handler.list_role_members(args.role_name)
+      rescue ::MetaException => o1
+        result.o1 = o1
+      end
+      write_result(result, oprot, 'list_role_members', seqid)
     end
 
     def process_get_privilege_set(seqid, iprot, oprot)
@@ -5372,6 +5399,40 @@ module ThriftHiveMetastore
   end
 
   class List_roles_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+    O1 = 1
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::LIST, :name => 'success', :element => {:type => ::Thrift::Types::STRUCT, :class => ::Role}},
+      O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => ::MetaException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class List_role_members_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    ROLE_NAME = 1
+
+    FIELDS = {
+      ROLE_NAME => {:type => ::Thrift::Types::STRING, :name => 'role_name'}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class List_role_members_result
     include ::Thrift::Struct, ::Thrift::Struct_Union
     SUCCESS = 0
     O1 = 1

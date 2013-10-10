@@ -910,6 +910,12 @@ public interface IMetaStoreClient {
       throws MetaException, TException;
 
   /**
+   * @param roleName
+   * @return list of roles
+   */
+  public List<Role> list_role_members(String roleName) throws MetaException, TException;
+
+  /**
    * @param hiveObject
    * @param user_name
    * @param group_names

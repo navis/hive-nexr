@@ -653,29 +653,34 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
   }
 
   private void analyzeShowRoleGrant(ASTNode ast) {
-    ASTNode child = (ASTNode) ast.getChild(0);
-    PrincipalType principalType = PrincipalType.USER;
-    switch (child.getType()) {
-    case HiveParser.TOK_USER:
-      principalType = PrincipalType.USER;
-      break;
-    case HiveParser.TOK_GROUP:
-      principalType = PrincipalType.GROUP;
-      break;
-    case HiveParser.TOK_ROLE:
-      principalType = PrincipalType.ROLE;
-      break;
-    }
 
+    ASTNode child = (ASTNode) ast.getChild(0);
     boolean tabular = HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_SHOW_GRANT_TABULAR);
 
-    String principalName = unescapeIdentifier(child.getChild(0).getText());
-    RoleDDLDesc createRoleDesc = new RoleDDLDesc(principalName, principalType,
-        RoleDDLDesc.RoleOperation.SHOW_ROLE_GRANT, null);
-    createRoleDesc.setTabular(tabular);
-    createRoleDesc.setResFile(ctx.getResFile().toString());
-    rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(),
-        createRoleDesc), conf));
+    RoleDDLDesc roleDDLDesc;
+    if (child.getType() == HiveParser.Identifier) {
+      roleDDLDesc =
+          new RoleDDLDesc(child.getText(), RoleDDLDesc.RoleOperation.SHOW_ROLE_GRANT_FROM);
+    } else {
+      PrincipalType principalType = PrincipalType.USER;
+      switch (child.getType()) {
+      case HiveParser.TOK_USER:
+        principalType = PrincipalType.USER;
+        break;
+      case HiveParser.TOK_GROUP:
+        principalType = PrincipalType.GROUP;
+        break;
+      case HiveParser.TOK_ROLE:
+        principalType = PrincipalType.ROLE;
+        break;
+      }
+      String principalName = unescapeIdentifier(child.getChild(0).getText());
+      roleDDLDesc = new RoleDDLDesc(principalName, principalType,
+          RoleDDLDesc.RoleOperation.SHOW_ROLE_GRANT, null);
+    }
+    roleDDLDesc.setTabular(tabular);
+    roleDDLDesc.setResFile(ctx.getResFile().toString());
+    rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(), roleDDLDesc), conf));
     setFetchTask(createFetchTask(RoleDDLDesc.getSchema(tabular)));
   }
 

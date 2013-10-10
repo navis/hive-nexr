@@ -1979,6 +1979,14 @@ private void constructOneLBLocationMap(FileStatus fSta,
     }
   }
 
+  public List<Role> listRoleMembers(String roleName) throws HiveException {
+    try {
+      return getMSC().list_role_members(roleName);
+    } catch (Exception e) {
+      throw new HiveException(e);
+    }
+  }
+
   /**
    * @param objectType
    *          hive object type
