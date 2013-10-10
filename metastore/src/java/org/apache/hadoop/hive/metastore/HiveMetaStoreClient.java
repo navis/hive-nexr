@@ -1366,6 +1366,11 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   }
 
   @Override
+  public List<Role> list_role_members(String roleName) throws MetaException, TException {
+    return client.list_role_members(roleName);
+  }
+
+  @Override
   public List<String> listRoleNames() throws MetaException, TException {
     return client.get_role_names();
   }

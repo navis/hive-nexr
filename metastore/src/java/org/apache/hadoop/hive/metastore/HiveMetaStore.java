@@ -3563,6 +3563,33 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       return ret;
     }
 
+    public List<Role> list_role_members(final String roleName) throws MetaException, TException {
+      incrementCounter("list_role_members");
+
+      try {
+        List<MRoleMap> roleMaps = getMS().listRoleMembers(roleName);
+        if (roleMaps == null || roleMaps.isEmpty()) {
+          return Collections.emptyList();
+        }
+        List<Role> result = new ArrayList<Role>();
+        for (MRoleMap roleMap : roleMaps) {
+          MRole mrole = roleMap.getRole();
+          Role role = new Role(mrole.getRoleName(), mrole.getCreateTime(), mrole.getOwnerName());
+          role.setPrincipalName(roleMap.getPrincipalName());
+          role.setPrincipalType(roleMap.getPrincipalType());
+          role.setGrantOption(roleMap.getGrantOption());
+          role.setGrantTime(roleMap.getAddTime());
+          role.setGrantor(roleMap.getGrantor());
+          result.add(role);
+        }
+        return result;
+      } catch (TException e) {
+        throw e;
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+
     @Override
     public boolean create_role(final Role role)
         throws MetaException, TException {

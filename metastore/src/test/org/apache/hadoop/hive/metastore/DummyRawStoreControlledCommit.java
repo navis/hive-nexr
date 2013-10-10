@@ -447,6 +447,11 @@ public class DummyRawStoreControlledCommit implements RawStore, Configurable {
   }
 
   @Override
+  public List<MRoleMap> listRoleMembers(String roleName) {
+    return objectStore.listRoleMembers(roleName);
+  }
+
+  @Override
   public Partition getPartitionWithAuth(String dbName, String tblName,
       List<String> partVals, String userName, List<String> groupNames)
       throws MetaException, NoSuchObjectException, InvalidObjectException {

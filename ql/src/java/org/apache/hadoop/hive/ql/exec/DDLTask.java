@@ -781,6 +781,11 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
         String datum =
           roleDDLDesc.isTabular() ? writeRoleInfoTabular(roles) : writeRoleInfo(roles);
         writeToFile(datum, roleDDLDesc.getResFile());
+      } else if (operation.equals(RoleDDLDesc.RoleOperation.SHOW_ROLE_GRANT_FROM)) {
+        List<Role> roles = db.listRoleMembers(roleDDLDesc.getName());
+        String datum =
+          roleDDLDesc.isTabular() ? writeRoleInfoTabular(roles) : writeRoleInfo(roles);
+        writeToFile(datum, roleDDLDesc.getResFile());
       } else if (operation.equals(RoleDDLDesc.RoleOperation.SHOW_ROLES)) {
         List<String> roleNames = db.getAllRoleNames();
         Path resFile = new Path(roleDDLDesc.getResFile());

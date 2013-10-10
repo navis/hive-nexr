@@ -605,6 +605,8 @@ service ThriftHiveMetastore extends fb303.FacebookService
                         throws(1:MetaException o1)
   list<Role> list_roles(1:string principal_name, 2:PrincipalType principal_type) throws(1:MetaException o1)
 
+  list<Role> list_role_members(1:string role_name) throws(1:MetaException o1)
+
   list<string> get_privilege_set(1:HiveObjectRef hiveObject, 2:string user_name,
     3: list<string> group_names) throws(1:MetaException o1)
   list<HiveObjectPrivilege> list_privileges(1:string principal_name, 2:PrincipalType principal_type, 

@@ -387,6 +387,11 @@ class ThriftHiveMetastoreHandler : virtual public ThriftHiveMetastoreIf {
     printf("list_roles\n");
   }
 
+  void list_role_members(std::vector<Role> & _return, const std::string& role_name) {
+    // Your implementation goes here
+    printf("list_role_members\n");
+  }
+
   void get_privilege_set(std::vector<std::string> & _return, const HiveObjectRef& hiveObject, const std::string& user_name, const std::vector<std::string> & group_names) {
     // Your implementation goes here
     printf("get_privilege_set\n");

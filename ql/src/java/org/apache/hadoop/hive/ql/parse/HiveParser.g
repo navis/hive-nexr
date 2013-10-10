@@ -1303,8 +1303,8 @@ revokeRole
 showRoleGrants
 @init {msgs.push("show role grants");}
 @after {msgs.pop();}
-    : KW_SHOW KW_ROLE KW_GRANT principalName
-    -> ^(TOK_SHOW_ROLE_GRANT principalName)
+    : KW_SHOW KW_ROLE KW_GRANT ((KW_FROM KW_ROLE identifier) | principalName)
+    -> ^(TOK_SHOW_ROLE_GRANT principalName? identifier?)
     ;
 
 showRoles

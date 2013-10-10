@@ -478,6 +478,12 @@ public class DummyRawStoreForJdoConnection implements RawStore {
   }
 
   @Override
+  public List<MRoleMap> listRoleMembers(String roleName) {
+
+    return null;
+  }
+
+  @Override
   public Partition getPartitionWithAuth(String dbName, String tblName, List<String> partVals,
       String user_name, List<String> group_names) throws MetaException, NoSuchObjectException,
       InvalidObjectException {
