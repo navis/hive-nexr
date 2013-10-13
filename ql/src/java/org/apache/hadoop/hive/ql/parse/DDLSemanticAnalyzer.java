@@ -467,19 +467,11 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
       }
     }
     if (param != null) {
-      privHiveObj = new PrivilegeObjectDesc();  // ALL
-      if (param.getType() == HiveParser.TOK_PRIV_OBJECT_COL) {
-        privHiveObj.setObject(unescapeIdentifier(param.getChild(0).getText()));
-        for (int i = 1; i < param.getChildCount(); i++) {
-          ASTNode grandChild = (ASTNode) param.getChild(i);
-          if (grandChild.getToken().getType() == HiveParser.TOK_PARTSPEC) {
-            privHiveObj.setPartSpec(DDLSemanticAnalyzer.getPartSpec(grandChild));
-          } else if (grandChild.getToken().getType() == HiveParser.TOK_TABCOLNAME) {
-            cols = getColumnNames((ASTNode) grandChild);
-          } else {
-            privHiveObj.setTable(param.getChild(i) != null);
-          }
-        }
+      if (param.getType() == HiveParser.TOK_RESOURCE_ALL) {
+        privHiveObj = new PrivilegeObjectDesc();
+      } else if (param.getType() == HiveParser.TOK_PRIV_OBJECT) {
+        privHiveObj = analyzePrivilegeObject(param, null);
+        cols = privHiveObj.getColumns();
       }
     }
 
@@ -564,30 +556,49 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
   private PrivilegeObjectDesc analyzePrivilegeObject(ASTNode ast,
       HashSet<WriteEntity> outputs)
       throws SemanticException {
-    PrivilegeObjectDesc subject = new PrivilegeObjectDesc();
-    subject.setObject(unescapeIdentifier(ast.getChild(0).getText()));
-    if (ast.getChildCount() > 1) {
-      for (int i = 0; i < ast.getChildCount(); i++) {
-        ASTNode astChild = (ASTNode) ast.getChild(i);
-        if (astChild.getToken().getType() == HiveParser.TOK_PARTSPEC) {
-          subject.setPartSpec(DDLSemanticAnalyzer.getPartSpec(astChild));
-        } else {
-          subject.setTable(ast.getChild(0) != null);
-        }
+    int length = ast.getChildCount();
+    if (length == 1) {
+      String name = unescapeIdentifier(ast.getChild(0).getText());
+      if (outputs != null) {
+        outputs.add(new WriteEntity(name));
+      }
+      return new PrivilegeObjectDesc(name, null, null, null);
+    }
+    length--;
+
+    List<String> colNames = null;
+    HashMap<String, String> partSpec = null;
+    for (int i = 1; i < ast.getChildCount(); i++) {
+      ASTNode child = (ASTNode)ast.getChild(i);
+      if (child.getType() == HiveParser.TOK_PARTSPEC) {
+        partSpec = DDLSemanticAnalyzer.getPartSpec(child);
+        length--;
+      } else if (child.getType() == HiveParser.TOK_TABCOLNAME) {
+        colNames = getColumnNames((ASTNode) child);
+        length--;
       }
     }
+    assert length == 1 || length == 2;
 
-    if (subject.getTable()) {
-      Table tbl = getTable(subject.getObject(), true);
-      if (subject.getPartSpec() != null) {
-        Partition part = getPartition(tbl, subject.getPartSpec(), true);
-        outputs.add(new WriteEntity(part));
-      } else {
-        outputs.add(new WriteEntity(tbl));
-      }
+    Table table;
+    if (length == 2) {
+      String dbName = unescapeIdentifier(ast.getChild(1).getText());
+      String tableName = unescapeIdentifier(ast.getChild(2).getText());
+      table = getTable(dbName, tableName, true);
+    } else {
+      String tableName = unescapeIdentifier(ast.getChild(1).getText());
+      table = getTable(tableName);
     }
-
-    return subject;
+    if (partSpec == null) {
+      if (outputs != null) {
+        outputs.add(new WriteEntity(table));
+      }
+      return new PrivilegeObjectDesc(table.getDbName(), table.getTableName(), null, colNames);
+    }
+    if (outputs != null) {
+      outputs.add(new WriteEntity(getPartition(table, partSpec, true)));
+    }
+    return new PrivilegeObjectDesc(table.getDbName(), table.getTableName(), partSpec, colNames);
   }
 
   private List<PrincipalDesc> analyzePrincipalListDef(ASTNode node) {

@@ -36,8 +36,10 @@ POSTHOOK: query: use importer
 POSTHOOK: type: SWITCHDATABASE
 PREHOOK: query: grant Create on database importer to user hive_test_user
 PREHOOK: type: GRANT_PRIVILEGE
+PREHOOK: Output: database:importer
 POSTHOOK: query: grant Create on database importer to user hive_test_user
 POSTHOOK: type: GRANT_PRIVILEGE
+POSTHOOK: Output: database:importer
 PREHOOK: query: import from 'ql/test/data/exports/exim_department'
 PREHOOK: type: IMPORT
 POSTHOOK: query: import from 'ql/test/data/exports/exim_department'
