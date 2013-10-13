@@ -14,12 +14,16 @@ default
 test_db
 PREHOOK: query: GRANT drop ON DATABASE test_db TO USER hive_test_user
 PREHOOK: type: GRANT_PRIVILEGE
+PREHOOK: Output: database:test_db
 POSTHOOK: query: GRANT drop ON DATABASE test_db TO USER hive_test_user
 POSTHOOK: type: GRANT_PRIVILEGE
+POSTHOOK: Output: database:test_db
 PREHOOK: query: GRANT select ON DATABASE test_db TO USER hive_test_user
 PREHOOK: type: GRANT_PRIVILEGE
+PREHOOK: Output: database:test_db
 POSTHOOK: query: GRANT select ON DATABASE test_db TO USER hive_test_user
 POSTHOOK: type: GRANT_PRIVILEGE
+POSTHOOK: Output: database:test_db
 PREHOOK: query: SHOW GRANT USER hive_test_user ON DATABASE test_db
 PREHOOK: type: SHOW_GRANT
 POSTHOOK: query: SHOW GRANT USER hive_test_user ON DATABASE test_db
@@ -51,12 +55,16 @@ POSTHOOK: type: SHOW_ROLE_GRANT
 db_test_role
 PREHOOK: query: GRANT drop ON DATABASE test_db TO ROLE db_test_role
 PREHOOK: type: GRANT_PRIVILEGE
+PREHOOK: Output: database:test_db
 POSTHOOK: query: GRANT drop ON DATABASE test_db TO ROLE db_test_role
 POSTHOOK: type: GRANT_PRIVILEGE
+POSTHOOK: Output: database:test_db
 PREHOOK: query: GRANT select ON DATABASE test_db TO ROLE db_test_role
 PREHOOK: type: GRANT_PRIVILEGE
+PREHOOK: Output: database:test_db
 POSTHOOK: query: GRANT select ON DATABASE test_db TO ROLE db_test_role
 POSTHOOK: type: GRANT_PRIVILEGE
+POSTHOOK: Output: database:test_db
 PREHOOK: query: SHOW GRANT ROLE db_test_role ON DATABASE test_db
 PREHOOK: type: SHOW_GRANT
 POSTHOOK: query: SHOW GRANT ROLE db_test_role ON DATABASE test_db

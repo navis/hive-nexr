@@ -19,46 +19,59 @@
 package org.apache.hadoop.hive.ql.plan;
 
 import java.util.HashMap;
+import java.util.List;
 
 @Explain(displayName="privilege subject")
 public class PrivilegeObjectDesc {
 
-  private boolean table;
-
-  private String object;
-
+  private String database;
+  private String table;
   private HashMap<String, String> partSpec;
 
-  public PrivilegeObjectDesc(boolean isTable, String object,
-      HashMap<String, String> partSpec) {
-    super();
-    this.table = isTable;
-    this.object = object;
-    this.partSpec = partSpec;
-  }
+  private List<String> columns;
 
   public PrivilegeObjectDesc() {
   }
 
-  @Explain(displayName="is table")
-  public boolean getTable() {
-    return table;
-  }
-
-  public void setTable(boolean isTable) {
-    this.table = isTable;
+  public PrivilegeObjectDesc(String database, String table,
+      HashMap<String, String> partSpec, List<String> columns) {
+    this.database = database;
+    this.table = table;
+    this.partSpec = partSpec;
+    this.columns = columns;
   }
 
   @Explain(displayName="object")
-  public String getObject() {
-    return object;
+  public String getPrivilegeObject() {
+    StringBuilder builder = new StringBuilder();
+    if (database != null) {
+      builder.append(database);
+    }
+    if (table != null) {
+      builder.append('.').append(table);
+    }
+    if (partSpec != null) {
+      builder.append(partSpec);
+    }
+    return builder.toString();
   }
 
-  public void setObject(String object) {
-    this.object = object;
+  public String getDatabase() {
+    return database;
   }
 
-  @Explain(displayName="partition spec")
+  public void setDatabase(String database) {
+    this.database = database;
+  }
+
+  public String getTable() {
+    return table;
+  }
+
+  public void setTable(String table) {
+    this.table = table;
+  }
+
   public HashMap<String, String> getPartSpec() {
     return partSpec;
   }
@@ -67,4 +80,11 @@ public class PrivilegeObjectDesc {
     this.partSpec = partSpec;
   }
 
+  public List<String> getColumns() {
+    return columns;
+  }
+
+  public void setColumns(List<String> columns) {
+    this.columns = columns;
+  }
 }

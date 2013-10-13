@@ -265,7 +265,6 @@ TOK_PRIV_SELECT;
 TOK_PRIV_SHOW_DATABASE;
 TOK_PRIV_CREATE;
 TOK_PRIV_OBJECT;
-TOK_PRIV_OBJECT_COL;
 TOK_GRANT_ROLE;
 TOK_REVOKE_ROLE;
 TOK_SHOW_ROLE_GRANT;
@@ -1273,7 +1272,7 @@ grantPrivileges
 @init {msgs.push("grant privileges");}
 @after {msgs.pop();}
     : KW_GRANT privList=privilegeList
-      privilegeObject?
+      (KW_ON privilegeObject)?
       KW_TO principalSpecification
       (KW_WITH withOption)?
     -> ^(TOK_GRANT $privList principalSpecification privilegeObject? withOption?)
@@ -1282,7 +1281,7 @@ grantPrivileges
 revokePrivileges
 @init {msgs.push("revoke privileges");}
 @afer {msgs.pop();}
-    : KW_REVOKE privilegeList privilegeObject? KW_FROM principalSpecification
+    : KW_REVOKE privilegeList (KW_ON privilegeObject)? KW_FROM principalSpecification
     -> ^(TOK_REVOKE privilegeList principalSpecification privilegeObject?)
     ;
 
@@ -1324,17 +1323,23 @@ showGrants
 privilegeIncludeColObject
 @init {msgs.push("privilege object including columns");}
 @after {msgs.pop();}
-    : KW_ALL -> ^(TOK_RESOURCE_ALL)
+    :
+    KW_ALL -> ^(TOK_RESOURCE_ALL)
     |
-    (table=KW_TABLE|KW_DATABASE) identifier (LPAREN cols=columnNameList RPAREN)? partitionSpec?
-    -> ^(TOK_PRIV_OBJECT_COL identifier $table? $cols? partitionSpec?)
+    KW_DATABASE db=identifier -> ^(TOK_PRIV_OBJECT $db)
+    |
+    KW_TABLE (db=identifier DOT)? tab=identifier (LPAREN cols=columnNameList RPAREN)? partitionSpec?
+    -> ^(TOK_PRIV_OBJECT TOK_NULL $db? $tab $cols? partitionSpec?)
     ;
 
 privilegeObject
 @init {msgs.push("privilege subject");}
 @after {msgs.pop();}
-    : KW_ON (table=KW_TABLE|KW_DATABASE) identifier partitionSpec?
-    -> ^(TOK_PRIV_OBJECT identifier $table? partitionSpec?)
+    :
+    KW_DATABASE db=identifier -> ^(TOK_PRIV_OBJECT $db)
+    |
+    KW_TABLE (db=identifier DOT)? tab=identifier partitionSpec?
+    -> ^(TOK_PRIV_OBJECT TOK_NULL $db? $tab partitionSpec?)
     ;
 
 privilegeList
