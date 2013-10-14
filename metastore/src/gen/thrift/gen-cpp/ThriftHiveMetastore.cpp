@@ -18486,6 +18486,14 @@ uint32_t ThriftHiveMetastore_get_privilege_set_args::read(::apache::thrift::prot
           xfer += iprot->skip(ftype);
         }
         break;
+      case 4:
+        if (ftype == ::apache::thrift::protocol::T_BOOL) {
+          xfer += iprot->readBool(this->granted_only);
+          this->__isset.granted_only = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
       default:
         xfer += iprot->skip(ftype);
         break;
@@ -18522,6 +18530,10 @@ uint32_t ThriftHiveMetastore_get_privilege_set_args::write(::apache::thrift::pro
   }
   xfer += oprot->writeFieldEnd();
 
+  xfer += oprot->writeFieldBegin("granted_only", ::apache::thrift::protocol::T_BOOL, 4);
+  xfer += oprot->writeBool(this->granted_only);
+  xfer += oprot->writeFieldEnd();
+
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -18549,6 +18561,10 @@ uint32_t ThriftHiveMetastore_get_privilege_set_pargs::write(::apache::thrift::pr
     }
     xfer += oprot->writeListEnd();
   }
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldBegin("granted_only", ::apache::thrift::protocol::T_BOOL, 4);
+  xfer += oprot->writeBool((*(this->granted_only)));
   xfer += oprot->writeFieldEnd();
 
   xfer += oprot->writeFieldStop();
@@ -24965,13 +24981,13 @@ void ThriftHiveMetastoreClient::recv_list_role_members(std::vector<Role> & _retu
   throw ::apache::thrift::TApplicationException(::apache::thrift::TApplicationException::MISSING_RESULT, "list_role_members failed: unknown result");
 }
 
-void ThriftHiveMetastoreClient::get_privilege_set(std::vector<std::string> & _return, const HiveObjectRef& hiveObject, const std::string& user_name, const std::vector<std::string> & group_names)
+void ThriftHiveMetastoreClient::get_privilege_set(std::vector<std::string> & _return, const HiveObjectRef& hiveObject, const std::string& user_name, const std::vector<std::string> & group_names, const bool granted_only)
 {
-  send_get_privilege_set(hiveObject, user_name, group_names);
+  send_get_privilege_set(hiveObject, user_name, group_names, granted_only);
   recv_get_privilege_set(_return);
 }
 
-void ThriftHiveMetastoreClient::send_get_privilege_set(const HiveObjectRef& hiveObject, const std::string& user_name, const std::vector<std::string> & group_names)
+void ThriftHiveMetastoreClient::send_get_privilege_set(const HiveObjectRef& hiveObject, const std::string& user_name, const std::vector<std::string> & group_names, const bool granted_only)
 {
   int32_t cseqid = 0;
   oprot_->writeMessageBegin("get_privilege_set", ::apache::thrift::protocol::T_CALL, cseqid);
@@ -24980,6 +24996,7 @@ void ThriftHiveMetastoreClient::send_get_privilege_set(const HiveObjectRef& hive
   args.hiveObject = &hiveObject;
   args.user_name = &user_name;
   args.group_names = &group_names;
+  args.granted_only = &granted_only;
   args.write(oprot_);
 
   oprot_->writeMessageEnd();
@@ -29975,7 +29992,7 @@ void ThriftHiveMetastoreProcessor::process_get_privilege_set(int32_t seqid, ::ap
 
   ThriftHiveMetastore_get_privilege_set_result result;
   try {
-    iface_->get_privilege_set(result.success, args.hiveObject, args.user_name, args.group_names);
+    iface_->get_privilege_set(result.success, args.hiveObject, args.user_name, args.group_names, args.granted_only);
     result.__isset.success = true;
   } catch (MetaException &o1) {
     result.o1 = o1;

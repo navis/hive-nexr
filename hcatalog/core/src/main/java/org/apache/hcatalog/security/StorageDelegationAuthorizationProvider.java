@@ -108,35 +108,36 @@ public class StorageDelegationAuthorizationProvider extends HiveAuthorizationPro
     }
 
     @Override
-    public void authorize(Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv)
-        throws HiveException, AuthorizationException {
+    public void authorize(Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+        boolean grantedOnly) throws HiveException, AuthorizationException {
         //global authorizations against warehouse hdfs directory
-        hdfsAuthorizer.authorize(readRequiredPriv, writeRequiredPriv);
+        hdfsAuthorizer.authorize(readRequiredPriv, writeRequiredPriv, grantedOnly);
     }
 
     @Override
-    public void authorize(Database db, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv)
-        throws HiveException, AuthorizationException {
+    public void authorize(Database db, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+        boolean grantedOnly) throws HiveException, AuthorizationException {
         //db's are tied to a hdfs location
-        hdfsAuthorizer.authorize(db, readRequiredPriv, writeRequiredPriv);
+        hdfsAuthorizer.authorize(db, readRequiredPriv, writeRequiredPriv, grantedOnly);
     }
 
     @Override
-    public void authorize(Table table, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv)
-        throws HiveException, AuthorizationException {
-        getDelegate(table).authorize(table, readRequiredPriv, writeRequiredPriv);
+    public void authorize(Table table, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+        boolean grantedOnly) throws HiveException, AuthorizationException {
+        getDelegate(table).authorize(table, readRequiredPriv, writeRequiredPriv, grantedOnly);
     }
 
     @Override
     public void authorize(Partition part, Privilege[] readRequiredPriv,
-                          Privilege[] writeRequiredPriv) throws HiveException, AuthorizationException {
-        getDelegate(part.getTable()).authorize(part, readRequiredPriv, writeRequiredPriv);
+        Privilege[] writeRequiredPriv, boolean grantedOnly)
+        throws HiveException, AuthorizationException {
+        getDelegate(part.getTable()).authorize(part, readRequiredPriv, writeRequiredPriv, grantedOnly);
     }
 
     @Override
     public void authorize(Table table, Partition part, List<String> columns,
-                          Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv) throws HiveException,
-        AuthorizationException {
-        getDelegate(table).authorize(table, part, columns, readRequiredPriv, writeRequiredPriv);
+        Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv, boolean grantedOnly)
+        throws HiveException, AuthorizationException {
+        getDelegate(table).authorize(table, part, columns, readRequiredPriv, writeRequiredPriv, grantedOnly);
     }
 }

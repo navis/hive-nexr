@@ -76,8 +76,8 @@ class HBaseAuthorizationProvider implements HiveAuthorizationProvider {
     */
     @Override
     public void authorize(Privilege[] readRequiredPriv,
-                          Privilege[] writeRequiredPriv) throws HiveException,
-        AuthorizationException {
+                          Privilege[] writeRequiredPriv,
+        boolean grantedOnly) throws HiveException, AuthorizationException {
     }
 
     /*
@@ -91,8 +91,8 @@ class HBaseAuthorizationProvider implements HiveAuthorizationProvider {
     */
     @Override
     public void authorize(Database db, Privilege[] readRequiredPriv,
-                          Privilege[] writeRequiredPriv) throws HiveException,
-        AuthorizationException {
+                          Privilege[] writeRequiredPriv,
+        boolean grantedOnly) throws HiveException, AuthorizationException {
     }
 
     /*
@@ -106,8 +106,8 @@ class HBaseAuthorizationProvider implements HiveAuthorizationProvider {
     */
     @Override
     public void authorize(Table table, Privilege[] readRequiredPriv,
-                          Privilege[] writeRequiredPriv) throws HiveException,
-        AuthorizationException {
+                          Privilege[] writeRequiredPriv,
+        boolean grantedOnly) throws HiveException, AuthorizationException {
     }
 
     /*
@@ -121,8 +121,8 @@ class HBaseAuthorizationProvider implements HiveAuthorizationProvider {
     */
     @Override
     public void authorize(Partition part, Privilege[] readRequiredPriv,
-                          Privilege[] writeRequiredPriv) throws HiveException,
-        AuthorizationException {
+                          Privilege[] writeRequiredPriv,
+        boolean grantedOnly) throws HiveException, AuthorizationException {
     }
 
     /*
@@ -137,8 +137,8 @@ class HBaseAuthorizationProvider implements HiveAuthorizationProvider {
     */
     @Override
     public void authorize(Table table, Partition part, List<String> columns,
-                          Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv)
-        throws HiveException, AuthorizationException {
+                          Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+        boolean grantedOnly) throws HiveException, AuthorizationException {
     }
 
 }

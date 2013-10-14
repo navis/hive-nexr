@@ -2007,12 +2007,12 @@ private void constructOneLBLocationMap(FileStatus fSta,
    */
   public List<String> get_privilege_set(HiveObjectType objectType,
       String db_name, String table_name, List<String> part_values,
-      String column_name, String user_name, List<String> group_names)
+      String column_name, String user_name, List<String> group_names, boolean grantedOnly)
       throws HiveException {
     try {
       HiveObjectRef hiveObj = new HiveObjectRef(objectType, db_name,
           table_name, part_values, column_name);
-      return getMSC().get_privilege_set(hiveObj, user_name, group_names);
+      return getMSC().get_privilege_set(hiveObj, user_name, group_names, grantedOnly);
     } catch (Exception e) {
       throw new HiveException(e);
     }

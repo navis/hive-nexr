@@ -659,12 +659,13 @@ class Iface(fb303.FacebookService.Iface):
     """
     pass
 
-  def get_privilege_set(self, hiveObject, user_name, group_names):
+  def get_privilege_set(self, hiveObject, user_name, group_names, granted_only):
     """
     Parameters:
      - hiveObject
      - user_name
      - group_names
+     - granted_only
     """
     pass
 
@@ -3501,22 +3502,24 @@ class Client(fb303.FacebookService.Client, Iface):
       raise result.o1
     raise TApplicationException(TApplicationException.MISSING_RESULT, "list_role_members failed: unknown result");
 
-  def get_privilege_set(self, hiveObject, user_name, group_names):
+  def get_privilege_set(self, hiveObject, user_name, group_names, granted_only):
     """
     Parameters:
      - hiveObject
      - user_name
      - group_names
+     - granted_only
     """
-    self.send_get_privilege_set(hiveObject, user_name, group_names)
+    self.send_get_privilege_set(hiveObject, user_name, group_names, granted_only)
     return self.recv_get_privilege_set()
 
-  def send_get_privilege_set(self, hiveObject, user_name, group_names):
+  def send_get_privilege_set(self, hiveObject, user_name, group_names, granted_only):
     self._oprot.writeMessageBegin('get_privilege_set', TMessageType.CALL, self._seqid)
     args = get_privilege_set_args()
     args.hiveObject = hiveObject
     args.user_name = user_name
     args.group_names = group_names
+    args.granted_only = granted_only
     args.write(self._oprot)
     self._oprot.writeMessageEnd()
     self._oprot.trans.flush()
@@ -5101,7 +5104,7 @@ class Processor(fb303.FacebookService.Processor, Iface, TProcessor):
     iprot.readMessageEnd()
     result = get_privilege_set_result()
     try:
-      result.success = self._handler.get_privilege_set(args.hiveObject, args.user_name, args.group_names)
+      result.success = self._handler.get_privilege_set(args.hiveObject, args.user_name, args.group_names, args.granted_only)
     except MetaException as o1:
       result.o1 = o1
     oprot.writeMessageBegin("get_privilege_set", TMessageType.REPLY, seqid)
@@ -17960,6 +17963,7 @@ class get_privilege_set_args:
    - hiveObject
    - user_name
    - group_names
+   - granted_only
   """
 
   thrift_spec = (
@@ -17967,12 +17971,14 @@ class get_privilege_set_args:
     (1, TType.STRUCT, 'hiveObject', (HiveObjectRef, HiveObjectRef.thrift_spec), None, ), # 1
     (2, TType.STRING, 'user_name', None, None, ), # 2
     (3, TType.LIST, 'group_names', (TType.STRING,None), None, ), # 3
+    (4, TType.BOOL, 'granted_only', None, None, ), # 4
   )
 
-  def __init__(self, hiveObject=None, user_name=None, group_names=None,):
+  def __init__(self, hiveObject=None, user_name=None, group_names=None, granted_only=None,):
     self.hiveObject = hiveObject
     self.user_name = user_name
     self.group_names = group_names
+    self.granted_only = granted_only
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -18004,6 +18010,11 @@ class get_privilege_set_args:
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.BOOL:
+          self.granted_only = iprot.readBool();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -18028,6 +18039,10 @@ class get_privilege_set_args:
       for iter556 in self.group_names:
         oprot.writeString(iter556)
       oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    if self.granted_only is not None:
+      oprot.writeFieldBegin('granted_only', TType.BOOL, 4)
+      oprot.writeBool(self.granted_only)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()

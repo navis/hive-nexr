@@ -97,7 +97,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print '  bool revoke_role(string role_name, string principal_name, PrincipalType principal_type)'
   print '   list_roles(string principal_name, PrincipalType principal_type)'
   print '   list_role_members(string role_name)'
-  print '   get_privilege_set(HiveObjectRef hiveObject, string user_name,  group_names)'
+  print '   get_privilege_set(HiveObjectRef hiveObject, string user_name,  group_names, bool granted_only)'
   print '   list_privileges(string principal_name, PrincipalType principal_type, HiveObjectRef hiveObject)'
   print '  bool grant_privileges(PrivilegeBag privileges)'
   print '  bool revoke_privileges(PrivilegeBag privileges)'
@@ -601,10 +601,10 @@ elif cmd == 'list_role_members':
   pp.pprint(client.list_role_members(args[0],))
 
 elif cmd == 'get_privilege_set':
-  if len(args) != 3:
-    print 'get_privilege_set requires 3 args'
+  if len(args) != 4:
+    print 'get_privilege_set requires 4 args'
     sys.exit(1)
-  pp.pprint(client.get_privilege_set(eval(args[0]),args[1],eval(args[2]),))
+  pp.pprint(client.get_privilege_set(eval(args[0]),args[1],eval(args[2]),eval(args[3]),))
 
 elif cmd == 'list_privileges':
   if len(args) != 3:

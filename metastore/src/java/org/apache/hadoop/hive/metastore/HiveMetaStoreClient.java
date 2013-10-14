@@ -1395,9 +1395,9 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
 
   @Override
   public List<String> get_privilege_set(HiveObjectRef hiveObject,
-      String userName, List<String> groupNames) throws MetaException,
+      String userName, List<String> groupNames, boolean grantOnly) throws MetaException,
       TException {
-    return client.get_privilege_set(hiveObject, userName, groupNames);
+    return client.get_privilege_set(hiveObject, userName, groupNames, grantOnly);
   }
 
   @Override

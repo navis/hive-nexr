@@ -69,8 +69,8 @@ public class StorageBasedAuthorizationProvider extends HiveAuthorizationProvider
   }
 
   @Override
-  public void authorize(Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv)
-      throws HiveException, AuthorizationException {
+  public void authorize(Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+      boolean grantedOnly) throws HiveException, AuthorizationException {
     // Currently not used in hive code-base, but intended to authorize actions
     // that are directly user-level. As there's no storage based aspect to this,
     // we can follow one of two routes:
@@ -86,15 +86,15 @@ public class StorageBasedAuthorizationProvider extends HiveAuthorizationProvider
   }
 
   @Override
-  public void authorize(Database db, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv)
-      throws HiveException, AuthorizationException {
+  public void authorize(Database db, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+      boolean grantedOnly) throws HiveException, AuthorizationException {
     Path path = getDbLocation(db);
     authorize(path, readRequiredPriv, writeRequiredPriv);
   }
 
   @Override
-  public void authorize(Table table, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv)
-      throws HiveException, AuthorizationException {
+  public void authorize(Table table, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+      boolean grantedOnly) throws HiveException, AuthorizationException {
 
     // Table path can be null in the case of a new create table - in this case,
     // we try to determine what the path would be after the create table is issued.
@@ -114,19 +114,19 @@ public class StorageBasedAuthorizationProvider extends HiveAuthorizationProvider
   }
 
   @Override
-  public void authorize(Partition part, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv)
-      throws HiveException, AuthorizationException {
-    authorize(part.getTable(), part, readRequiredPriv, writeRequiredPriv);
+  public void authorize(Partition part, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+      boolean grantedOnly) throws HiveException, AuthorizationException {
+    authorize(part.getTable(), part, readRequiredPriv, writeRequiredPriv, grantedOnly);
   }
 
   private void authorize(Table table, Partition part, Privilege[] readRequiredPriv,
-      Privilege[] writeRequiredPriv)
+      Privilege[] writeRequiredPriv, boolean grantedOnly)
       throws HiveException, AuthorizationException {
 
     // Partition path can be null in the case of a new create partition - in this case,
     // we try to default to checking the permissions of the parent table
     if (part.getLocation() == null) {
-      authorize(table, readRequiredPriv, writeRequiredPriv);
+      authorize(table, readRequiredPriv, writeRequiredPriv, grantedOnly);
     } else {
       authorize(part.getPartitionPath(), readRequiredPriv, writeRequiredPriv);
     }
@@ -134,13 +134,13 @@ public class StorageBasedAuthorizationProvider extends HiveAuthorizationProvider
 
   @Override
   public void authorize(Table table, Partition part, List<String> columns,
-      Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv) throws HiveException,
-      AuthorizationException {
+      Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+      boolean grantedOnly) throws HiveException, AuthorizationException {
     // In a simple storage-based auth, we have no information about columns
     // living in different files, so we do simple partition-auth and ignore
     // the columns parameter.
 
-    authorize(part.getTable(), part, readRequiredPriv, writeRequiredPriv);
+    authorize(part.getTable(), part, readRequiredPriv, writeRequiredPriv, grantedOnly);
   }
 
   @Override

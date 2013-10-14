@@ -131,7 +131,7 @@ public class HCatSemanticAnalyzerBase extends AbstractSemanticAnalyzerHook {
     protected void authorize(Privilege[] inputPrivs, Privilege[] outputPrivs)
         throws AuthorizationException, SemanticException {
         try {
-            getAuthProvider().authorize(inputPrivs, outputPrivs);
+            getAuthProvider().authorize(inputPrivs, outputPrivs, false);
         } catch (HiveException ex) {
             throw new SemanticException(ex);
         }
@@ -140,7 +140,7 @@ public class HCatSemanticAnalyzerBase extends AbstractSemanticAnalyzerHook {
     protected void authorize(Database db, Privilege priv)
         throws AuthorizationException, SemanticException {
         try {
-            getAuthProvider().authorize(db, null, new Privilege[]{priv});
+            getAuthProvider().authorize(db, null, new Privilege[]{priv}, false);
         } catch (HiveException ex) {
             throw new SemanticException(ex);
         }
@@ -162,7 +162,7 @@ public class HCatSemanticAnalyzerBase extends AbstractSemanticAnalyzerHook {
     protected void authorize(Table table, Privilege priv)
         throws AuthorizationException, SemanticException {
         try {
-            getAuthProvider().authorize(table, new Privilege[]{priv}, null);
+            getAuthProvider().authorize(table, new Privilege[]{priv}, null, false);
         } catch (HiveException ex) {
             throw new SemanticException(ex);
         }
@@ -171,7 +171,7 @@ public class HCatSemanticAnalyzerBase extends AbstractSemanticAnalyzerHook {
     protected void authorize(Partition part, Privilege priv)
         throws AuthorizationException, SemanticException {
         try {
-            getAuthProvider().authorize(part, new Privilege[]{priv}, null);
+            getAuthProvider().authorize(part, new Privilege[]{priv}, null, false);
         } catch (HiveException ex) {
             throw new SemanticException(ex);
         }

@@ -141,8 +141,8 @@ class DummyStorageHandler extends HCatStorageHandler {
          */
         @Override
         public void authorize(Privilege[] readRequiredPriv,
-                              Privilege[] writeRequiredPriv) throws HiveException,
-            AuthorizationException {
+                              Privilege[] writeRequiredPriv,
+          boolean grantedOnly) throws HiveException, AuthorizationException {
         }
 
         /* @param db
@@ -154,8 +154,8 @@ class DummyStorageHandler extends HCatStorageHandler {
          */
         @Override
         public void authorize(Database db, Privilege[] readRequiredPriv,
-                              Privilege[] writeRequiredPriv) throws HiveException,
-            AuthorizationException {
+                              Privilege[] writeRequiredPriv,
+          boolean grantedOnly) throws HiveException, AuthorizationException {
         }
 
         /* @param table
@@ -167,8 +167,8 @@ class DummyStorageHandler extends HCatStorageHandler {
          */
         @Override
         public void authorize(org.apache.hadoop.hive.ql.metadata.Table table, Privilege[] readRequiredPriv,
-                              Privilege[] writeRequiredPriv) throws HiveException,
-            AuthorizationException {
+                              Privilege[] writeRequiredPriv,
+          boolean grantedOnly) throws HiveException, AuthorizationException {
         }
 
         /* @param part
@@ -180,8 +180,8 @@ class DummyStorageHandler extends HCatStorageHandler {
          */
         @Override
         public void authorize(Partition part, Privilege[] readRequiredPriv,
-                              Privilege[] writeRequiredPriv) throws HiveException,
-            AuthorizationException {
+                              Privilege[] writeRequiredPriv,
+          boolean grantedOnly) throws HiveException, AuthorizationException {
         }
 
         /* @param table
@@ -195,8 +195,8 @@ class DummyStorageHandler extends HCatStorageHandler {
          */
         @Override
         public void authorize(org.apache.hadoop.hive.ql.metadata.Table table, Partition part, List<String> columns,
-                              Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv)
-            throws HiveException, AuthorizationException {
+                              Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+          boolean grantedOnly) throws HiveException, AuthorizationException {
         }
 
     }
