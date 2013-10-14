@@ -87,7 +87,6 @@ import org.apache.hadoop.hive.ql.parse.AbstractSemanticAnalyzerHook;
 import org.apache.hadoop.hive.ql.parse.BaseSemanticAnalyzer;
 import org.apache.hadoop.hive.ql.parse.HiveSemanticAnalyzerHookContext;
 import org.apache.hadoop.hive.ql.parse.HiveSemanticAnalyzerHookContextImpl;
-import org.apache.hadoop.hive.ql.parse.ImportSemanticAnalyzer;
 import org.apache.hadoop.hive.ql.parse.ParseContext;
 import org.apache.hadoop.hive.ql.parse.ParseDriver;
 import org.apache.hadoop.hive.ql.parse.ParseUtils;
@@ -557,8 +556,8 @@ public class Driver implements CommandProcessor {
     if (op == null) {
       throw new IllegalStateException("Operation is null");
     }
-    Privilege[] inputPrivs = op.getInputRequiredPrivileges();
-    Privilege[] outputPrivs = op.getOutputRequiredPrivileges();
+    Privilege[] opInputPrivs = op.getInputRequiredPrivileges();
+    Privilege[] opOutputPrivs = op.getOutputRequiredPrivileges();
 
     boolean grantedOnly = grantAuth &&
         (op.equals(HiveOperation.GRANT_PRIVILEGE) || op.equals(HiveOperation.REVOKE_PRIVILEGE));
@@ -578,10 +577,10 @@ public class Driver implements CommandProcessor {
         privs = task.getWork().getRevokeDesc().getPrivileges();
         subject = task.getWork().getRevokeDesc().getPrivilegeSubjectDesc();
       }
-      inputPrivs = new Privilege[privs.size()];
-      outputPrivs = new Privilege[privs.size()];
+      opInputPrivs = new Privilege[privs.size()];
+      opOutputPrivs = new Privilege[privs.size()];
       for (int i = 0; i < privs.size(); i++) {
-        inputPrivs[i] = outputPrivs[i] = privs.get(i).getPrivilege();
+        opInputPrivs[i] = opOutputPrivs[i] = privs.get(i).getPrivilege();
       }
       if (subject == null) {
         ss.getAuthorizer().authorize(opInputPrivs, opOutputPrivs, grantedOnly);
@@ -589,25 +588,15 @@ public class Driver implements CommandProcessor {
     }
 
     if (op.equals(HiveOperation.CREATEDATABASE)) {
-      ss.getAuthorizer().authorize(
-          inputPrivs, outputPrivs, grantedOnly);
-    } else if (op.equals(HiveOperation.CREATETABLE_AS_SELECT)
-        || op.equals(HiveOperation.CREATETABLE)) {
-      ss.getAuthorizer().authorize(
-          db.getDatabase(db.getCurrentDatabase()), null,
-          HiveOperation.CREATETABLE_AS_SELECT.getOutputRequiredPrivileges(), grantedOnly);
-    } else {
-      if (op.equals(HiveOperation.IMPORT)) {
-        ImportSemanticAnalyzer isa = (ImportSemanticAnalyzer) sem;
-        if (!isa.existsTable()) {
-          ss.getAuthorizer().authorize(
-              db.getDatabase(db.getCurrentDatabase()), null,
-              HiveOperation.CREATETABLE_AS_SELECT.getOutputRequiredPrivileges(), grantedOnly);
-        }
-      }
+      ss.getAuthorizer().authorize(opInputPrivs, opOutputPrivs, grantedOnly);
     }
+
     if (outputs != null && outputs.size() > 0) {
       for (WriteEntity write : outputs) {
+        Privilege[] outputPrivs = write.getOutputRequiredPrivileges();
+        if (outputPrivs == null) {
+          outputPrivs = opOutputPrivs;
+        }
         if (write.getType() == Entity.Type.DATABASE) {
           ss.getAuthorizer().authorize(write.getDatabase(), null, outputPrivs, grantedOnly);
           continue;
@@ -719,6 +708,10 @@ public class Driver implements CommandProcessor {
       // cache the results for table authorization
       Set<String> tableAuthChecked = new HashSet<String>();
       for (ReadEntity read : inputs) {
+        Privilege[] inputPrivs = read.getInputRequiredPrivileges();
+        if (inputPrivs == null) {
+          inputPrivs = opInputPrivs;
+        }
         if (read.getType() == Entity.Type.DATABASE) {
           ss.getAuthorizer().authorize(read.getDatabase(), inputPrivs, null, grantedOnly);
           continue;

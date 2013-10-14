@@ -48,6 +48,7 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.metastore.TableType;
 import org.apache.hadoop.hive.metastore.Warehouse;
+import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.Order;
@@ -7970,7 +7971,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         if (partitions != null) {
           for (Partition partn : partitions) {
             // inputs.add(new ReadEntity(partn)); // is this needed at all?
-            outputs.add(new WriteEntity(partn, true));
+            outputs.add(new WriteEntity(partn));
           }
         }
       }
@@ -9443,6 +9444,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       }
     }
 
+    String[] qualified = Hive.getQualifiedNames(tableName);
+    String dbName = qualified.length == 1 ? db.getCurrentDatabase() : qualified[0];
+
+    Database database  = getDatabase(dbName);
+
     // Handle different types of CREATE TABLE command
     CreateTableDesc crtTblDesc = null;
     switch (command_type) {
@@ -9461,8 +9467,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       crtTblDesc.setStoredAsSubDirectories(storedAsDirs);
 
       crtTblDesc.validate();
-      // outputs is empty, which means this create table happens in the current
-      // database.
+
+      outputs.add(new WriteEntity(database));
       SessionState.get().setCommandType(HiveOperation.CREATETABLE);
       rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(),
           crtTblDesc), conf));
@@ -9474,6 +9480,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       CreateTableLikeDesc crtTblLikeDesc = new CreateTableLikeDesc(tableName, isExt,
           storageFormat.inputFormat, storageFormat.outputFormat, location,
           shared.serde, shared.serdeProps, tblProps, ifNotExists, likeTableName);
+
+      outputs.add(new WriteEntity(database));
       SessionState.get().setCommandType(HiveOperation.CREATETABLE);
       rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(),
           crtTblLikeDesc), conf));
@@ -9509,6 +9517,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       crtTblDesc.setStoredAsSubDirectories(storedAsDirs);
       qb.setTableDesc(crtTblDesc);
 
+      outputs.add(new WriteEntity(database));
       SessionState.get().setCommandType(HiveOperation.CREATETABLE_AS_SELECT);
 
       return selectStmt;

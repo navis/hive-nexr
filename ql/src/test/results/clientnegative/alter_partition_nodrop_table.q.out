@@ -1,9 +1,11 @@
 PREHOOK: query: -- Create table
 create table if not exists alter_part_nodrop_table(key string, value string ) partitioned by (year string, month string) stored as textfile
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: -- Create table
 create table if not exists alter_part_nodrop_table(key string, value string ) partitioned by (year string, month string) stored as textfile
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@alter_part_nodrop_table
 PREHOOK: query: -- Load data
 load data local inpath '../data/files/T1.txt' overwrite into table alter_part_nodrop_table partition (year='1996', month='10')

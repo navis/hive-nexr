@@ -1,7 +1,9 @@
 PREHOOK: query: create table mp2 (a string) partitioned by (b string)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table mp2 (a string) partitioned by (b string)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@mp2
 PREHOOK: query: alter table mp2 add partition (b='1')
 PREHOOK: type: ALTERTABLE_ADDPARTS

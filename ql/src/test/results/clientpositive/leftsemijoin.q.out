@@ -9,16 +9,20 @@ POSTHOOK: type: DROPTABLE
 PREHOOK: query: CREATE TABLE sales (name STRING, id INT)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE sales (name STRING, id INT)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@sales
 PREHOOK: query: CREATE TABLE things (id INT, name STRING) partitioned by (ds string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE things (id INT, name STRING) partitioned by (ds string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@things
 PREHOOK: query: load data local inpath '../data/files/sales.txt' INTO TABLE sales
 PREHOOK: type: LOAD

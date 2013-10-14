@@ -1,7 +1,9 @@
 PREHOOK: query: create table exim_department ( dep_id int) stored as textfile
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table exim_department ( dep_id int) stored as textfile
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@exim_department
 PREHOOK: query: load data local inpath "../data/files/test.dat" into table exim_department
 PREHOOK: type: LOAD
@@ -42,8 +44,10 @@ POSTHOOK: type: GRANT_PRIVILEGE
 POSTHOOK: Output: database:importer
 PREHOOK: query: import from 'ql/test/data/exports/exim_department'
 PREHOOK: type: IMPORT
+PREHOOK: Output: database:importer
 POSTHOOK: query: import from 'ql/test/data/exports/exim_department'
 POSTHOOK: type: IMPORT
+POSTHOOK: Output: database:importer
 POSTHOOK: Output: importer@exim_department
 PREHOOK: query: select * from exim_department
 PREHOOK: type: QUERY

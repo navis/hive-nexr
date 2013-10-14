@@ -69,6 +69,7 @@ WITH SERDEPROPERTIES (
 )
 STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE serde_regex(
   host STRING,
   identity STRING,
@@ -85,6 +86,7 @@ WITH SERDEPROPERTIES (
 )
 STORED AS TEXTFILE
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@serde_regex
 PREHOOK: query: LOAD DATA LOCAL INPATH "../data/files/apache.access.log" INTO TABLE serde_regex
 PREHOOK: type: LOAD
@@ -176,6 +178,7 @@ WITH SERDEPROPERTIES (
 )
 STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE serde_regex1(
   key decimal,
   value int)
@@ -185,6 +188,7 @@ WITH SERDEPROPERTIES (
 )
 STORED AS TEXTFILE
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@serde_regex1
 PREHOOK: query: LOAD DATA LOCAL INPATH "../data/files/kv7.txt" INTO TABLE serde_regex1
 PREHOOK: type: LOAD

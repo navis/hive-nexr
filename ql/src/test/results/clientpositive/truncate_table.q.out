@@ -1,7 +1,9 @@
 PREHOOK: query: create table src_truncate (key string, value string)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table src_truncate (key string, value string)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@src_truncate
 PREHOOK: query: load data local inpath '../data/files/kv1.txt' into table src_truncate
 PREHOOK: type: LOAD
@@ -11,8 +13,10 @@ POSTHOOK: type: LOAD
 POSTHOOK: Output: default@src_truncate
 PREHOOK: query: create table srcpart_truncate (key string, value string) partitioned by (ds string, hr string)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table srcpart_truncate (key string, value string) partitioned by (ds string, hr string)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@srcpart_truncate
 PREHOOK: query: alter table srcpart_truncate add partition (ds='2008-04-08', hr='11')
 PREHOOK: type: ALTERTABLE_ADDPARTS

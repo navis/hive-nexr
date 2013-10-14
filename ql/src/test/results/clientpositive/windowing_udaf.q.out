@@ -17,6 +17,7 @@ PREHOOK: query: create table over10k(
        row format delimited
        fields terminated by '|'
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table over10k(
            t tinyint,
            si smallint,
@@ -32,6 +33,7 @@ POSTHOOK: query: create table over10k(
        row format delimited
        fields terminated by '|'
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@over10k
 PREHOOK: query: load data local inpath '../data/files/over10k' into table over10k
 PREHOOK: type: LOAD

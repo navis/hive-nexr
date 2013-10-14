@@ -28,9 +28,11 @@ POSTHOOK: type: SWITCHDATABASE
 PREHOOK: query: -- add a table, index and view
 CREATE TABLE temp_tbl (id INT, name STRING)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:db5
 POSTHOOK: query: -- add a table, index and view
 CREATE TABLE temp_tbl (id INT, name STRING)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:db5
 POSTHOOK: Output: db5@temp_tbl
 PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/kv1.txt' INTO TABLE temp_tbl
 PREHOOK: type: LOAD
@@ -62,9 +64,11 @@ POSTHOOK: Lineage: db5__temp_tbl_idx1__.id SIMPLE [(temp_tbl)temp_tbl.FieldSchem
 PREHOOK: query: -- add a table, index and view with a different storage location
 #### A masked pattern was here ####
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:db5
 POSTHOOK: query: -- add a table, index and view with a different storage location
 #### A masked pattern was here ####
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:db5
 POSTHOOK: Output: db5@temp_tbl2
 POSTHOOK: Lineage: db5__temp_tbl_idx1__._bucketname SIMPLE [(temp_tbl)temp_tbl.FieldSchema(name:INPUT__FILE__NAME, type:string, comment:), ]
 POSTHOOK: Lineage: db5__temp_tbl_idx1__._offsets EXPRESSION [(temp_tbl)temp_tbl.FieldSchema(name:BLOCK__OFFSET__INSIDE__FILE, type:bigint, comment:), ]
@@ -111,9 +115,11 @@ POSTHOOK: Lineage: db5__temp_tbl_idx1__.id SIMPLE [(temp_tbl)temp_tbl.FieldSchem
 PREHOOK: query: -- add a partitioned table, index and view
 CREATE TABLE part_tab (id INT, name STRING)  PARTITIONED BY (ds string)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:db5
 POSTHOOK: query: -- add a partitioned table, index and view
 CREATE TABLE part_tab (id INT, name STRING)  PARTITIONED BY (ds string)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:db5
 POSTHOOK: Output: db5@part_tab
 POSTHOOK: Lineage: db5__temp_tbl2_idx2__._bucketname SIMPLE [(temp_tbl2)temp_tbl2.FieldSchema(name:INPUT__FILE__NAME, type:string, comment:), ]
 POSTHOOK: Lineage: db5__temp_tbl2_idx2__._offsets EXPRESSION [(temp_tbl2)temp_tbl2.FieldSchema(name:BLOCK__OFFSET__INSIDE__FILE, type:bigint, comment:), ]
@@ -203,10 +209,12 @@ PREHOOK: query: -- add a partitioned table, index and view with a different stor
 CREATE TABLE part_tab2 (id INT, name STRING)  PARTITIONED BY (ds string)
 #### A masked pattern was here ####
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:db5
 POSTHOOK: query: -- add a partitioned table, index and view with a different storage location
 CREATE TABLE part_tab2 (id INT, name STRING)  PARTITIONED BY (ds string)
 #### A masked pattern was here ####
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:db5
 POSTHOOK: Output: db5@part_tab2
 POSTHOOK: Lineage: db5__part_tab_idx3__ PARTITION(ds=2008-04-09)._bucketname SIMPLE [(part_tab)part_tab.FieldSchema(name:INPUT__FILE__NAME, type:string, comment:), ]
 POSTHOOK: Lineage: db5__part_tab_idx3__ PARTITION(ds=2008-04-09)._offsets EXPRESSION [(part_tab)part_tab.FieldSchema(name:BLOCK__OFFSET__INSIDE__FILE, type:bigint, comment:), ]
@@ -334,10 +342,12 @@ PREHOOK: query: -- add a partitioned table, index and view with a different stor
 CREATE TABLE part_tab3 (id INT, name STRING)  PARTITIONED BY (ds string)
 #### A masked pattern was here ####
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:db5
 POSTHOOK: query: -- add a partitioned table, index and view with a different storage location
 CREATE TABLE part_tab3 (id INT, name STRING)  PARTITIONED BY (ds string)
 #### A masked pattern was here ####
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:db5
 POSTHOOK: Output: db5@part_tab3
 POSTHOOK: Lineage: db5__part_tab2_idx4__ PARTITION(ds=2008-04-09)._bucketname SIMPLE [(part_tab2)part_tab2.FieldSchema(name:INPUT__FILE__NAME, type:string, comment:), ]
 POSTHOOK: Lineage: db5__part_tab2_idx4__ PARTITION(ds=2008-04-09)._offsets EXPRESSION [(part_tab2)part_tab2.FieldSchema(name:BLOCK__OFFSET__INSIDE__FILE, type:bigint, comment:), ]
@@ -529,6 +539,7 @@ CREATE EXTERNAL TABLE extab1(id INT, name STRING) ROW FORMAT
               STORED AS TEXTFILE
 #### A masked pattern was here ####
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:db5
 POSTHOOK: query: -- add an external table
 CREATE EXTERNAL TABLE extab1(id INT, name STRING) ROW FORMAT
               DELIMITED FIELDS TERMINATED BY ''
@@ -536,6 +547,7 @@ CREATE EXTERNAL TABLE extab1(id INT, name STRING) ROW FORMAT
               STORED AS TEXTFILE
 #### A masked pattern was here ####
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:db5
 POSTHOOK: Output: db5@extab1
 POSTHOOK: Lineage: db5__part_tab2_idx4__ PARTITION(ds=2008-04-09)._bucketname SIMPLE [(part_tab2)part_tab2.FieldSchema(name:INPUT__FILE__NAME, type:string, comment:), ]
 POSTHOOK: Lineage: db5__part_tab2_idx4__ PARTITION(ds=2008-04-09)._offsets EXPRESSION [(part_tab2)part_tab2.FieldSchema(name:BLOCK__OFFSET__INSIDE__FILE, type:bigint, comment:), ]

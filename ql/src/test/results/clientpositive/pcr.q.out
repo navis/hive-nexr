@@ -12,8 +12,10 @@ POSTHOOK: query: drop table pcr_t3
 POSTHOOK: type: DROPTABLE
 PREHOOK: query: create table pcr_t1 (key int, value string) partitioned by (ds string)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table pcr_t1 (key int, value string) partitioned by (ds string)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@pcr_t1
 PREHOOK: query: insert overwrite table pcr_t1 partition (ds='2000-04-08') select * from src where key < 20 order by key
 PREHOOK: type: QUERY
@@ -3624,8 +3626,10 @@ POSTHOOK: Lineage: pcr_t1 PARTITION(ds=2000-04-11).value SIMPLE [(src)src.FieldS
 19	val_19	2000-04-10
 PREHOOK: query: create table pcr_t2 (key int, value string)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table pcr_t2 (key int, value string)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@pcr_t2
 POSTHOOK: Lineage: pcr_t1 PARTITION(ds=2000-04-08).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: pcr_t1 PARTITION(ds=2000-04-08).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
@@ -3637,8 +3641,10 @@ POSTHOOK: Lineage: pcr_t1 PARTITION(ds=2000-04-11).key EXPRESSION [(src)src.Fiel
 POSTHOOK: Lineage: pcr_t1 PARTITION(ds=2000-04-11).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
 PREHOOK: query: create table pcr_t3 (key int, value string)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table pcr_t3 (key int, value string)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@pcr_t3
 POSTHOOK: Lineage: pcr_t1 PARTITION(ds=2000-04-08).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: pcr_t1 PARTITION(ds=2000-04-08).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
