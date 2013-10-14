@@ -25,6 +25,7 @@ import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.ql.metadata.Partition;
 import org.apache.hadoop.hive.ql.metadata.DummyPartition;
 import org.apache.hadoop.hive.ql.metadata.Table;
+import org.apache.hadoop.hive.ql.plan.HiveOperation;
 
 /**
  * This class encapsulates an object that is being written to by the query. This
@@ -43,6 +44,12 @@ public class WriteEntity extends Entity implements Serializable {
     super(database, true);
   }
 
+  public WriteEntity(Database database, HiveOperation operation) {
+    super(database, true);
+    setInputRequiredPrivileges(operation.getInputRequiredPrivileges());
+    setOutputRequiredPrivileges(operation.getOutputRequiredPrivileges());
+  }
+
   /**
    * Constructor for a table.
    *
@@ -51,6 +58,12 @@ public class WriteEntity extends Entity implements Serializable {
    */
   public WriteEntity(Table t) {
     super(t, true);
+  }
+
+  public WriteEntity(Table t, HiveOperation operation) {
+    super(t, true);
+    setInputRequiredPrivileges(operation.getInputRequiredPrivileges());
+    setOutputRequiredPrivileges(operation.getOutputRequiredPrivileges());
   }
 
   public WriteEntity(Table t, boolean complete) {
@@ -64,11 +77,13 @@ public class WriteEntity extends Entity implements Serializable {
    *          Partition that is written to.
    */
   public WriteEntity(Partition p) {
-    this(p, true);
+    super(p, true);
   }
 
-  public WriteEntity(Partition p, boolean complete) {
-    super(p, complete);
+  public WriteEntity(Partition p, HiveOperation operation) {
+    super(p, true);
+    setInputRequiredPrivileges(operation.getInputRequiredPrivileges());
+    setOutputRequiredPrivileges(operation.getOutputRequiredPrivileges());
   }
 
   public WriteEntity(DummyPartition p, boolean complete) {

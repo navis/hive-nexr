@@ -19,8 +19,10 @@ POSTHOOK: query: CREATE TEMPORARY FUNCTION testlength2 AS 'org.apache.hadoop.hiv
 POSTHOOK: type: CREATEFUNCTION
 PREHOOK: query: CREATE TABLE dest1(len INT)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE dest1(len INT)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@dest1
 PREHOOK: query: FROM src INSERT OVERWRITE TABLE dest1 SELECT testlength2(src.value)
 PREHOOK: type: QUERY

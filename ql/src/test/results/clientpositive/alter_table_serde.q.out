@@ -1,9 +1,11 @@
 PREHOOK: query: -- test table
 create table test_table (id int, query string, name string)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: -- test table
 create table test_table (id int, query string, name string)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@test_table
 PREHOOK: query: describe extended test_table
 PREHOOK: type: DESCTABLE
@@ -59,9 +61,11 @@ POSTHOOK: Output: default@test_table
 PREHOOK: query: --- test partitioned table
 create table test_table (id int, query string, name string) partitioned by (dt string)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: --- test partitioned table
 create table test_table (id int, query string, name string) partitioned by (dt string)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@test_table
 PREHOOK: query: alter table test_table add partition (dt = '2011')
 PREHOOK: type: ALTERTABLE_ADDPARTS

@@ -4,12 +4,14 @@ PREHOOK: query: create table exim_employee ( emp_id int comment "employee id")
 	stored as textfile	
 	tblproperties("creator"="krishna")
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table exim_employee ( emp_id int comment "employee id") 	
 	comment "employee table"
 	partitioned by (emp_country string comment "two char iso code", emp_state string comment "free text")
 	stored as textfile	
 	tblproperties("creator"="krishna")
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@exim_employee
 PREHOOK: query: load data local inpath "../data/files/test.dat" 
 	into table exim_employee partition (emp_country="in", emp_state="tn")
@@ -86,6 +88,7 @@ PREHOOK: query: create external table exim_employee ( emp_id int comment "employ
 	location 'ql/test/data/tablestore/exim_employee'
 	tblproperties("creator"="krishna")
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:importer
 POSTHOOK: query: create external table exim_employee ( emp_id int comment "employee id") 	
 	comment "employee table"
 	partitioned by (emp_country string comment "two char iso code", emp_state string comment "free text")
@@ -93,6 +96,7 @@ POSTHOOK: query: create external table exim_employee ( emp_id int comment "emplo
 	location 'ql/test/data/tablestore/exim_employee'
 	tblproperties("creator"="krishna")
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:importer
 POSTHOOK: Output: importer@exim_employee
 PREHOOK: query: load data local inpath "../data/files/test.dat" 
 	into table exim_employee partition (emp_country="in", emp_state="tn")

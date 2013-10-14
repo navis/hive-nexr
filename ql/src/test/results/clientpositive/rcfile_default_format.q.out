@@ -1,7 +1,9 @@
 PREHOOK: query: CREATE TABLE rcfile_default_format (key STRING)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE rcfile_default_format (key STRING)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@rcfile_default_format
 PREHOOK: query: DESCRIBE EXTENDED rcfile_default_format
 PREHOOK: type: DESCTABLE
@@ -13,9 +15,11 @@ key                 	string              	None
 PREHOOK: query: CREATE TABLE rcfile_default_format_ctas AS SELECT key,value FROM src
 PREHOOK: type: CREATETABLE_AS_SELECT
 PREHOOK: Input: default@src
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE rcfile_default_format_ctas AS SELECT key,value FROM src
 POSTHOOK: type: CREATETABLE_AS_SELECT
 POSTHOOK: Input: default@src
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@rcfile_default_format_ctas
 PREHOOK: query: DESCRIBE EXTENDED rcfile_default_format_ctas
 PREHOOK: type: DESCTABLE
@@ -27,8 +31,10 @@ value               	string              	None
 #### A masked pattern was here ####
 PREHOOK: query: CREATE TABLE rcfile_default_format_txtfile (key STRING) STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE rcfile_default_format_txtfile (key STRING) STORED AS TEXTFILE
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@rcfile_default_format_txtfile
 PREHOOK: query: INSERT OVERWRITE TABLE rcfile_default_format_txtfile SELECT key from src
 PREHOOK: type: QUERY
@@ -50,9 +56,11 @@ key                 	string              	None
 PREHOOK: query: CREATE TABLE textfile_default_format_ctas AS SELECT key,value FROM rcfile_default_format_ctas
 PREHOOK: type: CREATETABLE_AS_SELECT
 PREHOOK: Input: default@rcfile_default_format_ctas
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE textfile_default_format_ctas AS SELECT key,value FROM rcfile_default_format_ctas
 POSTHOOK: type: CREATETABLE_AS_SELECT
 POSTHOOK: Input: default@rcfile_default_format_ctas
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@textfile_default_format_ctas
 POSTHOOK: Lineage: rcfile_default_format_txtfile.key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 PREHOOK: query: DESCRIBE EXTENDED textfile_default_format_ctas

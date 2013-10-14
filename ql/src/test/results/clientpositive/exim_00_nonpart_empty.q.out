@@ -2,10 +2,12 @@ PREHOOK: query: create table exim_department ( dep_id int comment "department id
 	stored as textfile	
 	tblproperties("creator"="krishna")
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table exim_department ( dep_id int comment "department id") 	
 	stored as textfile	
 	tblproperties("creator"="krishna")
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@exim_department
 #### A masked pattern was here ####
 PREHOOK: query: export table exim_department to 'ql/test/data/exports/exim_department'
@@ -34,8 +36,10 @@ POSTHOOK: query: use importer
 POSTHOOK: type: SWITCHDATABASE
 PREHOOK: query: import from 'ql/test/data/exports/exim_department'
 PREHOOK: type: IMPORT
+PREHOOK: Output: database:importer
 POSTHOOK: query: import from 'ql/test/data/exports/exim_department'
 POSTHOOK: type: IMPORT
+POSTHOOK: Output: database:importer
 POSTHOOK: Output: importer@exim_department
 PREHOOK: query: describe extended exim_department
 PREHOOK: type: DESCTABLE

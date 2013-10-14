@@ -38,6 +38,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.TableType;
 import org.apache.hadoop.hive.metastore.Warehouse;
+import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.Order;
@@ -54,6 +55,7 @@ import org.apache.hadoop.hive.ql.plan.AddPartitionDesc;
 import org.apache.hadoop.hive.ql.plan.CopyWork;
 import org.apache.hadoop.hive.ql.plan.CreateTableDesc;
 import org.apache.hadoop.hive.ql.plan.DDLWork;
+import org.apache.hadoop.hive.ql.plan.HiveOperation;
 import org.apache.hadoop.hive.ql.plan.LoadTableDesc;
 import org.apache.hadoop.hive.ql.plan.MoveWork;
 import org.apache.hadoop.hive.serde.serdeConstants;
@@ -66,12 +68,6 @@ public class ImportSemanticAnalyzer extends BaseSemanticAnalyzer {
 
   public ImportSemanticAnalyzer(HiveConf conf) throws SemanticException {
     super(conf);
-  }
-
-  private boolean tableExists = false;
-
-  public boolean existsTable() {
-    return tableExists;
   }
 
   @Override
@@ -92,7 +88,7 @@ public class ImportSemanticAnalyzer extends BaseSemanticAnalyzer {
         Path metadataPath = new Path(fromPath, "_metadata");
         Map.Entry<org.apache.hadoop.hive.metastore.api.Table,
         List<Partition>> rv =  EximUtil.readMetaData(fs, metadataPath);
-        dbname = db.getCurrentDatabase();
+        dbname = db.getCurrentDatabase(); // todo
         org.apache.hadoop.hive.metastore.api.Table table = rv.getKey();
         tblDesc =  new CreateTableDesc(
             table.getTableName(),
@@ -213,7 +209,6 @@ public class ImportSemanticAnalyzer extends BaseSemanticAnalyzer {
         checkTable(table, tblDesc);
         LOG.debug("table " + tblDesc.getTableName()
             + " exists: metadata checked");
-        tableExists = true;
         conf.set("import.destination.dir", table.getDataLocation().toString());
         if (table.isPartitioned()) {
           LOG.debug("table partitioned");
@@ -234,13 +229,15 @@ public class ImportSemanticAnalyzer extends BaseSemanticAnalyzer {
         }
         outputs.add(new WriteEntity(table));
       } catch (InvalidTableException e) {
+        Database database = db.getDatabase(db.getCurrentDatabase());
+        outputs.add(new WriteEntity(database, HiveOperation.CREATETABLE));
         LOG.debug("table " + tblDesc.getTableName() + " does not exist");
 
         Task<?> t = TaskFactory.get(new DDLWork(getInputs(), getOutputs(),
             tblDesc), conf);
         Table table = new Table(dbname, tblDesc.getTableName());
         conf.set("import.destination.dir",
-            wh.getTablePath(db.getDatabase(db.getCurrentDatabase()),
+            wh.getTablePath(database,
                 tblDesc.getTableName()).toString());
         if ((tblDesc.getPartCols() != null) && (tblDesc.getPartCols().size() != 0)) {
           for (AddPartitionDesc addPartitionDesc : partitionDescs) {
@@ -258,7 +255,7 @@ public class ImportSemanticAnalyzer extends BaseSemanticAnalyzer {
             if (tblDesc.getLocation() != null) {
               tablePath = new Path(tblDesc.getLocation());
             } else {
-              tablePath = wh.getTablePath(db.getDatabase(db.getCurrentDatabase()), tblDesc.getTableName());
+              tablePath = wh.getTablePath(database, tblDesc.getTableName());
             }
             checkTargetLocationEmpty(fs, tablePath);
             t.addDependentTask(loadTable(fromURI, table));

@@ -1,7 +1,9 @@
 PREHOOK: query: create table fileformat_mix_test (src int, value string) partitioned by (ds string)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table fileformat_mix_test (src int, value string) partitioned by (ds string)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@fileformat_mix_test
 PREHOOK: query: alter table fileformat_mix_test set fileformat Sequencefile
 PREHOOK: type: ALTERTABLE_FILEFORMAT

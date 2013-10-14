@@ -13,8 +13,10 @@ POSTHOOK: query: USE db1
 POSTHOOK: type: SWITCHDATABASE
 PREHOOK: query: CREATE TABLE table_db1 (name STRING, value INT)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:db1
 POSTHOOK: query: CREATE TABLE table_db1 (name STRING, value INT)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:db1
 POSTHOOK: Output: db1@table_db1
 PREHOOK: query: DESCRIBE FORMATTED table_db1
 PREHOOK: type: DESCTABLE
@@ -69,8 +71,10 @@ POSTHOOK: query: USE db2
 POSTHOOK: type: SWITCHDATABASE
 PREHOOK: query: CREATE TABLE table_db2 (name STRING, value INT)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:db2
 POSTHOOK: query: CREATE TABLE table_db2 (name STRING, value INT)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:db2
 POSTHOOK: Output: db2@table_db2
 PREHOOK: query: DESCRIBE FORMATTED table_db2
 PREHOOK: type: DESCTABLE

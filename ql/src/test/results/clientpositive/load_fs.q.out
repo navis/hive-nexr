@@ -1,12 +1,16 @@
 #### A masked pattern was here ####
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 #### A masked pattern was here ####
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@load_overwrite
 #### A masked pattern was here ####
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 #### A masked pattern was here ####
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@load_overwrite2
 PREHOOK: query: load data local inpath '../data/files/kv1.txt' into table load_overwrite
 PREHOOK: type: LOAD

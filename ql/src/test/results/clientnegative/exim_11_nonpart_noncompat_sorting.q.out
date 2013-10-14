@@ -3,11 +3,13 @@ PREHOOK: query: create table exim_department ( dep_id int comment "department id
 	stored as textfile	
 	tblproperties("creator"="krishna")
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table exim_department ( dep_id int comment "department id") 	
 	clustered by (dep_id) sorted by (dep_id desc) into 10 buckets
 	stored as textfile	
 	tblproperties("creator"="krishna")
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@exim_department
 PREHOOK: query: load data local inpath "../data/files/test.dat" into table exim_department
 PREHOOK: type: LOAD
@@ -45,10 +47,12 @@ PREHOOK: query: create table exim_department ( dep_id int comment "department id
 	stored as textfile
 	tblproperties("creator"="krishna")
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:importer
 POSTHOOK: query: create table exim_department ( dep_id int comment "department id") 	
 	clustered by (dep_id) sorted by (dep_id asc) into 10 buckets
 	stored as textfile
 	tblproperties("creator"="krishna")
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:importer
 POSTHOOK: Output: importer@exim_department
 FAILED: SemanticException [Error 10120]: The existing table is not compatible with the import spec.   Table sorting spec does not match

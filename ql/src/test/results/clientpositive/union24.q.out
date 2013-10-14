@@ -1,30 +1,38 @@
 PREHOOK: query: create table src2 as select key, count(1) as count from src group by key
 PREHOOK: type: CREATETABLE_AS_SELECT
 PREHOOK: Input: default@src
+PREHOOK: Output: database:default
 POSTHOOK: query: create table src2 as select key, count(1) as count from src group by key
 POSTHOOK: type: CREATETABLE_AS_SELECT
 POSTHOOK: Input: default@src
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@src2
 PREHOOK: query: create table src3 as select * from src2
 PREHOOK: type: CREATETABLE_AS_SELECT
 PREHOOK: Input: default@src2
+PREHOOK: Output: database:default
 POSTHOOK: query: create table src3 as select * from src2
 POSTHOOK: type: CREATETABLE_AS_SELECT
 POSTHOOK: Input: default@src2
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@src3
 PREHOOK: query: create table src4 as select * from src2
 PREHOOK: type: CREATETABLE_AS_SELECT
 PREHOOK: Input: default@src2
+PREHOOK: Output: database:default
 POSTHOOK: query: create table src4 as select * from src2
 POSTHOOK: type: CREATETABLE_AS_SELECT
 POSTHOOK: Input: default@src2
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@src4
 PREHOOK: query: create table src5 as select * from src2
 PREHOOK: type: CREATETABLE_AS_SELECT
 PREHOOK: Input: default@src2
+PREHOOK: Output: database:default
 POSTHOOK: query: create table src5 as select * from src2
 POSTHOOK: type: CREATETABLE_AS_SELECT
 POSTHOOK: Input: default@src2
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@src5
 PREHOOK: query: explain extended
 select s.key, s.count from (

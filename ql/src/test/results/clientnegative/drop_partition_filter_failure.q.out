@@ -1,7 +1,9 @@
 PREHOOK: query: create table ptestfilter1 (a string, b int) partitioned by (c string, d string)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table ptestfilter1 (a string, b int) partitioned by (c string, d string)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@ptestfilter1
 PREHOOK: query: alter table ptestfilter1 add partition (c='US', d=1)
 PREHOOK: type: ALTERTABLE_ADDPARTS

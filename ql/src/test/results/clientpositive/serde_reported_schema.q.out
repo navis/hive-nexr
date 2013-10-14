@@ -5,6 +5,7 @@ PREHOOK: query: create table int_string
       "serialization.class"="org.apache.hadoop.hive.serde2.thrift.test.IntString",
       "serialization.format"="org.apache.thrift.protocol.TBinaryProtocol")
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table int_string
   partitioned by (b string)
   row format serde "org.apache.hadoop.hive.serde2.thrift.ThriftDeserializer"
@@ -12,6 +13,7 @@ POSTHOOK: query: create table int_string
       "serialization.class"="org.apache.hadoop.hive.serde2.thrift.test.IntString",
       "serialization.format"="org.apache.thrift.protocol.TBinaryProtocol")
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@int_string
 PREHOOK: query: describe int_string
 PREHOOK: type: DESCTABLE

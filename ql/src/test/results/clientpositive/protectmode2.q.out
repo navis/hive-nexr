@@ -4,8 +4,10 @@ POSTHOOK: query: drop table tbl1
 POSTHOOK: type: DROPTABLE
 PREHOOK: query: create table tbl1 (col string)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table tbl1 (col string)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@tbl1
 PREHOOK: query: alter table tbl1 enable no_drop cascade
 PREHOOK: type: ALTERTABLE_PROTECTMODE
@@ -74,8 +76,10 @@ POSTHOOK: query: drop table tbl2
 POSTHOOK: type: DROPTABLE
 PREHOOK: query: create table tbl2 (col string) partitioned by (p string)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table tbl2 (col string) partitioned by (p string)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@tbl2
 PREHOOK: query: alter table tbl2 add partition (p='p1')
 PREHOOK: type: ALTERTABLE_ADDPARTS

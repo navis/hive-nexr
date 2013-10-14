@@ -8,8 +8,10 @@ POSTHOOK: query: use dtf3
 POSTHOOK: type: SWITCHDATABASE
 PREHOOK: query: create table drop_table_failure_temp(col STRING) partitioned by (p STRING)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:dtf3
 POSTHOOK: query: create table drop_table_failure_temp(col STRING) partitioned by (p STRING)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:dtf3
 POSTHOOK: Output: dtf3@drop_table_failure_temp
 PREHOOK: query: alter table drop_table_failure_temp add partition (p ='p1')
 PREHOOK: type: ALTERTABLE_ADDPARTS

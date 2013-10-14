@@ -15,6 +15,7 @@ CREATE TABLE part(
     p_comment STRING
 )
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: -- data setup
 CREATE TABLE part( 
     p_partkey INT,
@@ -28,6 +29,7 @@ CREATE TABLE part(
     p_comment STRING
 )
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@part
 PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/part_tiny.txt' overwrite into table part
 PREHOOK: type: LOAD
@@ -819,6 +821,7 @@ r INT,
 dr INT, 
 s DOUBLE)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: -- 17. testMultipleInserts2SWQsWithPTF
 CREATE TABLE part_4( 
 p_mfgr STRING, 
@@ -828,6 +831,7 @@ r INT,
 dr INT, 
 s DOUBLE)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@part_4
 PREHOOK: query: CREATE TABLE part_5( 
 p_mfgr STRING, 
@@ -839,6 +843,7 @@ dr INT,
 cud DOUBLE, 
 fv1 INT)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE part_5( 
 p_mfgr STRING, 
 p_name STRING, 
@@ -849,6 +854,7 @@ dr INT,
 cud DOUBLE, 
 fv1 INT)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@part_5
 PREHOOK: query: from noop(on part 
 partition by p_mfgr 

@@ -1,12 +1,16 @@
 PREHOOK: query: create table ts1 (key timestamp, value string)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table ts1 (key timestamp, value string)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@ts1
 PREHOOK: query: create table ts2 (key timestamp, value string) STORED AS SEQUENCEFILE
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table ts2 (key timestamp, value string) STORED AS SEQUENCEFILE
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@ts2
 PREHOOK: query: load data local inpath '../data/files/kv1.txt' into table ts1
 PREHOOK: type: LOAD
