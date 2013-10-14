@@ -1276,13 +1276,13 @@ module ThriftHiveMetastore
       raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'list_role_members failed: unknown result')
     end
 
-    def get_privilege_set(hiveObject, user_name, group_names)
-      send_get_privilege_set(hiveObject, user_name, group_names)
+    def get_privilege_set(hiveObject, user_name, group_names, granted_only)
+      send_get_privilege_set(hiveObject, user_name, group_names, granted_only)
       return recv_get_privilege_set()
     end
 
-    def send_get_privilege_set(hiveObject, user_name, group_names)
-      send_message('get_privilege_set', Get_privilege_set_args, :hiveObject => hiveObject, :user_name => user_name, :group_names => group_names)
+    def send_get_privilege_set(hiveObject, user_name, group_names, granted_only)
+      send_message('get_privilege_set', Get_privilege_set_args, :hiveObject => hiveObject, :user_name => user_name, :group_names => group_names, :granted_only => granted_only)
     end
 
     def recv_get_privilege_set()
@@ -2416,7 +2416,7 @@ module ThriftHiveMetastore
       args = read_args(iprot, Get_privilege_set_args)
       result = Get_privilege_set_result.new()
       begin
-        result.success = @handler.get_privilege_set(args.hiveObject, args.user_name, args.group_names)
+        result.success = @handler.get_privilege_set(args.hiveObject, args.user_name, args.group_names, args.granted_only)
       rescue ::MetaException => o1
         result.o1 = o1
       end
@@ -5455,11 +5455,13 @@ module ThriftHiveMetastore
     HIVEOBJECT = 1
     USER_NAME = 2
     GROUP_NAMES = 3
+    GRANTED_ONLY = 4
 
     FIELDS = {
       HIVEOBJECT => {:type => ::Thrift::Types::STRUCT, :name => 'hiveObject', :class => ::HiveObjectRef},
       USER_NAME => {:type => ::Thrift::Types::STRING, :name => 'user_name'},
-      GROUP_NAMES => {:type => ::Thrift::Types::LIST, :name => 'group_names', :element => {:type => ::Thrift::Types::STRING}}
+      GROUP_NAMES => {:type => ::Thrift::Types::LIST, :name => 'group_names', :element => {:type => ::Thrift::Types::STRING}},
+      GRANTED_ONLY => {:type => ::Thrift::Types::BOOL, :name => 'granted_only'}
     }
 
     def struct_fields; FIELDS; end

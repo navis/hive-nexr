@@ -128,7 +128,7 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
     try {
       authorizer.authorize(new Database(context.getDatabase()),
           HiveOperation.CREATEDATABASE.getInputRequiredPrivileges(),
-          HiveOperation.CREATEDATABASE.getOutputRequiredPrivileges());
+          HiveOperation.CREATEDATABASE.getOutputRequiredPrivileges(), false);
     } catch (AuthorizationException e) {
       throw invalidOperationException(e);
     } catch (Exception e) {
@@ -141,7 +141,7 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
     try {
       authorizer.authorize(new Database(context.getDatabase()),
           HiveOperation.DROPDATABASE.getInputRequiredPrivileges(),
-          HiveOperation.DROPDATABASE.getOutputRequiredPrivileges());
+          HiveOperation.DROPDATABASE.getOutputRequiredPrivileges(), false);
     } catch (AuthorizationException e) {
       throw invalidOperationException(e);
     } catch (Exception e) {
@@ -154,7 +154,7 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
     try {
       authorizer.authorize(getTableFromApiTable(context.getTable()),
           HiveOperation.CREATETABLE.getInputRequiredPrivileges(),
-          HiveOperation.CREATETABLE.getOutputRequiredPrivileges());
+          HiveOperation.CREATETABLE.getOutputRequiredPrivileges(), false);
     } catch (AuthorizationException e) {
       throw invalidOperationException(e);
     } catch (Exception e) {
@@ -167,7 +167,7 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
     try {
       authorizer.authorize(getTableFromApiTable(context.getTable()),
           HiveOperation.DROPTABLE.getInputRequiredPrivileges(),
-          HiveOperation.DROPTABLE.getOutputRequiredPrivileges());
+          HiveOperation.DROPTABLE.getOutputRequiredPrivileges(), false);
     } catch (AuthorizationException e) {
       throw invalidOperationException(e);
     } catch (Exception e) {
@@ -180,7 +180,7 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
     try {
       authorizer.authorize(getTableFromApiTable(context.getOldTable()),
           null,
-          new Privilege[]{Privilege.ALTER_METADATA});
+          new Privilege[]{Privilege.ALTER_METADATA}, false);
     } catch (AuthorizationException e) {
       throw invalidOperationException(e);
     } catch (Exception e) {
@@ -194,7 +194,7 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
       org.apache.hadoop.hive.metastore.api.Partition mapiPart = context.getPartition();
       authorizer.authorize(getPartitionFromApiPartition(mapiPart, context),
           HiveOperation.ALTERTABLE_ADDPARTS.getInputRequiredPrivileges(),
-          HiveOperation.ALTERTABLE_ADDPARTS.getOutputRequiredPrivileges());
+          HiveOperation.ALTERTABLE_ADDPARTS.getOutputRequiredPrivileges(), false);
     } catch (AuthorizationException e) {
       throw invalidOperationException(e);
     } catch (NoSuchObjectException e) {
@@ -210,7 +210,7 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
       org.apache.hadoop.hive.metastore.api.Partition mapiPart = context.getPartition();
       authorizer.authorize(getPartitionFromApiPartition(mapiPart, context),
           HiveOperation.ALTERTABLE_DROPPARTS.getInputRequiredPrivileges(),
-          HiveOperation.ALTERTABLE_DROPPARTS.getOutputRequiredPrivileges());
+          HiveOperation.ALTERTABLE_DROPPARTS.getOutputRequiredPrivileges(), false);
     } catch (AuthorizationException e) {
       throw invalidOperationException(e);
     } catch (NoSuchObjectException e) {
@@ -226,7 +226,7 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
       org.apache.hadoop.hive.metastore.api.Partition mapiPart = context.getNewPartition();
       authorizer.authorize(getPartitionFromApiPartition(mapiPart, context),
           null,
-          new Privilege[]{Privilege.ALTER_METADATA});
+          new Privilege[]{Privilege.ALTER_METADATA}, false);
     } catch (AuthorizationException e) {
       throw invalidOperationException(e);
     } catch (NoSuchObjectException e) {
@@ -241,7 +241,7 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
     while (databases.hasNext()) {
       try {
         Database database = context.getHandler().get_database(databases.next());
-        authorizer.authorize(database, new Privilege[] {Privilege.SHOW_DATABASE}, null);
+        authorizer.authorize(database, new Privilege[] {Privilege.SHOW_DATABASE}, null, false);
       } catch (AuthorizationException e) {
         databases.remove();
       } catch (NoSuchObjectException e) {

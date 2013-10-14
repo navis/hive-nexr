@@ -19,6 +19,7 @@
 package org.apache.hadoop.hive.ql.security.authorization;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -61,7 +62,8 @@ public abstract class BitSetCheckedAuthorizationProvider extends
 
   @Override
   public void authorize(Privilege[] inputRequiredPriv,
-      Privilege[] outputRequiredPriv) throws HiveException, AuthorizationException {
+      Privilege[] outputRequiredPriv, boolean grantedOnly)
+      throws HiveException, AuthorizationException {
 
     BitSetChecker checker = BitSetChecker.getBitSetChecker(inputRequiredPriv,
         outputRequiredPriv);
@@ -69,14 +71,15 @@ public abstract class BitSetCheckedAuthorizationProvider extends
     boolean[] outputCheck = checker.outputCheck;
 
     authorizeUserPriv(inputRequiredPriv, inputCheck, outputRequiredPriv,
-        outputCheck);
+        outputCheck, grantedOnly);
     checkAndThrowAuthorizationException(inputRequiredPriv, outputRequiredPriv,
         inputCheck, outputCheck, null, null, null, null);
   }
 
   @Override
   public void authorize(Database db, Privilege[] inputRequiredPriv,
-      Privilege[] outputRequiredPriv) throws HiveException, AuthorizationException {
+      Privilege[] outputRequiredPriv, boolean grantedOnly)
+      throws HiveException, AuthorizationException {
 
     BitSetChecker checker = BitSetChecker.getBitSetChecker(inputRequiredPriv,
         outputRequiredPriv);
@@ -84,7 +87,7 @@ public abstract class BitSetCheckedAuthorizationProvider extends
     boolean[] outputCheck = checker.outputCheck;
 
     authorizeUserAndDBPriv(db, inputRequiredPriv, outputRequiredPriv,
-        inputCheck, outputCheck);
+        inputCheck, outputCheck, grantedOnly);
 
     checkAndThrowAuthorizationException(inputRequiredPriv, outputRequiredPriv,
         inputCheck, outputCheck, db.getName(), null, null, null);
@@ -92,7 +95,7 @@ public abstract class BitSetCheckedAuthorizationProvider extends
 
   @Override
   public void authorize(Table table, Privilege[] inputRequiredPriv,
-      Privilege[] outputRequiredPriv) throws HiveException {
+      Privilege[] outputRequiredPriv, boolean grantedOnly) throws HiveException {
 
     BitSetChecker checker = BitSetChecker.getBitSetChecker(inputRequiredPriv,
         outputRequiredPriv);
@@ -100,7 +103,8 @@ public abstract class BitSetCheckedAuthorizationProvider extends
     boolean[] outputCheck = checker.outputCheck;
 
     authorizeUserDBAndTable(table, inputRequiredPriv,
-        outputRequiredPriv, inputCheck, outputCheck);
+        outputRequiredPriv, inputCheck, outputCheck, grantedOnly);
+
     checkAndThrowAuthorizationException(inputRequiredPriv, outputRequiredPriv,
         inputCheck, outputCheck, table.getDbName(), table.getTableName(),
         null, null);
@@ -108,14 +112,14 @@ public abstract class BitSetCheckedAuthorizationProvider extends
 
   @Override
   public void authorize(Partition part, Privilege[] inputRequiredPriv,
-      Privilege[] outputRequiredPriv) throws HiveException {
+      Privilege[] outputRequiredPriv, boolean grantedOnly) throws HiveException {
 
     //if the partition does not have partition level privilege, go to table level.
     Table table = part.getTable();
     if (table.getParameters().get("PARTITION_LEVEL_PRIVILEGE") == null || ("FALSE"
         .equalsIgnoreCase(table.getParameters().get(
             "PARTITION_LEVEL_PRIVILEGE")))) {
-      this.authorize(part.getTable(), inputRequiredPriv, outputRequiredPriv);
+      authorize(part.getTable(), inputRequiredPriv, outputRequiredPriv, grantedOnly);
       return;
     }
 
@@ -125,7 +129,7 @@ public abstract class BitSetCheckedAuthorizationProvider extends
     boolean[] outputCheck = checker.outputCheck;
 
     if (authorizeUserDbAndPartition(part, inputRequiredPriv, outputRequiredPriv,
-        inputCheck, outputCheck)){
+        inputCheck, outputCheck, grantedOnly)) {
       return;
     }
 
@@ -136,7 +140,7 @@ public abstract class BitSetCheckedAuthorizationProvider extends
 
   @Override
   public void authorize(Table table, Partition part, List<String> columns,
-      Privilege[] inputRequiredPriv, Privilege[] outputRequiredPriv)
+      Privilege[] inputRequiredPriv, Privilege[] outputRequiredPriv, boolean grantedOnly)
       throws HiveException {
 
     BitSetChecker checker = BitSetChecker.getBitSetChecker(inputRequiredPriv,
@@ -156,12 +160,12 @@ public abstract class BitSetCheckedAuthorizationProvider extends
 
     if (partValues == null) {
       if (authorizeUserDBAndTable(table, inputRequiredPriv, outputRequiredPriv,
-          inputCheck, outputCheck)) {
+          inputCheck, outputCheck, grantedOnly)) {
         return;
       }
     } else {
       if (authorizeUserDbAndPartition(part, inputRequiredPriv,
-          outputRequiredPriv, inputCheck, outputCheck)) {
+          outputRequiredPriv, inputCheck, outputCheck, grantedOnly)) {
         return;
       }
     }
@@ -176,7 +180,7 @@ public abstract class BitSetCheckedAuthorizationProvider extends
       List<String> partColumnPrivileges = hive_db
           .get_privilege_set(HiveObjectType.COLUMN, table.getDbName(), table.getTableName(),
               partValues, col, this.getAuthenticator().getUserName(), this
-                  .getAuthenticator().getGroupNames());
+                  .getAuthenticator().getGroupNames(), grantedOnly);
 
       authorizePrivileges(partColumnPrivileges, inputRequiredPriv, inputCheck2,
           outputRequiredPriv, outputCheck2);
@@ -196,10 +200,10 @@ public abstract class BitSetCheckedAuthorizationProvider extends
 
   protected boolean authorizeUserPriv(Privilege[] inputRequiredPriv,
       boolean[] inputCheck, Privilege[] outputRequiredPriv,
-      boolean[] outputCheck) throws HiveException {
+      boolean[] outputCheck, boolean grantedOnly) throws HiveException {
     List<String> privileges = hive_db.get_privilege_set(
         HiveObjectType.GLOBAL, null, null, null, null, this.getAuthenticator()
-            .getUserName(), this.getAuthenticator().getGroupNames());
+            .getUserName(), this.getAuthenticator().getGroupNames(), grantedOnly);
     return authorizePrivileges(privileges, inputRequiredPriv, inputCheck,
         outputRequiredPriv, outputCheck);
   }
@@ -221,23 +225,20 @@ public abstract class BitSetCheckedAuthorizationProvider extends
    */
   private boolean authorizeUserAndDBPriv(Database db,
       Privilege[] inputRequiredPriv, Privilege[] outputRequiredPriv,
-      boolean[] inputCheck, boolean[] outputCheck) throws HiveException {
+      boolean[] inputCheck, boolean[] outputCheck, boolean grantedOnly) throws HiveException {
     if (authorizeUserPriv(inputRequiredPriv, inputCheck, outputRequiredPriv,
-        outputCheck)) {
+        outputCheck, grantedOnly)) {
       return true;
     }
+
 
     List<String> dbPrivileges = hive_db.get_privilege_set(
         HiveObjectType.DATABASE, db.getName(), null, null, null, this
             .getAuthenticator().getUserName(), this.getAuthenticator()
-            .getGroupNames());
+            .getGroupNames(), grantedOnly);
 
-    if (authorizePrivileges(dbPrivileges, inputRequiredPriv, inputCheck,
-        outputRequiredPriv, outputCheck)) {
-      return true;
-    }
-
-    return false;
+    return authorizePrivileges(dbPrivileges, inputRequiredPriv, inputCheck,
+        outputRequiredPriv, outputCheck);
   }
 
   /**
@@ -253,24 +254,20 @@ public abstract class BitSetCheckedAuthorizationProvider extends
    */
   private boolean authorizeUserDBAndTable(Table table,
       Privilege[] inputRequiredPriv, Privilege[] outputRequiredPriv,
-      boolean[] inputCheck, boolean[] outputCheck) throws HiveException {
+      boolean[] inputCheck, boolean[] outputCheck, boolean grantedOnly) throws HiveException {
 
     if (authorizeUserAndDBPriv(hive_db.getDatabase(table.getDbName()),
-        inputRequiredPriv, outputRequiredPriv, inputCheck, outputCheck)) {
+        inputRequiredPriv, outputRequiredPriv, inputCheck, outputCheck, grantedOnly)) {
       return true;
     }
 
     List<String> tablePrivileges = hive_db.get_privilege_set(
         HiveObjectType.TABLE, table.getDbName(), table.getTableName(), null,
         null, this.getAuthenticator().getUserName(), this.getAuthenticator()
-            .getGroupNames());
+            .getGroupNames(), grantedOnly);
 
-    if (authorizePrivileges(tablePrivileges, inputRequiredPriv, inputCheck,
-        outputRequiredPriv, outputCheck)) {
-      return true;
-    }
-
-    return false;
+    return authorizePrivileges(tablePrivileges, inputRequiredPriv, inputCheck,
+        outputRequiredPriv, outputCheck);
   }
 
   /**
@@ -286,11 +283,11 @@ public abstract class BitSetCheckedAuthorizationProvider extends
    */
   private boolean authorizeUserDbAndPartition(Partition part,
       Privilege[] inputRequiredPriv, Privilege[] outputRequiredPriv,
-      boolean[] inputCheck, boolean[] outputCheck) throws HiveException {
+      boolean[] inputCheck, boolean[] outputCheck, boolean grantedOnly) throws HiveException {
 
     if (authorizeUserAndDBPriv(
         hive_db.getDatabase(part.getTable().getDbName()), inputRequiredPriv,
-        outputRequiredPriv, inputCheck, outputCheck)) {
+        outputRequiredPriv, inputCheck, outputCheck, grantedOnly)) {
       return true;
     }
 
@@ -299,15 +296,11 @@ public abstract class BitSetCheckedAuthorizationProvider extends
       partPrivileges = hive_db.get_privilege_set(HiveObjectType.PARTITION, part
           .getTable().getDbName(), part.getTable().getTableName(), part
           .getValues(), null, this.getAuthenticator().getUserName(), this
-          .getAuthenticator().getGroupNames());
+          .getAuthenticator().getGroupNames(), grantedOnly);
     }
 
-    if (authorizePrivileges(partPrivileges, inputRequiredPriv, inputCheck,
-        outputRequiredPriv, outputCheck)) {
-      return true;
-    }
-
-    return false;
+    return authorizePrivileges(partPrivileges, inputRequiredPriv, inputCheck,
+        outputRequiredPriv, outputCheck);
   }
 
   protected boolean authorizePrivileges(List<String> privileges,
@@ -329,13 +322,13 @@ public abstract class BitSetCheckedAuthorizationProvider extends
    *
    * @param container
    */
-  private boolean matchPrivs(Privilege[] inputPriv, List<String> privileges, boolean[] check) {
+  private boolean matchPrivs(Privilege[] required, List<String> privileges, boolean[] check) {
 
-    if (inputPriv == null) {
+    if (required == null || required.length == 0) {
       return true;
     }
 
-    if (privileges == null) {
+    if (privileges == null || privileges.isEmpty()) {
       return false;
     }
 
@@ -346,14 +339,14 @@ public abstract class BitSetCheckedAuthorizationProvider extends
       }
     }
 
-    for (int i = 0; i < inputPriv.length; i++) {
-      String toMatch = inputPriv[i].toString();
+    for (int i = 0; i < required.length; i++) {
+      String toMatch = required[i].toString();
       if (!check[i]) {
         check[i] = privileges.contains(toMatch.toLowerCase());
       }
     }
 
-    return firstFalseIndex(check) <0;
+    return firstFalseIndex(check) < 0;
   }
 
   private List<String> getPrivilegeStringList(

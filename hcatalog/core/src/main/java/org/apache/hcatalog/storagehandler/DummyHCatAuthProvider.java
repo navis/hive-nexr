@@ -76,7 +76,7 @@ class DummyHCatAuthProvider implements HiveAuthorizationProvider {
     */
     @Override
     public void authorize(Privilege[] readRequiredPriv,
-                          Privilege[] writeRequiredPriv) throws HiveException,
+                          Privilege[] writeRequiredPriv, boolean grantedOnly) throws HiveException,
         AuthorizationException {
     }
 
@@ -91,7 +91,7 @@ class DummyHCatAuthProvider implements HiveAuthorizationProvider {
     */
     @Override
     public void authorize(Database db, Privilege[] readRequiredPriv,
-                          Privilege[] writeRequiredPriv) throws HiveException,
+                          Privilege[] writeRequiredPriv, boolean grantedOnly) throws HiveException,
         AuthorizationException {
     }
 
@@ -106,7 +106,7 @@ class DummyHCatAuthProvider implements HiveAuthorizationProvider {
     */
     @Override
     public void authorize(Table table, Privilege[] readRequiredPriv,
-                          Privilege[] writeRequiredPriv) throws HiveException,
+                          Privilege[] writeRequiredPriv, boolean grantedOnly) throws HiveException,
         AuthorizationException {
     }
 
@@ -121,7 +121,7 @@ class DummyHCatAuthProvider implements HiveAuthorizationProvider {
     */
     @Override
     public void authorize(Partition part, Privilege[] readRequiredPriv,
-                          Privilege[] writeRequiredPriv) throws HiveException,
+                          Privilege[] writeRequiredPriv, boolean grantedOnly) throws HiveException,
         AuthorizationException {
     }
 
@@ -137,7 +137,7 @@ class DummyHCatAuthProvider implements HiveAuthorizationProvider {
     */
     @Override
     public void authorize(Table table, Partition part, List<String> columns,
-                          Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv)
+                          Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv, boolean grantedOnly)
         throws HiveException, AuthorizationException {
     }
 

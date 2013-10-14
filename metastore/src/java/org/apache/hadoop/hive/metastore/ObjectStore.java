@@ -1431,7 +1431,7 @@ public class ObjectStore implements RawStore, Configurable {
             String partName = Warehouse.makePartName(this.convertToFieldSchemas(mtbl
                 .getPartitionKeys()), part.getValues());
             List<String> partAuth = this.getPartitionPrivilegeSet(dbName,
-                tblName, partName, userName, groupNames);
+                tblName, partName, userName, groupNames, false);
             part.setPrivileges(partAuth);
           }
         }
@@ -1465,7 +1465,7 @@ public class ObjectStore implements RawStore, Configurable {
         String partName = Warehouse.makePartName(this.convertToFieldSchemas(mtbl
             .getPartitionKeys()), partVals);
         List<String> partAuth = this.getPartitionPrivilegeSet(dbName,
-            tblName, partName, user_name, group_names);
+            tblName, partName, user_name, group_names, false);
         part.setPrivileges(partAuth);
       }
 
@@ -1613,7 +1613,7 @@ public class ObjectStore implements RawStore, Configurable {
           String partName = Warehouse.makePartName(this.convertToFieldSchemas(mtbl
               .getPartitionKeys()), part.getValues());
           List<String> partAuth = getPartitionPrivilegeSet(db_name,
-              tbl_name, partName, userName, groupNames);
+              tbl_name, partName, userName, groupNames, false);
           part.setPrivileges(partAuth);
         }
         partitions.add(part);
@@ -2731,7 +2731,7 @@ public class ObjectStore implements RawStore, Configurable {
 
   @Override
   public List<String> getUserPrivilegeSet(String userName,
-      List<String> groupNames) throws InvalidObjectException, MetaException {
+      List<String> groupNames, boolean grantedOnly) throws InvalidObjectException, MetaException {
     boolean commited = false;
     Set<String> result = new HashSet<String>();
     try {
@@ -2739,7 +2739,9 @@ public class ObjectStore implements RawStore, Configurable {
       for (MPrincipalDesc principal : listPrincipals(userName, groupNames)) {
         for (MGlobalPrivilege grant : listPrincipalGlobalGrants(
             principal.getName(), PrincipalType.valueOf(principal.getType()))) {
-          result.add(grant.getPrivilege().toLowerCase());
+          if (!grantedOnly || grant.getGrantOption()) {
+            result.add(grant.getPrivilege().toLowerCase());
+          }
         }
       }
       commited = commitTransaction();
@@ -2777,8 +2779,8 @@ public class ObjectStore implements RawStore, Configurable {
 
   @Override
   public List<String> getDBPrivilegeSet(String dbName,
-      String userName, List<String> groupNames) throws InvalidObjectException,
-      MetaException {
+      String userName, List<String> groupNames, boolean grantedOnly)
+      throws InvalidObjectException, MetaException {
     boolean commited = false;
     dbName = dbName.toLowerCase().trim();
 
@@ -2788,7 +2790,9 @@ public class ObjectStore implements RawStore, Configurable {
       for (MPrincipalDesc principal : listPrincipals(userName, groupNames)) {
         for (PrivilegeGrantInfo grant : getDBPrivilege(
             dbName, principal.getName(), PrincipalType.valueOf(principal.getType()))) {
-          result.add(grant.getPrivilege().toLowerCase());
+          if (!grantedOnly || grant.isGrantOption()) {
+            result.add(grant.getPrivilege().toLowerCase());
+          }
         }
       }
       commited = commitTransaction();
@@ -2803,7 +2807,7 @@ public class ObjectStore implements RawStore, Configurable {
   @Override
   public List<String> getPartitionPrivilegeSet(String dbName,
       String tableName, String partition, String userName,
-      List<String> groupNames) throws InvalidObjectException, MetaException {
+      List<String> groupNames, boolean grantedOnly) throws InvalidObjectException, MetaException {
     boolean commited = false;
     tableName = tableName.toLowerCase().trim();
     dbName = dbName.toLowerCase().trim();
@@ -2814,7 +2818,9 @@ public class ObjectStore implements RawStore, Configurable {
       for (MPrincipalDesc principal : listPrincipals(userName, groupNames)) {
         for (PrivilegeGrantInfo grant : getPartitionPrivilege(dbName, tableName, partition,
             principal.getName(), PrincipalType.valueOf(principal.getType()))) {
-          result.add(grant.getPrivilege().toLowerCase());
+          if (!grantedOnly || grant.isGrantOption()) {
+            result.add(grant.getPrivilege().toLowerCase());
+          }
         }
       }
       commited = commitTransaction();
@@ -2828,7 +2834,7 @@ public class ObjectStore implements RawStore, Configurable {
 
   @Override
   public List<String> getTablePrivilegeSet(String dbName,
-      String tableName, String userName, List<String> groupNames)
+      String tableName, String userName, List<String> groupNames, boolean grantedOnly)
       throws InvalidObjectException, MetaException {
     boolean commited = false;
     tableName = tableName.toLowerCase().trim();
@@ -2840,7 +2846,9 @@ public class ObjectStore implements RawStore, Configurable {
       for (MPrincipalDesc principal : listPrincipals(userName, groupNames)) {
         for (PrivilegeGrantInfo grant : getTablePrivilege(
             dbName, tableName, principal.getName(), PrincipalType.valueOf(principal.getType()))) {
-          result.add(grant.getPrivilege().toLowerCase());
+          if (!grantedOnly || grant.isGrantOption()) {
+            result.add(grant.getPrivilege().toLowerCase());
+          }
         }
       }
       commited = commitTransaction();
@@ -2855,7 +2863,7 @@ public class ObjectStore implements RawStore, Configurable {
   @Override
   public List<String> getColumnPrivilegeSet(String dbName,
       String tableName, String partitionName, String columnName,
-      String userName, List<String> groupNames) throws InvalidObjectException,
+      String userName, List<String> groupNames, boolean grantedOnly) throws InvalidObjectException,
       MetaException {
     tableName = tableName.toLowerCase().trim();
     dbName = dbName.toLowerCase().trim();
@@ -2869,7 +2877,9 @@ public class ObjectStore implements RawStore, Configurable {
       for (MPrincipalDesc principal : listPrincipals(userName, groupNames)) {
         for (PrivilegeGrantInfo grant : getColumnPrivilege(dbName, tableName, columnName,
             partitionName, principal.getName(), PrincipalType.valueOf(principal.getType()))) {
-          result.add(grant.getPrivilege().toLowerCase());
+          if (!grantedOnly || grant.isGrantOption()) {
+            result.add(grant.getPrivilege().toLowerCase());
+          }
         }
       }
       commited = commitTransaction();

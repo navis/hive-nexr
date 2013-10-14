@@ -208,19 +208,24 @@ public interface RawStore extends Configurable {
       throws MetaException, NoSuchObjectException;
 
   public abstract List<String> getUserPrivilegeSet(String userName,
-      List<String> groupNames) throws InvalidObjectException, MetaException;
+      List<String> groupNames, boolean grantedOnly)
+      throws InvalidObjectException, MetaException;
 
   public abstract List<String> getDBPrivilegeSet (String dbName, String userName,
-      List<String> groupNames)  throws InvalidObjectException, MetaException;
+      List<String> groupNames, boolean grantedOnly)
+      throws InvalidObjectException, MetaException;
 
   public abstract List<String> getTablePrivilegeSet (String dbName, String tableName,
-      String userName, List<String> groupNames) throws InvalidObjectException, MetaException;
+      String userName, List<String> groupNames, boolean grantedOnly)
+      throws InvalidObjectException, MetaException;
 
   public abstract List<String> getPartitionPrivilegeSet (String dbName, String tableName,
-      String partition, String userName, List<String> groupNames) throws InvalidObjectException, MetaException;
+      String partition, String userName, List<String> groupNames, boolean grantedOnly)
+      throws InvalidObjectException, MetaException;
 
   public abstract List<String> getColumnPrivilegeSet (String dbName, String tableName, String partitionName,
-      String columnName, String userName, List<String> groupNames) throws InvalidObjectException, MetaException;
+      String columnName, String userName, List<String> groupNames, boolean grantedOnly)
+      throws InvalidObjectException, MetaException;
 
   public abstract List<MGlobalPrivilege> listPrincipalGlobalGrants(String principalName,
       PrincipalType principalType);

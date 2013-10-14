@@ -470,7 +470,7 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
       if (param.getType() == HiveParser.TOK_RESOURCE_ALL) {
         privHiveObj = new PrivilegeObjectDesc();
       } else if (param.getType() == HiveParser.TOK_PRIV_OBJECT) {
-        privHiveObj = analyzePrivilegeObject(param, null);
+        privHiveObj = analyzePrivilegeObject(param);
         cols = privHiveObj.getColumns();
       }
     }
@@ -520,7 +520,7 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
         if (astChild.getType() == HiveParser.TOK_GRANT_WITH_OPTION) {
           grantOption = true;
         } else if (astChild.getType() == HiveParser.TOK_PRIV_OBJECT) {
-          privilegeObj = analyzePrivilegeObject(astChild, getOutputs());
+          privilegeObj = analyzePrivilegeObject(astChild);
         }
       }
     }
@@ -531,10 +531,28 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
       userName = SessionState.get().getAuthenticator().getUserName();
     }
 
+    assignToOutput(privilegeObj);
+
     GrantDesc grantDesc = new GrantDesc(privilegeObj, privilegeDesc,
         principalDesc, userName, PrincipalType.USER, grantOption);
     rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(),
         grantDesc), conf));
+  }
+
+  private void assignToOutput(PrivilegeObjectDesc object) throws SemanticException {
+    if (object == null || object.getDatabase() == null) {
+      return;
+    }
+    if (object.getTable() == null) {
+      outputs.add(new WriteEntity(object.getDatabase()));
+    } else {
+      Table table = getTable(object.getDatabase(), object.getTable(), true);
+      if (object.getPartSpec() == null) {
+        outputs.add(new WriteEntity(table));
+      } else {
+        outputs.add(new WriteEntity(getPartition(table, object.getPartSpec(), true)));
+      }
+    }
   }
 
   private void analyzeRevoke(ASTNode ast) throws SemanticException {
@@ -545,23 +563,20 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
     PrivilegeObjectDesc hiveObj = null;
     if (ast.getChildCount() > 2) {
       ASTNode astChild = (ASTNode) ast.getChild(2);
-      hiveObj = analyzePrivilegeObject(astChild, getOutputs());
+      hiveObj = analyzePrivilegeObject(astChild);
     }
+
+    assignToOutput(hiveObj);
 
     RevokeDesc revokeDesc = new RevokeDesc(privilegeDesc, principalDesc, hiveObj);
     rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(),
         revokeDesc), conf));
   }
 
-  private PrivilegeObjectDesc analyzePrivilegeObject(ASTNode ast,
-      HashSet<WriteEntity> outputs)
-      throws SemanticException {
+  private PrivilegeObjectDesc analyzePrivilegeObject(ASTNode ast) throws SemanticException {
     int length = ast.getChildCount();
     if (length == 1) {
       String name = unescapeIdentifier(ast.getChild(0).getText());
-      if (outputs != null) {
-        outputs.add(new WriteEntity(name));
-      }
       return new PrivilegeObjectDesc(name, null, null, null);
     }
     length--;
@@ -590,13 +605,7 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
       table = getTable(tableName);
     }
     if (partSpec == null) {
-      if (outputs != null) {
-        outputs.add(new WriteEntity(table));
-      }
       return new PrivilegeObjectDesc(table.getDbName(), table.getTableName(), null, colNames);
-    }
-    if (outputs != null) {
-      outputs.add(new WriteEntity(getPartition(table, partSpec, true)));
     }
     return new PrivilegeObjectDesc(table.getDbName(), table.getTableName(), partSpec, colNames);
   }

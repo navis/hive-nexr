@@ -55,15 +55,15 @@ public abstract class HiveAuthorizationProviderBase implements
 
     public List<String> get_privilege_set(HiveObjectType column, String dbName,
         String tableName, List<String> partValues, String col, String userName,
-        List<String> groupNames) throws HiveException {
+        List<String> groupNames, boolean grantedOnly) throws HiveException {
       if (hiveClient != null) {
         return hiveClient.get_privilege_set(
-            column, dbName, tableName, partValues, col, userName, groupNames);
+            column, dbName, tableName, partValues, col, userName, groupNames, grantedOnly);
       } else {
         HiveObjectRef hiveObj = new HiveObjectRef(column, dbName,
             tableName, partValues, col);
         try {
-          return handler.get_privilege_set(hiveObj, userName, groupNames);
+          return handler.get_privilege_set(hiveObj, userName, groupNames, grantedOnly);
         } catch (Exception e) {
           throw new HiveException(e);
         }

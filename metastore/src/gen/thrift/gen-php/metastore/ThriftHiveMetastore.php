@@ -90,7 +90,7 @@ interface ThriftHiveMetastoreIf extends \FacebookServiceIf {
   public function revoke_role($role_name, $principal_name, $principal_type);
   public function list_roles($principal_name, $principal_type);
   public function list_role_members($role_name);
-  public function get_privilege_set(\metastore\HiveObjectRef $hiveObject, $user_name, $group_names);
+  public function get_privilege_set(\metastore\HiveObjectRef $hiveObject, $user_name, $group_names, $granted_only);
   public function list_privileges($principal_name, $principal_type, \metastore\HiveObjectRef $hiveObject);
   public function grant_privileges(\metastore\PrivilegeBag $privileges);
   public function revoke_privileges(\metastore\PrivilegeBag $privileges);
@@ -4466,18 +4466,19 @@ class ThriftHiveMetastoreClient extends \FacebookServiceClient implements \metas
     throw new \Exception("list_role_members failed: unknown result");
   }
 
-  public function get_privilege_set(\metastore\HiveObjectRef $hiveObject, $user_name, $group_names)
+  public function get_privilege_set(\metastore\HiveObjectRef $hiveObject, $user_name, $group_names, $granted_only)
   {
-    $this->send_get_privilege_set($hiveObject, $user_name, $group_names);
+    $this->send_get_privilege_set($hiveObject, $user_name, $group_names, $granted_only);
     return $this->recv_get_privilege_set();
   }
 
-  public function send_get_privilege_set(\metastore\HiveObjectRef $hiveObject, $user_name, $group_names)
+  public function send_get_privilege_set(\metastore\HiveObjectRef $hiveObject, $user_name, $group_names, $granted_only)
   {
     $args = new \metastore\ThriftHiveMetastore_get_privilege_set_args();
     $args->hiveObject = $hiveObject;
     $args->user_name = $user_name;
     $args->group_names = $group_names;
+    $args->granted_only = $granted_only;
     $bin_accel = ($this->output_ instanceof TProtocol::$TBINARYPROTOCOLACCELERATED) && function_exists('thrift_protocol_write_binary');
     if ($bin_accel)
     {
@@ -22902,6 +22903,7 @@ class ThriftHiveMetastore_get_privilege_set_args {
   public $hiveObject = null;
   public $user_name = null;
   public $group_names = null;
+  public $granted_only = null;
 
   public function __construct($vals=null) {
     if (!isset(self::$_TSPEC)) {
@@ -22923,6 +22925,10 @@ class ThriftHiveMetastore_get_privilege_set_args {
             'type' => TType::STRING,
             ),
           ),
+        4 => array(
+          'var' => 'granted_only',
+          'type' => TType::BOOL,
+          ),
         );
     }
     if (is_array($vals)) {
@@ -22934,6 +22940,9 @@ class ThriftHiveMetastore_get_privilege_set_args {
       }
       if (isset($vals['group_names'])) {
         $this->group_names = $vals['group_names'];
+      }
+      if (isset($vals['granted_only'])) {
+        $this->granted_only = $vals['granted_only'];
       }
     }
   }
@@ -22989,6 +22998,13 @@ class ThriftHiveMetastore_get_privilege_set_args {
             $xfer += $input->skip($ftype);
           }
           break;
+        case 4:
+          if ($ftype == TType::BOOL) {
+            $xfer += $input->readBool($this->granted_only);
+          } else {
+            $xfer += $input->skip($ftype);
+          }
+          break;
         default:
           $xfer += $input->skip($ftype);
           break;
@@ -23030,6 +23046,11 @@ class ThriftHiveMetastore_get_privilege_set_args {
         }
         $output->writeListEnd();
       }
+      $xfer += $output->writeFieldEnd();
+    }
+    if ($this->granted_only !== null) {
+      $xfer += $output->writeFieldBegin('granted_only', TType::BOOL, 4);
+      $xfer += $output->writeBool($this->granted_only);
       $xfer += $output->writeFieldEnd();
     }
     $xfer += $output->writeFieldStop();

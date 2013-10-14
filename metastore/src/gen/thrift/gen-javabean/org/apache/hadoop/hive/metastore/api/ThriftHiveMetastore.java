@@ -186,7 +186,7 @@ public class ThriftHiveMetastore {
 
     public List<Role> list_role_members(String role_name) throws MetaException, org.apache.thrift.TException;
 
-    public List<String> get_privilege_set(HiveObjectRef hiveObject, String user_name, List<String> group_names) throws MetaException, org.apache.thrift.TException;
+    public List<String> get_privilege_set(HiveObjectRef hiveObject, String user_name, List<String> group_names, boolean granted_only) throws MetaException, org.apache.thrift.TException;
 
     public List<HiveObjectPrivilege> list_privileges(String principal_name, PrincipalType principal_type, HiveObjectRef hiveObject) throws MetaException, org.apache.thrift.TException;
 
@@ -354,7 +354,7 @@ public class ThriftHiveMetastore {
 
     public void list_role_members(String role_name, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.list_role_members_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void get_privilege_set(HiveObjectRef hiveObject, String user_name, List<String> group_names, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.get_privilege_set_call> resultHandler) throws org.apache.thrift.TException;
+    public void get_privilege_set(HiveObjectRef hiveObject, String user_name, List<String> group_names, boolean granted_only, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.get_privilege_set_call> resultHandler) throws org.apache.thrift.TException;
 
     public void list_privileges(String principal_name, PrincipalType principal_type, HiveObjectRef hiveObject, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.list_privileges_call> resultHandler) throws org.apache.thrift.TException;
 
@@ -2681,18 +2681,19 @@ public class ThriftHiveMetastore {
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "list_role_members failed: unknown result");
     }
 
-    public List<String> get_privilege_set(HiveObjectRef hiveObject, String user_name, List<String> group_names) throws MetaException, org.apache.thrift.TException
+    public List<String> get_privilege_set(HiveObjectRef hiveObject, String user_name, List<String> group_names, boolean granted_only) throws MetaException, org.apache.thrift.TException
     {
-      send_get_privilege_set(hiveObject, user_name, group_names);
+      send_get_privilege_set(hiveObject, user_name, group_names, granted_only);
       return recv_get_privilege_set();
     }
 
-    public void send_get_privilege_set(HiveObjectRef hiveObject, String user_name, List<String> group_names) throws org.apache.thrift.TException
+    public void send_get_privilege_set(HiveObjectRef hiveObject, String user_name, List<String> group_names, boolean granted_only) throws org.apache.thrift.TException
     {
       get_privilege_set_args args = new get_privilege_set_args();
       args.setHiveObject(hiveObject);
       args.setUser_name(user_name);
       args.setGroup_names(group_names);
+      args.setGranted_only(granted_only);
       sendBase("get_privilege_set", args);
     }
 
@@ -5653,9 +5654,9 @@ public class ThriftHiveMetastore {
       }
     }
 
-    public void get_privilege_set(HiveObjectRef hiveObject, String user_name, List<String> group_names, org.apache.thrift.async.AsyncMethodCallback<get_privilege_set_call> resultHandler) throws org.apache.thrift.TException {
+    public void get_privilege_set(HiveObjectRef hiveObject, String user_name, List<String> group_names, boolean granted_only, org.apache.thrift.async.AsyncMethodCallback<get_privilege_set_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      get_privilege_set_call method_call = new get_privilege_set_call(hiveObject, user_name, group_names, resultHandler, this, ___protocolFactory, ___transport);
+      get_privilege_set_call method_call = new get_privilege_set_call(hiveObject, user_name, group_names, granted_only, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -5664,11 +5665,13 @@ public class ThriftHiveMetastore {
       private HiveObjectRef hiveObject;
       private String user_name;
       private List<String> group_names;
-      public get_privilege_set_call(HiveObjectRef hiveObject, String user_name, List<String> group_names, org.apache.thrift.async.AsyncMethodCallback<get_privilege_set_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private boolean granted_only;
+      public get_privilege_set_call(HiveObjectRef hiveObject, String user_name, List<String> group_names, boolean granted_only, org.apache.thrift.async.AsyncMethodCallback<get_privilege_set_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.hiveObject = hiveObject;
         this.user_name = user_name;
         this.group_names = group_names;
+        this.granted_only = granted_only;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
@@ -5677,6 +5680,7 @@ public class ThriftHiveMetastore {
         args.setHiveObject(hiveObject);
         args.setUser_name(user_name);
         args.setGroup_names(group_names);
+        args.setGranted_only(granted_only);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -8025,7 +8029,7 @@ public class ThriftHiveMetastore {
       public get_privilege_set_result getResult(I iface, get_privilege_set_args args) throws org.apache.thrift.TException {
         get_privilege_set_result result = new get_privilege_set_result();
         try {
-          result.success = iface.get_privilege_set(args.hiveObject, args.user_name, args.group_names);
+          result.success = iface.get_privilege_set(args.hiveObject, args.user_name, args.group_names, args.granted_only);
         } catch (MetaException o1) {
           result.o1 = o1;
         }
@@ -93157,6 +93161,7 @@ public class ThriftHiveMetastore {
     private static final org.apache.thrift.protocol.TField HIVE_OBJECT_FIELD_DESC = new org.apache.thrift.protocol.TField("hiveObject", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField USER_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("user_name", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField GROUP_NAMES_FIELD_DESC = new org.apache.thrift.protocol.TField("group_names", org.apache.thrift.protocol.TType.LIST, (short)3);
+    private static final org.apache.thrift.protocol.TField GRANTED_ONLY_FIELD_DESC = new org.apache.thrift.protocol.TField("granted_only", org.apache.thrift.protocol.TType.BOOL, (short)4);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -93167,12 +93172,14 @@ public class ThriftHiveMetastore {
     private HiveObjectRef hiveObject; // required
     private String user_name; // required
     private List<String> group_names; // required
+    private boolean granted_only; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       HIVE_OBJECT((short)1, "hiveObject"),
       USER_NAME((short)2, "user_name"),
-      GROUP_NAMES((short)3, "group_names");
+      GROUP_NAMES((short)3, "group_names"),
+      GRANTED_ONLY((short)4, "granted_only");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -93193,6 +93200,8 @@ public class ThriftHiveMetastore {
             return USER_NAME;
           case 3: // GROUP_NAMES
             return GROUP_NAMES;
+          case 4: // GRANTED_ONLY
+            return GRANTED_ONLY;
           default:
             return null;
         }
@@ -93233,6 +93242,8 @@ public class ThriftHiveMetastore {
     }
 
     // isset id assignments
+    private static final int __GRANTED_ONLY_ISSET_ID = 0;
+    private byte __isset_bitfield = 0;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -93243,6 +93254,8 @@ public class ThriftHiveMetastore {
       tmpMap.put(_Fields.GROUP_NAMES, new org.apache.thrift.meta_data.FieldMetaData("group_names", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
+      tmpMap.put(_Fields.GRANTED_ONLY, new org.apache.thrift.meta_data.FieldMetaData("granted_only", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(get_privilege_set_args.class, metaDataMap);
     }
@@ -93253,18 +93266,22 @@ public class ThriftHiveMetastore {
     public get_privilege_set_args(
       HiveObjectRef hiveObject,
       String user_name,
-      List<String> group_names)
+      List<String> group_names,
+      boolean granted_only)
     {
       this();
       this.hiveObject = hiveObject;
       this.user_name = user_name;
       this.group_names = group_names;
+      this.granted_only = granted_only;
+      setGranted_onlyIsSet(true);
     }
 
     /**
      * Performs a deep copy on <i>other</i>.
      */
     public get_privilege_set_args(get_privilege_set_args other) {
+      __isset_bitfield = other.__isset_bitfield;
       if (other.isSetHiveObject()) {
         this.hiveObject = new HiveObjectRef(other.hiveObject);
       }
@@ -93278,6 +93295,7 @@ public class ThriftHiveMetastore {
         }
         this.group_names = __this__group_names;
       }
+      this.granted_only = other.granted_only;
     }
 
     public get_privilege_set_args deepCopy() {
@@ -93289,6 +93307,8 @@ public class ThriftHiveMetastore {
       this.hiveObject = null;
       this.user_name = null;
       this.group_names = null;
+      setGranted_onlyIsSet(false);
+      this.granted_only = false;
     }
 
     public HiveObjectRef getHiveObject() {
@@ -93375,6 +93395,28 @@ public class ThriftHiveMetastore {
       }
     }
 
+    public boolean isGranted_only() {
+      return this.granted_only;
+    }
+
+    public void setGranted_only(boolean granted_only) {
+      this.granted_only = granted_only;
+      setGranted_onlyIsSet(true);
+    }
+
+    public void unsetGranted_only() {
+      __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __GRANTED_ONLY_ISSET_ID);
+    }
+
+    /** Returns true if field granted_only is set (has been assigned a value) and false otherwise */
+    public boolean isSetGranted_only() {
+      return EncodingUtils.testBit(__isset_bitfield, __GRANTED_ONLY_ISSET_ID);
+    }
+
+    public void setGranted_onlyIsSet(boolean value) {
+      __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __GRANTED_ONLY_ISSET_ID, value);
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case HIVE_OBJECT:
@@ -93401,6 +93443,14 @@ public class ThriftHiveMetastore {
         }
         break;
 
+      case GRANTED_ONLY:
+        if (value == null) {
+          unsetGranted_only();
+        } else {
+          setGranted_only((Boolean)value);
+        }
+        break;
+
       }
     }
 
@@ -93414,6 +93464,9 @@ public class ThriftHiveMetastore {
 
       case GROUP_NAMES:
         return getGroup_names();
+
+      case GRANTED_ONLY:
+        return Boolean.valueOf(isGranted_only());
 
       }
       throw new IllegalStateException();
@@ -93432,6 +93485,8 @@ public class ThriftHiveMetastore {
         return isSetUser_name();
       case GROUP_NAMES:
         return isSetGroup_names();
+      case GRANTED_ONLY:
+        return isSetGranted_only();
       }
       throw new IllegalStateException();
     }
@@ -93476,6 +93531,15 @@ public class ThriftHiveMetastore {
           return false;
       }
 
+      boolean this_present_granted_only = true;
+      boolean that_present_granted_only = true;
+      if (this_present_granted_only || that_present_granted_only) {
+        if (!(this_present_granted_only && that_present_granted_only))
+          return false;
+        if (this.granted_only != that.granted_only)
+          return false;
+      }
+
       return true;
     }
 
@@ -93497,6 +93561,11 @@ public class ThriftHiveMetastore {
       builder.append(present_group_names);
       if (present_group_names)
         builder.append(group_names);
+
+      boolean present_granted_only = true;
+      builder.append(present_granted_only);
+      if (present_granted_only)
+        builder.append(granted_only);
 
       return builder.toHashCode();
     }
@@ -93535,6 +93604,16 @@ public class ThriftHiveMetastore {
       }
       if (isSetGroup_names()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.group_names, typedOther.group_names);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetGranted_only()).compareTo(typedOther.isSetGranted_only());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetGranted_only()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.granted_only, typedOther.granted_only);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -93582,6 +93661,10 @@ public class ThriftHiveMetastore {
         sb.append(this.group_names);
       }
       first = false;
+      if (!first) sb.append(", ");
+      sb.append("granted_only:");
+      sb.append(this.granted_only);
+      first = false;
       sb.append(")");
       return sb.toString();
     }
@@ -93604,6 +93687,8 @@ public class ThriftHiveMetastore {
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
       try {
+        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+        __isset_bitfield = 0;
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
@@ -93663,6 +93748,14 @@ public class ThriftHiveMetastore {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 4: // GRANTED_ONLY
+              if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
+                struct.granted_only = iprot.readBool();
+                struct.setGranted_onlyIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -93698,6 +93791,9 @@ public class ThriftHiveMetastore {
           }
           oprot.writeFieldEnd();
         }
+        oprot.writeFieldBegin(GRANTED_ONLY_FIELD_DESC);
+        oprot.writeBool(struct.granted_only);
+        oprot.writeFieldEnd();
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -93725,7 +93821,10 @@ public class ThriftHiveMetastore {
         if (struct.isSetGroup_names()) {
           optionals.set(2);
         }
-        oprot.writeBitSet(optionals, 3);
+        if (struct.isSetGranted_only()) {
+          optionals.set(3);
+        }
+        oprot.writeBitSet(optionals, 4);
         if (struct.isSetHiveObject()) {
           struct.hiveObject.write(oprot);
         }
@@ -93741,12 +93840,15 @@ public class ThriftHiveMetastore {
             }
           }
         }
+        if (struct.isSetGranted_only()) {
+          oprot.writeBool(struct.granted_only);
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, get_privilege_set_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(3);
+        BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
           struct.hiveObject = new HiveObjectRef();
           struct.hiveObject.read(iprot);
@@ -93768,6 +93870,10 @@ public class ThriftHiveMetastore {
             }
           }
           struct.setGroup_namesIsSet(true);
+        }
+        if (incoming.get(3)) {
+          struct.granted_only = iprot.readBool();
+          struct.setGranted_onlyIsSet(true);
         }
       }
     }

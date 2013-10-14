@@ -3404,25 +3404,25 @@ public class HiveMetaStore extends ThriftHiveMetastore {
 
     @Override
     public List<String> get_privilege_set(HiveObjectRef hiveObject,
-        String userName, List<String> groupNames) throws MetaException,
+        String userName, List<String> groupNames, boolean grantedOnly) throws MetaException,
         TException {
       if (hiveObject.getObjectType() == HiveObjectType.COLUMN) {
         String partName = getPartName(hiveObject);
         return this.get_column_privilege_set(hiveObject.getDbName(), hiveObject
             .getObjectName(), partName, hiveObject.getColumnName(), userName,
-            groupNames);
+            groupNames, grantedOnly);
       } else if (hiveObject.getObjectType() == HiveObjectType.PARTITION) {
         String partName = getPartName(hiveObject);
         return this.get_partition_privilege_set(hiveObject.getDbName(),
-            hiveObject.getObjectName(), partName, userName, groupNames);
+            hiveObject.getObjectName(), partName, userName, groupNames, grantedOnly);
       } else if (hiveObject.getObjectType() == HiveObjectType.DATABASE) {
         return this.get_db_privilege_set(hiveObject.getDbName(), userName,
-            groupNames);
+            groupNames, grantedOnly);
       } else if (hiveObject.getObjectType() == HiveObjectType.TABLE) {
         return this.get_table_privilege_set(hiveObject.getDbName(), hiveObject
-            .getObjectName(), userName, groupNames);
+            .getObjectName(), userName, groupNames, grantedOnly);
       } else if (hiveObject.getObjectType() == HiveObjectType.GLOBAL) {
-        return this.get_user_privilege_set(userName, groupNames);
+        return this.get_user_privilege_set(userName, groupNames, grantedOnly);
       }
       return null;
     }
@@ -3445,14 +3445,14 @@ public class HiveMetaStore extends ThriftHiveMetastore {
 
     public List<String> get_column_privilege_set(final String dbName,
         final String tableName, final String partName, final String columnName,
-        final String userName, final List<String> groupNames) throws MetaException,
-        TException {
+        final String userName, final List<String> groupNames, final boolean grantedOnly)
+        throws MetaException, TException {
       incrementCounter("get_column_privilege_set");
 
       List<String> ret = null;
       try {
         ret = getMS().getColumnPrivilegeSet(
-            dbName, tableName, partName, columnName, userName, groupNames);
+            dbName, tableName, partName, columnName, userName, groupNames, grantedOnly);
       } catch (TException e) {
         throw e;
       } catch (Exception e) {
@@ -3462,13 +3462,13 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     }
 
     public List<String> get_db_privilege_set(final String dbName,
-        final String userName, final List<String> groupNames) throws MetaException,
-        TException {
+        final String userName, final List<String> groupNames, final boolean grantedOnly)
+        throws MetaException, TException {
       incrementCounter("get_db_privilege_set");
 
       List<String> ret = null;
       try {
-        ret = getMS().getDBPrivilegeSet(dbName, userName, groupNames);
+        ret = getMS().getDBPrivilegeSet(dbName, userName, groupNames, grantedOnly);
       } catch (TException e) {
         throw e;
       } catch (Exception e) {
@@ -3479,14 +3479,14 @@ public class HiveMetaStore extends ThriftHiveMetastore {
 
     public List<String> get_partition_privilege_set(
         final String dbName, final String tableName, final String partName,
-        final String userName, final List<String> groupNames)
+        final String userName, final List<String> groupNames, final boolean grantedOnly)
         throws MetaException, TException {
       incrementCounter("get_partition_privilege_set");
 
       List<String> ret = null;
       try {
         ret = getMS().getPartitionPrivilegeSet(dbName, tableName, partName,
-            userName, groupNames);
+            userName, groupNames, grantedOnly);
       } catch (TException e) {
         throw e;
       } catch (Exception e) {
@@ -3497,13 +3497,14 @@ public class HiveMetaStore extends ThriftHiveMetastore {
 
     public List<String> get_table_privilege_set(final String dbName,
         final String tableName, final String userName,
-        final List<String> groupNames) throws MetaException, TException {
+        final List<String> groupNames, final boolean grantedOnly)
+        throws MetaException, TException {
       incrementCounter("get_table_privilege_set");
 
       List<String> ret = null;
       try {
         ret = getMS().getTablePrivilegeSet(dbName, tableName, userName,
-            groupNames);
+            groupNames, grantedOnly);
       } catch (TException e) {
         throw e;
       } catch (Exception e) {
@@ -3688,12 +3689,13 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     }
 
     public List<String> get_user_privilege_set(final String userName,
-        final List<String> groupNames) throws MetaException, TException {
+        final List<String> groupNames, final boolean grantedOnly)
+        throws MetaException, TException {
       incrementCounter("get_user_privilege_set");
 
       List<String> ret = null;
       try {
-        ret = getMS().getUserPrivilegeSet(userName, groupNames);
+        ret = getMS().getUserPrivilegeSet(userName, groupNames, grantedOnly);
       } catch (TException e) {
         throw e;
       } catch (Exception e) {

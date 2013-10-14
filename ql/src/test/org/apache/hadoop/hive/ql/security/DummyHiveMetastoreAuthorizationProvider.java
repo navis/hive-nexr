@@ -109,8 +109,8 @@ public class DummyHiveMetastoreAuthorizationProvider implements HiveMetastoreAut
   }
 
   @Override
-  public void authorize(Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv)
-      throws HiveException, AuthorizationException {
+  public void authorize(Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+      boolean grantedOnly) throws HiveException, AuthorizationException {
     debugLog("DHMAP.authorize " +
       "read:" + debugPrivPrint(readRequiredPriv) +
       " , write:" + debugPrivPrint(writeRequiredPriv)
@@ -120,8 +120,8 @@ public class DummyHiveMetastoreAuthorizationProvider implements HiveMetastoreAut
   }
 
   @Override
-  public void authorize(Database db, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv)
-      throws HiveException, AuthorizationException {
+  public void authorize(Database db, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+      boolean grantedOnly) throws HiveException, AuthorizationException {
     debugLog("DHMAP.authorizedb " +
         "db:" + db.getName() +
         " , read:" + debugPrivPrint(readRequiredPriv) +
@@ -132,8 +132,8 @@ public class DummyHiveMetastoreAuthorizationProvider implements HiveMetastoreAut
   }
 
   @Override
-  public void authorize(Table table, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv)
-      throws HiveException, AuthorizationException {
+  public void authorize(Table table, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+      boolean grantedOnly) throws HiveException, AuthorizationException {
     debugLog("DHMAP.authorizetbl " +
         "tbl:" + table.getCompleteName() +
         " , read:" + debugPrivPrint(readRequiredPriv) +
@@ -145,8 +145,8 @@ public class DummyHiveMetastoreAuthorizationProvider implements HiveMetastoreAut
   }
 
   @Override
-  public void authorize(Partition part, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv)
-      throws HiveException, AuthorizationException {
+  public void authorize(Partition part, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+      boolean grantedOnly) throws HiveException, AuthorizationException {
     debugLog("DHMAP.authorizepart " +
         "tbl:" + part.getTable().getCompleteName() +
         " , part: " + part.getName() +
@@ -160,8 +160,8 @@ public class DummyHiveMetastoreAuthorizationProvider implements HiveMetastoreAut
 
   @Override
   public void authorize(Table table, Partition part, List<String> columns,
-      Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv) throws HiveException,
-      AuthorizationException {
+      Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+      boolean grantedOnly) throws HiveException, AuthorizationException {
     debugLog("DHMAP.authorizecols " +
         "tbl:" + table.getCompleteName() +
         " , part: " + part.getName() +

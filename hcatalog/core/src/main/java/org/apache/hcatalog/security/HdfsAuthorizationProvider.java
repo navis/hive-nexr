@@ -152,8 +152,8 @@ public class HdfsAuthorizationProvider extends HiveAuthorizationProviderBase {
     }
 
     @Override
-    public void authorize(Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv)
-        throws HiveException, AuthorizationException {
+    public void authorize(Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+        boolean grantedOnly) throws HiveException, AuthorizationException {
         //Authorize for global level permissions at the warehouse dir
         Path root;
         try {
@@ -165,8 +165,8 @@ public class HdfsAuthorizationProvider extends HiveAuthorizationProviderBase {
     }
 
     @Override
-    public void authorize(Database db, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv)
-        throws HiveException, AuthorizationException {
+    public void authorize(Database db, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+        boolean grantedOnly) throws HiveException, AuthorizationException {
         if (db == null) {
             return;
         }
@@ -177,8 +177,8 @@ public class HdfsAuthorizationProvider extends HiveAuthorizationProviderBase {
     }
 
     @Override
-    public void authorize(Table table, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv)
-        throws HiveException, AuthorizationException {
+    public void authorize(Table table, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+        boolean grantedOnly) throws HiveException, AuthorizationException {
         if (table == null) {
             return;
         }
@@ -201,31 +201,31 @@ public class HdfsAuthorizationProvider extends HiveAuthorizationProviderBase {
     }
 
     //TODO: HiveAuthorizationProvider should expose this interface instead of #authorize(Partition, Privilege[], Privilege[])
-    public void authorize(Table table, Partition part, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv)
-        throws HiveException, AuthorizationException {
+    public void authorize(Table table, Partition part, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+        boolean grantedOnly) throws HiveException, AuthorizationException {
 
         if (part == null || part.getLocation() == null) {
-            authorize(table, readRequiredPriv, writeRequiredPriv);
+            authorize(table, readRequiredPriv, writeRequiredPriv, grantedOnly);
         } else {
             authorize(part.getPartitionPath(), readRequiredPriv, writeRequiredPriv);
         }
     }
 
     @Override
-    public void authorize(Partition part, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv)
-        throws HiveException, AuthorizationException {
+    public void authorize(Partition part, Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+        boolean grantedOnly) throws HiveException, AuthorizationException {
         if (part == null) {
             return;
         }
-        authorize(part.getTable(), part, readRequiredPriv, writeRequiredPriv);
+        authorize(part.getTable(), part, readRequiredPriv, writeRequiredPriv, grantedOnly);
     }
 
     @Override
     public void authorize(Table table, Partition part, List<String> columns,
-                          Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv) throws HiveException,
-        AuthorizationException {
+                          Privilege[] readRequiredPriv, Privilege[] writeRequiredPriv,
+        boolean grantedOnly) throws HiveException, AuthorizationException {
         //columns cannot live in different files, just check for partition level permissions
-        authorize(table, part, readRequiredPriv, writeRequiredPriv);
+        authorize(table, part, readRequiredPriv, writeRequiredPriv, grantedOnly);
     }
 
     /**

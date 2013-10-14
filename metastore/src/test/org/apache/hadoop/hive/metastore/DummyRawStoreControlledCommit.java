@@ -345,37 +345,38 @@ public class DummyRawStoreControlledCommit implements RawStore, Configurable {
 
   @Override
   public List<String> getUserPrivilegeSet(String userName,
-      List<String> groupNames) throws InvalidObjectException, MetaException {
-    return objectStore.getUserPrivilegeSet(userName, groupNames);
+      List<String> groupNames, boolean grantedOnly)
+      throws InvalidObjectException, MetaException {
+    return objectStore.getUserPrivilegeSet(userName, groupNames, grantedOnly);
   }
 
   @Override
   public List<String> getDBPrivilegeSet(String dbName, String userName,
-      List<String> groupNames) throws InvalidObjectException, MetaException {
-    return objectStore.getDBPrivilegeSet(dbName, userName, groupNames);
+      List<String> groupNames, boolean grantedOnly) throws InvalidObjectException, MetaException {
+    return objectStore.getDBPrivilegeSet(dbName, userName, groupNames, grantedOnly);
   }
 
   @Override
   public List<String> getTablePrivilegeSet(String dbName, String tableName,
-      String userName, List<String> groupNames)
+      String userName, List<String> groupNames, boolean grantedOnly)
       throws InvalidObjectException, MetaException {
-    return objectStore.getTablePrivilegeSet(dbName, tableName, userName, groupNames);
+    return objectStore.getTablePrivilegeSet(dbName, tableName, userName, groupNames, grantedOnly);
   }
 
   @Override
   public List<String> getPartitionPrivilegeSet(String dbName, String tableName,
-      String partition, String userName, List<String> groupNames)
-      throws InvalidObjectException, MetaException {
+      String partition, String userName, List<String> groupNames,
+      boolean grantedOnly) throws InvalidObjectException, MetaException {
     return objectStore.getPartitionPrivilegeSet(dbName, tableName, partition,
-        userName, groupNames);
+        userName, groupNames, grantedOnly);
   }
 
   @Override
   public List<String> getColumnPrivilegeSet(String dbName, String tableName,
-      String partitionName, String columnName, String userName, List<String> groupNames)
-      throws InvalidObjectException, MetaException {
+      String partitionName, String columnName, String userName, List<String> groupNames,
+      boolean grantedOnly) throws InvalidObjectException, MetaException {
     return objectStore.getColumnPrivilegeSet(dbName, tableName, partitionName,
-        columnName, userName, groupNames);
+        columnName, userName, groupNames, grantedOnly);
   }
 
   @Override
