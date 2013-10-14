@@ -5,6 +5,7 @@ PREHOOK: query: CREATE TABLE table1 (
        d MAP<STRING,ARRAY<STRING>>
        ) STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE table1 (
        a STRING,
        b ARRAY<STRING>,
@@ -12,6 +13,7 @@ POSTHOOK: query: CREATE TABLE table1 (
        d MAP<STRING,ARRAY<STRING>>
        ) STORED AS TEXTFILE
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@table1
 PREHOOK: query: DESCRIBE table1
 PREHOOK: type: DESCTABLE

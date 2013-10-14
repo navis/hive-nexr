@@ -1,9 +1,11 @@
 PREHOOK: query: CREATE TABLE T1(key STRING, val STRING)
 CLUSTERED BY (key) SORTED BY (key) INTO 2 BUCKETS STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE T1(key STRING, val STRING)
 CLUSTERED BY (key) SORTED BY (key) INTO 2 BUCKETS STORED AS TEXTFILE
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@T1
 PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/T1.txt' INTO TABLE T1
 PREHOOK: type: LOAD
@@ -25,8 +27,10 @@ POSTHOOK: Lineage: t1.key SIMPLE [(t1)t1.FieldSchema(name:key, type:string, comm
 POSTHOOK: Lineage: t1.val SIMPLE [(t1)t1.FieldSchema(name:val, type:string, comment:null), ]
 PREHOOK: query: CREATE TABLE outputTbl1(key int, cnt int)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE outputTbl1(key int, cnt int)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@outputTbl1
 POSTHOOK: Lineage: t1.key SIMPLE [(t1)t1.FieldSchema(name:key, type:string, comment:null), ]
 POSTHOOK: Lineage: t1.val SIMPLE [(t1)t1.FieldSchema(name:val, type:string, comment:null), ]

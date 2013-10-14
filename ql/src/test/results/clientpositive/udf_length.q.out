@@ -13,8 +13,10 @@ Example:
   8
 PREHOOK: query: CREATE TABLE dest1(len INT)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE dest1(len INT)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@dest1
 PREHOOK: query: EXPLAIN FROM src1 INSERT OVERWRITE TABLE dest1 SELECT length(src1.value)
 PREHOOK: type: QUERY
@@ -163,9 +165,11 @@ POSTHOOK: Lineage: dest1.len EXPRESSION [(src1)src1.FieldSchema(name:value, type
 PREHOOK: query: -- Test with non-ascii characters. 
 CREATE TABLE dest1(name STRING) STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: -- Test with non-ascii characters. 
 CREATE TABLE dest1(name STRING) STORED AS TEXTFILE
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@dest1
 POSTHOOK: Lineage: dest1.len EXPRESSION [(src1)src1.FieldSchema(name:value, type:string, comment:default), ]
 PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/kv4.txt' INTO TABLE dest1

@@ -1,7 +1,9 @@
 PREHOOK: query: CREATE TABLE add_part_test (key STRING, value STRING) PARTITIONED BY (ds STRING)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE add_part_test (key STRING, value STRING) PARTITIONED BY (ds STRING)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@add_part_test
 PREHOOK: query: SHOW PARTITIONS add_part_test
 PREHOOK: type: SHOWPARTITIONS
@@ -99,9 +101,11 @@ POSTHOOK: query: SHOW TABLES
 POSTHOOK: type: SHOWTABLES
 PREHOOK: query: CREATE TABLE add_part_test (key STRING, value STRING) PARTITIONED BY (ds STRING)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:add_part_test_db
 POSTHOOK: query: CREATE TABLE add_part_test (key STRING, value STRING) PARTITIONED BY (ds STRING)
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: add_part_test_db@add_part_test
+POSTHOOK: Output: database:add_part_test_db
 PREHOOK: query: SHOW PARTITIONS add_part_test
 PREHOOK: type: SHOWPARTITIONS
 POSTHOOK: query: SHOW PARTITIONS add_part_test

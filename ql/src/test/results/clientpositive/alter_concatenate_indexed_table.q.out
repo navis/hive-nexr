@@ -1,7 +1,9 @@
 PREHOOK: query: create table src_rc_concatenate_test(key int, value string) stored as rcfile
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table src_rc_concatenate_test(key int, value string) stored as rcfile
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@src_rc_concatenate_test
 PREHOOK: query: load data local inpath '../data/files/smbbucket_1.rc' into table src_rc_concatenate_test
 PREHOOK: type: LOAD
@@ -115,8 +117,10 @@ POSTHOOK: query: drop index src_rc_concatenate_test_index on src_rc_concatenate_
 POSTHOOK: type: DROPINDEX
 PREHOOK: query: create table src_rc_concatenate_test_part(key int, value string) partitioned by (ds string) stored as rcfile
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table src_rc_concatenate_test_part(key int, value string) partitioned by (ds string) stored as rcfile
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@src_rc_concatenate_test_part
 PREHOOK: query: alter table src_rc_concatenate_test_part add partition (ds='2011')
 PREHOOK: type: ALTERTABLE_ADDPARTS

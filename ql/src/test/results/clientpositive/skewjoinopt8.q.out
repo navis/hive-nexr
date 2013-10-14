@@ -1,7 +1,9 @@
 PREHOOK: query: CREATE TABLE T1(key STRING, val STRING) STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE T1(key STRING, val STRING) STORED AS TEXTFILE
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@T1
 PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/T1.txt' INTO TABLE T1
 PREHOOK: type: LOAD
@@ -12,9 +14,11 @@ POSTHOOK: Output: default@t1
 PREHOOK: query: CREATE TABLE T2(key STRING, val STRING)
 SKEWED BY (key) ON ((3), (8)) STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE T2(key STRING, val STRING)
 SKEWED BY (key) ON ((3), (8)) STORED AS TEXTFILE
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@T2
 PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/T2.txt' INTO TABLE T2
 PREHOOK: type: LOAD
@@ -24,8 +28,10 @@ POSTHOOK: type: LOAD
 POSTHOOK: Output: default@t2
 PREHOOK: query: CREATE TABLE T3(key STRING, val STRING) STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE T3(key STRING, val STRING) STORED AS TEXTFILE
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@T3
 PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/T3.txt' INTO TABLE T3
 PREHOOK: type: LOAD

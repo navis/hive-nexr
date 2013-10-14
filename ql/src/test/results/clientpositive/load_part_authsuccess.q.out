@@ -1,7 +1,9 @@
 PREHOOK: query: create table hive_test_src ( col1 string ) partitioned by (pcol1 string) stored as textfile
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table hive_test_src ( col1 string ) partitioned by (pcol1 string) stored as textfile
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@hive_test_src
 PREHOOK: query: grant Update on table hive_test_src to user hive_test_user
 PREHOOK: type: GRANT_PRIVILEGE

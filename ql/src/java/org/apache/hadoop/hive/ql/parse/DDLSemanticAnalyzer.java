@@ -544,7 +544,7 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
       return;
     }
     if (object.getTable() == null) {
-      outputs.add(new WriteEntity(object.getDatabase()));
+      outputs.add(new WriteEntity(getDatabase(object.getDatabase())));
     } else {
       Table table = getTable(object.getDatabase(), object.getTable(), true);
       if (object.getPartSpec() == null) {

@@ -16,4 +16,5 @@ PREHOOK: query: -- null input.regex, raise an exception
 ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.RegexSerDe'
 STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 #### A masked pattern was here ####

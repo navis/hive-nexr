@@ -1,7 +1,9 @@
 PREHOOK: query: create table temp_null(a int) stored as textfile
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table temp_null(a int) stored as textfile
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@temp_null
 PREHOOK: query: load data local inpath '../data/files/test.dat' overwrite into table temp_null
 PREHOOK: type: LOAD
@@ -25,8 +27,10 @@ NULL	NULL
 NULL	NULL
 PREHOOK: query: create table tt(a int, b string)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table tt(a int, b string)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@tt
 PREHOOK: query: insert overwrite table tt select null, null from temp_null
 PREHOOK: type: QUERY
@@ -56,8 +60,10 @@ NULL	NULL
 NULL	NULL
 PREHOOK: query: create table tt_b(a int, b string) row format serde "org.apache.hadoop.hive.serde2.lazybinary.LazyBinarySerDe"
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table tt_b(a int, b string) row format serde "org.apache.hadoop.hive.serde2.lazybinary.LazyBinarySerDe"
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@tt_b
 POSTHOOK: Lineage: tt.a EXPRESSION []
 POSTHOOK: Lineage: tt.b SIMPLE []
@@ -111,8 +117,10 @@ POSTHOOK: Lineage: tt_b.b EXPRESSION []
 \N\N
 PREHOOK: query: create table temp_null2 (key string, value string) partitioned by (ds string)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table temp_null2 (key string, value string) partitioned by (ds string)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@temp_null2
 POSTHOOK: Lineage: tt.a EXPRESSION []
 POSTHOOK: Lineage: tt.b SIMPLE []

@@ -4,12 +4,14 @@ PREHOOK: query: -- This tests inferring how data is bucketed/sorted from the ope
 
 CREATE TABLE test_table LIKE srcpart
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: -- This tests inferring how data is bucketed/sorted from the operators in the reducer
 -- and populating that information in partitions' metadata.  In particular, those cases
 -- where dynamic partitioning is used.
 
 CREATE TABLE test_table LIKE srcpart
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@test_table
 PREHOOK: query: ALTER TABLE test_table SET FILEFORMAT RCFILE
 PREHOOK: type: ALTERTABLE_FILEFORMAT
@@ -398,8 +400,10 @@ Storage Desc Params:
 	serialization.format	1                   
 PREHOOK: query: CREATE TABLE srcpart_merge_dp LIKE srcpart
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE srcpart_merge_dp LIKE srcpart
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@srcpart_merge_dp
 POSTHOOK: Lineage: test_table PARTITION(ds=2008-04-08,hr=11).key SIMPLE [(srcpart)srcpart.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: test_table PARTITION(ds=2008-04-08,hr=11).value EXPRESSION [(srcpart)srcpart.null, ]
@@ -415,8 +419,10 @@ POSTHOOK: Lineage: test_table PARTITION(ds=2008-04-08,hr=12).key SIMPLE [(srcpar
 POSTHOOK: Lineage: test_table PARTITION(ds=2008-04-08,hr=12).value EXPRESSION [(srcpart)srcpart.null, ]
 PREHOOK: query: CREATE TABLE srcpart_merge_dp_rc LIKE srcpart
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE srcpart_merge_dp_rc LIKE srcpart
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@srcpart_merge_dp_rc
 POSTHOOK: Lineage: test_table PARTITION(ds=2008-04-08,hr=11).key SIMPLE [(srcpart)srcpart.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: test_table PARTITION(ds=2008-04-08,hr=11).value EXPRESSION [(srcpart)srcpart.null, ]

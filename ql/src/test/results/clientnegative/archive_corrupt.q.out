@@ -8,8 +8,10 @@ POSTHOOK: query: drop table tstsrcpart
 POSTHOOK: type: DROPTABLE
 PREHOOK: query: create table tstsrcpart like srcpart
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table tstsrcpart like srcpart
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@tstsrcpart
 PREHOOK: query: -- EXCLUDE_HADOOP_MAJOR_VERSIONS(0.20)
 -- The version of GzipCodec that is provided in Hadoop 0.20 silently ignores

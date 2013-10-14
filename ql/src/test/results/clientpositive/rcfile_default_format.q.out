@@ -1,7 +1,9 @@
 PREHOOK: query: CREATE TABLE rcfile_default_format (key STRING)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE rcfile_default_format (key STRING)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@rcfile_default_format
 PREHOOK: query: DESCRIBE EXTENDED rcfile_default_format
 PREHOOK: type: DESCTABLE
@@ -27,8 +29,10 @@ value               	string              	None
 #### A masked pattern was here ####
 PREHOOK: query: CREATE TABLE rcfile_default_format_txtfile (key STRING) STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE rcfile_default_format_txtfile (key STRING) STORED AS TEXTFILE
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@rcfile_default_format_txtfile
 PREHOOK: query: INSERT OVERWRITE TABLE rcfile_default_format_txtfile SELECT key from src
 PREHOOK: type: QUERY

@@ -20,6 +20,7 @@ PREHOOK: query: CREATE TABLE orc_create_staging (
     COLLECTION ITEMS TERMINATED BY ','
     MAP KEYS TERMINATED BY ':'
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE orc_create_staging (
   str STRING,
   mp  MAP<STRING,STRING>,
@@ -30,6 +31,7 @@ POSTHOOK: query: CREATE TABLE orc_create_staging (
     COLLECTION ITEMS TERMINATED BY ','
     MAP KEYS TERMINATED BY ':'
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@orc_create_staging
 PREHOOK: query: DESCRIBE FORMATTED orc_create_staging
 PREHOOK: type: DESCTABLE
@@ -69,10 +71,12 @@ PREHOOK: query: CREATE TABLE orc_create (key INT, value STRING)
    PARTITIONED BY (ds string)
    STORED AS ORC
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE orc_create (key INT, value STRING)
    PARTITIONED BY (ds string)
    STORED AS ORC
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@orc_create
 PREHOOK: query: DESCRIBE FORMATTED orc_create
 PREHOOK: type: DESCTABLE
@@ -119,9 +123,11 @@ POSTHOOK: Output: default@orc_create
 PREHOOK: query: CREATE TABLE orc_create (key INT, value STRING)
    PARTITIONED BY (ds string)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE orc_create (key INT, value STRING)
    PARTITIONED BY (ds string)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@orc_create
 PREHOOK: query: DESCRIBE FORMATTED orc_create
 PREHOOK: type: DESCTABLE
@@ -210,9 +216,11 @@ POSTHOOK: Output: default@orc_create
 PREHOOK: query: CREATE TABLE orc_create (key INT, value STRING)
    PARTITIONED BY (ds string)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE orc_create (key INT, value STRING)
    PARTITIONED BY (ds string)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@orc_create
 PREHOOK: query: DESCRIBE FORMATTED orc_create
 PREHOOK: type: DESCTABLE
@@ -255,6 +263,7 @@ PREHOOK: query: CREATE TABLE orc_create_complex (
   strct STRUCT<A:STRING,B:STRING>
 ) STORED AS ORC
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE orc_create_complex (
   str STRING,
   mp  MAP<STRING,STRING>,
@@ -262,6 +271,7 @@ POSTHOOK: query: CREATE TABLE orc_create_complex (
   strct STRUCT<A:STRING,B:STRING>
 ) STORED AS ORC
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@orc_create_complex
 PREHOOK: query: DESCRIBE FORMATTED orc_create_complex
 PREHOOK: type: DESCTABLE

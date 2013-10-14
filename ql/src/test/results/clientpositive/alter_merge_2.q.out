@@ -1,7 +1,9 @@
 PREHOOK: query: create table src_rc_merge_test_part(key int, value string) partitioned by (ds string, ts string) stored as rcfile
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table src_rc_merge_test_part(key int, value string) partitioned by (ds string, ts string) stored as rcfile
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@src_rc_merge_test_part
 PREHOOK: query: alter table src_rc_merge_test_part add partition (ds='2012-01-03', ts='2012-01-03+14:46:31')
 PREHOOK: type: ALTERTABLE_ADDPARTS

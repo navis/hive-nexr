@@ -4,12 +4,14 @@ PREHOOK: query: --
 
 create table alter5_src ( col1 string ) stored as textfile
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: --
 -- Added to validate the fix for HIVE-2117 - explicit partition location
 --
 
 create table alter5_src ( col1 string ) stored as textfile
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@alter5_src
 PREHOOK: query: load data local inpath '../data/files/test.dat' overwrite into table alter5_src
 PREHOOK: type: LOAD
@@ -19,8 +21,10 @@ POSTHOOK: type: LOAD
 POSTHOOK: Output: default@alter5_src
 PREHOOK: query: create table alter5 ( col1 string ) partitioned by (dt string)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table alter5 ( col1 string ) partitioned by (dt string)
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@alter5
 PREHOOK: query: --
 -- Here's the interesting bit for HIVE-2117 - partition subdir should be
@@ -144,9 +148,11 @@ POSTHOOK: type: SHOWTABLES
 POSTHOOK: Lineage: alter5 PARTITION(dt=a).col1 SIMPLE [(alter5_src)alter5_src.FieldSchema(name:col1, type:string, comment:null), ]
 PREHOOK: query: create table alter5_src ( col1 string ) stored as textfile
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:alter5_db
 POSTHOOK: query: create table alter5_src ( col1 string ) stored as textfile
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: alter5_db@alter5_src
+POSTHOOK: Output: database:alter5_db
 POSTHOOK: Lineage: alter5 PARTITION(dt=a).col1 SIMPLE [(alter5_src)alter5_src.FieldSchema(name:col1, type:string, comment:null), ]
 PREHOOK: query: load data local inpath '../data/files/test.dat' overwrite into table alter5_src
 PREHOOK: type: LOAD
@@ -157,9 +163,11 @@ POSTHOOK: Output: alter5_db@alter5_src
 POSTHOOK: Lineage: alter5 PARTITION(dt=a).col1 SIMPLE [(alter5_src)alter5_src.FieldSchema(name:col1, type:string, comment:null), ]
 PREHOOK: query: create table alter5 ( col1 string ) partitioned by (dt string)
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:alter5_db
 POSTHOOK: query: create table alter5 ( col1 string ) partitioned by (dt string)
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: alter5_db@alter5
+POSTHOOK: Output: database:alter5_db
 POSTHOOK: Lineage: alter5 PARTITION(dt=a).col1 SIMPLE [(alter5_src)alter5_src.FieldSchema(name:col1, type:string, comment:null), ]
 PREHOOK: query: alter table alter5 add partition (dt='a') location 'parta'
 PREHOOK: type: ALTERTABLE_ADDPARTS

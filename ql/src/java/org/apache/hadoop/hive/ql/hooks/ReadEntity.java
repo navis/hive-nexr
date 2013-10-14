@@ -25,6 +25,7 @@ import java.util.Set;
 import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.ql.metadata.Partition;
 import org.apache.hadoop.hive.ql.metadata.Table;
+import org.apache.hadoop.hive.ql.plan.HiveOperation;
 
 /**
  * This class encapsulates the information on the partition and tables that are
@@ -53,6 +54,12 @@ public class ReadEntity extends Entity implements Serializable {
     super(database, true);
   }
 
+  public ReadEntity(Database database, HiveOperation operation) {
+    super(database, true);
+    setInputRequiredPrivileges(operation.getInputRequiredPrivileges());
+    setOutputRequiredPrivileges(operation.getOutputRequiredPrivileges());
+  }
+
   /**
    * Constructor.
    *
@@ -61,6 +68,12 @@ public class ReadEntity extends Entity implements Serializable {
    */
   public ReadEntity(Table t) {
     super(t, true);
+  }
+
+  public ReadEntity(Table t, HiveOperation operation) {
+    super(t, true);
+    setInputRequiredPrivileges(operation.getInputRequiredPrivileges());
+    setOutputRequiredPrivileges(operation.getOutputRequiredPrivileges());
   }
 
   private void initParent(ReadEntity parent) {
@@ -82,6 +95,12 @@ public class ReadEntity extends Entity implements Serializable {
    */
   public ReadEntity(Partition p) {
     super(p, true);
+  }
+
+  public ReadEntity(Partition p, HiveOperation operation) {
+    super(p, true);
+    setInputRequiredPrivileges(operation.getInputRequiredPrivileges());
+    setOutputRequiredPrivileges(operation.getOutputRequiredPrivileges());
   }
 
   public ReadEntity(Partition p, ReadEntity parent) {
