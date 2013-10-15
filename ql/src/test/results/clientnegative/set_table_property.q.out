@@ -6,4 +6,3 @@ POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: database:default
 POSTHOOK: Output: default@testTable
 FAILED: ParseException line 4:45 missing StringLiteral at ')' near '<EOF>'
-
