@@ -28,4 +28,3 @@ POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: database:default
 POSTHOOK: Output: default@part
 FAILED: ParseException line 4:45 mismatched input 'following' expecting KW_PRECEDING near 'unbounded' in windowframestartboundary
-
