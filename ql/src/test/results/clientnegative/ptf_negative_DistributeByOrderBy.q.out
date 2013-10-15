@@ -31,4 +31,3 @@ POSTHOOK: Output: database:default
 POSTHOOK: Output: default@part
 FAILED: ParseException line 5:46 missing ) at 'order' near 'by'
 line 5:55 missing EOF at 'p_mfgr' near 'by'
-
