@@ -342,14 +342,14 @@ public class TOperationsRes implements org.apache.thrift.TBase<TOperationsRes, T
           case 1: // OPERATIONS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list178 = iprot.readListBegin();
-                struct.operations = new ArrayList<TOperationInfo>(_list178.size);
-                for (int _i179 = 0; _i179 < _list178.size; ++_i179)
+                org.apache.thrift.protocol.TList _list162 = iprot.readListBegin();
+                struct.operations = new ArrayList<TOperationInfo>(_list162.size);
+                for (int _i163 = 0; _i163 < _list162.size; ++_i163)
                 {
-                  TOperationInfo _elem180; // required
-                  _elem180 = new TOperationInfo();
-                  _elem180.read(iprot);
-                  struct.operations.add(_elem180);
+                  TOperationInfo _elem164; // required
+                  _elem164 = new TOperationInfo();
+                  _elem164.read(iprot);
+                  struct.operations.add(_elem164);
                 }
                 iprot.readListEnd();
               }
@@ -376,9 +376,9 @@ public class TOperationsRes implements org.apache.thrift.TBase<TOperationsRes, T
           oprot.writeFieldBegin(OPERATIONS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.operations.size()));
-            for (TOperationInfo _iter181 : struct.operations)
+            for (TOperationInfo _iter165 : struct.operations)
             {
-              _iter181.write(oprot);
+              _iter165.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -410,9 +410,9 @@ public class TOperationsRes implements org.apache.thrift.TBase<TOperationsRes, T
       if (struct.isSetOperations()) {
         {
           oprot.writeI32(struct.operations.size());
-          for (TOperationInfo _iter182 : struct.operations)
+          for (TOperationInfo _iter166 : struct.operations)
           {
-            _iter182.write(oprot);
+            _iter166.write(oprot);
           }
         }
       }
@@ -424,14 +424,14 @@ public class TOperationsRes implements org.apache.thrift.TBase<TOperationsRes, T
       BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TList _list183 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.operations = new ArrayList<TOperationInfo>(_list183.size);
-          for (int _i184 = 0; _i184 < _list183.size; ++_i184)
+          org.apache.thrift.protocol.TList _list167 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.operations = new ArrayList<TOperationInfo>(_list167.size);
+          for (int _i168 = 0; _i168 < _list167.size; ++_i168)
           {
-            TOperationInfo _elem185; // required
-            _elem185 = new TOperationInfo();
-            _elem185.read(iprot);
-            struct.operations.add(_elem185);
+            TOperationInfo _elem169; // required
+            _elem169 = new TOperationInfo();
+            _elem169.read(iprot);
+            struct.operations.add(_elem169);
           }
         }
         struct.setOperationsIsSet(true);

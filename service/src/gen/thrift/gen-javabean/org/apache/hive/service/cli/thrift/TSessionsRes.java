@@ -342,14 +342,14 @@ public class TSessionsRes implements org.apache.thrift.TBase<TSessionsRes, TSess
           case 1: // SESSIONS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list170 = iprot.readListBegin();
-                struct.sessions = new ArrayList<TSessionInfo>(_list170.size);
-                for (int _i171 = 0; _i171 < _list170.size; ++_i171)
+                org.apache.thrift.protocol.TList _list154 = iprot.readListBegin();
+                struct.sessions = new ArrayList<TSessionInfo>(_list154.size);
+                for (int _i155 = 0; _i155 < _list154.size; ++_i155)
                 {
-                  TSessionInfo _elem172; // required
-                  _elem172 = new TSessionInfo();
-                  _elem172.read(iprot);
-                  struct.sessions.add(_elem172);
+                  TSessionInfo _elem156; // required
+                  _elem156 = new TSessionInfo();
+                  _elem156.read(iprot);
+                  struct.sessions.add(_elem156);
                 }
                 iprot.readListEnd();
               }
@@ -376,9 +376,9 @@ public class TSessionsRes implements org.apache.thrift.TBase<TSessionsRes, TSess
           oprot.writeFieldBegin(SESSIONS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.sessions.size()));
-            for (TSessionInfo _iter173 : struct.sessions)
+            for (TSessionInfo _iter157 : struct.sessions)
             {
-              _iter173.write(oprot);
+              _iter157.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -410,9 +410,9 @@ public class TSessionsRes implements org.apache.thrift.TBase<TSessionsRes, TSess
       if (struct.isSetSessions()) {
         {
           oprot.writeI32(struct.sessions.size());
-          for (TSessionInfo _iter174 : struct.sessions)
+          for (TSessionInfo _iter158 : struct.sessions)
           {
-            _iter174.write(oprot);
+            _iter158.write(oprot);
           }
         }
       }
@@ -424,14 +424,14 @@ public class TSessionsRes implements org.apache.thrift.TBase<TSessionsRes, TSess
       BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TList _list175 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.sessions = new ArrayList<TSessionInfo>(_list175.size);
-          for (int _i176 = 0; _i176 < _list175.size; ++_i176)
+          org.apache.thrift.protocol.TList _list159 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.sessions = new ArrayList<TSessionInfo>(_list159.size);
+          for (int _i160 = 0; _i160 < _list159.size; ++_i160)
           {
-            TSessionInfo _elem177; // required
-            _elem177 = new TSessionInfo();
-            _elem177.read(iprot);
-            struct.sessions.add(_elem177);
+            TSessionInfo _elem161; // required
+            _elem161 = new TSessionInfo();
+            _elem161.read(iprot);
+            struct.sessions.add(_elem161);
           }
         }
         struct.setSessionsIsSet(true);

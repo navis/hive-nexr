@@ -18,10 +18,19 @@
 
 package org.apache.hive.service.cli;
 
-import java.math.BigDecimal;
-import java.sql.Timestamp;
+import java.nio.ByteBuffer;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.List;
 
-import org.apache.hadoop.hive.common.type.HiveDecimal;
+import com.google.common.primitives.Booleans;
+import com.google.common.primitives.Bytes;
+import com.google.common.primitives.Doubles;
+import com.google.common.primitives.Ints;
+import com.google.common.primitives.Longs;
+import com.google.common.primitives.Shorts;
 import org.apache.hive.service.cli.thrift.TBinaryValue;
 import org.apache.hive.service.cli.thrift.TBoolValue;
 import org.apache.hive.service.cli.thrift.TByteValue;
@@ -34,288 +43,387 @@ import org.apache.hive.service.cli.thrift.TStringValue;
 
 /**
  * ColumnValue.
- *
  */
-public class ColumnValue {
+public class ColumnValue extends AbstractList {
 
-  public static final TColumnValue NULL = new TColumnValue();
+  private static final int DEFAULT_SIZE = 100;
 
-  static {
-    NULL.setStringVal(new TStringValue());
-  }
+  private final Type type;
 
-  // TODO: replace this with a non-Thrift implementation
-  private final TColumnValue tColumnValue;
+  private BitSet nulls;
 
-  public ColumnValue(TColumnValue tColumnValue) {
-    this.tColumnValue = new TColumnValue(tColumnValue);
-  }
+  private int size;
+  private boolean[] boolVars;
+  private byte[] byteVars;
+  private short[] shortVars;
+  private int[] intVars;
+  private long[] longVars;
+  private double[] doubleVars;
+  private List<String> stringVars;
+  private List<ByteBuffer> binaryVars;
 
-  private static boolean isNull(Object value) {
-    return (value == null);
-  }
-
-  public static ColumnValue booleanValue(Boolean value) {
-    TBoolValue tBoolValue = new TBoolValue();
-    if (value != null) {
-      tBoolValue.setValue(value);
+  public ColumnValue(Type type, BitSet nulls, Object values) {
+    this.type = type;
+    this.nulls = nulls;
+    if (type == Type.BOOLEAN_TYPE) {
+      boolVars = (boolean[]) values;
+      size = boolVars.length;
+    } else if (type == Type.TINYINT_TYPE) {
+      byteVars = (byte[]) values;
+      size = byteVars.length;
+    } else if (type == Type.SMALLINT_TYPE) {
+      shortVars = (short[]) values;
+      size = shortVars.length;
+    } else if (type == Type.INT_TYPE) {
+      intVars = (int[]) values;
+      size = intVars.length;
+    } else if (type == Type.BIGINT_TYPE) {
+      longVars = (long[]) values;
+      size = longVars.length;
+    } else if (type == Type.DOUBLE_TYPE) {
+      doubleVars = (double[]) values;
+      size = doubleVars.length;
+    } else if (type == Type.BINARY_TYPE) {
+      binaryVars = (List<ByteBuffer>) values;
+      size = binaryVars.size();
+    } else if (type == Type.STRING_TYPE) {
+      stringVars = (List<String>) values;
+      size = stringVars.size();
+    } else {
+      throw new IllegalStateException("invalid union object");
     }
-    return new ColumnValue(TColumnValue.boolVal(tBoolValue));
   }
 
-  public static ColumnValue byteValue(Byte value) {
-    TByteValue tByteValue = new TByteValue();
-    if (value != null) {
-      tByteValue.setValue(value);
-    }
-    return new ColumnValue(TColumnValue.byteVal(tByteValue));
-  }
-
-  public static ColumnValue shortValue(Short value) {
-    TI16Value tI16Value = new TI16Value();
-    if (value != null) {
-      tI16Value.setValue(value);
-    }
-    return new ColumnValue(TColumnValue.i16Val(tI16Value));
-  }
-
-  public static ColumnValue intValue(Integer value) {
-    TI32Value tI32Value = new TI32Value();
-    if (value != null) {
-      tI32Value.setValue(value);
-    }
-    return new ColumnValue(TColumnValue.i32Val(tI32Value));
-  }
-
-  public static ColumnValue longValue(Long value) {
-    TI64Value tI64Value = new TI64Value();
-    if (value != null) {
-      tI64Value.setValue(value);
-    }
-    return new ColumnValue(TColumnValue.i64Val(tI64Value));
-  }
-
-  public static ColumnValue floatValue(Float value) {
-    TDoubleValue tDoubleValue = new TDoubleValue();
-    if (value != null) {
-      tDoubleValue.setValue(value);
-    }
-    return new ColumnValue(TColumnValue.doubleVal(tDoubleValue));
-  }
-
-  public static ColumnValue doubleValue(Double value) {
-    TDoubleValue tDoubleValue = new TDoubleValue();
-    if (value != null) {
-      tDoubleValue.setValue(value);
-    }
-    return new ColumnValue(TColumnValue.doubleVal(tDoubleValue));
-  }
-
-  public static ColumnValue stringValue(String value) {
-    TStringValue tStringValue = new TStringValue();
-    if (value != null) {
-      tStringValue.setValue(value);
-    }
-    return new ColumnValue(TColumnValue.stringVal(tStringValue));
-  }
-
-  public static ColumnValue timestampValue(Timestamp value) {
-    TStringValue tStringValue = new TStringValue();
-    if (value != null) {
-      tStringValue.setValue(value.toString());
-    }
-    return new ColumnValue(TColumnValue.stringVal(tStringValue));
-  }
-
-  public static ColumnValue stringValue(HiveDecimal value) {
-    TStringValue tStrValue = new TStringValue();
-    if (value != null) {
-      tStrValue.setValue(value.toString());
-    }
-    return new ColumnValue(TColumnValue.stringVal(tStrValue));
-  }
-
-  public static ColumnValue binaryValue(byte[] value) {
-    TBinaryValue tBinaryValue = new TBinaryValue();
-    if (value != null) {
-      tBinaryValue.setValue(value);
-    }
-    return new ColumnValue(TColumnValue.binaryVal(tBinaryValue));
-  }
-
-  public static ColumnValue newColumnValue(Type type, Object value) {
+  public ColumnValue(Type type) {
+    nulls = new BitSet();
     switch (type) {
-    case BOOLEAN_TYPE:
-      return booleanValue((Boolean)value);
-    case TINYINT_TYPE:
-      return byteValue((Byte)value);
-    case SMALLINT_TYPE:
-      return shortValue((Short)value);
-    case INT_TYPE:
-      return intValue((Integer)value);
-    case BIGINT_TYPE:
-      return longValue((Long)value);
-    case FLOAT_TYPE:
-      return floatValue((Float)value);
-    case DOUBLE_TYPE:
-      return doubleValue((Double)value);
-    case STRING_TYPE:
-      return stringValue((String)value);
-    case TIMESTAMP_TYPE:
-      return timestampValue((Timestamp)value);
-    case DECIMAL_TYPE:
-      return stringValue(((HiveDecimal)value));
-    case BINARY_TYPE:
-      return binaryValue(((byte[]) value));
-    case ARRAY_TYPE:
-    case MAP_TYPE:
-    case STRUCT_TYPE:
-    case UNION_TYPE:
-    case USER_DEFINED_TYPE:
-      return stringValue((String)value);
-    default:
+      case BOOLEAN_TYPE:
+        boolVars = new boolean[DEFAULT_SIZE];
+        break;
+      case TINYINT_TYPE:
+        byteVars = new byte[DEFAULT_SIZE];
+        break;
+      case SMALLINT_TYPE:
+        shortVars = new short[DEFAULT_SIZE];
+        break;
+      case INT_TYPE:
+        intVars = new int[DEFAULT_SIZE];
+        break;
+      case BIGINT_TYPE:
+        longVars = new long[DEFAULT_SIZE];
+        break;
+      case FLOAT_TYPE:
+      case DOUBLE_TYPE:
+        type = Type.DOUBLE_TYPE;
+        doubleVars = new double[DEFAULT_SIZE];
+        break;
+      case BINARY_TYPE:
+        binaryVars = new ArrayList<ByteBuffer>();
+        break;
+      default:
+        type = Type.STRING_TYPE;
+        stringVars = new ArrayList<String>();
+    }
+    this.type = type;
+  }
+
+  public ColumnValue(TColumnValue colValues) {
+    if (colValues.isSetBoolVal()) {
+      type = Type.BOOLEAN_TYPE;
+      nulls = toBitset(colValues.getBoolVal().getNulls());
+      boolVars = Booleans.toArray(colValues.getBoolVal().getValues());
+      size = boolVars.length;
+    } else if (colValues.isSetByteVal()) {
+      type = Type.TINYINT_TYPE;
+      nulls = toBitset(colValues.getByteVal().getNulls());
+      byteVars = Bytes.toArray(colValues.getByteVal().getValues());
+      size = byteVars.length;
+    } else if (colValues.isSetI16Val()) {
+      type = Type.SMALLINT_TYPE;
+      nulls = toBitset(colValues.getI16Val().getNulls());
+      shortVars = Shorts.toArray(colValues.getI16Val().getValues());
+      size = shortVars.length;
+    } else if (colValues.isSetI32Val()) {
+      type = Type.INT_TYPE;
+      nulls = toBitset(colValues.getI32Val().getNulls());
+      intVars = Ints.toArray(colValues.getI32Val().getValues());
+      size = intVars.length;
+    } else if (colValues.isSetI64Val()) {
+      type = Type.BIGINT_TYPE;
+      nulls = toBitset(colValues.getI64Val().getNulls());
+      longVars = Longs.toArray(colValues.getI64Val().getValues());
+      size = longVars.length;
+    } else if (colValues.isSetDoubleVal()) {
+      type = Type.DOUBLE_TYPE;
+      nulls = toBitset(colValues.getDoubleVal().getNulls());
+      doubleVars = Doubles.toArray(colValues.getDoubleVal().getValues());
+      size = doubleVars.length;
+    } else if (colValues.isSetBinaryVal()) {
+      type = Type.BINARY_TYPE;
+      nulls = toBitset(colValues.getBinaryVal().getNulls());
+      binaryVars = colValues.getBinaryVal().getValues();
+      size = binaryVars.size();
+    } else if (colValues.isSetStringVal()) {
+      type = Type.STRING_TYPE;
+      nulls = toBitset(colValues.getStringVal().getNulls());
+      stringVars = colValues.getStringVal().getValues();
+      size = stringVars.size();
+    } else {
+      throw new IllegalStateException("invalid union object");
+    }
+  }
+
+  public ColumnValue extractSubset(int start, int end) {
+    BitSet subNulls = nulls.get(start, end);
+    if (type == Type.BOOLEAN_TYPE) {
+      ColumnValue subset = new ColumnValue(type, subNulls, Arrays.copyOfRange(boolVars, start, end));
+      boolVars = Arrays.copyOfRange(boolVars, end, size);
+      nulls = nulls.get(start, size);
+      size = boolVars.length;
+      return subset;
+    }
+    if (type == Type.TINYINT_TYPE) {
+      ColumnValue subset = new ColumnValue(type, subNulls, Arrays.copyOfRange(byteVars, start, end));
+      byteVars = Arrays.copyOfRange(byteVars, end, size);
+      nulls = nulls.get(start, size);
+      size = byteVars.length;
+      return subset;
+    }
+    if (type == Type.SMALLINT_TYPE) {
+      ColumnValue subset = new ColumnValue(type, subNulls, Arrays.copyOfRange(shortVars, start, end));
+      shortVars = Arrays.copyOfRange(shortVars, end, size);
+      nulls = nulls.get(start, size);
+      size = shortVars.length;
+      return subset;
+    }
+    if (type == Type.INT_TYPE) {
+      ColumnValue subset = new ColumnValue(type, subNulls, Arrays.copyOfRange(intVars, start, end));
+      intVars = Arrays.copyOfRange(intVars, end, size);
+      nulls = nulls.get(start, size);
+      size = intVars.length;
+      return subset;
+    }
+    if (type == Type.BIGINT_TYPE) {
+      ColumnValue subset = new ColumnValue(type, subNulls, Arrays.copyOfRange(longVars, start, end));
+      longVars = Arrays.copyOfRange(longVars, end, size);
+      nulls = nulls.get(start, size);
+      size = longVars.length;
+      return subset;
+    }
+    if (type == Type.DOUBLE_TYPE) {
+      ColumnValue subset = new ColumnValue(type, subNulls, Arrays.copyOfRange(doubleVars, start, end));
+      doubleVars = Arrays.copyOfRange(doubleVars, end, size);
+      nulls = nulls.get(start, size);
+      size = doubleVars.length;
+      return subset;
+    }
+    if (type == Type.BINARY_TYPE) {
+      ColumnValue subset = new ColumnValue(type, subNulls, binaryVars.subList(start, end));
+      binaryVars = binaryVars.subList(end, binaryVars.size());
+      nulls = nulls.get(start, size);
+      size = binaryVars.size();
+      return subset;
+    }
+    if (type == Type.STRING_TYPE) {
+      ColumnValue subset = new ColumnValue(type, subNulls, stringVars.subList(start, end));
+      stringVars = stringVars.subList(end, stringVars.size());
+      nulls = nulls.get(start, size);
+      size = stringVars.size();
+      return subset;
+    }
+    throw new IllegalStateException("invalid union object");
+  }
+
+  private static final byte[] MASKS = new byte[] {
+    0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, (byte)0x80
+  };
+
+  static BitSet toBitset(byte[] nulls) {
+    BitSet bitset = new BitSet();
+    for (int i = 0; i < nulls.length; i++) {
+      if (nulls[i] == 0) {
+        continue;
+      }
+      int offset = i << 3;
+      for (int j = 0; j < MASKS.length; j++) {
+        bitset.set(offset + j, (nulls[i] & MASKS[j]) != 0);
+      }
+    }
+    return bitset;
+  }
+
+  static byte[] toBinary(BitSet bitset) {
+    byte[] nulls = new byte[1 + (bitset.length() / 8)];
+    for (int i = bitset.nextSetBit(0); i >= 0 && i < bitset.length();
+         i = bitset.nextSetBit(i + 1)) {
+      nulls[i / 8] |= MASKS[i % 8];
+    }
+    return nulls;
+  }
+
+  public Type getType() {
+    return type;
+  }
+
+  @Override
+  public Object get(int index) {
+    if (nulls.get(index)) {
       return null;
     }
+    switch (type) {
+      case BOOLEAN_TYPE:
+        return boolVars[index];
+      case TINYINT_TYPE:
+        return byteVars[index];
+      case SMALLINT_TYPE:
+        return shortVars[index];
+      case INT_TYPE:
+        return intVars[index];
+      case BIGINT_TYPE:
+        return longVars[index];
+      case DOUBLE_TYPE:
+        return doubleVars[index];
+      case STRING_TYPE:
+        return stringVars.get(index);
+      case BINARY_TYPE:
+        return binaryVars.get(index);
+    }
+    return null;
+  }
+
+  @Override
+  public int size() {
+    return size;
   }
 
   public TColumnValue toTColumnValue() {
-    return new TColumnValue(tColumnValue);
+    TColumnValue value = new TColumnValue();
+    ByteBuffer nullMasks = ByteBuffer.wrap(toBinary(nulls));
+    switch (type) {
+      case BOOLEAN_TYPE:
+        value.setBoolVal(new TBoolValue(Booleans.asList(Arrays.copyOfRange(boolVars, 0, size)), nullMasks));
+        break;
+      case TINYINT_TYPE:
+        value.setByteVal(new TByteValue(Bytes.asList(Arrays.copyOfRange(byteVars, 0, size)), nullMasks));
+        break;
+      case SMALLINT_TYPE:
+        value.setI16Val(new TI16Value(Shorts.asList(Arrays.copyOfRange(shortVars, 0, size)), nullMasks));
+        break;
+      case INT_TYPE:
+        value.setI32Val(new TI32Value(Ints.asList(Arrays.copyOfRange(intVars, 0, size)), nullMasks));
+        break;
+      case BIGINT_TYPE:
+        value.setI64Val(new TI64Value(Longs.asList(Arrays.copyOfRange(longVars, 0, size)), nullMasks));
+        break;
+      case DOUBLE_TYPE:
+        value.setDoubleVal(new TDoubleValue(Doubles.asList(Arrays.copyOfRange(doubleVars, 0, size)), nullMasks));
+        break;
+      case STRING_TYPE:
+        value.setStringVal(new TStringValue(stringVars, nullMasks));
+        break;
+      case BINARY_TYPE:
+        value.setBinaryVal(new TBinaryValue(binaryVars, nullMasks));
+        break;
+    }
+    return value;
   }
 
+  private static final ByteBuffer EMPTY_BINARY = ByteBuffer.allocate(0);
+  private static final String EMPTY_STRING = "";
 
-
-  private Boolean getBooleanValue(TBoolValue tBoolValue) {
-    if (tBoolValue.isSetValue()) {
-      return tBoolValue.isValue();
+  public void addValue(Type type, Object field) {
+    switch (type) {
+      case BOOLEAN_TYPE:
+        nulls.set(size, field == null);
+        boolVars()[size] = field == null ? true : (Boolean)field;
+        break;
+      case TINYINT_TYPE:
+        nulls.set(size, field == null);
+        byteVars()[size] = field == null ? 0 : (Byte) field;
+        break;
+      case SMALLINT_TYPE:
+        nulls.set(size, field == null);
+        shortVars()[size] = field == null ? 0 : (Short)field;
+        break;
+      case INT_TYPE:
+        nulls.set(size, field == null);
+        intVars()[size] = field == null ? 0 : (Integer)field;
+        break;
+      case BIGINT_TYPE:
+        nulls.set(size, field == null);
+        longVars()[size] = field == null ? 0 : (Long)field;
+        break;
+      case FLOAT_TYPE:
+        nulls.set(size, field == null);
+        doubleVars()[size] = field == null ? 0 : ((Float)field).doubleValue();
+        break;
+      case DOUBLE_TYPE:
+        nulls.set(size, field == null);
+        doubleVars()[size] = field == null ? 0 : (Double)field;
+        break;
+      case BINARY_TYPE:
+        nulls.set(binaryVars.size(), field == null);
+        binaryVars.add(field == null ? EMPTY_BINARY : ByteBuffer.wrap((byte[])field));
+        break;
+      default:
+        nulls.set(stringVars.size(), field == null);
+        stringVars.add(field == null ? EMPTY_STRING : String.valueOf(field));
+      break;
     }
-    return null;
+    size++;
   }
 
-  private Byte getByteValue(TByteValue tByteValue) {
-    if (tByteValue.isSetValue()) {
-      return tByteValue.getValue();
+  private boolean[] boolVars() {
+    if (boolVars.length == size) {
+      boolean[] newVars = new boolean[size << 1];
+      System.arraycopy(boolVars, 0, newVars, 0, size);
+      return boolVars = newVars;
     }
-    return null;
+    return boolVars;
   }
 
-  private Short getShortValue(TI16Value tI16Value) {
-    if (tI16Value.isSetValue()) {
-      return tI16Value.getValue();
+  private byte[] byteVars() {
+    if (byteVars.length == size) {
+      byte[] newVars = new byte[size << 1];
+      System.arraycopy(byteVars, 0, newVars, 0, size);
+      return byteVars = newVars;
     }
-    return null;
+    return byteVars;
   }
 
-  private Integer getIntegerValue(TI32Value tI32Value) {
-    if (tI32Value.isSetValue()) {
-      return tI32Value.getValue();
+  private short[] shortVars() {
+    if (shortVars.length == size) {
+      short[] newVars = new short[size << 1];
+      System.arraycopy(shortVars, 0, newVars, 0, size);
+      return shortVars = newVars;
     }
-    return null;
+    return shortVars;
   }
 
-  private Long getLongValue(TI64Value tI64Value) {
-    if (tI64Value.isSetValue()) {
-      return tI64Value.getValue();
+  private int[] intVars() {
+    if (intVars.length == size) {
+      int[] newVars = new int[size << 1];
+      System.arraycopy(intVars, 0, newVars, 0, size);
+      return intVars = newVars;
     }
-    return null;
+    return intVars;
   }
 
-  private Double getDoubleValue(TDoubleValue tDoubleValue) {
-    if (tDoubleValue.isSetValue()) {
-      return tDoubleValue.getValue();
+  private long[] longVars() {
+    if (longVars.length == size) {
+      long[] newVars = new long[size << 1];
+      System.arraycopy(longVars, 0, newVars, 0, size);
+      return longVars = newVars;
     }
-    return null;
+    return longVars;
   }
 
-  private String getStringValue(TStringValue tStringValue) {
-    if (tStringValue.isSetValue()) {
-      return tStringValue.getValue();
+  private double[] doubleVars() {
+    if (doubleVars.length == size) {
+      double[] newVars = new double[size << 1];
+      System.arraycopy(doubleVars, 0, newVars, 0, size);
+      return doubleVars = newVars;
     }
-    return null;
-  }
-
-  private Timestamp getTimestampValue(TStringValue tStringValue) {
-    if (tStringValue.isSetValue()) {
-      return Timestamp.valueOf(tStringValue.getValue());
-    }
-    return null;
-  }
-
-  private byte[] getBinaryValue(TStringValue tStringValue) {
-    if (tStringValue.isSetValue()) {
-      return tStringValue.getValue().getBytes();
-    }
-    return null;
-  }
-
-  private BigDecimal getDecimalValue(TStringValue tStringValue) {
-    if (tStringValue.isSetValue()) {
-      return new BigDecimal(tStringValue.getValue());
-    }
-    return null;
-  }
-
-  public Object getColumnValue(Type columnType) throws Exception {
-    switch (columnType) {
-    case BOOLEAN_TYPE:
-      return getBooleanValue(tColumnValue.getBoolVal());
-    case TINYINT_TYPE:
-      return getByteValue(tColumnValue.getByteVal());
-    case SMALLINT_TYPE:
-      return getShortValue(tColumnValue.getI16Val());
-    case INT_TYPE:
-      return getIntegerValue(tColumnValue.getI32Val());
-    case BIGINT_TYPE:
-      return getLongValue(tColumnValue.getI64Val());
-    case FLOAT_TYPE:
-      return getDoubleValue(tColumnValue.getDoubleVal());
-    case DOUBLE_TYPE:
-      return getDoubleValue(tColumnValue.getDoubleVal());
-    case STRING_TYPE:
-      return getStringValue(tColumnValue.getStringVal());
-    case TIMESTAMP_TYPE:
-      return getTimestampValue(tColumnValue.getStringVal());
-    case BINARY_TYPE:
-      return getBinaryValue(tColumnValue.getStringVal());
-    case DECIMAL_TYPE:
-      return getDecimalValue(tColumnValue.getStringVal());
-    default:
-      if (tColumnValue.getSetField() == TColumnValue._Fields.STRING_VAL) {
-        TStringValue string = tColumnValue.getStringVal();
-        return string.isSetValue() ? string.getValue() : null;
-      }
-      throw new IllegalArgumentException("Unrecognized column type:" + columnType);
-    }
-  }
-
-  public String toString() {
-    if (tColumnValue.isSetBoolVal()) {
-      TBoolValue boolval = tColumnValue.getBoolVal();
-      return boolval.isSetValue() ? String.valueOf(boolval.isValue()) : null;
-    }
-    if (tColumnValue.isSetByteVal()) {
-      TByteValue byteval = tColumnValue.getByteVal();
-      return byteval.isSetValue() ? String.valueOf(byteval.getValue()) : null;
-    }
-    if (tColumnValue.isSetI16Val()) {
-      TI16Value i16val = tColumnValue.getI16Val();
-      return i16val.isSetValue() ? String.valueOf(i16val.getValue()) : null;
-    }
-    if (tColumnValue.isSetI32Val()) {
-      TI32Value i32val = tColumnValue.getI32Val();
-      return i32val.isSetValue() ? String.valueOf(i32val.getValue()) : null;
-    }
-    if (tColumnValue.isSetI64Val()) {
-      TI64Value i64val = tColumnValue.getI64Val();
-      return i64val.isSetValue() ? String.valueOf(i64val.getValue()) : null;
-    }
-    if (tColumnValue.isSetDoubleVal()) {
-      TDoubleValue doubleval = tColumnValue.getDoubleVal();
-      return doubleval.isSetValue() ? String.valueOf(doubleval.getValue()) : null;
-    }
-    if (tColumnValue.isSetStringVal()) {
-      TStringValue strval = tColumnValue.getStringVal();
-      return strval.isSetValue() ? strval.getValue() : null;
-    }
-    return null;
+    return doubleVars;
   }
 }
