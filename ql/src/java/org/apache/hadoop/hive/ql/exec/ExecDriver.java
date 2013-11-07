@@ -61,6 +61,7 @@ import org.apache.hadoop.hive.ql.io.HiveOutputFormat;
 import org.apache.hadoop.hive.ql.io.HiveOutputFormatImpl;
 import org.apache.hadoop.hive.ql.io.IOPrepareCache;
 import org.apache.hadoop.hive.ql.io.OneNullRowInputFormat;
+import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
 import org.apache.hadoop.hive.ql.plan.FileSinkDesc;
@@ -537,6 +538,21 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
 
     // Intentionally overwrites anything the user may have put here
     conf.setBoolean("hive.input.format.sorted", work.isInputFormatSorted());
+
+    if (conf.get("hive.current.database") == null) {
+      conf.set("hive.current.database", getCurrentDB());
+    }
+  }
+
+  public static String getCurrentDB() {
+    String currentDB = null;
+    if (SessionState.get() != null) {
+      currentDB = SessionState.get().getCurrentDB();
+    }
+    if (currentDB == null && Hive.peek() != null) {
+      currentDB = Hive.peek().getCurrentDatabase();
+    }
+    return currentDB == null ? "default" : currentDB;
   }
 
   public boolean mapStarted() {

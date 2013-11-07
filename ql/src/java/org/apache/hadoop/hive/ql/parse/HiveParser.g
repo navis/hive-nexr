@@ -1844,7 +1844,7 @@ regular_body
 selectStatement
    :
    selectClause
-   fromClause
+   fromClause?
    whereClause?
    groupByClause?
    havingClause?
@@ -1853,7 +1853,7 @@ selectStatement
    distributeByClause?
    sortByClause?
    window_clause?
-   limitClause? -> ^(TOK_QUERY fromClause ^(TOK_INSERT ^(TOK_DESTINATION ^(TOK_DIR TOK_TMP_FILE))
+   limitClause? -> ^(TOK_QUERY fromClause? ^(TOK_INSERT ^(TOK_DESTINATION ^(TOK_DIR TOK_TMP_FILE))
                      selectClause whereClause? groupByClause? havingClause? orderByClause? clusterByClause?
                      distributeByClause? sortByClause? window_clause? limitClause?))
    ;

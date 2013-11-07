@@ -39,6 +39,8 @@ import org.antlr.runtime.tree.TreeWizard;
 import org.antlr.runtime.tree.TreeWizard.ContextVisitor;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.ContentSummary;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.hive.common.FileUtils;
@@ -88,8 +90,10 @@ import org.apache.hadoop.hive.ql.exec.WindowFunctionInfo;
 import org.apache.hadoop.hive.ql.hooks.ReadEntity;
 import org.apache.hadoop.hive.ql.hooks.WriteEntity;
 import org.apache.hadoop.hive.ql.io.CombineHiveInputFormat;
+import org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat;
 import org.apache.hadoop.hive.ql.io.HiveOutputFormat;
 import org.apache.hadoop.hive.ql.io.RCFileInputFormat;
+import org.apache.hadoop.hive.ql.io.NullRowsInputFormat;
 import org.apache.hadoop.hive.ql.lib.DefaultGraphWalker;
 import org.apache.hadoop.hive.ql.lib.DefaultRuleDispatcher;
 import org.apache.hadoop.hive.ql.lib.Dispatcher;
@@ -197,6 +201,7 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDTF;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.Deserializer;
 import org.apache.hadoop.hive.serde2.MetadataTypedColumnsetSerDe;
+import org.apache.hadoop.hive.serde2.NullStructSerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.serde2.objectinspector.ConstantObjectInspector;
@@ -208,6 +213,7 @@ import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.hive.shims.ShimLoader;
+import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.mapred.InputFormat;
 
 /**
@@ -215,6 +221,9 @@ import org.apache.hadoop.mapred.InputFormat;
  */
 
 public class SemanticAnalyzer extends BaseSemanticAnalyzer {
+
+  private static final String DUMMY_ALIAS = "_dummy_alias";
+
   private HashMap<TableScanOperator, ExprNodeDesc> opToPartPruner;
   private HashMap<TableScanOperator, PrunedPartitionList> opToPartList;
   private HashMap<String, Operator<? extends OperatorDesc>> topOps;
@@ -8011,6 +8020,15 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       aliasToOpInfo.put(alias, op);
     }
 
+    if (aliasToOpInfo.isEmpty()) {
+      qb.getMetaData().setSrcForAlias(DUMMY_ALIAS, getDummyTable());
+      TableScanOperator op = (TableScanOperator) genTablePlan(DUMMY_ALIAS, qb);
+      op.getConf().setSplitRowLimit(1);
+      qb.addAlias(DUMMY_ALIAS);
+      qb.setTabAlias(DUMMY_ALIAS, DUMMY_ALIAS);
+      aliasToOpInfo.put(DUMMY_ALIAS, op);
+    }
+
     Operator srcOpInfo = null;
     Operator lastPTFOp = null;
 
@@ -8078,6 +8096,33 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
     this.qb = qb;
     return bodyOpInfo;
+  }
+
+  private Table getDummyTable() throws SemanticException {
+    Path dummyPath = createDummyFile();
+    Table desc = new Table(ExecDriver.getCurrentDB(), DUMMY_ALIAS);
+    desc.getTTable().getSd().setLocation(dummyPath.toString());
+    desc.getTTable().getSd().getSerdeInfo().setSerializationLib(NullStructSerDe.class.getName());
+    desc.setInputFormatClass(NullRowsInputFormat.class);
+    desc.setOutputFormatClass(HiveIgnoreKeyTextOutputFormat.class);
+    return desc;
+  }
+
+  // add dummy data for not removed by CombineHiveInputFormat, etc.
+  private Path createDummyFile() throws SemanticException {
+    Path emptyScratchDirStr = new Path(ctx.getMRTmpFileURI(), "dummy_file");
+    FSDataOutputStream fout = null;
+    try {
+      FileSystem fs = emptyScratchDirStr.getFileSystem(conf);
+      fout = fs.create(emptyScratchDirStr);
+      fout.write(1);
+      fout.close();
+    } catch (IOException e) {
+      throw new SemanticException(e);
+    } finally {
+      IOUtils.closeStream(fout);
+    }
+    return emptyScratchDirStr.getParent();
   }
 
   /**
