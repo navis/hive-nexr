@@ -34,7 +34,8 @@ import org.slf4j.LoggerFactory;
 public class TStringValue implements org.apache.thrift.TBase<TStringValue, TStringValue._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TStringValue");
 
-  private static final org.apache.thrift.protocol.TField VALUE_FIELD_DESC = new org.apache.thrift.protocol.TField("value", org.apache.thrift.protocol.TType.STRING, (short)1);
+  private static final org.apache.thrift.protocol.TField VALUES_FIELD_DESC = new org.apache.thrift.protocol.TField("values", org.apache.thrift.protocol.TType.LIST, (short)1);
+  private static final org.apache.thrift.protocol.TField NULLS_FIELD_DESC = new org.apache.thrift.protocol.TField("nulls", org.apache.thrift.protocol.TType.STRING, (short)2);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -42,11 +43,13 @@ public class TStringValue implements org.apache.thrift.TBase<TStringValue, TStri
     schemes.put(TupleScheme.class, new TStringValueTupleSchemeFactory());
   }
 
-  private String value; // optional
+  private List<String> values; // required
+  private ByteBuffer nulls; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    VALUE((short)1, "value");
+    VALUES((short)1, "values"),
+    NULLS((short)2, "nulls");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -61,8 +64,10 @@ public class TStringValue implements org.apache.thrift.TBase<TStringValue, TStri
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // VALUE
-          return VALUE;
+        case 1: // VALUES
+          return VALUES;
+        case 2: // NULLS
+          return NULLS;
         default:
           return null;
       }
@@ -103,12 +108,14 @@ public class TStringValue implements org.apache.thrift.TBase<TStringValue, TStri
   }
 
   // isset id assignments
-  private _Fields optionals[] = {_Fields.VALUE};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.VALUE, new org.apache.thrift.meta_data.FieldMetaData("value", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+    tmpMap.put(_Fields.VALUES, new org.apache.thrift.meta_data.FieldMetaData("values", org.apache.thrift.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
+    tmpMap.put(_Fields.NULLS, new org.apache.thrift.meta_data.FieldMetaData("nulls", org.apache.thrift.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING        , true)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TStringValue.class, metaDataMap);
   }
@@ -116,12 +123,29 @@ public class TStringValue implements org.apache.thrift.TBase<TStringValue, TStri
   public TStringValue() {
   }
 
+  public TStringValue(
+    List<String> values,
+    ByteBuffer nulls)
+  {
+    this();
+    this.values = values;
+    this.nulls = nulls;
+  }
+
   /**
    * Performs a deep copy on <i>other</i>.
    */
   public TStringValue(TStringValue other) {
-    if (other.isSetValue()) {
-      this.value = other.value;
+    if (other.isSetValues()) {
+      List<String> __this__values = new ArrayList<String>();
+      for (String other_element : other.values) {
+        __this__values.add(other_element);
+      }
+      this.values = __this__values;
+    }
+    if (other.isSetNulls()) {
+      this.nulls = org.apache.thrift.TBaseHelper.copyBinary(other.nulls);
+;
     }
   }
 
@@ -131,39 +155,95 @@ public class TStringValue implements org.apache.thrift.TBase<TStringValue, TStri
 
   @Override
   public void clear() {
-    this.value = null;
+    this.values = null;
+    this.nulls = null;
   }
 
-  public String getValue() {
-    return this.value;
+  public int getValuesSize() {
+    return (this.values == null) ? 0 : this.values.size();
   }
 
-  public void setValue(String value) {
-    this.value = value;
+  public java.util.Iterator<String> getValuesIterator() {
+    return (this.values == null) ? null : this.values.iterator();
   }
 
-  public void unsetValue() {
-    this.value = null;
+  public void addToValues(String elem) {
+    if (this.values == null) {
+      this.values = new ArrayList<String>();
+    }
+    this.values.add(elem);
   }
 
-  /** Returns true if field value is set (has been assigned a value) and false otherwise */
-  public boolean isSetValue() {
-    return this.value != null;
+  public List<String> getValues() {
+    return this.values;
   }
 
-  public void setValueIsSet(boolean value) {
+  public void setValues(List<String> values) {
+    this.values = values;
+  }
+
+  public void unsetValues() {
+    this.values = null;
+  }
+
+  /** Returns true if field values is set (has been assigned a value) and false otherwise */
+  public boolean isSetValues() {
+    return this.values != null;
+  }
+
+  public void setValuesIsSet(boolean value) {
     if (!value) {
-      this.value = null;
+      this.values = null;
+    }
+  }
+
+  public byte[] getNulls() {
+    setNulls(org.apache.thrift.TBaseHelper.rightSize(nulls));
+    return nulls == null ? null : nulls.array();
+  }
+
+  public ByteBuffer bufferForNulls() {
+    return nulls;
+  }
+
+  public void setNulls(byte[] nulls) {
+    setNulls(nulls == null ? (ByteBuffer)null : ByteBuffer.wrap(nulls));
+  }
+
+  public void setNulls(ByteBuffer nulls) {
+    this.nulls = nulls;
+  }
+
+  public void unsetNulls() {
+    this.nulls = null;
+  }
+
+  /** Returns true if field nulls is set (has been assigned a value) and false otherwise */
+  public boolean isSetNulls() {
+    return this.nulls != null;
+  }
+
+  public void setNullsIsSet(boolean value) {
+    if (!value) {
+      this.nulls = null;
     }
   }
 
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case VALUE:
+    case VALUES:
       if (value == null) {
-        unsetValue();
+        unsetValues();
       } else {
-        setValue((String)value);
+        setValues((List<String>)value);
+      }
+      break;
+
+    case NULLS:
+      if (value == null) {
+        unsetNulls();
+      } else {
+        setNulls((ByteBuffer)value);
       }
       break;
 
@@ -172,8 +252,11 @@ public class TStringValue implements org.apache.thrift.TBase<TStringValue, TStri
 
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case VALUE:
-      return getValue();
+    case VALUES:
+      return getValues();
+
+    case NULLS:
+      return getNulls();
 
     }
     throw new IllegalStateException();
@@ -186,8 +269,10 @@ public class TStringValue implements org.apache.thrift.TBase<TStringValue, TStri
     }
 
     switch (field) {
-    case VALUE:
-      return isSetValue();
+    case VALUES:
+      return isSetValues();
+    case NULLS:
+      return isSetNulls();
     }
     throw new IllegalStateException();
   }
@@ -205,12 +290,21 @@ public class TStringValue implements org.apache.thrift.TBase<TStringValue, TStri
     if (that == null)
       return false;
 
-    boolean this_present_value = true && this.isSetValue();
-    boolean that_present_value = true && that.isSetValue();
-    if (this_present_value || that_present_value) {
-      if (!(this_present_value && that_present_value))
+    boolean this_present_values = true && this.isSetValues();
+    boolean that_present_values = true && that.isSetValues();
+    if (this_present_values || that_present_values) {
+      if (!(this_present_values && that_present_values))
         return false;
-      if (!this.value.equals(that.value))
+      if (!this.values.equals(that.values))
+        return false;
+    }
+
+    boolean this_present_nulls = true && this.isSetNulls();
+    boolean that_present_nulls = true && that.isSetNulls();
+    if (this_present_nulls || that_present_nulls) {
+      if (!(this_present_nulls && that_present_nulls))
+        return false;
+      if (!this.nulls.equals(that.nulls))
         return false;
     }
 
@@ -221,10 +315,15 @@ public class TStringValue implements org.apache.thrift.TBase<TStringValue, TStri
   public int hashCode() {
     HashCodeBuilder builder = new HashCodeBuilder();
 
-    boolean present_value = true && (isSetValue());
-    builder.append(present_value);
-    if (present_value)
-      builder.append(value);
+    boolean present_values = true && (isSetValues());
+    builder.append(present_values);
+    if (present_values)
+      builder.append(values);
+
+    boolean present_nulls = true && (isSetNulls());
+    builder.append(present_nulls);
+    if (present_nulls)
+      builder.append(nulls);
 
     return builder.toHashCode();
   }
@@ -237,12 +336,22 @@ public class TStringValue implements org.apache.thrift.TBase<TStringValue, TStri
     int lastComparison = 0;
     TStringValue typedOther = (TStringValue)other;
 
-    lastComparison = Boolean.valueOf(isSetValue()).compareTo(typedOther.isSetValue());
+    lastComparison = Boolean.valueOf(isSetValues()).compareTo(typedOther.isSetValues());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetValue()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.value, typedOther.value);
+    if (isSetValues()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.values, typedOther.values);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(isSetNulls()).compareTo(typedOther.isSetNulls());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetNulls()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.nulls, typedOther.nulls);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -267,21 +376,35 @@ public class TStringValue implements org.apache.thrift.TBase<TStringValue, TStri
     StringBuilder sb = new StringBuilder("TStringValue(");
     boolean first = true;
 
-    if (isSetValue()) {
-      sb.append("value:");
-      if (this.value == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.value);
-      }
-      first = false;
+    sb.append("values:");
+    if (this.values == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.values);
     }
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("nulls:");
+    if (this.nulls == null) {
+      sb.append("null");
+    } else {
+      org.apache.thrift.TBaseHelper.toString(this.nulls, sb);
+    }
+    first = false;
     sb.append(")");
     return sb.toString();
   }
 
   public void validate() throws org.apache.thrift.TException {
     // check for required fields
+    if (!isSetValues()) {
+      throw new org.apache.thrift.protocol.TProtocolException("Required field 'values' is unset! Struct:" + toString());
+    }
+
+    if (!isSetNulls()) {
+      throw new org.apache.thrift.protocol.TProtocolException("Required field 'nulls' is unset! Struct:" + toString());
+    }
+
     // check for sub-struct validity
   }
 
@@ -319,10 +442,28 @@ public class TStringValue implements org.apache.thrift.TBase<TStringValue, TStri
           break;
         }
         switch (schemeField.id) {
-          case 1: // VALUE
+          case 1: // VALUES
+            if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
+              {
+                org.apache.thrift.protocol.TList _list84 = iprot.readListBegin();
+                struct.values = new ArrayList<String>(_list84.size);
+                for (int _i85 = 0; _i85 < _list84.size; ++_i85)
+                {
+                  String _elem86; // required
+                  _elem86 = iprot.readString();
+                  struct.values.add(_elem86);
+                }
+                iprot.readListEnd();
+              }
+              struct.setValuesIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 2: // NULLS
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-              struct.value = iprot.readString();
-              struct.setValueIsSet(true);
+              struct.nulls = iprot.readBinary();
+              struct.setNullsIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -340,12 +481,22 @@ public class TStringValue implements org.apache.thrift.TBase<TStringValue, TStri
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      if (struct.value != null) {
-        if (struct.isSetValue()) {
-          oprot.writeFieldBegin(VALUE_FIELD_DESC);
-          oprot.writeString(struct.value);
-          oprot.writeFieldEnd();
+      if (struct.values != null) {
+        oprot.writeFieldBegin(VALUES_FIELD_DESC);
+        {
+          oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.values.size()));
+          for (String _iter87 : struct.values)
+          {
+            oprot.writeString(_iter87);
+          }
+          oprot.writeListEnd();
         }
+        oprot.writeFieldEnd();
+      }
+      if (struct.nulls != null) {
+        oprot.writeFieldBegin(NULLS_FIELD_DESC);
+        oprot.writeBinary(struct.nulls);
+        oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
@@ -364,24 +515,32 @@ public class TStringValue implements org.apache.thrift.TBase<TStringValue, TStri
     @Override
     public void write(org.apache.thrift.protocol.TProtocol prot, TStringValue struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
-      BitSet optionals = new BitSet();
-      if (struct.isSetValue()) {
-        optionals.set(0);
+      {
+        oprot.writeI32(struct.values.size());
+        for (String _iter88 : struct.values)
+        {
+          oprot.writeString(_iter88);
+        }
       }
-      oprot.writeBitSet(optionals, 1);
-      if (struct.isSetValue()) {
-        oprot.writeString(struct.value);
-      }
+      oprot.writeBinary(struct.nulls);
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, TStringValue struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
-      BitSet incoming = iprot.readBitSet(1);
-      if (incoming.get(0)) {
-        struct.value = iprot.readString();
-        struct.setValueIsSet(true);
+      {
+        org.apache.thrift.protocol.TList _list89 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+        struct.values = new ArrayList<String>(_list89.size);
+        for (int _i90 = 0; _i90 < _list89.size; ++_i90)
+        {
+          String _elem91; // required
+          _elem91 = iprot.readString();
+          struct.values.add(_elem91);
+        }
       }
+      struct.setValuesIsSet(true);
+      struct.nulls = iprot.readBinary();
+      struct.setNullsIsSet(true);
     }
   }
 

@@ -101,7 +101,7 @@ public class GetColumnsOperation extends MetadataOperation {
   private final String tableName;
   private final String columnName;
 
-  private final RowSet rowSet = new RowSet();
+  private final RowSet rowSet = new RowSet(RESULT_SET_SCHEMA);
 
   protected GetColumnsOperation(HiveSession parentSession, String catalogName, String schemaName,
       String tableName, String columnName) {
@@ -164,7 +164,7 @@ public class GetColumnsOperation extends MetadataOperation {
                 null, // SOURCE_DATA_TYPE
                 "NO", // IS_AUTO_INCREMENT
             };
-            rowSet.addRow(RESULT_SET_SCHEMA, rowData);
+            rowSet.addRow(rowData);
           }
         }
       }

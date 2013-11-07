@@ -37,7 +37,6 @@ import org.apache.hadoop.hive.ql.processors.CommandProcessorResponse;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.SerDe;
-import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeUtils;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -188,11 +187,12 @@ public class SQLOperation extends ExecuteStatementOperation {
   public RowSet getNextRowSet(FetchOrientation orientation, long maxRows) throws HiveSQLException {
     assertState(OperationState.FINISHED);
     try {
+      RowSet rowSet = new RowSet(getResultSetSchema());
       driver.setMaxRows((int) maxRows);
       if (driver.getResults(convey)) {
-        return decode(convey);
+        return decode(convey, rowSet);
       }
-      return new RowSet();
+      return rowSet;
     } catch (IOException e) {
       throw new HiveSQLException(e);
     } catch (CommandNeedRetryException e) {
@@ -204,27 +204,25 @@ public class SQLOperation extends ExecuteStatementOperation {
     }
   }
 
-  private RowSet decode(List<Object> rows) throws Exception {
+  private RowSet decode(List<Object> rows, RowSet rowSet) throws Exception {
     if (driver.isFetchingTable()) {
-      return prepareFromRow(rows);
+      return prepareFromRow(rows, rowSet);
     }
-    return decodeFromString(rows);
+    return decodeFromString(rows, rowSet);
   }
 
   // already encoded to thriftable object in ThriftFormatter
-  private RowSet prepareFromRow(List<Object> rows) throws Exception {
-    RowSet rowSet = new RowSet();
+  private RowSet prepareFromRow(List<Object> rows, RowSet rowSet) throws Exception {
     for (Object row : rows) {
-      rowSet.addRow(resultSchema, (Object[]) row);
+      rowSet.addRow((Object[]) row);
     }
     return rowSet;
   }
 
-  private RowSet decodeFromString(List<Object> rows) throws SQLException, SerDeException {
+  private RowSet decodeFromString(List<Object> rows, RowSet rowSet) throws Exception {
     getSerDe();
     StructObjectInspector soi = (StructObjectInspector) serde.getObjectInspector();
     List<? extends StructField> fieldRefs = soi.getAllStructFieldRefs();
-    RowSet rowSet = new RowSet();
 
     Object[] deserializedFields = new Object[fieldRefs.size()];
     Object rowObj;
@@ -238,7 +236,7 @@ public class SQLOperation extends ExecuteStatementOperation {
         Object fieldData = soi.getStructFieldData(rowObj, fieldRef);
         deserializedFields[i] = SerDeUtils.toThriftPayload(fieldData, fieldOI);
       }
-      rowSet.addRow(resultSchema, deserializedFields);
+      rowSet.addRow(deserializedFields);
     }
     return rowSet;
   }

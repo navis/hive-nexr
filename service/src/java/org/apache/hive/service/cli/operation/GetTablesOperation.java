@@ -41,7 +41,7 @@ public class GetTablesOperation extends MetadataOperation {
   private final String schemaName;
   private final String tableName;
   private final List<String> tableTypes = new ArrayList<String>();
-  private final RowSet rowSet = new RowSet();
+  private final RowSet rowSet = new RowSet(RESULT_SET_SCHEMA);
 
 
   private static final TableSchema RESULT_SET_SCHEMA = new TableSchema()
@@ -84,7 +84,7 @@ public class GetTablesOperation extends MetadataOperation {
               table.getParameters().get("comment")
               };
           if (tableTypes.isEmpty() || tableTypes.contains(table.getTableType())) {
-            rowSet.addRow(RESULT_SET_SCHEMA, rowData);
+            rowSet.addRow(rowData);
           }
         }
       }

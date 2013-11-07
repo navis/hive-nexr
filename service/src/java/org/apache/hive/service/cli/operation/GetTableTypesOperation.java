@@ -49,9 +49,9 @@ public class GetTableTypesOperation extends MetadataOperation {
   public void run() throws HiveSQLException {
     setState(OperationState.RUNNING);
     try {
-      rowSet = new RowSet();
+      rowSet = new RowSet(RESULT_SET_SCHEMA);
       for (TableType type : TableType.values()) {
-        rowSet.addRow(RESULT_SET_SCHEMA, new String[] {type.toString()});
+        rowSet.addRow(new String[] {type.toString()});
       }
       setState(OperationState.FINISHED);
     } catch (Exception e) {

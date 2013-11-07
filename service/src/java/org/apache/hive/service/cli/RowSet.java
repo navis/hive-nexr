@@ -18,59 +18,109 @@
 
 package org.apache.hive.service.cli;
 
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
-import org.apache.hive.service.cli.thrift.TRow;
+import org.apache.hive.service.cli.thrift.TColumnValue;
 import org.apache.hive.service.cli.thrift.TRowSet;
 
 /**
  * RowSet.
  *
  */
-public class RowSet {
+public class RowSet implements Iterable<Object[]> {
 
-  private long startOffset = 0;
-  private boolean hasMoreResults = false;
-  private List<Row> rows;
+  private long startOffset;
 
-  public RowSet() {
-    rows = new ArrayList<Row>();
-  }
+  private final List<Type> types;
+  private final List<ColumnValue> values;
 
-  public RowSet(TRowSet tRowSet) {
-    this();
-    startOffset = tRowSet.getStartRowOffset();
-    for (TRow tRow : tRowSet.getRows()) {
-      rows.add(new Row(tRow));
+  public RowSet(TableSchema schema) {
+    types = new ArrayList<Type>();
+    values = new ArrayList<ColumnValue>();
+    for (ColumnDescriptor colDesc : schema.getColumnDescriptors()) {
+      types.add(colDesc.getType());
+      values.add(new ColumnValue(colDesc.getType()));
     }
   }
 
-  public RowSet(List<Row> rows, long startOffset) {
-    this();
-    this.rows.addAll(rows);
+  public RowSet(List<Type> types, List<ColumnValue> values, long startOffset) {
+    this.types = types;
+    this.values = values;
     this.startOffset = startOffset;
   }
 
-  public List<Row> getRows() {
-    return rows;
+  public RowSet(TRowSet tRowSet) {
+    startOffset = tRowSet.getStartRowOffset();
+    types = new ArrayList<Type>();
+    values = new ArrayList<ColumnValue>();
+    for (TColumnValue tvalue : tRowSet.getColVals()) {
+      ColumnValue value = new ColumnValue(tvalue);
+      values.add(value);
+      types.add(value.getType());
+    }
   }
 
-  public RowSet addRow(Row row) {
-    rows.add(row);
+  public RowSet addRow(Object[] fields) {
+    for (int i = 0; i < fields.length; i++) {
+      values.get(i).addValue(types.get(i), fields[i]);
+    }
     return this;
   }
 
-  public RowSet addRow(TableSchema schema, Object[] fields) {
-    return addRow(new Row(schema, fields));
+  public List<ColumnValue> getValues() {
+    return values;
+  }
+
+  public int numColumns() {
+    return values.size();
+  }
+
+  public int numRows() {
+    return values.isEmpty() ? 0 : values.get(0).size();
+  }
+
+  public static Object evaluate(ColumnDescriptor desc, Object value) {
+    return evaluate(desc.getType(), value);
+  }
+
+  public static Object evaluate(Type type, Object value) {
+    switch (type) {
+      case BOOLEAN_TYPE:
+      case TINYINT_TYPE:
+      case SMALLINT_TYPE:
+      case INT_TYPE:
+      case BIGINT_TYPE:
+      case FLOAT_TYPE:
+      case DOUBLE_TYPE:
+      case STRING_TYPE:
+        return value;
+      case BINARY_TYPE:
+        return value == null ? null : ((ByteBuffer) value).array();
+      case TIMESTAMP_TYPE:
+        return value == null ? null : Timestamp.valueOf((String) value);
+      case DECIMAL_TYPE:
+        return value == null ? null : new BigDecimal((String)value);
+      case VOID_TYPE:
+        return null;
+      default:
+        throw new IllegalArgumentException("Unrecognized column type:" + type);
+    }
   }
 
   public RowSet extractSubset(int maxRows) {
-    int numRows = rows.size();
-    maxRows = (maxRows <= numRows) ? maxRows : numRows;
-    RowSet result = new RowSet(rows.subList(0, maxRows), startOffset);
-    rows = new ArrayList<Row>(rows.subList(maxRows, numRows));
-    startOffset += result.getSize();
+    int numRows = Math.min(numRows(), maxRows);
+
+    List<ColumnValue> subset = new ArrayList<ColumnValue>();
+    for (int i = 0; i < values.size(); i++) {
+      subset.add(values.get(i).extractSubset(0, numRows));
+    }
+    RowSet result = new RowSet(types, subset, startOffset);
+    startOffset += numRows;
     return result;
   }
 
@@ -83,46 +133,46 @@ public class RowSet {
     return this;
   }
 
-  public boolean getHasMoreResults() {
-    return hasMoreResults;
-  }
-
-  public RowSet setHasMoreResults(boolean hasMoreResults) {
-    this.hasMoreResults = hasMoreResults;
-    return this;
-  }
-
-  public int getSize() {
-    return rows.size();
-  }
-
   public TRowSet toTRowSet() {
-    TRowSet tRowSet = new TRowSet();
-    tRowSet.setStartRowOffset(startOffset);
-    List<TRow> tRows = new ArrayList<TRow>();
-    for (Row row : rows) {
-      tRows.add(row.toTRow());
+    TRowSet tRowSet = new TRowSet(startOffset, new ArrayList<TColumnValue>());
+    for (int i = 0; i < values.size(); i++) {
+      tRowSet.addToColVals(values.get(i).toTColumnValue());
     }
-    tRowSet.setRows(tRows);
-
-    /*
-    //List<Boolean> booleanColumn = new ArrayList<Boolean>();
-    //List<Byte> byteColumn = new ArrayList<Byte>();
-    //List<Short> shortColumn = new ArrayList<Short>();
-    List<Integer> integerColumn = new ArrayList<Integer>();
-
-    integerColumn.add(1);
-    //integerColumn.add(null);
-    integerColumn.add(3);
-    //integerColumn.add(null);
-
-
-    TColumnUnion column = TColumnUnion.i32Column(integerColumn);
-    List<TColumnUnion> columns = new ArrayList<TColumnUnion>();
-    columns.add(column);
-    tRowSet.setColumns(columns);
-    */
-
     return tRowSet;
+  }
+
+  @Override
+  public Iterator<Object[]> iterator() {
+    return new Iterator<Object[]>() {
+
+      private int index;
+      private final Object[] convey = new Object[numColumns()];
+
+      @Override
+      public boolean hasNext() {
+        return index < numRows();
+      }
+
+      @Override
+      public Object[] next() {
+        for (int i = 0; i < values.size(); i++) {
+          convey[i] = values.get(i).get(index);
+        }
+        index++;
+        return convey;
+      }
+
+      @Override
+      public void remove() {
+        throw new UnsupportedOperationException("remove");
+      }
+    };
+  }
+
+  public Object[] fill(int index, Object[] convey) {
+    for (int i = 0; i < values.size(); i++) {
+      convey[i] = values.get(i).get(index);
+    }
+    return convey;
   }
 }

@@ -619,36 +619,34 @@ class TTableSchema {
 
 void swap(TTableSchema &a, TTableSchema &b);
 
-typedef struct _TBoolValue__isset {
-  _TBoolValue__isset() : value(false) {}
-  bool value;
-} _TBoolValue__isset;
 
 class TBoolValue {
  public:
 
-  static const char* ascii_fingerprint; // = "BF054652DEF86253C2BEE7D947F167DD";
-  static const uint8_t binary_fingerprint[16]; // = {0xBF,0x05,0x46,0x52,0xDE,0xF8,0x62,0x53,0xC2,0xBE,0xE7,0xD9,0x47,0xF1,0x67,0xDD};
+  static const char* ascii_fingerprint; // = "F9058324D96DB7F974D8ACDC01C54219";
+  static const uint8_t binary_fingerprint[16]; // = {0xF9,0x05,0x83,0x24,0xD9,0x6D,0xB7,0xF9,0x74,0xD8,0xAC,0xDC,0x01,0xC5,0x42,0x19};
 
-  TBoolValue() : value(0) {
+  TBoolValue() : nulls() {
   }
 
   virtual ~TBoolValue() throw() {}
 
-  bool value;
+  std::vector<bool>  values;
+  std::string nulls;
 
-  _TBoolValue__isset __isset;
+  void __set_values(const std::vector<bool> & val) {
+    values = val;
+  }
 
-  void __set_value(const bool val) {
-    value = val;
-    __isset.value = true;
+  void __set_nulls(const std::string& val) {
+    nulls = val;
   }
 
   bool operator == (const TBoolValue & rhs) const
   {
-    if (__isset.value != rhs.__isset.value)
+    if (!(values == rhs.values))
       return false;
-    else if (__isset.value && !(value == rhs.value))
+    if (!(nulls == rhs.nulls))
       return false;
     return true;
   }
@@ -665,36 +663,34 @@ class TBoolValue {
 
 void swap(TBoolValue &a, TBoolValue &b);
 
-typedef struct _TByteValue__isset {
-  _TByteValue__isset() : value(false) {}
-  bool value;
-} _TByteValue__isset;
 
 class TByteValue {
  public:
 
-  static const char* ascii_fingerprint; // = "9C15298ACB5D04AEA9B52D5DDE6F9208";
-  static const uint8_t binary_fingerprint[16]; // = {0x9C,0x15,0x29,0x8A,0xCB,0x5D,0x04,0xAE,0xA9,0xB5,0x2D,0x5D,0xDE,0x6F,0x92,0x08};
+  static const char* ascii_fingerprint; // = "1CB300106BAA463A70BB2A2395900F48";
+  static const uint8_t binary_fingerprint[16]; // = {0x1C,0xB3,0x00,0x10,0x6B,0xAA,0x46,0x3A,0x70,0xBB,0x2A,0x23,0x95,0x90,0x0F,0x48};
 
-  TByteValue() : value(0) {
+  TByteValue() : nulls() {
   }
 
   virtual ~TByteValue() throw() {}
 
-  int8_t value;
+  std::vector<int8_t>  values;
+  std::string nulls;
 
-  _TByteValue__isset __isset;
+  void __set_values(const std::vector<int8_t> & val) {
+    values = val;
+  }
 
-  void __set_value(const int8_t val) {
-    value = val;
-    __isset.value = true;
+  void __set_nulls(const std::string& val) {
+    nulls = val;
   }
 
   bool operator == (const TByteValue & rhs) const
   {
-    if (__isset.value != rhs.__isset.value)
+    if (!(values == rhs.values))
       return false;
-    else if (__isset.value && !(value == rhs.value))
+    if (!(nulls == rhs.nulls))
       return false;
     return true;
   }
@@ -711,36 +707,34 @@ class TByteValue {
 
 void swap(TByteValue &a, TByteValue &b);
 
-typedef struct _TI16Value__isset {
-  _TI16Value__isset() : value(false) {}
-  bool value;
-} _TI16Value__isset;
 
 class TI16Value {
  public:
 
-  static const char* ascii_fingerprint; // = "5DAC9C51C7E1106BF936FC71860BE9D5";
-  static const uint8_t binary_fingerprint[16]; // = {0x5D,0xAC,0x9C,0x51,0xC7,0xE1,0x10,0x6B,0xF9,0x36,0xFC,0x71,0x86,0x0B,0xE9,0xD5};
+  static const char* ascii_fingerprint; // = "6574CDB1F121C8DB47FB257A3F104BDB";
+  static const uint8_t binary_fingerprint[16]; // = {0x65,0x74,0xCD,0xB1,0xF1,0x21,0xC8,0xDB,0x47,0xFB,0x25,0x7A,0x3F,0x10,0x4B,0xDB};
 
-  TI16Value() : value(0) {
+  TI16Value() : nulls() {
   }
 
   virtual ~TI16Value() throw() {}
 
-  int16_t value;
+  std::vector<int16_t>  values;
+  std::string nulls;
 
-  _TI16Value__isset __isset;
+  void __set_values(const std::vector<int16_t> & val) {
+    values = val;
+  }
 
-  void __set_value(const int16_t val) {
-    value = val;
-    __isset.value = true;
+  void __set_nulls(const std::string& val) {
+    nulls = val;
   }
 
   bool operator == (const TI16Value & rhs) const
   {
-    if (__isset.value != rhs.__isset.value)
+    if (!(values == rhs.values))
       return false;
-    else if (__isset.value && !(value == rhs.value))
+    if (!(nulls == rhs.nulls))
       return false;
     return true;
   }
@@ -757,36 +751,34 @@ class TI16Value {
 
 void swap(TI16Value &a, TI16Value &b);
 
-typedef struct _TI32Value__isset {
-  _TI32Value__isset() : value(false) {}
-  bool value;
-} _TI32Value__isset;
 
 class TI32Value {
  public:
 
-  static const char* ascii_fingerprint; // = "E7A96B151330359E84C0A3AC91BCBACD";
-  static const uint8_t binary_fingerprint[16]; // = {0xE7,0xA9,0x6B,0x15,0x13,0x30,0x35,0x9E,0x84,0xC0,0xA3,0xAC,0x91,0xBC,0xBA,0xCD};
+  static const char* ascii_fingerprint; // = "CCCCE89C7E9DA10280F5663700677313";
+  static const uint8_t binary_fingerprint[16]; // = {0xCC,0xCC,0xE8,0x9C,0x7E,0x9D,0xA1,0x02,0x80,0xF5,0x66,0x37,0x00,0x67,0x73,0x13};
 
-  TI32Value() : value(0) {
+  TI32Value() : nulls() {
   }
 
   virtual ~TI32Value() throw() {}
 
-  int32_t value;
+  std::vector<int32_t>  values;
+  std::string nulls;
 
-  _TI32Value__isset __isset;
+  void __set_values(const std::vector<int32_t> & val) {
+    values = val;
+  }
 
-  void __set_value(const int32_t val) {
-    value = val;
-    __isset.value = true;
+  void __set_nulls(const std::string& val) {
+    nulls = val;
   }
 
   bool operator == (const TI32Value & rhs) const
   {
-    if (__isset.value != rhs.__isset.value)
+    if (!(values == rhs.values))
       return false;
-    else if (__isset.value && !(value == rhs.value))
+    if (!(nulls == rhs.nulls))
       return false;
     return true;
   }
@@ -803,36 +795,34 @@ class TI32Value {
 
 void swap(TI32Value &a, TI32Value &b);
 
-typedef struct _TI64Value__isset {
-  _TI64Value__isset() : value(false) {}
-  bool value;
-} _TI64Value__isset;
 
 class TI64Value {
  public:
 
-  static const char* ascii_fingerprint; // = "148F3AAAC1D9859963D5E800D187BF26";
-  static const uint8_t binary_fingerprint[16]; // = {0x14,0x8F,0x3A,0xAA,0xC1,0xD9,0x85,0x99,0x63,0xD5,0xE8,0x00,0xD1,0x87,0xBF,0x26};
+  static const char* ascii_fingerprint; // = "925353917FC0AF87976A2338011F5A31";
+  static const uint8_t binary_fingerprint[16]; // = {0x92,0x53,0x53,0x91,0x7F,0xC0,0xAF,0x87,0x97,0x6A,0x23,0x38,0x01,0x1F,0x5A,0x31};
 
-  TI64Value() : value(0) {
+  TI64Value() : nulls() {
   }
 
   virtual ~TI64Value() throw() {}
 
-  int64_t value;
+  std::vector<int64_t>  values;
+  std::string nulls;
 
-  _TI64Value__isset __isset;
+  void __set_values(const std::vector<int64_t> & val) {
+    values = val;
+  }
 
-  void __set_value(const int64_t val) {
-    value = val;
-    __isset.value = true;
+  void __set_nulls(const std::string& val) {
+    nulls = val;
   }
 
   bool operator == (const TI64Value & rhs) const
   {
-    if (__isset.value != rhs.__isset.value)
+    if (!(values == rhs.values))
       return false;
-    else if (__isset.value && !(value == rhs.value))
+    if (!(nulls == rhs.nulls))
       return false;
     return true;
   }
@@ -849,36 +839,34 @@ class TI64Value {
 
 void swap(TI64Value &a, TI64Value &b);
 
-typedef struct _TDoubleValue__isset {
-  _TDoubleValue__isset() : value(false) {}
-  bool value;
-} _TDoubleValue__isset;
 
 class TDoubleValue {
  public:
 
-  static const char* ascii_fingerprint; // = "3586E570A474C4A8603B4FF74903B3A6";
-  static const uint8_t binary_fingerprint[16]; // = {0x35,0x86,0xE5,0x70,0xA4,0x74,0xC4,0xA8,0x60,0x3B,0x4F,0xF7,0x49,0x03,0xB3,0xA6};
+  static const char* ascii_fingerprint; // = "8FF1C050A8D7FD247AEB23CD71539C09";
+  static const uint8_t binary_fingerprint[16]; // = {0x8F,0xF1,0xC0,0x50,0xA8,0xD7,0xFD,0x24,0x7A,0xEB,0x23,0xCD,0x71,0x53,0x9C,0x09};
 
-  TDoubleValue() : value(0) {
+  TDoubleValue() : nulls() {
   }
 
   virtual ~TDoubleValue() throw() {}
 
-  double value;
+  std::vector<double>  values;
+  std::string nulls;
 
-  _TDoubleValue__isset __isset;
+  void __set_values(const std::vector<double> & val) {
+    values = val;
+  }
 
-  void __set_value(const double val) {
-    value = val;
-    __isset.value = true;
+  void __set_nulls(const std::string& val) {
+    nulls = val;
   }
 
   bool operator == (const TDoubleValue & rhs) const
   {
-    if (__isset.value != rhs.__isset.value)
+    if (!(values == rhs.values))
       return false;
-    else if (__isset.value && !(value == rhs.value))
+    if (!(nulls == rhs.nulls))
       return false;
     return true;
   }
@@ -895,36 +883,34 @@ class TDoubleValue {
 
 void swap(TDoubleValue &a, TDoubleValue &b);
 
-typedef struct _TStringValue__isset {
-  _TStringValue__isset() : value(false) {}
-  bool value;
-} _TStringValue__isset;
 
 class TStringValue {
  public:
 
-  static const char* ascii_fingerprint; // = "66E694018C17E5B65A59AE8F55CCA3CD";
-  static const uint8_t binary_fingerprint[16]; // = {0x66,0xE6,0x94,0x01,0x8C,0x17,0xE5,0xB6,0x5A,0x59,0xAE,0x8F,0x55,0xCC,0xA3,0xCD};
+  static const char* ascii_fingerprint; // = "BE556BF7091B2DABBA1863D5E458B15F";
+  static const uint8_t binary_fingerprint[16]; // = {0xBE,0x55,0x6B,0xF7,0x09,0x1B,0x2D,0xAB,0xBA,0x18,0x63,0xD5,0xE4,0x58,0xB1,0x5F};
 
-  TStringValue() : value() {
+  TStringValue() : nulls() {
   }
 
   virtual ~TStringValue() throw() {}
 
-  std::string value;
+  std::vector<std::string>  values;
+  std::string nulls;
 
-  _TStringValue__isset __isset;
+  void __set_values(const std::vector<std::string> & val) {
+    values = val;
+  }
 
-  void __set_value(const std::string& val) {
-    value = val;
-    __isset.value = true;
+  void __set_nulls(const std::string& val) {
+    nulls = val;
   }
 
   bool operator == (const TStringValue & rhs) const
   {
-    if (__isset.value != rhs.__isset.value)
+    if (!(values == rhs.values))
       return false;
-    else if (__isset.value && !(value == rhs.value))
+    if (!(nulls == rhs.nulls))
       return false;
     return true;
   }
@@ -941,36 +927,34 @@ class TStringValue {
 
 void swap(TStringValue &a, TStringValue &b);
 
-typedef struct _TBinaryValue__isset {
-  _TBinaryValue__isset() : value(false) {}
-  bool value;
-} _TBinaryValue__isset;
 
 class TBinaryValue {
  public:
 
-  static const char* ascii_fingerprint; // = "66E694018C17E5B65A59AE8F55CCA3CD";
-  static const uint8_t binary_fingerprint[16]; // = {0x66,0xE6,0x94,0x01,0x8C,0x17,0xE5,0xB6,0x5A,0x59,0xAE,0x8F,0x55,0xCC,0xA3,0xCD};
+  static const char* ascii_fingerprint; // = "BE556BF7091B2DABBA1863D5E458B15F";
+  static const uint8_t binary_fingerprint[16]; // = {0xBE,0x55,0x6B,0xF7,0x09,0x1B,0x2D,0xAB,0xBA,0x18,0x63,0xD5,0xE4,0x58,0xB1,0x5F};
 
-  TBinaryValue() : value() {
+  TBinaryValue() : nulls() {
   }
 
   virtual ~TBinaryValue() throw() {}
 
-  std::string value;
+  std::vector<std::string>  values;
+  std::string nulls;
 
-  _TBinaryValue__isset __isset;
+  void __set_values(const std::vector<std::string> & val) {
+    values = val;
+  }
 
-  void __set_value(const std::string& val) {
-    value = val;
-    __isset.value = true;
+  void __set_nulls(const std::string& val) {
+    nulls = val;
   }
 
   bool operator == (const TBinaryValue & rhs) const
   {
-    if (__isset.value != rhs.__isset.value)
+    if (!(values == rhs.values))
       return false;
-    else if (__isset.value && !(value == rhs.value))
+    if (!(nulls == rhs.nulls))
       return false;
     return true;
   }
@@ -987,105 +971,6 @@ class TBinaryValue {
 
 void swap(TBinaryValue &a, TBinaryValue &b);
 
-typedef struct _TColumn__isset {
-  _TColumn__isset() : boolColumn(false), byteColumn(false), i16Column(false), i32Column(false), i64Column(false), doubleColumn(false), stringColumn(false), binaryColumn(false) {}
-  bool boolColumn;
-  bool byteColumn;
-  bool i16Column;
-  bool i32Column;
-  bool i64Column;
-  bool doubleColumn;
-  bool stringColumn;
-  bool binaryColumn;
-} _TColumn__isset;
-
-class TColumn {
- public:
-
-  static const char* ascii_fingerprint; // = "6A1A7F0836F31986E3212216A1D53D06";
-  static const uint8_t binary_fingerprint[16]; // = {0x6A,0x1A,0x7F,0x08,0x36,0xF3,0x19,0x86,0xE3,0x21,0x22,0x16,0xA1,0xD5,0x3D,0x06};
-
-  TColumn() {
-  }
-
-  virtual ~TColumn() throw() {}
-
-  std::vector<TBoolValue>  boolColumn;
-  std::vector<TByteValue>  byteColumn;
-  std::vector<TI16Value>  i16Column;
-  std::vector<TI32Value>  i32Column;
-  std::vector<TI64Value>  i64Column;
-  std::vector<TDoubleValue>  doubleColumn;
-  std::vector<TStringValue>  stringColumn;
-  std::vector<TBinaryValue>  binaryColumn;
-
-  _TColumn__isset __isset;
-
-  void __set_boolColumn(const std::vector<TBoolValue> & val) {
-    boolColumn = val;
-  }
-
-  void __set_byteColumn(const std::vector<TByteValue> & val) {
-    byteColumn = val;
-  }
-
-  void __set_i16Column(const std::vector<TI16Value> & val) {
-    i16Column = val;
-  }
-
-  void __set_i32Column(const std::vector<TI32Value> & val) {
-    i32Column = val;
-  }
-
-  void __set_i64Column(const std::vector<TI64Value> & val) {
-    i64Column = val;
-  }
-
-  void __set_doubleColumn(const std::vector<TDoubleValue> & val) {
-    doubleColumn = val;
-  }
-
-  void __set_stringColumn(const std::vector<TStringValue> & val) {
-    stringColumn = val;
-  }
-
-  void __set_binaryColumn(const std::vector<TBinaryValue> & val) {
-    binaryColumn = val;
-  }
-
-  bool operator == (const TColumn & rhs) const
-  {
-    if (!(boolColumn == rhs.boolColumn))
-      return false;
-    if (!(byteColumn == rhs.byteColumn))
-      return false;
-    if (!(i16Column == rhs.i16Column))
-      return false;
-    if (!(i32Column == rhs.i32Column))
-      return false;
-    if (!(i64Column == rhs.i64Column))
-      return false;
-    if (!(doubleColumn == rhs.doubleColumn))
-      return false;
-    if (!(stringColumn == rhs.stringColumn))
-      return false;
-    if (!(binaryColumn == rhs.binaryColumn))
-      return false;
-    return true;
-  }
-  bool operator != (const TColumn &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const TColumn & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-void swap(TColumn &a, TColumn &b);
-
 typedef struct _TColumnValue__isset {
   _TColumnValue__isset() : boolVal(false), byteVal(false), i16Val(false), i32Val(false), i64Val(false), doubleVal(false), stringVal(false), binaryVal(false) {}
   bool boolVal;
@@ -1101,8 +986,8 @@ typedef struct _TColumnValue__isset {
 class TColumnValue {
  public:
 
-  static const char* ascii_fingerprint; // = "732FCA3EB6DEA77690296E3F386F8467";
-  static const uint8_t binary_fingerprint[16]; // = {0x73,0x2F,0xCA,0x3E,0xB6,0xDE,0xA7,0x76,0x90,0x29,0x6E,0x3F,0x38,0x6F,0x84,0x67};
+  static const char* ascii_fingerprint; // = "E6ADD10B4CDDE61A19E8878CC7039A17";
+  static const uint8_t binary_fingerprint[16]; // = {0xE6,0xAD,0xD1,0x0B,0x4C,0xDD,0xE6,0x1A,0x19,0xE8,0x87,0x8C,0xC7,0x03,0x9A,0x17};
 
   TColumnValue() {
   }
@@ -1186,52 +1071,11 @@ class TColumnValue {
 void swap(TColumnValue &a, TColumnValue &b);
 
 
-class TRow {
- public:
-
-  static const char* ascii_fingerprint; // = "99AF3D0597DDA00BF09BB2A98402239F";
-  static const uint8_t binary_fingerprint[16]; // = {0x99,0xAF,0x3D,0x05,0x97,0xDD,0xA0,0x0B,0xF0,0x9B,0xB2,0xA9,0x84,0x02,0x23,0x9F};
-
-  TRow() {
-  }
-
-  virtual ~TRow() throw() {}
-
-  std::vector<TColumnValue>  colVals;
-
-  void __set_colVals(const std::vector<TColumnValue> & val) {
-    colVals = val;
-  }
-
-  bool operator == (const TRow & rhs) const
-  {
-    if (!(colVals == rhs.colVals))
-      return false;
-    return true;
-  }
-  bool operator != (const TRow &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const TRow & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-void swap(TRow &a, TRow &b);
-
-typedef struct _TRowSet__isset {
-  _TRowSet__isset() : columns(false) {}
-  bool columns;
-} _TRowSet__isset;
-
 class TRowSet {
  public:
 
-  static const char* ascii_fingerprint; // = "AE2923283250406F5034170469433DDB";
-  static const uint8_t binary_fingerprint[16]; // = {0xAE,0x29,0x23,0x28,0x32,0x50,0x40,0x6F,0x50,0x34,0x17,0x04,0x69,0x43,0x3D,0xDB};
+  static const char* ascii_fingerprint; // = "E1067378CC0F0ABAD05696C7DD3A1C7B";
+  static const uint8_t binary_fingerprint[16]; // = {0xE1,0x06,0x73,0x78,0xCC,0x0F,0x0A,0xBA,0xD0,0x56,0x96,0xC7,0xDD,0x3A,0x1C,0x7B};
 
   TRowSet() : startRowOffset(0) {
   }
@@ -1239,33 +1083,21 @@ class TRowSet {
   virtual ~TRowSet() throw() {}
 
   int64_t startRowOffset;
-  std::vector<TRow>  rows;
-  std::vector<TColumn>  columns;
-
-  _TRowSet__isset __isset;
+  std::vector<TColumnValue>  colVals;
 
   void __set_startRowOffset(const int64_t val) {
     startRowOffset = val;
   }
 
-  void __set_rows(const std::vector<TRow> & val) {
-    rows = val;
-  }
-
-  void __set_columns(const std::vector<TColumn> & val) {
-    columns = val;
-    __isset.columns = true;
+  void __set_colVals(const std::vector<TColumnValue> & val) {
+    colVals = val;
   }
 
   bool operator == (const TRowSet & rhs) const
   {
     if (!(startRowOffset == rhs.startRowOffset))
       return false;
-    if (!(rows == rhs.rows))
-      return false;
-    if (__isset.columns != rhs.__isset.columns)
-      return false;
-    else if (__isset.columns && !(columns == rhs.columns))
+    if (!(colVals == rhs.colVals))
       return false;
     return true;
   }
@@ -3203,8 +3035,8 @@ typedef struct _TFetchResultsResp__isset {
 class TFetchResultsResp {
  public:
 
-  static const char* ascii_fingerprint; // = "3657F3CAF86F7B41B9D1B6308665A66A";
-  static const uint8_t binary_fingerprint[16]; // = {0x36,0x57,0xF3,0xCA,0xF8,0x6F,0x7B,0x41,0xB9,0xD1,0xB6,0x30,0x86,0x65,0xA6,0x6A};
+  static const char* ascii_fingerprint; // = "2DCE0738D7D98BD2D93BEC657702B496";
+  static const uint8_t binary_fingerprint[16]; // = {0x2D,0xCE,0x07,0x38,0xD7,0xD9,0x8B,0xD2,0xD9,0x3B,0xEC,0x65,0x77,0x02,0xB4,0x96};
 
   TFetchResultsResp() : hasMoreRows(0) {
   }

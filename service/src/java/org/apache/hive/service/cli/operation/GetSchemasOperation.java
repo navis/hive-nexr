@@ -54,12 +54,12 @@ public class GetSchemasOperation extends MetadataOperation {
   @Override
   public void run() throws HiveSQLException {
     setState(OperationState.RUNNING);
-    rowSet = new RowSet();
+    rowSet = new RowSet(RESULT_SET_SCHEMA);
     try {
       IMetaStoreClient metastoreClient = getParentSession().getMetaStoreClient();
       String schemaPattern = convertSchemaPattern(schemaName);
       for (String dbName : metastoreClient.getDatabases(schemaPattern)) {
-        rowSet.addRow(RESULT_SET_SCHEMA, new Object[] {dbName, DEFAULT_HIVE_CATALOG});
+        rowSet.addRow(new Object[] {dbName, DEFAULT_HIVE_CATALOG});
       }
       setState(OperationState.FINISHED);
     } catch (Exception e) {

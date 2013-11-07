@@ -62,6 +62,10 @@ public class TableSchema {
     }
   }
 
+  public List<ColumnDescriptor> getColumnDescs() {
+    return columns;
+  }
+
   public TableSchema(Schema schema) {
     this(schema.getFieldSchemas());
   }

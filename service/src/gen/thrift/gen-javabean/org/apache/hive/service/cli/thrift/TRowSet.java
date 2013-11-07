@@ -35,8 +35,7 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TRowSet");
 
   private static final org.apache.thrift.protocol.TField START_ROW_OFFSET_FIELD_DESC = new org.apache.thrift.protocol.TField("startRowOffset", org.apache.thrift.protocol.TType.I64, (short)1);
-  private static final org.apache.thrift.protocol.TField ROWS_FIELD_DESC = new org.apache.thrift.protocol.TField("rows", org.apache.thrift.protocol.TType.LIST, (short)2);
-  private static final org.apache.thrift.protocol.TField COLUMNS_FIELD_DESC = new org.apache.thrift.protocol.TField("columns", org.apache.thrift.protocol.TType.LIST, (short)3);
+  private static final org.apache.thrift.protocol.TField COL_VALS_FIELD_DESC = new org.apache.thrift.protocol.TField("colVals", org.apache.thrift.protocol.TType.LIST, (short)2);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -45,14 +44,12 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
   }
 
   private long startRowOffset; // required
-  private List<TRow> rows; // required
-  private List<TColumn> columns; // optional
+  private List<TColumnValue> colVals; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     START_ROW_OFFSET((short)1, "startRowOffset"),
-    ROWS((short)2, "rows"),
-    COLUMNS((short)3, "columns");
+    COL_VALS((short)2, "colVals");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -69,10 +66,8 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
       switch(fieldId) {
         case 1: // START_ROW_OFFSET
           return START_ROW_OFFSET;
-        case 2: // ROWS
-          return ROWS;
-        case 3: // COLUMNS
-          return COLUMNS;
+        case 2: // COL_VALS
+          return COL_VALS;
         default:
           return null;
       }
@@ -115,18 +110,14 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
   // isset id assignments
   private static final int __STARTROWOFFSET_ISSET_ID = 0;
   private byte __isset_bitfield = 0;
-  private _Fields optionals[] = {_Fields.COLUMNS};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.START_ROW_OFFSET, new org.apache.thrift.meta_data.FieldMetaData("startRowOffset", org.apache.thrift.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
-    tmpMap.put(_Fields.ROWS, new org.apache.thrift.meta_data.FieldMetaData("rows", org.apache.thrift.TFieldRequirementType.REQUIRED, 
+    tmpMap.put(_Fields.COL_VALS, new org.apache.thrift.meta_data.FieldMetaData("colVals", org.apache.thrift.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TRow.class))));
-    tmpMap.put(_Fields.COLUMNS, new org.apache.thrift.meta_data.FieldMetaData("columns", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
-        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TColumn.class))));
+            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TColumnValue.class))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TRowSet.class, metaDataMap);
   }
@@ -136,12 +127,12 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
 
   public TRowSet(
     long startRowOffset,
-    List<TRow> rows)
+    List<TColumnValue> colVals)
   {
     this();
     this.startRowOffset = startRowOffset;
     setStartRowOffsetIsSet(true);
-    this.rows = rows;
+    this.colVals = colVals;
   }
 
   /**
@@ -150,19 +141,12 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
   public TRowSet(TRowSet other) {
     __isset_bitfield = other.__isset_bitfield;
     this.startRowOffset = other.startRowOffset;
-    if (other.isSetRows()) {
-      List<TRow> __this__rows = new ArrayList<TRow>();
-      for (TRow other_element : other.rows) {
-        __this__rows.add(new TRow(other_element));
+    if (other.isSetColVals()) {
+      List<TColumnValue> __this__colVals = new ArrayList<TColumnValue>();
+      for (TColumnValue other_element : other.colVals) {
+        __this__colVals.add(new TColumnValue(other_element));
       }
-      this.rows = __this__rows;
-    }
-    if (other.isSetColumns()) {
-      List<TColumn> __this__columns = new ArrayList<TColumn>();
-      for (TColumn other_element : other.columns) {
-        __this__columns.add(new TColumn(other_element));
-      }
-      this.columns = __this__columns;
+      this.colVals = __this__colVals;
     }
   }
 
@@ -174,8 +158,7 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
   public void clear() {
     setStartRowOffsetIsSet(false);
     this.startRowOffset = 0;
-    this.rows = null;
-    this.columns = null;
+    this.colVals = null;
   }
 
   public long getStartRowOffset() {
@@ -200,79 +183,41 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
     __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __STARTROWOFFSET_ISSET_ID, value);
   }
 
-  public int getRowsSize() {
-    return (this.rows == null) ? 0 : this.rows.size();
+  public int getColValsSize() {
+    return (this.colVals == null) ? 0 : this.colVals.size();
   }
 
-  public java.util.Iterator<TRow> getRowsIterator() {
-    return (this.rows == null) ? null : this.rows.iterator();
+  public java.util.Iterator<TColumnValue> getColValsIterator() {
+    return (this.colVals == null) ? null : this.colVals.iterator();
   }
 
-  public void addToRows(TRow elem) {
-    if (this.rows == null) {
-      this.rows = new ArrayList<TRow>();
+  public void addToColVals(TColumnValue elem) {
+    if (this.colVals == null) {
+      this.colVals = new ArrayList<TColumnValue>();
     }
-    this.rows.add(elem);
+    this.colVals.add(elem);
   }
 
-  public List<TRow> getRows() {
-    return this.rows;
+  public List<TColumnValue> getColVals() {
+    return this.colVals;
   }
 
-  public void setRows(List<TRow> rows) {
-    this.rows = rows;
+  public void setColVals(List<TColumnValue> colVals) {
+    this.colVals = colVals;
   }
 
-  public void unsetRows() {
-    this.rows = null;
+  public void unsetColVals() {
+    this.colVals = null;
   }
 
-  /** Returns true if field rows is set (has been assigned a value) and false otherwise */
-  public boolean isSetRows() {
-    return this.rows != null;
+  /** Returns true if field colVals is set (has been assigned a value) and false otherwise */
+  public boolean isSetColVals() {
+    return this.colVals != null;
   }
 
-  public void setRowsIsSet(boolean value) {
+  public void setColValsIsSet(boolean value) {
     if (!value) {
-      this.rows = null;
-    }
-  }
-
-  public int getColumnsSize() {
-    return (this.columns == null) ? 0 : this.columns.size();
-  }
-
-  public java.util.Iterator<TColumn> getColumnsIterator() {
-    return (this.columns == null) ? null : this.columns.iterator();
-  }
-
-  public void addToColumns(TColumn elem) {
-    if (this.columns == null) {
-      this.columns = new ArrayList<TColumn>();
-    }
-    this.columns.add(elem);
-  }
-
-  public List<TColumn> getColumns() {
-    return this.columns;
-  }
-
-  public void setColumns(List<TColumn> columns) {
-    this.columns = columns;
-  }
-
-  public void unsetColumns() {
-    this.columns = null;
-  }
-
-  /** Returns true if field columns is set (has been assigned a value) and false otherwise */
-  public boolean isSetColumns() {
-    return this.columns != null;
-  }
-
-  public void setColumnsIsSet(boolean value) {
-    if (!value) {
-      this.columns = null;
+      this.colVals = null;
     }
   }
 
@@ -286,19 +231,11 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
       }
       break;
 
-    case ROWS:
+    case COL_VALS:
       if (value == null) {
-        unsetRows();
+        unsetColVals();
       } else {
-        setRows((List<TRow>)value);
-      }
-      break;
-
-    case COLUMNS:
-      if (value == null) {
-        unsetColumns();
-      } else {
-        setColumns((List<TColumn>)value);
+        setColVals((List<TColumnValue>)value);
       }
       break;
 
@@ -310,11 +247,8 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
     case START_ROW_OFFSET:
       return Long.valueOf(getStartRowOffset());
 
-    case ROWS:
-      return getRows();
-
-    case COLUMNS:
-      return getColumns();
+    case COL_VALS:
+      return getColVals();
 
     }
     throw new IllegalStateException();
@@ -329,10 +263,8 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
     switch (field) {
     case START_ROW_OFFSET:
       return isSetStartRowOffset();
-    case ROWS:
-      return isSetRows();
-    case COLUMNS:
-      return isSetColumns();
+    case COL_VALS:
+      return isSetColVals();
     }
     throw new IllegalStateException();
   }
@@ -359,21 +291,12 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
         return false;
     }
 
-    boolean this_present_rows = true && this.isSetRows();
-    boolean that_present_rows = true && that.isSetRows();
-    if (this_present_rows || that_present_rows) {
-      if (!(this_present_rows && that_present_rows))
+    boolean this_present_colVals = true && this.isSetColVals();
+    boolean that_present_colVals = true && that.isSetColVals();
+    if (this_present_colVals || that_present_colVals) {
+      if (!(this_present_colVals && that_present_colVals))
         return false;
-      if (!this.rows.equals(that.rows))
-        return false;
-    }
-
-    boolean this_present_columns = true && this.isSetColumns();
-    boolean that_present_columns = true && that.isSetColumns();
-    if (this_present_columns || that_present_columns) {
-      if (!(this_present_columns && that_present_columns))
-        return false;
-      if (!this.columns.equals(that.columns))
+      if (!this.colVals.equals(that.colVals))
         return false;
     }
 
@@ -389,15 +312,10 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
     if (present_startRowOffset)
       builder.append(startRowOffset);
 
-    boolean present_rows = true && (isSetRows());
-    builder.append(present_rows);
-    if (present_rows)
-      builder.append(rows);
-
-    boolean present_columns = true && (isSetColumns());
-    builder.append(present_columns);
-    if (present_columns)
-      builder.append(columns);
+    boolean present_colVals = true && (isSetColVals());
+    builder.append(present_colVals);
+    if (present_colVals)
+      builder.append(colVals);
 
     return builder.toHashCode();
   }
@@ -420,22 +338,12 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(isSetRows()).compareTo(typedOther.isSetRows());
+    lastComparison = Boolean.valueOf(isSetColVals()).compareTo(typedOther.isSetColVals());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetRows()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.rows, typedOther.rows);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
-    lastComparison = Boolean.valueOf(isSetColumns()).compareTo(typedOther.isSetColumns());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetColumns()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.columns, typedOther.columns);
+    if (isSetColVals()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.colVals, typedOther.colVals);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -464,23 +372,13 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
     sb.append(this.startRowOffset);
     first = false;
     if (!first) sb.append(", ");
-    sb.append("rows:");
-    if (this.rows == null) {
+    sb.append("colVals:");
+    if (this.colVals == null) {
       sb.append("null");
     } else {
-      sb.append(this.rows);
+      sb.append(this.colVals);
     }
     first = false;
-    if (isSetColumns()) {
-      if (!first) sb.append(", ");
-      sb.append("columns:");
-      if (this.columns == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.columns);
-      }
-      first = false;
-    }
     sb.append(")");
     return sb.toString();
   }
@@ -491,8 +389,8 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
       throw new org.apache.thrift.protocol.TProtocolException("Required field 'startRowOffset' is unset! Struct:" + toString());
     }
 
-    if (!isSetRows()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'rows' is unset! Struct:" + toString());
+    if (!isSetColVals()) {
+      throw new org.apache.thrift.protocol.TProtocolException("Required field 'colVals' is unset! Struct:" + toString());
     }
 
     // check for sub-struct validity
@@ -542,40 +440,21 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 2: // ROWS
+          case 2: // COL_VALS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list108 = iprot.readListBegin();
-                struct.rows = new ArrayList<TRow>(_list108.size);
-                for (int _i109 = 0; _i109 < _list108.size; ++_i109)
+                org.apache.thrift.protocol.TList _list100 = iprot.readListBegin();
+                struct.colVals = new ArrayList<TColumnValue>(_list100.size);
+                for (int _i101 = 0; _i101 < _list100.size; ++_i101)
                 {
-                  TRow _elem110; // required
-                  _elem110 = new TRow();
-                  _elem110.read(iprot);
-                  struct.rows.add(_elem110);
+                  TColumnValue _elem102; // required
+                  _elem102 = new TColumnValue();
+                  _elem102.read(iprot);
+                  struct.colVals.add(_elem102);
                 }
                 iprot.readListEnd();
               }
-              struct.setRowsIsSet(true);
-            } else { 
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-            }
-            break;
-          case 3: // COLUMNS
-            if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
-              {
-                org.apache.thrift.protocol.TList _list111 = iprot.readListBegin();
-                struct.columns = new ArrayList<TColumn>(_list111.size);
-                for (int _i112 = 0; _i112 < _list111.size; ++_i112)
-                {
-                  TColumn _elem113; // required
-                  _elem113 = new TColumn();
-                  _elem113.read(iprot);
-                  struct.columns.add(_elem113);
-                }
-                iprot.readListEnd();
-              }
-              struct.setColumnsIsSet(true);
+              struct.setColValsIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -596,31 +475,17 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
       oprot.writeFieldBegin(START_ROW_OFFSET_FIELD_DESC);
       oprot.writeI64(struct.startRowOffset);
       oprot.writeFieldEnd();
-      if (struct.rows != null) {
-        oprot.writeFieldBegin(ROWS_FIELD_DESC);
+      if (struct.colVals != null) {
+        oprot.writeFieldBegin(COL_VALS_FIELD_DESC);
         {
-          oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.rows.size()));
-          for (TRow _iter114 : struct.rows)
+          oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.colVals.size()));
+          for (TColumnValue _iter103 : struct.colVals)
           {
-            _iter114.write(oprot);
+            _iter103.write(oprot);
           }
           oprot.writeListEnd();
         }
         oprot.writeFieldEnd();
-      }
-      if (struct.columns != null) {
-        if (struct.isSetColumns()) {
-          oprot.writeFieldBegin(COLUMNS_FIELD_DESC);
-          {
-            oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.columns.size()));
-            for (TColumn _iter115 : struct.columns)
-            {
-              _iter115.write(oprot);
-            }
-            oprot.writeListEnd();
-          }
-          oprot.writeFieldEnd();
-        }
       }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
@@ -641,24 +506,10 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
       TTupleProtocol oprot = (TTupleProtocol) prot;
       oprot.writeI64(struct.startRowOffset);
       {
-        oprot.writeI32(struct.rows.size());
-        for (TRow _iter116 : struct.rows)
+        oprot.writeI32(struct.colVals.size());
+        for (TColumnValue _iter104 : struct.colVals)
         {
-          _iter116.write(oprot);
-        }
-      }
-      BitSet optionals = new BitSet();
-      if (struct.isSetColumns()) {
-        optionals.set(0);
-      }
-      oprot.writeBitSet(optionals, 1);
-      if (struct.isSetColumns()) {
-        {
-          oprot.writeI32(struct.columns.size());
-          for (TColumn _iter117 : struct.columns)
-          {
-            _iter117.write(oprot);
-          }
+          _iter104.write(oprot);
         }
       }
     }
@@ -669,32 +520,17 @@ public class TRowSet implements org.apache.thrift.TBase<TRowSet, TRowSet._Fields
       struct.startRowOffset = iprot.readI64();
       struct.setStartRowOffsetIsSet(true);
       {
-        org.apache.thrift.protocol.TList _list118 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-        struct.rows = new ArrayList<TRow>(_list118.size);
-        for (int _i119 = 0; _i119 < _list118.size; ++_i119)
+        org.apache.thrift.protocol.TList _list105 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+        struct.colVals = new ArrayList<TColumnValue>(_list105.size);
+        for (int _i106 = 0; _i106 < _list105.size; ++_i106)
         {
-          TRow _elem120; // required
-          _elem120 = new TRow();
-          _elem120.read(iprot);
-          struct.rows.add(_elem120);
+          TColumnValue _elem107; // required
+          _elem107 = new TColumnValue();
+          _elem107.read(iprot);
+          struct.colVals.add(_elem107);
         }
       }
-      struct.setRowsIsSet(true);
-      BitSet incoming = iprot.readBitSet(1);
-      if (incoming.get(0)) {
-        {
-          org.apache.thrift.protocol.TList _list121 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.columns = new ArrayList<TColumn>(_list121.size);
-          for (int _i122 = 0; _i122 < _list121.size; ++_i122)
-          {
-            TColumn _elem123; // required
-            _elem123 = new TColumn();
-            _elem123.read(iprot);
-            struct.columns.add(_elem123);
-          }
-        }
-        struct.setColumnsIsSet(true);
-      }
+      struct.setColValsIsSet(true);
     }
   }
 
