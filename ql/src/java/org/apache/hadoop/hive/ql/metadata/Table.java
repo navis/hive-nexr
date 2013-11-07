@@ -49,6 +49,7 @@ import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.ql.io.HiveFileFormatUtils;
 import org.apache.hadoop.hive.ql.io.HiveOutputFormat;
 import org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat;
+import org.apache.hadoop.hive.ql.parse.SemanticAnalyzer;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.Deserializer;
 import org.apache.hadoop.hive.serde2.MetadataTypedColumnsetSerDe;
@@ -103,6 +104,10 @@ public class Table implements Serializable {
 
   public Table(String databaseName, String tableName) {
     this(getEmptyTable(databaseName, tableName));
+  }
+
+  public boolean isDummyTable() {
+    return tTable.getTableName().equals(SemanticAnalyzer.DUMMY_TABLE);
   }
 
   /**

@@ -54,6 +54,7 @@ import org.apache.hadoop.hive.ql.udf.UDFCeil;
 import org.apache.hadoop.hive.ql.udf.UDFConcat;
 import org.apache.hadoop.hive.ql.udf.UDFConv;
 import org.apache.hadoop.hive.ql.udf.UDFCos;
+import org.apache.hadoop.hive.ql.udf.generic.UDFCurrentDB;
 import org.apache.hadoop.hive.ql.udf.UDFDate;
 import org.apache.hadoop.hive.ql.udf.UDFDateAdd;
 import org.apache.hadoop.hive.ql.udf.UDFDateDiff;
@@ -298,6 +299,10 @@ public final class FunctionRegistry {
     registerUDF("|", UDFOPBitOr.class, true);
     registerUDF("^", UDFOPBitXor.class, true);
     registerUDF("~", UDFOPBitNot.class, true);
+
+    registerGenericUDF("current_database", UDFCurrentDB.class);
+
+    registerGenericUDF("current_database", UDFCurrentDB.class);
 
     registerGenericUDF("isnull", GenericUDFOPNull.class);
     registerGenericUDF("isnotnull", GenericUDFOPNotNull.class);
