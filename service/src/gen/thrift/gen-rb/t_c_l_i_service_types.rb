@@ -357,15 +357,19 @@ end
 
 class TBoolValue
   include ::Thrift::Struct, ::Thrift::Struct_Union
-  VALUE = 1
+  VALUES = 1
+  NULLS = 2
 
   FIELDS = {
-    VALUE => {:type => ::Thrift::Types::BOOL, :name => 'value', :optional => true}
+    VALUES => {:type => ::Thrift::Types::LIST, :name => 'values', :element => {:type => ::Thrift::Types::BOOL}},
+    NULLS => {:type => ::Thrift::Types::STRING, :name => 'nulls', :binary => true}
   }
 
   def struct_fields; FIELDS; end
 
   def validate
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field values is unset!') unless @values
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field nulls is unset!') unless @nulls
   end
 
   ::Thrift::Struct.generate_accessors self
@@ -373,15 +377,19 @@ end
 
 class TByteValue
   include ::Thrift::Struct, ::Thrift::Struct_Union
-  VALUE = 1
+  VALUES = 1
+  NULLS = 2
 
   FIELDS = {
-    VALUE => {:type => ::Thrift::Types::BYTE, :name => 'value', :optional => true}
+    VALUES => {:type => ::Thrift::Types::LIST, :name => 'values', :element => {:type => ::Thrift::Types::BYTE}},
+    NULLS => {:type => ::Thrift::Types::STRING, :name => 'nulls', :binary => true}
   }
 
   def struct_fields; FIELDS; end
 
   def validate
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field values is unset!') unless @values
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field nulls is unset!') unless @nulls
   end
 
   ::Thrift::Struct.generate_accessors self
@@ -389,15 +397,19 @@ end
 
 class TI16Value
   include ::Thrift::Struct, ::Thrift::Struct_Union
-  VALUE = 1
+  VALUES = 1
+  NULLS = 2
 
   FIELDS = {
-    VALUE => {:type => ::Thrift::Types::I16, :name => 'value', :optional => true}
+    VALUES => {:type => ::Thrift::Types::LIST, :name => 'values', :element => {:type => ::Thrift::Types::I16}},
+    NULLS => {:type => ::Thrift::Types::STRING, :name => 'nulls', :binary => true}
   }
 
   def struct_fields; FIELDS; end
 
   def validate
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field values is unset!') unless @values
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field nulls is unset!') unless @nulls
   end
 
   ::Thrift::Struct.generate_accessors self
@@ -405,15 +417,19 @@ end
 
 class TI32Value
   include ::Thrift::Struct, ::Thrift::Struct_Union
-  VALUE = 1
+  VALUES = 1
+  NULLS = 2
 
   FIELDS = {
-    VALUE => {:type => ::Thrift::Types::I32, :name => 'value', :optional => true}
+    VALUES => {:type => ::Thrift::Types::LIST, :name => 'values', :element => {:type => ::Thrift::Types::I32}},
+    NULLS => {:type => ::Thrift::Types::STRING, :name => 'nulls', :binary => true}
   }
 
   def struct_fields; FIELDS; end
 
   def validate
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field values is unset!') unless @values
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field nulls is unset!') unless @nulls
   end
 
   ::Thrift::Struct.generate_accessors self
@@ -421,15 +437,19 @@ end
 
 class TI64Value
   include ::Thrift::Struct, ::Thrift::Struct_Union
-  VALUE = 1
+  VALUES = 1
+  NULLS = 2
 
   FIELDS = {
-    VALUE => {:type => ::Thrift::Types::I64, :name => 'value', :optional => true}
+    VALUES => {:type => ::Thrift::Types::LIST, :name => 'values', :element => {:type => ::Thrift::Types::I64}},
+    NULLS => {:type => ::Thrift::Types::STRING, :name => 'nulls', :binary => true}
   }
 
   def struct_fields; FIELDS; end
 
   def validate
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field values is unset!') unless @values
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field nulls is unset!') unless @nulls
   end
 
   ::Thrift::Struct.generate_accessors self
@@ -437,15 +457,19 @@ end
 
 class TDoubleValue
   include ::Thrift::Struct, ::Thrift::Struct_Union
-  VALUE = 1
+  VALUES = 1
+  NULLS = 2
 
   FIELDS = {
-    VALUE => {:type => ::Thrift::Types::DOUBLE, :name => 'value', :optional => true}
+    VALUES => {:type => ::Thrift::Types::LIST, :name => 'values', :element => {:type => ::Thrift::Types::DOUBLE}},
+    NULLS => {:type => ::Thrift::Types::STRING, :name => 'nulls', :binary => true}
   }
 
   def struct_fields; FIELDS; end
 
   def validate
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field values is unset!') unless @values
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field nulls is unset!') unless @nulls
   end
 
   ::Thrift::Struct.generate_accessors self
@@ -453,15 +477,19 @@ end
 
 class TStringValue
   include ::Thrift::Struct, ::Thrift::Struct_Union
-  VALUE = 1
+  VALUES = 1
+  NULLS = 2
 
   FIELDS = {
-    VALUE => {:type => ::Thrift::Types::STRING, :name => 'value', :optional => true}
+    VALUES => {:type => ::Thrift::Types::LIST, :name => 'values', :element => {:type => ::Thrift::Types::STRING}},
+    NULLS => {:type => ::Thrift::Types::STRING, :name => 'nulls', :binary => true}
   }
 
   def struct_fields; FIELDS; end
 
   def validate
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field values is unset!') unless @values
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field nulls is unset!') unless @nulls
   end
 
   ::Thrift::Struct.generate_accessors self
@@ -469,83 +497,22 @@ end
 
 class TBinaryValue
   include ::Thrift::Struct, ::Thrift::Struct_Union
-  VALUE = 1
+  VALUES = 1
+  NULLS = 2
 
   FIELDS = {
-    VALUE => {:type => ::Thrift::Types::STRING, :name => 'value', :binary => true, :optional => true}
+    VALUES => {:type => ::Thrift::Types::LIST, :name => 'values', :element => {:type => ::Thrift::Types::STRING, :binary => true}},
+    NULLS => {:type => ::Thrift::Types::STRING, :name => 'nulls', :binary => true}
   }
 
   def struct_fields; FIELDS; end
 
   def validate
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field values is unset!') unless @values
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field nulls is unset!') unless @nulls
   end
 
   ::Thrift::Struct.generate_accessors self
-end
-
-class TColumn < ::Thrift::Union
-  include ::Thrift::Struct_Union
-  class << self
-    def boolColumn(val)
-      TColumn.new(:boolColumn, val)
-    end
-
-    def byteColumn(val)
-      TColumn.new(:byteColumn, val)
-    end
-
-    def i16Column(val)
-      TColumn.new(:i16Column, val)
-    end
-
-    def i32Column(val)
-      TColumn.new(:i32Column, val)
-    end
-
-    def i64Column(val)
-      TColumn.new(:i64Column, val)
-    end
-
-    def doubleColumn(val)
-      TColumn.new(:doubleColumn, val)
-    end
-
-    def stringColumn(val)
-      TColumn.new(:stringColumn, val)
-    end
-
-    def binaryColumn(val)
-      TColumn.new(:binaryColumn, val)
-    end
-  end
-
-  BOOLCOLUMN = 1
-  BYTECOLUMN = 2
-  I16COLUMN = 3
-  I32COLUMN = 4
-  I64COLUMN = 5
-  DOUBLECOLUMN = 6
-  STRINGCOLUMN = 7
-  BINARYCOLUMN = 8
-
-  FIELDS = {
-    BOOLCOLUMN => {:type => ::Thrift::Types::LIST, :name => 'boolColumn', :element => {:type => ::Thrift::Types::STRUCT, :class => ::TBoolValue}},
-    BYTECOLUMN => {:type => ::Thrift::Types::LIST, :name => 'byteColumn', :element => {:type => ::Thrift::Types::STRUCT, :class => ::TByteValue}},
-    I16COLUMN => {:type => ::Thrift::Types::LIST, :name => 'i16Column', :element => {:type => ::Thrift::Types::STRUCT, :class => ::TI16Value}},
-    I32COLUMN => {:type => ::Thrift::Types::LIST, :name => 'i32Column', :element => {:type => ::Thrift::Types::STRUCT, :class => ::TI32Value}},
-    I64COLUMN => {:type => ::Thrift::Types::LIST, :name => 'i64Column', :element => {:type => ::Thrift::Types::STRUCT, :class => ::TI64Value}},
-    DOUBLECOLUMN => {:type => ::Thrift::Types::LIST, :name => 'doubleColumn', :element => {:type => ::Thrift::Types::STRUCT, :class => ::TDoubleValue}},
-    STRINGCOLUMN => {:type => ::Thrift::Types::LIST, :name => 'stringColumn', :element => {:type => ::Thrift::Types::STRUCT, :class => ::TStringValue}},
-    BINARYCOLUMN => {:type => ::Thrift::Types::LIST, :name => 'binaryColumn', :element => {:type => ::Thrift::Types::STRUCT, :class => ::TBinaryValue}}
-  }
-
-  def struct_fields; FIELDS; end
-
-  def validate
-    raise(StandardError, 'Union fields are not set.') if get_set_field.nil? || get_value.nil?
-  end
-
-  ::Thrift::Union.generate_accessors self
 end
 
 class TColumnValue < ::Thrift::Union
@@ -613,40 +580,21 @@ class TColumnValue < ::Thrift::Union
   ::Thrift::Union.generate_accessors self
 end
 
-class TRow
+class TRowSet
   include ::Thrift::Struct, ::Thrift::Struct_Union
-  COLVALS = 1
+  STARTROWOFFSET = 1
+  COLVALS = 2
 
   FIELDS = {
+    STARTROWOFFSET => {:type => ::Thrift::Types::I64, :name => 'startRowOffset'},
     COLVALS => {:type => ::Thrift::Types::LIST, :name => 'colVals', :element => {:type => ::Thrift::Types::STRUCT, :class => ::TColumnValue}}
   }
 
   def struct_fields; FIELDS; end
 
   def validate
-    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field colVals is unset!') unless @colVals
-  end
-
-  ::Thrift::Struct.generate_accessors self
-end
-
-class TRowSet
-  include ::Thrift::Struct, ::Thrift::Struct_Union
-  STARTROWOFFSET = 1
-  ROWS = 2
-  COLUMNS = 3
-
-  FIELDS = {
-    STARTROWOFFSET => {:type => ::Thrift::Types::I64, :name => 'startRowOffset'},
-    ROWS => {:type => ::Thrift::Types::LIST, :name => 'rows', :element => {:type => ::Thrift::Types::STRUCT, :class => ::TRow}},
-    COLUMNS => {:type => ::Thrift::Types::LIST, :name => 'columns', :element => {:type => ::Thrift::Types::STRUCT, :class => ::TColumn}, :optional => true}
-  }
-
-  def struct_fields; FIELDS; end
-
-  def validate
     raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field startRowOffset is unset!') unless @startRowOffset
-    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field rows is unset!') unless @rows
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field colVals is unset!') unless @colVals
   end
 
   ::Thrift::Struct.generate_accessors self

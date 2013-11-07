@@ -56,7 +56,7 @@ public class GetFunctionsOperation extends MetadataOperation {
   private final String schemaName;
   private final String functionName;
 
-  private final RowSet rowSet = new RowSet();
+  private final RowSet rowSet = new RowSet(RESULT_SET_SCHEMA);
 
   public GetFunctionsOperation(HiveSession parentSession,
       String catalogName, String schemaName, String functionName) {
@@ -89,7 +89,7 @@ public class GetFunctionsOperation extends MetadataOperation {
                   : DatabaseMetaData.functionNoTable), // FUNCTION_TYPE
              functionInfo.getClass().getCanonicalName()
           };
-          rowSet.addRow(RESULT_SET_SCHEMA, rowData);
+          rowSet.addRow(rowData);
         }
       }
       setState(OperationState.FINISHED);

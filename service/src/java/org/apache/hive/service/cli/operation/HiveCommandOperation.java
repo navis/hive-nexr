@@ -151,10 +151,10 @@ public abstract class HiveCommandOperation extends ExecuteStatementOperation {
   @Override
   public RowSet getNextRowSet(FetchOrientation orientation, long maxRows) throws HiveSQLException {
     List<String> rows = readResults((int) maxRows);
-    RowSet rowSet = new RowSet();
+    RowSet rowSet = new RowSet(resultSchema);
 
     for (String row : rows) {
-      rowSet.addRow(resultSchema, new String[] {row});
+      rowSet.addRow(new String[] {row});
     }
     return rowSet;
   }

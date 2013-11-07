@@ -32,14 +32,12 @@ import org.apache.hive.service.SessionInfo;
 import org.apache.hive.service.auth.PlainSaslHelper;
 import org.apache.hive.service.cli.CLIServiceClient;
 import org.apache.hive.service.cli.ColumnDescriptor;
-import org.apache.hive.service.cli.ColumnValue;
 import org.apache.hive.service.cli.FetchOrientation;
 import org.apache.hive.service.cli.GetInfoType;
 import org.apache.hive.service.cli.GetInfoValue;
 import org.apache.hive.service.cli.HiveSQLException;
 import org.apache.hive.service.cli.OperationHandle;
 import org.apache.hive.service.cli.OperationState;
-import org.apache.hive.service.cli.Row;
 import org.apache.hive.service.cli.RowSet;
 import org.apache.hive.service.cli.SessionHandle;
 import org.apache.hive.service.cli.TableSchema;
@@ -525,20 +523,19 @@ public class ThriftCLIServiceClient extends CLIServiceClient {
         TableSchema schema = client.getResultSetMetadata(new OperationHandle(result.getHandle()));
         List<ColumnDescriptor> columnDescs = schema.getColumnDescriptors();
 
-        Iterator<Row> iterator = null;
+        Iterator<Object[]> iterator = null;
         while (true) {
           if (iterator == null || !iterator.hasNext()) {
             RowSet rowset = client.fetchResults(handle);
-            iterator = rowset.getRows().iterator();
+            iterator = rowset.iterator();
           }
           if (!iterator.hasNext()) {
             break;
           }
-          Row next = iterator.next();
+          Object[] next = iterator.next();
           StringBuilder builder = new StringBuilder();
           for (int i = 0; i < columnDescs.size(); i++) {
-            ColumnValue value = next.getValues().get(i);
-            Object eval = value.getColumnValue(columnDescs.get(i).getType());
+            Object eval = RowSet.evaluate(columnDescs.get(i), next[i]);
             if (builder.length() > 0) {
               builder.append(" ");
             }

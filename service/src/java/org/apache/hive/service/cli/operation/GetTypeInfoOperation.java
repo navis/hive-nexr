@@ -71,7 +71,7 @@ public class GetTypeInfoOperation extends MetadataOperation {
   .addPrimitiveColumn("NUM_PREC_RADIX", Type.INT_TYPE,
       "Usually 2 or 10");
 
-  private final RowSet rowSet = new RowSet();
+  private final RowSet rowSet = new RowSet(RESULT_SET_SCHEMA);
 
   protected GetTypeInfoOperation(HiveSession parentSession) {
     super(parentSession, OperationType.GET_TYPE_INFO);
@@ -105,7 +105,7 @@ public class GetTypeInfoOperation extends MetadataOperation {
             null, // SQL_DATETIME_SUB, unused
             type.getNumPrecRadix() //NUM_PREC_RADIX
         };
-        rowSet.addRow(RESULT_SET_SCHEMA, rowData);
+        rowSet.addRow(rowData);
       }
       setState(OperationState.FINISHED);
     } catch (Exception e) {

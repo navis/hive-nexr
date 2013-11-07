@@ -32,9 +32,7 @@ import org.apache.hive.common.util.HiveStringUtils;
 import org.apache.hive.service.CompositeService;
 import org.apache.hive.service.cli.CLIService;
 import org.apache.hive.service.cli.ColumnDescriptor;
-import org.apache.hive.service.cli.ColumnValue;
 import org.apache.hive.service.cli.OperationHandle;
-import org.apache.hive.service.cli.Row;
 import org.apache.hive.service.cli.RowSet;
 import org.apache.hive.service.cli.SessionHandle;
 import org.apache.hive.service.cli.TableSchema;
@@ -125,15 +123,15 @@ public class HiveServer2 extends CompositeService {
         if (operation.hasResultSet()) {
           TableSchema schema = cliService.getResultSetMetadata(operation);
           RowSet rowSet = cliService.fetchResults(operation);
-          for (Row result : rowSet.getRows()) {
-            List<ColumnValue> values =  result.getValues();
+          for (Object[] next : rowSet) {
             List<ColumnDescriptor> descs = schema.getColumnDescriptors();
             StringBuilder builder = new StringBuilder();
-            for (int i = 0; i < values.size(); i++) {
+            for (int i = 0; i < descs.size(); i++) {
+              Object eval = RowSet.evaluate(descs.get(i), next[i]);
               if (builder.length() > 0) {
                 builder.append(", ");
               }
-              builder.append(values.get(i).getColumnValue(descs.get(i).getType()));
+              builder.append(eval);
             }
             LOG.info("Executing : " + builder.toString());
           }

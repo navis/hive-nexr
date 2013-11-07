@@ -28,6 +28,7 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hive.service.cli.RowSet;
 import org.apache.hive.service.cli.TableSchema;
 import org.apache.hive.service.cli.thrift.TColumnDesc;
 import org.apache.hive.service.cli.thrift.TFetchOrientation;
@@ -36,7 +37,6 @@ import org.apache.hive.service.cli.thrift.TFetchResultsResp;
 import org.apache.hive.service.cli.thrift.TGetResultSetMetadataReq;
 import org.apache.hive.service.cli.thrift.TGetResultSetMetadataResp;
 import org.apache.hive.service.cli.thrift.TOperationHandle;
-import org.apache.hive.service.cli.thrift.TRow;
 import org.apache.hive.service.cli.thrift.TSessionHandle;
 import org.apache.hive.service.cli.thrift.TTableSchema;
 
@@ -55,8 +55,8 @@ public class HiveQueryResultSet extends HiveBaseResultSet {
   private int fetchSize;
   private int rowsFetched = 0;
 
-  private List<TRow> fetchedRows;
-  private Iterator<TRow> fetchedRowsItr;
+  private RowSet fetchedRows;
+  private Iterator<Object[]> fetchedRowsItr;
   private boolean isClosed = false;
   private boolean emptyResultSet = false;
 
@@ -222,7 +222,7 @@ public class HiveQueryResultSet extends HiveBaseResultSet {
             TFetchOrientation.FETCH_NEXT, fetchSize);
         TFetchResultsResp fetchResp = connection.getClient().FetchResults(fetchReq);
         Utils.verifySuccessWithInfo(fetchResp.getStatus());
-        fetchedRows = fetchResp.getResults().getRows();
+        fetchedRows = new RowSet(fetchResp.getResults());
         fetchedRowsItr = fetchedRows.iterator();
       }
 

@@ -228,62 +228,51 @@ struct TTableSchema {
 
 // A Boolean column value.
 struct TBoolValue {
-  // NULL if value is unset.
-  1: optional bool value
+  1: required list<bool> values
+  2: required binary nulls
 }
 
 // A Byte column value.
 struct TByteValue {
-  // NULL if value is unset.
-  1: optional byte value
+  1: required list<byte> values
+  2: required binary nulls
 }
 
 // A signed, 16 bit column value.
 struct TI16Value {
-  // NULL if value is unset
-  1: optional i16 value
+  1: required list<i16> values
+  2: required binary nulls
 }
 
 // A signed, 32 bit column value
 struct TI32Value {
-  // NULL if value is unset
-  1: optional i32 value
+  1: required list<i32> values
+  2: required binary nulls
 }
 
 // A signed 64 bit column value
 struct TI64Value {
-  // NULL if value is unset
-  1: optional i64 value
+  1: required list<i64> values
+  2: required binary nulls
 }
 
 // A floating point 64 bit column value
 struct TDoubleValue {
-  // NULL if value is unset
-  1: optional double value
+  1: required list<double> values
+  2: required binary nulls
 }
 
 struct TStringValue {
-  // NULL if value is unset
-  1: optional string value
+  1: required list<string> values
+  2: required binary nulls
 }
 
 struct TBinaryValue {
-  // NULL if value is unset
-  1: optional binary value
+  1: required list<binary> values
+  2: required binary nulls
 }
 
-union TColumn {
-  1: list<TBoolValue> boolColumn
-  2: list<TByteValue> byteColumn
-  3: list<TI16Value> i16Column
-  4: list<TI32Value> i32Column
-  5: list<TI64Value> i64Column
-  6: list<TDoubleValue> doubleColumn
-  7: list<TStringValue> stringColumn
-  8: list<TBinaryValue> binaryColumn
-}
-
-// A single column value in a result set.
+// Columnar values of a column in a result set.
 // Note that Hive's type system is richer than Thrift's,
 // so in some cases we have to map multiple Hive types
 // to the same Thrift type. On the client-side this is
@@ -300,17 +289,11 @@ union TColumnValue {
   8: TBinaryValue binaryVal    // BINARY
 }
 
-// Represents a row in a rowset.
-struct TRow {
-  1: required list<TColumnValue> colVals
-}
-
 // Represents a rowset
 struct TRowSet {
   // The starting row offset of this rowset.
   1: required i64 startRowOffset
-  2: required list<TRow> rows
-  3: optional list<TColumn> columns
+  2: required list<TColumnValue> colVals
 }
 
 // The return status code contained in each response.
