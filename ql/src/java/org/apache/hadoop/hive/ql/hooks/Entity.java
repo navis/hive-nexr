@@ -26,6 +26,7 @@ import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.ql.metadata.Partition;
 import org.apache.hadoop.hive.ql.metadata.DummyPartition;
 import org.apache.hadoop.hive.ql.metadata.Table;
+import org.apache.hadoop.hive.ql.parse.SemanticAnalyzer;
 import org.apache.hadoop.hive.ql.security.authorization.Privilege;
 
 /**
@@ -284,6 +285,16 @@ public class Entity implements Serializable {
    */
   public Table getTable() {
     return t;
+  }
+
+  public boolean isDummy() {
+    if (typ == Type.DATABASE) {
+      return database.getName().equals(SemanticAnalyzer.DUMMY_DATABASE);
+    }
+    if (typ == Type.TABLE) {
+      return t.isDummyTable();
+    }
+    return false;
   }
 
   /**

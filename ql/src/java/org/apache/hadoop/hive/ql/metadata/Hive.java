@@ -119,6 +119,10 @@ public class Hive {
     }
   };
 
+  public static Hive peek() {
+    return hiveDB.get();
+  }
+
   /**
    * Gets hive object for the current thread. If one is not initialized then a
    * new one is created If the new configuration is different in metadata conf

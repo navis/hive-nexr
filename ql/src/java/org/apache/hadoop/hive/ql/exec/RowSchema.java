@@ -30,6 +30,7 @@ public class RowSchema implements Serializable {
   private ArrayList<ColumnInfo> signature;
 
   public RowSchema() {
+    this.signature = new ArrayList<ColumnInfo>();
   }
 
   public RowSchema(RowSchema that) {
@@ -50,8 +51,12 @@ public class RowSchema implements Serializable {
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder('(');
+    StringBuilder sb = new StringBuilder();
+    sb.append('(');
     for (ColumnInfo col: signature) {
+      if (sb.length() > 1) {
+        sb.append(',');
+      }
       sb.append(col.toString());
     }
     sb.append(')');

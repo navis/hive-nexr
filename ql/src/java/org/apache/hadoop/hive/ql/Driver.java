@@ -593,6 +593,9 @@ public class Driver implements CommandProcessor {
 
     if (outputs != null && outputs.size() > 0) {
       for (WriteEntity write : outputs) {
+        if (write.isDummy()) {
+          continue;
+        }
         Privilege[] outputPrivs = write.getOutputRequiredPrivileges();
         if (outputPrivs == null) {
           outputPrivs = opOutputPrivs;
@@ -627,7 +630,7 @@ public class Driver implements CommandProcessor {
 
       Map<String, Boolean> tableUsePartLevelAuth = new HashMap<String, Boolean>();
       for (ReadEntity read : inputs) {
-        if (read.getType() == Entity.Type.DATABASE) {
+        if (read.isDummy() || read.getType() == Entity.Type.DATABASE) {
           continue;
         }
         Table tbl = read.getTable();
@@ -708,6 +711,9 @@ public class Driver implements CommandProcessor {
       // cache the results for table authorization
       Set<String> tableAuthChecked = new HashSet<String>();
       for (ReadEntity read : inputs) {
+        if (read.isDummy()) {
+          continue;
+        }
         Privilege[] inputPrivs = read.getInputRequiredPrivileges();
         if (inputPrivs == null) {
           inputPrivs = opInputPrivs;

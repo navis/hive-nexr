@@ -61,6 +61,7 @@ import org.apache.hadoop.hive.ql.io.HiveOutputFormat;
 import org.apache.hadoop.hive.ql.io.HiveOutputFormatImpl;
 import org.apache.hadoop.hive.ql.io.IOPrepareCache;
 import org.apache.hadoop.hive.ql.io.OneNullRowInputFormat;
+import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
 import org.apache.hadoop.hive.ql.plan.FileSinkDesc;
@@ -89,6 +90,8 @@ import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.varia.NullAppender;
+
+import static org.apache.hadoop.hive.metastore.MetaStoreUtils.DEFAULT_DATABASE_NAME;
 
 /**
  * ExecDriver.
@@ -423,7 +426,7 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
         HiveConf.setVar(job, HiveConf.ConfVars.METASTOREPWD, "HIVE");
       }
       JobClient jc = new JobClient(job);
-      // make this client wait if job trcker is not behaving well.
+      // make this client wait if job tracker is not behaving well.
       Throttle.checkJobTracker(job, LOG);
 
       if (work.isGatheringStats()) {
@@ -528,7 +531,7 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
    */
   protected void setInputAttributes(Configuration conf) {
     if (work.getInputformat() != null) {
-      HiveConf.setVar(conf, HiveConf.ConfVars.HIVEINPUTFORMAT, work.getInputformat());
+      HiveConf.setVar(conf, ConfVars.HIVEINPUTFORMAT, work.getInputformat());
     }
     if (work.getIndexIntermediateFile() != null) {
       conf.set("hive.index.compact.file", work.getIndexIntermediateFile());
@@ -537,6 +540,21 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
 
     // Intentionally overwrites anything the user may have put here
     conf.setBoolean("hive.input.format.sorted", work.isInputFormatSorted());
+
+    if (HiveConf.getVar(conf, ConfVars.HIVE_CURRENT_DATABASE, null) == null) {
+      HiveConf.setVar(conf, ConfVars.HIVE_CURRENT_DATABASE, getCurrentDB());
+    }
+  }
+
+  public static String getCurrentDB() {
+    String currentDB = null;
+    if (SessionState.get() != null) {
+      currentDB = SessionState.get().getCurrentDB();
+    }
+    if (currentDB == null && Hive.peek() != null) {
+      currentDB = Hive.peek().getCurrentDatabase();
+    }
+    return currentDB == null ? "default" : currentDB;
   }
 
   public boolean mapStarted() {
