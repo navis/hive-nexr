@@ -262,8 +262,9 @@ public class SimpleFetchOptimizer {
     if (table == null) {
       return null;
     }
+    ReadEntity parent = PlanUtils.getParentViewInfo(alias, pctx.getViewAliasToInput());
     if (!table.isPartitioned()) {
-      return checkOperators(new FetchData(table, ts, splitSample), ts, mode, false);
+      return checkOperators(new FetchData(parent, table, ts, splitSample), ts, mode, false);
     }
 
     boolean bypassFilter = false;
@@ -275,7 +276,7 @@ public class SimpleFetchOptimizer {
       PrunedPartitionList pruned = pctx.getPrunedPartitions(alias, ts);
       if (mode != MINIMAL || pruned.getUnknownPartns().isEmpty()) {
         bypassFilter &= pruned.getUnknownPartns().isEmpty();
-        FetchData fetch = new FetchData(table, ts, pruned, splitSample);
+        FetchData fetch = new FetchData(parent, table, ts, pruned, splitSample);
         return checkOperators(fetch, ts, mode, bypassFilter);
       }
     }
@@ -321,6 +322,7 @@ public class SimpleFetchOptimizer {
 
   private class FetchData {
 
+    private final ReadEntity parent;
     private final Table table;
     private final TableScanOperator scanOp;
     private final SplitSample splitSample;
@@ -330,15 +332,18 @@ public class SimpleFetchOptimizer {
     // this is always non-null when query is converted to MORE more fetch
     private Operator<?> fileSink;
 
-    private FetchData(Table table, TableScanOperator scanOp, SplitSample splitSample) {
+    private FetchData(ReadEntity parent, Table table, TableScanOperator scanOp,
+        SplitSample splitSample) {
+      this.parent = parent;
       this.table = table;
       this.scanOp = scanOp;
       this.partsList = null;
       this.splitSample = splitSample;
     }
 
-    private FetchData(Table table, TableScanOperator scanOp, PrunedPartitionList partsList,
-        SplitSample splitSample) {
+    private FetchData(ReadEntity parent, Table table, TableScanOperator scanOp,
+        PrunedPartitionList partsList, SplitSample splitSample) {
+      this.parent = parent;
       this.table = table;
       this.scanOp = scanOp;
       this.partsList = partsList;
@@ -359,7 +364,7 @@ public class SimpleFetchOptimizer {
     private FetchWork convertToWork() throws HiveException {
       inputs.clear();
       if (!table.isPartitioned()) {
-        inputs.add(new ReadEntity(table));
+        inputs.add(new ReadEntity(table, parent));
         String path = table.getPath().toString();
         FetchWork work = new FetchWork(path, Utilities.getTableDesc(table));
         PlanUtils.configureInputJobPropertiesForStorageHandler(work.getTblDesc());
@@ -370,12 +375,12 @@ public class SimpleFetchOptimizer {
       List<PartitionDesc> partP = new ArrayList<PartitionDesc>();
 
       for (Partition partition : partsList.getNotDeniedPartns()) {
-        inputs.add(new ReadEntity(partition));
+        inputs.add(new ReadEntity(partition, parent));
         listP.add(partition.getPartitionPath().toString());
         partP.add(Utilities.getPartitionDesc(partition));
       }
       Table sourceTable = partsList.getSourceTable();
-      inputs.add(new ReadEntity(sourceTable));
+      inputs.add(new ReadEntity(sourceTable, parent));
       TableDesc table = Utilities.getTableDesc(sourceTable);
       FetchWork work = new FetchWork(listP, partP, table);
       if (!work.getPartDesc().isEmpty()) {
@@ -390,7 +395,9 @@ public class SimpleFetchOptimizer {
     // single direct fetching, which means FS is not needed any more when conversion completed.
     // rows forwarded will be received by ListSinkOperator, which is replacing FS
     private ListSinkOperator completed(ParseContext pctx, FetchWork work, int mode) {
-      pctx.getSemanticInputs().addAll(inputs);
+      for (ReadEntity input : inputs) {
+        PlanUtils.addInput(pctx.getSemanticInputs(), input);
+      }
       if (mode == ALL) {
         work.setPseudoMR(true);
         if (!pctx.getQB().getIsQuery() || !searchSoleFileSink(pctx)) {
