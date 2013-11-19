@@ -98,6 +98,8 @@ import org.apache.hadoop.hive.ql.parse.VariableSubstitution;
 import org.apache.hadoop.hive.ql.plan.*;
 import org.apache.hadoop.hive.ql.processors.CommandProcessor;
 import org.apache.hadoop.hive.ql.processors.CommandProcessorResponse;
+import org.apache.hadoop.hive.ql.security.authorization.DelegatableAuthorizationProvider;
+import org.apache.hadoop.hive.ql.security.authorization.HiveAuthorizationProvider;
 import org.apache.hadoop.hive.ql.security.authorization.Privilege;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.ql.session.SessionState.LogHelper;
@@ -562,6 +564,8 @@ public class Driver implements CommandProcessor {
     boolean grantedOnly = grantAuth &&
         (op.equals(HiveOperation.GRANT_PRIVILEGE) || op.equals(HiveOperation.REVOKE_PRIVILEGE));
 
+    DelegatableAuthorizationProvider authorizer =
+        new DelegatableAuthorizationProvider(ss.getAuthorizer());
     if (grantedOnly) {
       List<Task<?>> tasks = sem.getRootTasks();
       assert tasks.size() == 1 && tasks.get(0) instanceof DDLTask;
@@ -583,12 +587,12 @@ public class Driver implements CommandProcessor {
         opInputPrivs[i] = opOutputPrivs[i] = privs.get(i).getPrivilege();
       }
       if (subject == null) {
-        ss.getAuthorizer().authorize(opInputPrivs, opOutputPrivs, grantedOnly);
+        authorizer.authorize(opInputPrivs, opOutputPrivs, grantedOnly);
       }
     }
 
     if (op.equals(HiveOperation.CREATEDATABASE)) {
-      ss.getAuthorizer().authorize(opInputPrivs, opOutputPrivs, grantedOnly);
+      authorizer.authorize(opInputPrivs, opOutputPrivs, grantedOnly);
     }
 
     if (outputs != null && outputs.size() > 0) {
@@ -598,7 +602,7 @@ public class Driver implements CommandProcessor {
           outputPrivs = opOutputPrivs;
         }
         if (write.getType() == Entity.Type.DATABASE) {
-          ss.getAuthorizer().authorize(write.getDatabase(), null, outputPrivs, grantedOnly);
+          authorizer.authorize(write.getDatabase(), null, outputPrivs, grantedOnly);
           continue;
         }
 
@@ -606,14 +610,14 @@ public class Driver implements CommandProcessor {
           Partition part = db.getPartition(write.getTable(), write
               .getPartition().getSpec(), false);
           if (part != null) {
-            ss.getAuthorizer().authorize(write.getPartition(), null,
+            authorizer.authorize(write.getPartition(), null,
                 outputPrivs, grantedOnly);
             continue;
           }
         }
 
         if (write.getTable() != null) {
-          ss.getAuthorizer().authorize(write.getTable(), null,
+          authorizer.authorize(write.getTable(), null,
               outputPrivs, grantedOnly);
         }
       }
@@ -712,8 +716,10 @@ public class Driver implements CommandProcessor {
         if (inputPrivs == null) {
           inputPrivs = opInputPrivs;
         }
+        HiveAuthorizationProvider delegator = authorizer.authorizerFor(read);
+
         if (read.getType() == Entity.Type.DATABASE) {
-          ss.getAuthorizer().authorize(read.getDatabase(), inputPrivs, null, grantedOnly);
+          delegator.authorize(read.getDatabase(), inputPrivs, null, grantedOnly);
           continue;
         }
         Table tbl = read.getTable();
@@ -724,11 +730,11 @@ public class Driver implements CommandProcessor {
           if (tableUsePartLevelAuth.get(tbl.getTableName()) == Boolean.TRUE) {
             List<String> cols = part2Cols.get(partition);
             if (cols != null && cols.size() > 0) {
-              ss.getAuthorizer().authorize(partition.getTable(),
+              delegator.authorize(partition.getTable(),
                   partition, cols, inputPrivs,
                   null, grantedOnly);
             } else {
-              ss.getAuthorizer().authorize(partition,
+              delegator.authorize(partition,
                   inputPrivs, null, grantedOnly);
             }
             continue;
@@ -742,10 +748,10 @@ public class Driver implements CommandProcessor {
             !(tableUsePartLevelAuth.get(tbl.getTableName()) == Boolean.TRUE)) {
           List<String> cols = tab2Cols.get(tbl);
           if (cols != null && cols.size() > 0) {
-            ss.getAuthorizer().authorize(tbl, null, cols,
+            delegator.authorize(tbl, null, cols,
                 inputPrivs, null, grantedOnly);
           } else {
-            ss.getAuthorizer().authorize(tbl, inputPrivs,
+            delegator.authorize(tbl, inputPrivs,
                 null, grantedOnly);
           }
           tableAuthChecked.add(tbl.getTableName());
