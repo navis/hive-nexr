@@ -142,7 +142,7 @@ public class HiveAlterHandler implements AlterHandler {
         destPath = new Path(newTblLoc);
         destFs = wh.getFs(destPath);
         // check that src and dest are on the same file system
-        if (srcFs != destFs) {
+        if (!srcFs.getUri().equals(destFs.getUri())) {
           throw new InvalidOperationException("table new location " + destPath
               + " is on a different file system than the old location "
               + srcPath + ". This operation is not supported");
