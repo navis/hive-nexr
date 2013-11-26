@@ -136,10 +136,30 @@ public final class SemanticAnalyzerFactory {
 
   public static BaseSemanticAnalyzer get(HiveConf conf, ASTNode tree)
       throws SemanticException {
+    BaseSemanticAnalyzer analyzer = getAnalyzer(conf, tree);
+
+    HiveOperation operation;
+    if (tree.getToken().getType() == HiveParser.TOK_ALTERTABLE_PARTITION) {
+      Integer type = ((ASTNode) tree.getChild(1)).getToken().getType();
+      if (tree.getChild(0).getChildCount() > 1) {
+        operation = tablePartitionCommandType.get(type)[1];
+      } else {
+        operation = tablePartitionCommandType.get(type)[0];
+      }
+    } else {
+      operation = commandType.get(tree.getToken().getType());
+    }
+    analyzer.setHiveOperation(operation);
+    setSessionCommandType(operation);
+
+    return analyzer;
+  }
+
+  private static BaseSemanticAnalyzer getAnalyzer(HiveConf conf, ASTNode tree)
+      throws SemanticException {
     if (tree.getToken() == null) {
       throw new RuntimeException("Empty Syntax Tree");
     } else {
-      setSessionCommandType(commandType.get(tree.getToken().getType()));
 
       switch (tree.getToken().getType()) {
       case HiveParser.TOK_EXPLAIN:
@@ -210,16 +230,7 @@ public final class SemanticAnalyzerFactory {
       case HiveParser.TOK_ALTERDATABASE_PROPERTIES:
       case HiveParser.TOK_ALTERTABLE_SKEWED:
       case HiveParser.TOK_TRUNCATETABLE:
-        return new DDLSemanticAnalyzer(conf);
       case HiveParser.TOK_ALTERTABLE_PARTITION:
-        HiveOperation commandType = null;
-        Integer type = ((ASTNode) tree.getChild(1)).getToken().getType();
-        if (tree.getChild(0).getChildCount() > 1) {
-          commandType = tablePartitionCommandType.get(type)[1];
-        } else {
-          commandType = tablePartitionCommandType.get(type)[0];
-        }
-        setSessionCommandType(commandType);
         return new DDLSemanticAnalyzer(conf);
 
       case HiveParser.TOK_CREATEFUNCTION:

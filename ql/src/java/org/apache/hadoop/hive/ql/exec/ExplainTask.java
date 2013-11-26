@@ -28,6 +28,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,15 +39,22 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.ql.Context;
+import org.apache.hadoop.hive.ql.Driver;
 import org.apache.hadoop.hive.ql.DriverContext;
 import org.apache.hadoop.hive.ql.hooks.ReadEntity;
+import org.apache.hadoop.hive.ql.metadata.AuthorizationException;
 import org.apache.hadoop.hive.ql.metadata.Table;
+import org.apache.hadoop.hive.ql.parse.BaseSemanticAnalyzer;
 import org.apache.hadoop.hive.ql.plan.Explain;
 import org.apache.hadoop.hive.ql.plan.ExplainWork;
+import org.apache.hadoop.hive.ql.plan.HiveOperation;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.api.StageType;
+import org.apache.hadoop.hive.ql.security.authorization.AuthorizationFactory;
+import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.StringUtils;
 import org.json.JSONArray;
@@ -152,6 +160,41 @@ public class ExplainTask extends Task<ExplainWork> implements Serializable {
     return jsonOutput ? outJSONObject : null;
   }
 
+  private List<String> toString(Collection<?> objects) {
+    List<String> list = new ArrayList<String>();
+    for (Object object : objects) {
+      list.add(String.valueOf(object));
+    }
+    return list;
+  }
+
+  private Object toJson(String header, String message, PrintStream out, ExplainWork work)
+      throws Exception {
+    if (work.isFormatted()) {
+      return message;
+    }
+    out.print(header);
+    out.println(": ");
+    out.print(indentString(2));
+    out.println(message);
+    return null;
+  }
+
+  private Object toJson(String header, List<String> messages, PrintStream out, ExplainWork work)
+      throws Exception {
+    if (work.isFormatted()) {
+      return new JSONArray(messages);
+    }
+    out.print(header);
+    out.println(": ");
+    for (String message : messages) {
+      out.print(indentString(2));
+      out.print(message);
+      out.println();
+    }
+    return null;
+  }
+
   @Override
   public int execute(DriverContext driverContext) {
 
@@ -161,7 +204,12 @@ public class ExplainTask extends Task<ExplainWork> implements Serializable {
       OutputStream outS = resFile.getFileSystem(conf).create(resFile);
       out = new PrintStream(outS);
 
-      if (work.getDependency()) {
+      if (work.isAuthorize()) {
+        JSONObject jsonAuth = getJsonAuth(out, work);
+        if (work.isFormatted()) {
+          out.print(jsonAuth);
+        }
+      } else if (work.getDependency()) {
         JSONObject jsonDependencies = getJSONDependencies(work);
         out.print(jsonDependencies);
       } else {
@@ -183,6 +231,51 @@ public class ExplainTask extends Task<ExplainWork> implements Serializable {
     finally {
       IOUtils.closeStream(out);
     }
+  }
+
+  private JSONObject getJsonAuth(PrintStream out, ExplainWork work) throws Exception {
+
+    BaseSemanticAnalyzer analyzer = work.getAnalyzer();
+    HiveOperation operation = analyzer.getHiveOperation();
+
+    JSONObject object = new JSONObject();
+    Object jsonInput = toJson("INPUTS", toString(analyzer.getInputs()), out, work);
+    if (work.isFormatted()) {
+      object.put("INPUTS", jsonInput);
+    }
+    Object jsonOutput = toJson("OUTPUTS", toString(analyzer.getOutputs()), out, work);
+    if (work.isFormatted()) {
+      object.put("OUTPUTS", jsonOutput);
+    }
+    String userName = SessionState.get().getAuthenticator().getUserName();
+    Object jsonUser = toJson("CURRENT_USER", userName, out, work);
+    if (work.isFormatted()) {
+      object.put("CURRENT_USER", jsonUser);
+    }
+    Object jsonOperation = toJson("OPERATION", operation.name(), out, work);
+    if (work.isFormatted()) {
+      object.put("OPERATION", jsonOperation);
+    }
+    if (analyzer.skipAuthorization()) {
+      return object;
+    }
+    boolean grantAuth = HiveConf.getBoolVar(conf,
+        HiveConf.ConfVars.HIVE_AUTHORIZATION_GRANT_ENABLED);
+
+    final List<String> exceptions = new ArrayList<String>();
+    Driver.doAuthorization(analyzer, grantAuth,
+        new AuthorizationFactory.AuthorizationExceptionHandler() {
+          public void exception(AuthorizationException exception) {
+            exceptions.add(exception.getMessage());
+          }
+        });
+    if (!exceptions.isEmpty()) {
+      Object jsonFails = toJson("AUTHORIZATION_FAILURES", exceptions, out, work);
+      if (work.isFormatted()) {
+        object.put("AUTHORIZATION_FAILURES", jsonFails);
+      }
+    }
+    return object;
   }
 
   private static String indentString(int indent) {
