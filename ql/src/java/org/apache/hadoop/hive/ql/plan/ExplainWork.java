@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.hooks.ReadEntity;
+import org.apache.hadoop.hive.ql.parse.BaseSemanticAnalyzer;
 
 /**
  * ExplainWork.
@@ -40,6 +41,9 @@ public class ExplainWork implements Serializable {
   boolean extended;
   boolean formatted;
   boolean dependency;
+  boolean authorize;
+
+  private transient BaseSemanticAnalyzer analyzer;
 
   public ExplainWork() {
   }
@@ -47,17 +51,20 @@ public class ExplainWork implements Serializable {
   public ExplainWork(String resFile,
       List<Task<? extends Serializable>> rootTasks,
       String astStringTree,
-      HashSet<ReadEntity> inputs,
+      BaseSemanticAnalyzer analyzer,
       boolean extended,
       boolean formatted,
-      boolean dependency) {
+      boolean dependency,
+      boolean authorize) {
     this.resFile = resFile;
     this.rootTasks = new ArrayList<Task<? extends Serializable>>(rootTasks);
     this.astStringTree = astStringTree;
-    this.inputs = inputs;
+    this.analyzer = analyzer;
+    this.inputs = analyzer.getInputs();
     this.extended = extended;
     this.formatted = formatted;
     this.dependency = dependency;
+    this.authorize = authorize;
   }
 
   public String getResFile() {
@@ -114,5 +121,17 @@ public class ExplainWork implements Serializable {
 
   public void setFormatted(boolean formatted) {
     this.formatted = formatted;
+  }
+
+  public boolean isAuthorize() {
+    return authorize;
+  }
+
+  public void setAuthorize(boolean authorize) {
+    this.authorize = authorize;
+  }
+
+  public BaseSemanticAnalyzer getAnalyzer() {
+    return analyzer;
   }
 }

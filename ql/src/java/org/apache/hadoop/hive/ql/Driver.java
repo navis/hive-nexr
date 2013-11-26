@@ -98,6 +98,7 @@ import org.apache.hadoop.hive.ql.parse.VariableSubstitution;
 import org.apache.hadoop.hive.ql.plan.*;
 import org.apache.hadoop.hive.ql.processors.CommandProcessor;
 import org.apache.hadoop.hive.ql.processors.CommandProcessorResponse;
+import org.apache.hadoop.hive.ql.security.authorization.AuthorizationFactory;
 import org.apache.hadoop.hive.ql.security.authorization.DelegatableAuthorizationProvider;
 import org.apache.hadoop.hive.ql.security.authorization.HiveAuthorizationProvider;
 import org.apache.hadoop.hive.ql.security.authorization.Privilege;
@@ -509,14 +510,15 @@ public class Driver implements CommandProcessor {
       schema = getSchema(sem, conf);
 
       //do the authorization check
-      if (HiveConf.getBoolVar(conf,
-          HiveConf.ConfVars.HIVE_AUTHORIZATION_ENABLED)) {
+      if (!sem.skipAuthorization() &&
+          HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_AUTHORIZATION_ENABLED)) {
 
         boolean grantAuth = HiveConf.getBoolVar(conf,
           HiveConf.ConfVars.HIVE_AUTHORIZATION_GRANT_ENABLED);
         try {
           perfLogger.PerfLogBegin(LOG, PerfLogger.DO_AUTHORIZATION);
-          doAuthorization(sem, grantAuth);
+          doAuthorization(sem, grantAuth,
+              new AuthorizationFactory.DefaultAuthorizationExceptionHandler());
         } catch (AuthorizationException authExp) {
           console.printError("Authorization failed:" + authExp.getMessage()
               + ". Use SHOW GRANT to get more details.");
@@ -527,8 +529,6 @@ public class Driver implements CommandProcessor {
           perfLogger.PerfLogEnd(LOG, PerfLogger.DO_AUTHORIZATION);
         }
       }
-
-      //restore state after we're done executing a specific query
 
       return 0;
     } catch (Exception e) {
@@ -543,29 +543,33 @@ public class Driver implements CommandProcessor {
           + org.apache.hadoop.util.StringUtils.stringifyException(e));
       return error.getErrorCode();
     } finally {
+      //restore state after we're done executing a specific query
       perfLogger.PerfLogEnd(LOG, PerfLogger.COMPILE);
       restoreSession(queryState);
     }
   }
 
-  private void doAuthorization(BaseSemanticAnalyzer sem, boolean grantAuth)
-    throws HiveException, AuthorizationException {
+  public static void doAuthorization(BaseSemanticAnalyzer sem, boolean grantAuth,
+      AuthorizationFactory.AuthorizationExceptionHandler handler)
+      throws HiveException, AuthorizationException {
     HashSet<ReadEntity> inputs = sem.getInputs();
     HashSet<WriteEntity> outputs = sem.getOutputs();
-    SessionState ss = SessionState.get();
-    HiveOperation op = ss.getHiveOperation();
-    Hive db = sem.getDb();
+
+    HiveOperation op = sem.getHiveOperation();
     if (op == null) {
       throw new IllegalStateException("Operation is null");
     }
+
+    Hive db = sem.getDb();
     Privilege[] opInputPrivs = op.getInputRequiredPrivileges();
     Privilege[] opOutputPrivs = op.getOutputRequiredPrivileges();
 
     boolean grantedOnly = grantAuth &&
         (op.equals(HiveOperation.GRANT_PRIVILEGE) || op.equals(HiveOperation.REVOKE_PRIVILEGE));
 
+    SessionState ss = SessionState.get();
     DelegatableAuthorizationProvider authorizer =
-        new DelegatableAuthorizationProvider(ss.getAuthorizer());
+        AuthorizationFactory.create(ss.getAuthorizer(), handler);
     if (grantedOnly) {
       List<Task<?>> tasks = sem.getRootTasks();
       assert tasks.size() == 1 && tasks.get(0) instanceof DDLTask;
@@ -716,7 +720,7 @@ public class Driver implements CommandProcessor {
         if (inputPrivs == null) {
           inputPrivs = opInputPrivs;
         }
-        HiveAuthorizationProvider delegator = authorizer.authorizerFor(read);
+        HiveAuthorizationProvider delegator = authorizer.authorizeFor(read);
 
         if (read.getType() == Entity.Type.DATABASE) {
           delegator.authorize(read.getDatabase(), inputPrivs, null, grantedOnly);

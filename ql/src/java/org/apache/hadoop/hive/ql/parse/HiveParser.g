@@ -558,9 +558,15 @@ statement
 explainStatement
 @init { msgs.push("explain statement"); }
 @after { msgs.pop(); }
-	: KW_EXPLAIN (explainOptions=KW_EXTENDED|explainOptions=KW_FORMATTED|explainOptions=KW_DEPENDENCY)? execStatement
-      -> ^(TOK_EXPLAIN execStatement $explainOptions?)
+	: KW_EXPLAIN explainOption* execStatement
+      -> ^(TOK_EXPLAIN execStatement explainOption*)
 	;
+
+explainOption
+@init { msgs.push("explain option"); }
+@after { msgs.pop(); }
+    : KW_EXTENDED|KW_FORMATTED|KW_DEPENDENCY|KW_AUTHORIZE
+    ;
 
 execStatement
 @init { msgs.push("statement"); }

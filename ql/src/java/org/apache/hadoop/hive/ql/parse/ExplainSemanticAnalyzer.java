@@ -25,6 +25,7 @@ import java.util.List;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.ql.exec.ExplainTask;
 import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.exec.TaskFactory;
 import org.apache.hadoop.hive.ql.plan.ExplainWork;
@@ -45,19 +46,26 @@ public class ExplainSemanticAnalyzer extends BaseSemanticAnalyzer {
     ctx.setExplain(true);
 
     // Create a semantic analyzer for the query
-    BaseSemanticAnalyzer sem = SemanticAnalyzerFactory.get(conf, (ASTNode) ast
-        .getChild(0));
-    sem.analyze((ASTNode) ast.getChild(0), ctx);
+    ASTNode statement = (ASTNode) ast.getChild(0);
+    BaseSemanticAnalyzer sem = SemanticAnalyzerFactory.get(conf, statement);
+    sem.analyze(statement, ctx);
     sem.validate();
 
     boolean extended = false;
     boolean formatted = false;
     boolean dependency = false;
-    if (ast.getChildCount() == 2) {
-      int explainOptions = ast.getChild(1).getType();
-      formatted = (explainOptions == HiveParser.KW_FORMATTED);
-      extended = (explainOptions == HiveParser.KW_EXTENDED);
-      dependency = (explainOptions == HiveParser.KW_DEPENDENCY);
+    boolean authorize = false;
+    for (int i = 1; i < ast.getChildCount(); i++) {
+      int explainOptions = ast.getChild(i).getType();
+      if (explainOptions == HiveParser.KW_FORMATTED) {
+        formatted = true;
+      } else if (explainOptions == HiveParser.KW_EXTENDED) {
+        extended = true;
+      } else if (explainOptions == HiveParser.KW_DEPENDENCY) {
+        dependency = true;
+      } else if (explainOptions == HiveParser.KW_AUTHORIZE) {
+        authorize = true;
+      }
     }
 
     ctx.setResFile(new Path(ctx.getLocalTmpFileURI()));
@@ -75,11 +83,12 @@ public class ExplainSemanticAnalyzer extends BaseSemanticAnalyzer {
     Task<? extends Serializable> explTask =
         TaskFactory.get(new ExplainWork(ctx.getResFile().toString(),
         tasks,
-        ((ASTNode) ast.getChild(0)).toStringTree(),
-        sem.getInputs(),
+        statement.toStringTree(),
+        sem,
         extended,
         formatted,
-        dependency),
+        dependency,
+        authorize),
       conf);
 
     fieldList = explTask.getResultSchema();
@@ -89,5 +98,13 @@ public class ExplainSemanticAnalyzer extends BaseSemanticAnalyzer {
   @Override
   public List<FieldSchema> getResultSchema() {
     return fieldList;
+  }
+
+  @Override
+  public boolean skipAuthorization() {
+    List<Task<? extends Serializable>> rootTasks = getRootTasks();
+    assert rootTasks != null && rootTasks.size() == 1;
+    Task task = rootTasks.get(0);
+    return task instanceof ExplainTask && ((ExplainTask)task).getWork().isAuthorize();
   }
 }
