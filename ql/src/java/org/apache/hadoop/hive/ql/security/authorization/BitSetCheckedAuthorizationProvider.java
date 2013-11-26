@@ -396,6 +396,9 @@ public abstract class BitSetCheckedAuthorizationProvider extends
     if (columnName != null) {
       hiveObject = hiveObject + ", columnName:" + columnName;
     }
+    if (hiveObject.length() == 2) {
+      hiveObject += "global";
+    }
     hiveObject = hiveObject + "}";
 
     if (inputCheck != null) {
