@@ -340,6 +340,9 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       preListeners = MetaStoreUtils.getMetaStoreListeners(MetaStorePreEventListener.class,
           hiveConf,
           hiveConf.getVar(HiveConf.ConfVars.METASTORE_PRE_EVENT_LISTENERS));
+      for (MetaStorePreEventListener preListener : preListeners) {
+        preListener.setMetaStoreHandler(this);
+      }
       listeners = MetaStoreUtils.getMetaStoreListeners(MetaStoreEventListener.class, hiveConf,
           hiveConf.getVar(HiveConf.ConfVars.METASTORE_EVENT_LISTENERS));
       endFunctionListeners = MetaStoreUtils.getMetaStoreListeners(
@@ -375,7 +378,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       }
     }
 
-    private Configuration getConf() {
+    public Configuration getConf() {
       Configuration conf = threadLocalConf.get();
       if (conf == null) {
         conf = new Configuration(hiveConf);

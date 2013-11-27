@@ -24,6 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.metastore.HiveMetaStore;
 import org.apache.hadoop.hive.metastore.MetaStorePreEventListener;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.TableType;
@@ -77,11 +78,15 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
   }
 
   @Override
+  public void setMetaStoreHandler(HiveMetaStore.HMSHandler handler) {
+    authorizer.setMetaStoreHandler(handler);
+  }
+
+  @Override
   public void onEvent(PreEventContext context) throws MetaException, NoSuchObjectException,
       InvalidOperationException {
 
     authenticator.setMetaStoreHandler(context.getHandler());
-    authorizer.setMetaStoreHandler(context.getHandler());
 
     switch (context.getEventType()) {
     case CREATE_TABLE:
@@ -238,13 +243,13 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
 
   private void authorizeGetDatabase(PreGetDatabasesEvent context) throws MetaException {
     Iterator<String> databases = context.getDatabases().iterator();
+
+    Database database = new Database();
     while (databases.hasNext()) {
       try {
-        Database database = context.getHandler().get_database(databases.next());
+        database.setName(databases.next());
         authorizer.authorize(database, new Privilege[] {Privilege.SHOW_DATABASE}, null, false);
       } catch (AuthorizationException e) {
-        databases.remove();
-      } catch (NoSuchObjectException e) {
         databases.remove();
       } catch (Exception e) {
         throw metaException(e);
@@ -254,14 +259,13 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
 
   private void authorizeGetTables(PreGetTablesEvent context) throws MetaException {
 //    Iterator<String> tables = context.getTables().iterator();
+//
+//    Table table = new Table(context.getDatabase(), null);
 //    while (tables.hasNext()) {
 //      try {
-//        Table table = getTableFromApiTable(
-//            context.getHandler().get_table(context.getDatabase(), tables.next()));
-//        authorizer.authorize(table, new Privilege[] {Privilege.SELECT}, null);
+//        table.setTableName(tables.next());
+//        authorizer.authorize(table, new Privilege[] {Privilege.SELECT}, null, false);
 //      } catch (AuthorizationException e) {
-//        tables.remove();
-//      } catch (NoSuchObjectException e) {
 //        tables.remove();
 //      } catch (Exception e) {
 //        throw metaException(e);
