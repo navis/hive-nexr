@@ -3091,15 +3091,16 @@ class TFetchResultsResp {
 void swap(TFetchResultsResp &a, TFetchResultsResp &b);
 
 typedef struct _TCompileRes__isset {
-  _TCompileRes__isset() : queryPlan(false) {}
+  _TCompileRes__isset() : operationHandle(false), queryPlan(false) {}
+  bool operationHandle;
   bool queryPlan;
 } _TCompileRes__isset;
 
 class TCompileRes {
  public:
 
-  static const char* ascii_fingerprint; // = "0109DD9AF87F9C16A0392FEEF0301D54";
-  static const uint8_t binary_fingerprint[16]; // = {0x01,0x09,0xDD,0x9A,0xF8,0x7F,0x9C,0x16,0xA0,0x39,0x2F,0xEE,0xF0,0x30,0x1D,0x54};
+  static const char* ascii_fingerprint; // = "AE4CC9A2548B2BE9EDA2332F90DA3410";
+  static const uint8_t binary_fingerprint[16]; // = {0xAE,0x4C,0xC9,0xA2,0x54,0x8B,0x2B,0xE9,0xED,0xA2,0x33,0x2F,0x90,0xDA,0x34,0x10};
 
   TCompileRes() {
   }
@@ -3118,6 +3119,7 @@ class TCompileRes {
 
   void __set_operationHandle(const TOperationHandle& val) {
     operationHandle = val;
+    __isset.operationHandle = true;
   }
 
   void __set_queryPlan(const  ::Apache::Hadoop::Hive::Query& val) {
@@ -3129,7 +3131,9 @@ class TCompileRes {
   {
     if (!(status == rhs.status))
       return false;
-    if (!(operationHandle == rhs.operationHandle))
+    if (__isset.operationHandle != rhs.__isset.operationHandle)
+      return false;
+    else if (__isset.operationHandle && !(operationHandle == rhs.operationHandle))
       return false;
     if (__isset.queryPlan != rhs.__isset.queryPlan)
       return false;
