@@ -5115,8 +5115,6 @@ class TCompileRes:
   def validate(self):
     if self.status is None:
       raise TProtocol.TProtocolException(message='Required field status is unset!')
-    if self.operationHandle is None:
-      raise TProtocol.TProtocolException(message='Required field operationHandle is unset!')
     return
 
 
