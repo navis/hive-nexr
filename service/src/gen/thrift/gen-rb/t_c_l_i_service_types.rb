@@ -1766,7 +1766,7 @@ class TCompileRes
 
   FIELDS = {
     STATUS => {:type => ::Thrift::Types::STRUCT, :name => 'status', :class => ::TStatus},
-    OPERATIONHANDLE => {:type => ::Thrift::Types::STRUCT, :name => 'operationHandle', :class => ::TOperationHandle},
+    OPERATIONHANDLE => {:type => ::Thrift::Types::STRUCT, :name => 'operationHandle', :class => ::TOperationHandle, :optional => true},
     QUERYPLAN => {:type => ::Thrift::Types::STRUCT, :name => 'queryPlan', :class => ::Query, :optional => true}
   }
 
@@ -1774,7 +1774,6 @@ class TCompileRes
 
   def validate
     raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field status is unset!') unless @status
-    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field operationHandle is unset!') unless @operationHandle
   end
 
   ::Thrift::Struct.generate_accessors self

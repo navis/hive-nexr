@@ -45,7 +45,7 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
   }
 
   private TStatus status; // required
-  private TOperationHandle operationHandle; // required
+  private TOperationHandle operationHandle; // optional
   private org.apache.hadoop.hive.ql.plan.api.Query queryPlan; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -113,13 +113,13 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
   }
 
   // isset id assignments
-  private _Fields optionals[] = {_Fields.QUERY_PLAN};
+  private _Fields optionals[] = {_Fields.OPERATION_HANDLE,_Fields.QUERY_PLAN};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.STATUS, new org.apache.thrift.meta_data.FieldMetaData("status", org.apache.thrift.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TStatus.class)));
-    tmpMap.put(_Fields.OPERATION_HANDLE, new org.apache.thrift.meta_data.FieldMetaData("operationHandle", org.apache.thrift.TFieldRequirementType.REQUIRED, 
+    tmpMap.put(_Fields.OPERATION_HANDLE, new org.apache.thrift.meta_data.FieldMetaData("operationHandle", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TOperationHandle.class)));
     tmpMap.put(_Fields.QUERY_PLAN, new org.apache.thrift.meta_data.FieldMetaData("queryPlan", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.hadoop.hive.ql.plan.api.Query.class)));
@@ -131,12 +131,10 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
   }
 
   public TCompileRes(
-    TStatus status,
-    TOperationHandle operationHandle)
+    TStatus status)
   {
     this();
     this.status = status;
-    this.operationHandle = operationHandle;
   }
 
   /**
@@ -425,14 +423,16 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
       sb.append(this.status);
     }
     first = false;
-    if (!first) sb.append(", ");
-    sb.append("operationHandle:");
-    if (this.operationHandle == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.operationHandle);
+    if (isSetOperationHandle()) {
+      if (!first) sb.append(", ");
+      sb.append("operationHandle:");
+      if (this.operationHandle == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.operationHandle);
+      }
+      first = false;
     }
-    first = false;
     if (isSetQueryPlan()) {
       if (!first) sb.append(", ");
       sb.append("queryPlan:");
@@ -451,10 +451,6 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
     // check for required fields
     if (!isSetStatus()) {
       throw new org.apache.thrift.protocol.TProtocolException("Required field 'status' is unset! Struct:" + toString());
-    }
-
-    if (!isSetOperationHandle()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'operationHandle' is unset! Struct:" + toString());
     }
 
     // check for sub-struct validity
@@ -549,9 +545,11 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
         oprot.writeFieldEnd();
       }
       if (struct.operationHandle != null) {
-        oprot.writeFieldBegin(OPERATION_HANDLE_FIELD_DESC);
-        struct.operationHandle.write(oprot);
-        oprot.writeFieldEnd();
+        if (struct.isSetOperationHandle()) {
+          oprot.writeFieldBegin(OPERATION_HANDLE_FIELD_DESC);
+          struct.operationHandle.write(oprot);
+          oprot.writeFieldEnd();
+        }
       }
       if (struct.queryPlan != null) {
         if (struct.isSetQueryPlan()) {
@@ -578,12 +576,17 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
     public void write(org.apache.thrift.protocol.TProtocol prot, TCompileRes struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
       struct.status.write(oprot);
-      struct.operationHandle.write(oprot);
       BitSet optionals = new BitSet();
-      if (struct.isSetQueryPlan()) {
+      if (struct.isSetOperationHandle()) {
         optionals.set(0);
       }
-      oprot.writeBitSet(optionals, 1);
+      if (struct.isSetQueryPlan()) {
+        optionals.set(1);
+      }
+      oprot.writeBitSet(optionals, 2);
+      if (struct.isSetOperationHandle()) {
+        struct.operationHandle.write(oprot);
+      }
       if (struct.isSetQueryPlan()) {
         struct.queryPlan.write(oprot);
       }
@@ -595,11 +598,13 @@ public class TCompileRes implements org.apache.thrift.TBase<TCompileRes, TCompil
       struct.status = new TStatus();
       struct.status.read(iprot);
       struct.setStatusIsSet(true);
-      struct.operationHandle = new TOperationHandle();
-      struct.operationHandle.read(iprot);
-      struct.setOperationHandleIsSet(true);
-      BitSet incoming = iprot.readBitSet(1);
+      BitSet incoming = iprot.readBitSet(2);
       if (incoming.get(0)) {
+        struct.operationHandle = new TOperationHandle();
+        struct.operationHandle.read(iprot);
+        struct.setOperationHandleIsSet(true);
+      }
+      if (incoming.get(1)) {
         struct.queryPlan = new org.apache.hadoop.hive.ql.plan.api.Query();
         struct.queryPlan.read(iprot);
         struct.setQueryPlanIsSet(true);
