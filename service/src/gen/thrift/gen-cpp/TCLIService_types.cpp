@@ -5372,8 +5372,8 @@ void swap(TFetchResultsResp &a, TFetchResultsResp &b) {
   swap(a.__isset, b.__isset);
 }
 
-const char* TCompileRes::ascii_fingerprint = "0109DD9AF87F9C16A0392FEEF0301D54";
-const uint8_t TCompileRes::binary_fingerprint[16] = {0x01,0x09,0xDD,0x9A,0xF8,0x7F,0x9C,0x16,0xA0,0x39,0x2F,0xEE,0xF0,0x30,0x1D,0x54};
+const char* TCompileRes::ascii_fingerprint = "AE4CC9A2548B2BE9EDA2332F90DA3410";
+const uint8_t TCompileRes::binary_fingerprint[16] = {0xAE,0x4C,0xC9,0xA2,0x54,0x8B,0x2B,0xE9,0xED,0xA2,0x33,0x2F,0x90,0xDA,0x34,0x10};
 
 uint32_t TCompileRes::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -5387,7 +5387,6 @@ uint32_t TCompileRes::read(::apache::thrift::protocol::TProtocol* iprot) {
   using ::apache::thrift::protocol::TProtocolException;
 
   bool isset_status = false;
-  bool isset_operationHandle = false;
 
   while (true)
   {
@@ -5408,7 +5407,7 @@ uint32_t TCompileRes::read(::apache::thrift::protocol::TProtocol* iprot) {
       case 2:
         if (ftype == ::apache::thrift::protocol::T_STRUCT) {
           xfer += this->operationHandle.read(iprot);
-          isset_operationHandle = true;
+          this->__isset.operationHandle = true;
         } else {
           xfer += iprot->skip(ftype);
         }
@@ -5432,8 +5431,6 @@ uint32_t TCompileRes::read(::apache::thrift::protocol::TProtocol* iprot) {
 
   if (!isset_status)
     throw TProtocolException(TProtocolException::INVALID_DATA);
-  if (!isset_operationHandle)
-    throw TProtocolException(TProtocolException::INVALID_DATA);
   return xfer;
 }
 
@@ -5445,10 +5442,11 @@ uint32_t TCompileRes::write(::apache::thrift::protocol::TProtocol* oprot) const 
   xfer += this->status.write(oprot);
   xfer += oprot->writeFieldEnd();
 
-  xfer += oprot->writeFieldBegin("operationHandle", ::apache::thrift::protocol::T_STRUCT, 2);
-  xfer += this->operationHandle.write(oprot);
-  xfer += oprot->writeFieldEnd();
-
+  if (this->__isset.operationHandle) {
+    xfer += oprot->writeFieldBegin("operationHandle", ::apache::thrift::protocol::T_STRUCT, 2);
+    xfer += this->operationHandle.write(oprot);
+    xfer += oprot->writeFieldEnd();
+  }
   if (this->__isset.queryPlan) {
     xfer += oprot->writeFieldBegin("queryPlan", ::apache::thrift::protocol::T_STRUCT, 3);
     xfer += this->queryPlan.write(oprot);
