@@ -19,7 +19,6 @@
 package org.apache.hadoop.hive.ql.security.authorization;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -257,7 +256,7 @@ public abstract class BitSetCheckedAuthorizationProvider extends
       boolean[] inputCheck, boolean[] outputCheck, boolean grantedOnly) throws HiveException {
 
     if (authorizeUserAndDBPriv(hive_db.getDatabase(table.getDbName()),
-        inputRequiredPriv, outputRequiredPriv, inputCheck, outputCheck, grantedOnly)) {
+            inputRequiredPriv, outputRequiredPriv, inputCheck, outputCheck, grantedOnly)) {
       return true;
     }
 

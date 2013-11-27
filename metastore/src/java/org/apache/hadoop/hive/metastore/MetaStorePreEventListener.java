@@ -33,7 +33,7 @@ import org.apache.hadoop.hive.metastore.events.PreEventContext;
 
 public abstract class MetaStorePreEventListener implements Configurable {
 
-  private Configuration conf;
+  protected Configuration conf;
 
   public MetaStorePreEventListener(Configuration config){
     this.conf = config;
@@ -50,5 +50,8 @@ public abstract class MetaStorePreEventListener implements Configurable {
   @Override
   public void setConf(Configuration config) {
     this.conf = config;
+  }
+
+  public void setMetaStoreHandler(HiveMetaStore.HMSHandler handler) {
   }
 }
