@@ -40,7 +40,6 @@ public class Privilege {
     UNKNOWN
   }
 
-
   public static PrivilegeType getPrivTypeByToken(int token) {
     switch (token) {
     case HiveParser.TOK_PRIV_ALL:
@@ -159,31 +158,30 @@ public class Privilege {
   public Privilege() {
   }
 
-  public static Privilege ALL = new Privilege(PrivilegeType.ALL,
+  public static final Privilege ALL = new Privilege(PrivilegeType.ALL,
       PrivilegeScope.ALLSCOPE_EXCEPT_COLUMN);
 
-  public static Privilege ALTER_METADATA = new Privilege(PrivilegeType.ALTER_METADATA,
+  public static final Privilege ALTER_METADATA = new Privilege(PrivilegeType.ALTER_METADATA,
       PrivilegeScope.ALLSCOPE_EXCEPT_COLUMN);
 
-  public static Privilege ALTER_DATA = new Privilege(PrivilegeType.ALTER_DATA,
+  public static final Privilege ALTER_DATA = new Privilege(PrivilegeType.ALTER_DATA,
       PrivilegeScope.ALLSCOPE_EXCEPT_COLUMN);
 
-  public static Privilege CREATE = new Privilege(PrivilegeType.CREATE,
+  public static final Privilege CREATE = new Privilege(PrivilegeType.CREATE,
       PrivilegeScope.ALLSCOPE_EXCEPT_COLUMN);
 
-  public static Privilege DROP = new Privilege(PrivilegeType.DROP,
+  public static final Privilege DROP = new Privilege(PrivilegeType.DROP,
       PrivilegeScope.ALLSCOPE_EXCEPT_COLUMN);
 
-  public static Privilege INDEX = new Privilege(PrivilegeType.INDEX,
+  public static final Privilege INDEX = new Privilege(PrivilegeType.INDEX,
       PrivilegeScope.ALLSCOPE);
 
-  public static Privilege LOCK = new Privilege(PrivilegeType.LOCK,
+  public static final Privilege LOCK = new Privilege(PrivilegeType.LOCK,
       PrivilegeScope.ALLSCOPE_EXCEPT_COLUMN);
 
-  public static Privilege SELECT = new Privilege(PrivilegeType.SELECT,
+  public static final Privilege SELECT = new Privilege(PrivilegeType.SELECT,
       PrivilegeScope.ALLSCOPE);
 
-  public static Privilege SHOW_DATABASE = new Privilege(PrivilegeType.SHOW_DATABASE,
+  public static final Privilege SHOW_DATABASE = new Privilege(PrivilegeType.SHOW_DATABASE,
       EnumSet.of(PrivilegeScope.USER_LEVEL_SCOPE));
-
 }
