@@ -652,6 +652,7 @@ public class HiveConf extends Configuration {
 
     HIVE_AUTHORIZATION_ENABLED("hive.security.authorization.enabled", false),
     HIVE_AUTHORIZATION_GRANT_ENABLED("hive.security.authorization.grant.enabled", false),
+    HIVE_AUTHORIZATION_SKIP_GROUPNAMES("hive.security.authorization.skip.groupnames", true),
 
     HIVE_AUTHORIZATION_MANAGER("hive.security.authorization.manager",
         "org.apache.hadoop.hive.ql.security.authorization.DefaultHiveAuthorizationProvider"),
