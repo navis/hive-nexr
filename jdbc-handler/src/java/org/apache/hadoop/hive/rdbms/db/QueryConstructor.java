@@ -1,5 +1,6 @@
 package org.apache.hadoop.hive.rdbms.db;
 
+import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.rdbms.JDBCSplit;
 
 public class QueryConstructor {
@@ -29,15 +30,19 @@ public class QueryConstructor {
     return query.toString();
   }
 
-  public String constructCountQuery(DatabaseProperties dbProperties) {
+  public String constructCountQuery(DatabaseProperties dbProperties, ExprNodeDesc filter) {
     StringBuilder query = new StringBuilder();
     query.append("SELECT COUNT(*) FROM ");
     query.append(dbProperties.getTableName());
+    if (filter != null) {
+      query.append(" WHERE ");
+      query.append(filter.getExprString());
+    }
     return query.toString();
   }
 
   public static String constructSelectQueryForReading(DatabaseProperties dbProperties,
-      JDBCSplit split, int limit) {
+      JDBCSplit split, ExprNodeDesc filter, int limit) {
     DatabaseType databaseType = dbProperties.getDatabaseType();
     boolean selectAll = split.getStart() < 0 && split.getEnd() < 0;
 
@@ -47,26 +52,31 @@ public class QueryConstructor {
       case MYSQL:
       case H2:
       case POSTGRESQL:
-        query = selectAll ? getQueryForMySql(dbProperties, limit) : getQueryForMySql(dbProperties, split);
+        query = selectAll ? getQueryForMySql(dbProperties, filter, limit)
+            : getQueryForMySql(dbProperties, filter, split);
         break;
       case ORACLE:
       case TIBERO:
-        query = selectAll ? getQueryForOracle(dbProperties, limit) : getQueryForOracle(dbProperties, split);
+        query = selectAll ? getQueryForOracle(dbProperties, filter, limit)
+            : getQueryForOracle(dbProperties, filter, split);
         break;
       case SQLSERVER:
-        query = selectAll ? getQueryForMsSql(dbProperties, limit) : getQueryForMsSql(dbProperties, split);
+        query = selectAll ? getQueryForMsSql(dbProperties, filter, limit)
+            : getQueryForMsSql(dbProperties, filter, split);
         break;
       case SYBASE:
-        query = selectAll ? getQueryForSybase(dbProperties, limit) : getQueryForSybase(dbProperties, split);
+        query = selectAll ? getQueryForSybase(dbProperties, filter, limit)
+            : getQueryForSybase(dbProperties, filter, split);
         break;
       case PHOENIX:
-        query = getQueryForSelectAll(dbProperties, limit);
+        query = getQueryForSelectAll(dbProperties, filter, limit);
         break;
     }
     return query;
   }
 
-  private static String getQueryForMsSql(DatabaseProperties dbProperties, int limit) {
+  private static String getQueryForMsSql(DatabaseProperties dbProperties,
+      ExprNodeDesc filter, int limit) {
     DatabaseType type = dbProperties.getDatabaseType();
     String tableName = dbProperties.getTableName();
     String[] fieldNames = dbProperties.getFieldNames();
@@ -81,6 +91,11 @@ public class QueryConstructor {
     type.quote(query, fieldNames);
     query.append(" FROM ");
     query.append(tableName);
+
+    if (filter != null) {
+      query.append(" WHERE ");
+      query.append(filter.getExprString());
+    }
     return query.toString();
   }
 
@@ -88,7 +103,8 @@ public class QueryConstructor {
    * SELECT * FROM (SELECT *, ROW_NUMBER() OVER (ORDER BY column_name) AS Row FROM table_name) AS tmp WHERE Row > 10
    * AND Row < 20
    */
-  private static String getQueryForMsSql(DatabaseProperties dbProperties, JDBCSplit split) {
+  private static String getQueryForMsSql(DatabaseProperties dbProperties,
+      ExprNodeDesc filter, JDBCSplit split) {
     DatabaseType type = dbProperties.getDatabaseType();
     String tableName = dbProperties.getTableName();
     String[] fieldNames = dbProperties.getFieldNames();
@@ -103,22 +119,20 @@ public class QueryConstructor {
     query.append(")");
     query.append(" AS Row FROM ");
     query.append(tableName);
+    if (filter != null) {
+      query.append(" WHERE ");
+      query.append(filter.getExprString());
+    }
+
     query.append(") AS tmp WHERE Row >=");
     query.append(split.getStart()).append(" AND Row <");
     query.append(split.getEnd());
-        /*
-         * query.append("SELECT TOP ").append(split.getLength()).append(" * FROM ( ");
-         * query.append("SELECT TOP ").append(split.getEnd()).append(" "); for (int i = 0; i < fieldNames.length; i++) {
-         * query.append(fieldNames[i]); if (i != fieldNames.length - 1) { query.append(", "); } }
-         * query.append(" FROM "); query.append(dbProperties.getTableName());
-         * query.append(" ORDER BY ").append(fieldNames[0]).append(" ASC ").append(")");
-         * query.append(" ORDER BY ").append(fieldNames[0]).append(" DESC ").append(")");
-         * query.append(" ORDER BY ").append(fieldNames[0]).append(" ASC");
-         */
+
     return query.toString();
   }
 
-  private static String getQueryForMySql(DatabaseProperties dbProperties, int limit) {
+  private static String getQueryForMySql(DatabaseProperties dbProperties,
+      ExprNodeDesc filter, int limit) {
     DatabaseType type = dbProperties.getDatabaseType();
     String tableName = dbProperties.getTableName();
     String[] fieldNames = dbProperties.getFieldNames();
@@ -128,6 +142,12 @@ public class QueryConstructor {
     type.quote(query, fieldNames);
     query.append(" FROM ");
     query.append(tableName);
+
+    if (filter != null) {
+      query.append(" WHERE ");
+      query.append(filter.getExprString());
+    }
+
     if (limit > 0) {
       query.append(" LIMIT ");
       query.append(limit);
@@ -135,7 +155,8 @@ public class QueryConstructor {
     return query.toString();
   }
 
-  private static String getQueryForMySql(DatabaseProperties dbProperties, JDBCSplit split) {
+  private static String getQueryForMySql(DatabaseProperties dbProperties,
+      ExprNodeDesc filter, JDBCSplit split) {
     DatabaseType type = dbProperties.getDatabaseType();
     String tableName = dbProperties.getTableName();
     String[] fieldNames = dbProperties.getFieldNames();
@@ -145,23 +166,44 @@ public class QueryConstructor {
     type.quote(query, fieldNames);
     query.append(" FROM ");
     query.append(tableName);
-        /* query.append(" AS ").append(dbProperties.getTableName()); //in hsqldb this is necessary */
+
+    if (filter != null) {
+      query.append(" WHERE ");
+      query.append(filter.getExprString());
+    }
 
     query.append(" LIMIT ").append(split.getLength());
     query.append(" OFFSET ").append(split.getStart());
     return query.toString();
   }
 
-  private static String getQueryForOracle(DatabaseProperties dbProperties, int limit) {
+  // S : S W<expr> : S W<ROWNUM> : S (S W<ROWNUM>)X W<ROWNUM>
+  private static String getQueryForOracle(DatabaseProperties dbProperties,
+      ExprNodeDesc filter, int limit) {
     DatabaseType type = dbProperties.getDatabaseType();
     String tableName = dbProperties.getTableName();
     String[] fieldNames = dbProperties.getFieldNames();
 
     StringBuilder query = new StringBuilder();
+    if (limit > 0 && filter != null) {
+      query.append("SELECT ");
+      type.quote(query, fieldNames);
+      query.append(" FROM ( ");
+    }
     query.append("SELECT ");
     type.quote(query, fieldNames);
     query.append(" FROM ");
     query.append(tableName);
+
+    if (filter != null) {
+      query.append(" WHERE ");
+      query.append(filter.getExprString());
+    }
+
+    if (limit > 0 && filter != null) {
+      query.append(") X");
+    }
+
     if (limit > 0) {
       query.append(" WHERE ROWNUM <= ");
       query.append(limit);
@@ -173,7 +215,8 @@ public class QueryConstructor {
    * sample query is like this - SELECT * FROM ( SELECT ROW_NUMBER() OVER(ORDER BY column1) LINENUM, column1, column2
    * FROM MyTable ORDER BY column1 ) WHERE LINENUM BETWEEN 100 AND 200;
    */
-  private static String getQueryForOracle(DatabaseProperties dbProperties, JDBCSplit split) {
+  private static String getQueryForOracle(DatabaseProperties dbProperties,
+      ExprNodeDesc filter, JDBCSplit split) {
     DatabaseType type = dbProperties.getDatabaseType();
     String tableName = dbProperties.getTableName();
     String[] fieldNames = dbProperties.getFieldNames();
@@ -181,23 +224,29 @@ public class QueryConstructor {
     StringBuilder query = new StringBuilder();
     query.append("SELECT ");
     type.quote(query, fieldNames);
-    query.append(" FROM ( SELECT ROW_NUMBER() OVER( ORDER BY ");
-    type.quote(query, fieldNames[0]);
-    query.append(" ) LINENUM, ");
+    query.append(" FROM ( ");
+
+    query.append("SELECT ");
     type.quote(query, fieldNames);
     query.append(" FROM ");
     query.append(tableName);
+    if (filter != null) {
+      query.append(" WHERE ");
+      query.append(filter.getExprString());
+    }
     query.append(" ORDER BY ");
     type.quote(query, fieldNames[0]);
-    query.append(" )");
-    query.append(" WHERE LINENUM > ");
+    query.append(" ) X ");
+
+    query.append(" WHERE ROWNUM BETWEEN ");
     query.append(split.getStart());
-    query.append(" AND LINENUM <= ");
+    query.append(" AND ");
     query.append(split.getEnd());
     return query.toString();
   }
 
-  private static String getQueryForSybase(DatabaseProperties dbProperties, int limit) {
+  private static String getQueryForSybase(DatabaseProperties dbProperties,
+      ExprNodeDesc filter, int limit) {
     DatabaseType type = dbProperties.getDatabaseType();
     String tableName = dbProperties.getTableName();
     String[] fieldNames = dbProperties.getFieldNames();
@@ -212,12 +261,17 @@ public class QueryConstructor {
     type.quote(query, fieldNames);
     query.append(" FROM ");
     query.append(tableName);
+    if (filter != null) {
+      query.append(" WHERE ");
+      query.append(filter.getExprString());
+    }
     query.append(" ORDER BY ");
     type.quote(query, fieldNames[0]);
     return query.toString();
   }
 
-  private static String getQueryForSybase(DatabaseProperties dbProperties, JDBCSplit split) {
+  private static String getQueryForSybase(DatabaseProperties dbProperties,
+      ExprNodeDesc filter, JDBCSplit split) {
     DatabaseType type = dbProperties.getDatabaseType();
     String tableName = dbProperties.getTableName();
     String[] fieldNames = dbProperties.getFieldNames();
@@ -225,8 +279,19 @@ public class QueryConstructor {
     StringBuilder query = new StringBuilder();
     query.append("SELECT ");
     type.quote(query, fieldNames);
+    query.append(" FROM (");
+
+    query.append("SELECT ");
+    type.quote(query, fieldNames);
     query.append(" FROM ");
     query.append(tableName);
+    if (filter != null) {
+      query.append(" WHERE ");
+      query.append(filter.getExprString());
+    }
+
+    query.append(" ) X ");
+
     query.append(" WHERE ROWID(");
     query.append(tableName);
     query.append(") >= ");
@@ -239,17 +304,21 @@ public class QueryConstructor {
     return query.toString();
   }
 
-  private static String getQueryForSelectAll(DatabaseProperties dbProperties, int limit) {
+  private static String getQueryForSelectAll(DatabaseProperties dbProperties,
+      ExprNodeDesc filter, int limit) {
     DatabaseType type = dbProperties.getDatabaseType();
     String tableName = dbProperties.getTableName();
     String[] fieldNames = dbProperties.getFieldNames();
 
     StringBuilder query = new StringBuilder();
-    query.append("SELECT");
-    query.append(' ');
+    query.append("SELECT ");
     type.quote(query, fieldNames);
     query.append(" FROM ");
     query.append(tableName);
+    if (filter != null) {
+      query.append(" WHERE ");
+      query.append(filter.getExprString());
+    }
     if (limit > 0) {
       query.append(" LIMIT ");
       query.append(limit);

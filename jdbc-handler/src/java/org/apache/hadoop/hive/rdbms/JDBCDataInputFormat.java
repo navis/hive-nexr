@@ -1,10 +1,7 @@
 package org.apache.hadoop.hive.rdbms;
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.util.List;
-
 import org.apache.hadoop.hive.ql.io.HiveInputFormat;
+import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.rdbms.db.DBOperation;
 import org.apache.hadoop.hive.rdbms.db.DBRecordReader;
 import org.apache.hadoop.hive.rdbms.db.DatabaseProperties;
@@ -15,6 +12,10 @@ import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
+
+import java.io.IOException;
+import java.sql.Connection;
+import java.util.List;
 
 public class JDBCDataInputFormat extends HiveInputFormat<LongWritable, MapWritable> {
 
@@ -36,9 +37,10 @@ public class JDBCDataInputFormat extends HiveInputFormat<LongWritable, MapWritab
     List<Integer> columns = ColumnProjectionUtils.getReadColumnIDs(conf);
     int rowLimit = ColumnProjectionUtils.getRowLimit(conf);
 
+    ExprNodeDesc filterExpr = JDBCSplit.getFilterExpr(conf);
     try {
       Connection connection = DBOperation.createConnection(conf);
-      return new DBRecordReader((JDBCSplit) split, dbProperties, connection, columns, rowLimit);
+      return new DBRecordReader((JDBCSplit) split, dbProperties, connection, columns, filterExpr, rowLimit);
     } catch (IOException e) {
       throw e;
     } catch (Exception e) {
