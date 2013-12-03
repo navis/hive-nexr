@@ -314,4 +314,18 @@ public class ExprNodeDescUtils {
       return null;
     }
   }
+
+  public interface Function<F, T> {
+    T apply(F input);
+  }
+
+  public static void traverse(ExprNodeDesc origin, Function<ExprNodeDesc, ?> function) {
+    function.apply(origin);
+    List<ExprNodeDesc> children = origin.getChildren();
+    if (children != null && !children.isEmpty()) {
+      for (ExprNodeDesc child : children) {
+        traverse(child, function);
+      }
+    }
+  }
 }
