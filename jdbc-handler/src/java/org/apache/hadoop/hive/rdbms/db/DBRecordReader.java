@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.rdbms.ColumnAccess;
 import org.apache.hadoop.hive.rdbms.ConfigurationUtils;
 import org.apache.hadoop.hive.rdbms.JDBCSplit;
@@ -36,7 +37,8 @@ public class DBRecordReader implements RecordReader<LongWritable, RowWritable> {
   private ColumnAccess[] columns;
 
   public DBRecordReader(JDBCSplit split, DatabaseProperties properties, Connection connection,
-                        List<Integer> colIndices, int rowLimit) throws Exception {
+      List<Integer> colIndices, ExprNodeDesc filterExpr, int rowLimit)
+      throws Exception {
 
     this.split = split;
     this.properties = properties;
@@ -64,7 +66,7 @@ public class DBRecordReader implements RecordReader<LongWritable, RowWritable> {
     }
     properties.setFieldNames(fieldNames.toArray(new String[fieldNames.size()]));
 
-    String sqlQuery = QueryConstructor.constructSelectQueryForReading(properties, split, rowLimit);
+    String sqlQuery = QueryConstructor.constructSelectQueryForReading(properties, split, filterExpr, rowLimit);
     log.info("select query for split = " + sqlQuery);
     statement = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
     statement.setFetchSize(properties.getBatchSize());

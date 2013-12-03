@@ -6,8 +6,14 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.ql.exec.Utilities;
+import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
+import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
+import org.apache.hadoop.hive.ql.plan.ExprNodeDescUtils;
+import org.apache.hadoop.hive.ql.plan.TableScanDesc;
 import org.apache.hadoop.hive.rdbms.db.DBOperation;
 import org.apache.hadoop.hive.rdbms.db.DatabaseProperties;
 import org.apache.hadoop.hive.rdbms.db.QueryConstructor;
@@ -70,6 +76,9 @@ public class JDBCSplit extends FileSplit implements InputSplit {
   }
 
   public static JDBCSplit[] getSplits(JobConf conf, int numSplits) throws IOException {
+
+    ExprNodeDesc filterExpr = getFilterExpr(conf);
+
     int rowLimit = ColumnProjectionUtils.getRowLimit(conf);
     final Path[] tablePaths = FileInputFormat.getInputPaths(conf);
     int maxrow = conf.getInt(ConfigurationUtils.HIVE_JDBC_MAXROW_PER_TASK,
@@ -92,7 +101,7 @@ public class JDBCSplit extends FileSplit implements InputSplit {
     dbProperties.setInputColumnMappingFields(ConfigurationUtils.getHiveToDB(conf));
 
     QueryConstructor queryConstructor = new QueryConstructor();
-    String sql = queryConstructor.constructCountQuery(dbProperties);
+    String sql = queryConstructor.constructCountQuery(dbProperties, filterExpr);
     log.info("total count sql = " + sql);
 
     try {
@@ -123,12 +132,35 @@ public class JDBCSplit extends FileSplit implements InputSplit {
           split = new JDBCSplit(i * splitSize, (i + 1) * splitSize, tablePaths[0]);
         }
         splits.add(split);
-        log.info(i + " = " + split.getStart() + "~" + split.getEnd());
+        log.info("split-" + i + " = " + split.getStart() + "~" + split.getEnd());
         remain -= splitSize;
       }
       return splits.toArray(new JDBCSplit[splits.size()]);
     } catch (Exception e) {
       throw new IOException(e);
     }
+  }
+
+  public static ExprNodeDesc getFilterExpr(JobConf conf) {
+    String filterExprSerialized = conf.get(TableScanDesc.FILTER_EXPR_CONF_STR);
+    if (filterExprSerialized == null || filterExprSerialized.isEmpty()) {
+      return null;
+    }
+    final Map<String,String> mappings = ConfigurationUtils.getHiveToDB(conf);
+    ExprNodeDesc filterExpr = Utilities.deserializeExpression(filterExprSerialized, conf);
+    ExprNodeDescUtils.traverse(filterExpr, new ExprNodeDescUtils.Function<ExprNodeDesc, Void>() {
+      public Void apply(ExprNodeDesc input) {
+        if (input instanceof ExprNodeColumnDesc) {
+          ExprNodeColumnDesc column = (ExprNodeColumnDesc) input;
+          String dbColumn = mappings.get(column.getColumn());
+          if (dbColumn == null) {
+            throw new RuntimeException("Invalid column name " + column.getColumn());
+          }
+          column.setColumn(dbColumn);
+        }
+        return null;
+      }
+    });
+    return filterExpr;
   }
 }

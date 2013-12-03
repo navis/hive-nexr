@@ -1,5 +1,7 @@
 package org.apache.hadoop.hive.rdbms;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -9,14 +11,21 @@ import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.hive.ql.index.IndexPredicateAnalyzer;
+import org.apache.hadoop.hive.ql.index.IndexSearchCondition;
 import org.apache.hadoop.hive.ql.metadata.DefaultStorageHandler;
+import org.apache.hadoop.hive.ql.metadata.HiveStoragePredicateHandler;
 import org.apache.hadoop.hive.ql.plan.AlterTableDesc;
+import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.rdbms.db.DBOperation;
+import org.apache.hadoop.hive.serde2.Deserializer;
 import org.apache.hadoop.hive.serde2.SerDe;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.util.StringUtils;
 
-public class JDBCStorageHandler extends DefaultStorageHandler implements HiveMetaHook {
+public class JDBCStorageHandler extends DefaultStorageHandler
+    implements HiveMetaHook, HiveStoragePredicateHandler {
 
   private Configuration conf;
 
@@ -133,5 +142,35 @@ public class JDBCStorageHandler extends DefaultStorageHandler implements HiveMet
   @Override
   public void commitDropPartition(Table table, Partition partition, boolean deleteData)
       throws MetaException {
+  }
+
+  @Override
+  public DecomposedPredicate decomposePredicate(JobConf jobConf,
+      Deserializer deserializer, ExprNodeDesc predicate) {
+
+    if (!conf.getBoolean(ConfigurationUtils.HIVE_JDBC_ENABLE_FILTER_PUSHDOWN,
+        ConfigurationUtils.HIVE_JDBC_ENABLE_FILTER_PUSHDOWN_DEFAULT)) {
+      return null;
+    }
+
+    IndexPredicateAnalyzer analyzer = newIndexPredicateAnalyzer();
+    List<IndexSearchCondition> searchConditions = new ArrayList<IndexSearchCondition>();
+    ExprNodeDesc residualPredicate = analyzer.analyzePredicate(predicate, searchConditions);
+
+    DecomposedPredicate decomposedPredicate = new DecomposedPredicate();
+    decomposedPredicate.pushedPredicate = analyzer.translateSearchConditions(searchConditions);
+    decomposedPredicate.residualPredicate = residualPredicate;
+    return decomposedPredicate;
+  }
+
+  private IndexPredicateAnalyzer newIndexPredicateAnalyzer() {
+    IndexPredicateAnalyzer analyzer = new IndexPredicateAnalyzer();
+    analyzer.addComparisonOp("org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqual");
+    analyzer.addComparisonOp("org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrGreaterThan");
+    analyzer.addComparisonOp("org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrLessThan");
+    analyzer.addComparisonOp("org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPLessThan");
+    analyzer.addComparisonOp("org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPGreaterThan");
+
+    return analyzer;
   }
 }

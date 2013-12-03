@@ -40,6 +40,9 @@ public class ConfigurationUtils {
   public static final String HIVE_JDBC_OUTPUT_BATCH_SIZE = "hive.jdbc.output.batch.size";
   public static final int HIVE_JDBC_OUTPUT_BATCH_SIZE_DEFAULT = 1000;
 
+  public static final String HIVE_JDBC_ENABLE_FILTER_PUSHDOWN = "hive.jdbc.enable.filter.pushdown";
+  public static final boolean HIVE_JDBC_ENABLE_FILTER_PUSHDOWN_DEFAULT = false;
+
   // serdeConstants
   public static final String LIST_COLUMNS = "columns";
   public static final String LIST_COLUMN_TYPES = "columns.types";
@@ -67,7 +70,8 @@ public class ConfigurationUtils {
       HIVE_JDBC_MAXROW_PER_TASK,
       HIVE_JDBC_MINROW_PER_TASK,
       HIVE_JDBC_INPUT_BATCH_SIZE,
-      HIVE_JDBC_OUTPUT_BATCH_SIZE);
+      HIVE_JDBC_OUTPUT_BATCH_SIZE,
+      HIVE_JDBC_ENABLE_FILTER_PUSHDOWN);
 
   public static final List<String> UPDATABLE_PROPERTIES = Arrays.asList(
       HIVE_JDBC_INPUT_COLUMNS_MAPPING,
@@ -76,7 +80,8 @@ public class ConfigurationUtils {
       HIVE_JDBC_MAXROW_PER_TASK,
       HIVE_JDBC_MINROW_PER_TASK,
       HIVE_JDBC_INPUT_BATCH_SIZE,
-      HIVE_JDBC_OUTPUT_BATCH_SIZE
+      HIVE_JDBC_OUTPUT_BATCH_SIZE,
+      HIVE_JDBC_ENABLE_FILTER_PUSHDOWN
   );
 
   public static void copyJDBCProperties(Properties from, Map<String, String> to, boolean output) {

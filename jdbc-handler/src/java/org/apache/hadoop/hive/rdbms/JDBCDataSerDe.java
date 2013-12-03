@@ -60,7 +60,7 @@ public class JDBCDataSerDe implements SerDe {
 
   public List<Object> deserialize(Writable writable) throws SerDeException {
     if (!(writable instanceof RowWritable)) {
-      throw new SerDeException("Expected MapWritable, received " + writable.getClass().getName());
+      throw new SerDeException("Expected RowWritable, but received: " + writable.getClass().getName());
     }
     return ((RowWritable) writable).get();
   }
