@@ -1942,12 +1942,14 @@ public final class Utilities {
                 if (inputFormatObj instanceof ContentSummaryInputFormat) {
                   resultCs = ((ContentSummaryInputFormat) inputFormatObj).getContentSummary(p,
                       myJobConf);
-                } else {
-                  FileSystem fs = p.getFileSystem(myConf);
-                  resultCs = fs.getContentSummary(p);
+                  resultMap.put(pathStr, resultCs);
+                  return;
                 }
-                resultMap.put(pathStr, resultCs);
-              } catch (IOException e) {
+                // todo: should nullify summary for non-native tables,
+                // not to be selected as a mapjoin target
+                FileSystem fs = p.getFileSystem(myConf);
+                resultMap.put(pathStr, fs.getContentSummary(p));
+              } catch (Exception e) {
                 // We safely ignore this exception for summary data.
                 // We don't update the cache to protect it from polluting other
                 // usages. The worst case is that IOException will always be
@@ -2003,6 +2005,23 @@ public final class Utilities {
         HiveInterruptUtils.remove(interrup);
       }
     }
+  }
+
+  // return sum of lengths except one alias. returns -1 if any of other alias is unknown
+  public static long sumOfExcept(Map<String, Long> aliasToSize,
+      Set<String> aliases, String except) {
+    long total = 0;
+    for (String alias : aliases) {
+      if (alias.equals(except)) {
+        continue;
+      }
+      Long size = aliasToSize.get(alias);
+      if (size == null) {
+        return -1;
+      }
+      total += size;
+    }
+    return total;
   }
 
   public static boolean isEmptyPath(JobConf job, String dirPath, Context ctx)
