@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Stack;
 
 import org.apache.hadoop.conf.Configuration;
@@ -424,6 +425,22 @@ public class CommonJoinResolver implements PhysicalPlanResolver {
       copyReducerConf(mapJoinTask, childTask);
     }
 
+    private boolean cannotConvert(String bigTableAlias,
+        Map<String, Long> aliasToSize, long aliasTotalKnownInputSize,
+        long ThresholdOfSmallTblSizeSum) {
+      boolean ret = false;
+      Long aliasKnownSize = aliasToSize.get(bigTableAlias);
+      if (aliasKnownSize != null && aliasKnownSize.longValue() > 0) {
+        long smallTblTotalKnownSize = aliasTotalKnownInputSize
+            - aliasKnownSize.longValue();
+        if (smallTblTotalKnownSize > ThresholdOfSmallTblSizeSum) {
+          //this table is not good to be a big table.
+          ret = true;
+        }
+      }
+      return ret;
+    }
+
     private Task<? extends Serializable> processCurrentTask(MapRedTask currTask,
         ConditionalTask conditionalTask, Context context)
         throws SemanticException {
@@ -495,7 +512,7 @@ public class CommonJoinResolver implements PhysicalPlanResolver {
 
         Configuration conf = context.getConf();
 
-        // If sizes of atleast n-1 tables in a n-way join is known, and their sum is smaller than
+        // If sizes of at least n-1 tables in a n-way join is known, and their sum is smaller than
         // the threshold size, convert the join into map-join and don't create a conditional task
         boolean convertJoinMapJoin = HiveConf.getBoolVar(conf,
             HiveConf.ConfVars.HIVECONVERTJOINNOCONDITIONALTASK);
@@ -505,51 +522,34 @@ public class CommonJoinResolver implements PhysicalPlanResolver {
           long mapJoinSize = HiveConf.getLongVar(conf,
               HiveConf.ConfVars.HIVECONVERTJOINNOCONDITIONALTASKTHRESHOLD);
 
-          boolean bigTableFound = false;
-          long largestBigTableCandidateSize = 0;
-          long sumTableSizes = 0;
-          for (String alias : aliasToWork.keySet()) {
+          Long bigTableSize = null;
+          Set<String> aliases = aliasToWork.keySet();
+          for (String alias : aliases) {
             int tablePosition = getPosition(currWork, joinOp, alias);
-            boolean bigTableCandidate = bigTableCandidates.contains(tablePosition);
-            Long size = aliasToSize.get(alias);
-            // The size is not available at compile time if the input is a sub-query.
-            // If the size of atleast n-1 inputs for a n-way join are available at compile time,
-            // and the sum of them is less than the specified threshold, then convert the join
-            // into a map-join without the conditional task.
-            if ((size == null) || (size > mapJoinSize)) {
-              sumTableSizes += largestBigTableCandidateSize;
-              if (bigTableFound || (sumTableSizes > mapJoinSize) || !bigTableCandidate) {
-                convertJoinMapJoin = false;
-                break;
-              }
-              bigTableFound = true;
+            if (!bigTableCandidates.contains(tablePosition)) {
+              continue;
+            }
+            long sumOfOthers = Utilities.sumOfExcept(aliasToSize, aliases, alias);
+            if (sumOfOthers < 0 || sumOfOthers > mapJoinSize) {
+              continue; // some small alias is not known or too big
+            }
+            if (bigTableSize == null && bigTablePosition >= 0 && tablePosition < bigTablePosition) {
+              continue; // prefer right most alias
+            }
+            Long aliasSize = aliasToSize.get(alias);
+            if (bigTableSize == null || (aliasSize != null && aliasSize > bigTableSize)) {
               bigTablePosition = tablePosition;
-              largestBigTableCandidateSize = mapJoinSize + 1;
-            } else {
-              if (bigTableCandidate && size > largestBigTableCandidateSize) {
-                bigTablePosition = tablePosition;
-                sumTableSizes += largestBigTableCandidateSize;
-                largestBigTableCandidateSize = size;
-              }
-              else {
-                sumTableSizes += size;
-              }
-
-              if (sumTableSizes > mapJoinSize) {
-                convertJoinMapJoin = false;
-                break;
-              }
+              bigTableSize = aliasSize;
             }
           }
         }
 
-        String bigTableAlias = null;
         currWork.setOpParseCtxMap(parseCtx.getOpParseCtx());
         currWork.setJoinTree(joinTree);
 
-        if (convertJoinMapJoin) {
+        if (bigTablePosition >= 0) {
           // create map join task and set big table as bigTablePosition
-          MapRedTask newTask = convertTaskToMapJoinTask(currWork, bigTablePosition).getFirst();
+          MapRedTask newTask = convertTaskToMapJoinTask(currTask.getWork(), bigTablePosition).getFirst();
 
           newTask.setTaskTag(Task.MAPJOIN_ONLY_NOBACKUP);
           replaceTask(currTask, newTask, physicalContext);
@@ -585,23 +585,17 @@ public class CommonJoinResolver implements PhysicalPlanResolver {
             continue;
           }
 
-          // deep copy a new mapred work from xml
           InputStream in = new ByteArrayInputStream(xml.getBytes("UTF-8"));
           MapredWork newWork = Utilities.deserializeMapRedWork(in, physicalContext.getConf());
 
           // create map join task and set big table as i
           ObjectPair<MapRedTask, String> newTaskAlias = convertTaskToMapJoinTask(newWork, i);
           MapRedTask newTask = newTaskAlias.getFirst();
-          bigTableAlias = newTaskAlias.getSecond();
+          String bigTableAlias = newTaskAlias.getSecond();
 
-          Long aliasKnownSize = aliasToSize.get(bigTableAlias);
-          if (aliasKnownSize != null && aliasKnownSize.longValue() > 0) {
-            long smallTblTotalKnownSize = aliasTotalKnownInputSize
-                - aliasKnownSize.longValue();
-            if(smallTblTotalKnownSize > ThresholdOfSmallTblSizeSum) {
-              //this table is not good to be a big table.
-              continue;
-            }
+          if (cannotConvert(bigTableAlias, aliasToSize,
+              aliasTotalKnownInputSize, ThresholdOfSmallTblSizeSum)) {
+            continue;
           }
 
           // add into conditional task
@@ -609,7 +603,7 @@ public class CommonJoinResolver implements PhysicalPlanResolver {
           listTasks.add(newTask);
           newTask.setTaskTag(Task.CONVERTED_MAPJOIN);
 
-          //set up backup task
+          // set up backup task
           newTask.setBackupTask(currTask);
           newTask.setBackupChildrenTasks(currTask.getChildTasks());
 
