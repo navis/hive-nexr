@@ -382,7 +382,12 @@ public enum ErrorMsg {
   COLUMNSTATSCOLLECTOR_PARSE_ERROR(30009, "Encountered parse error while parsing rewritten query"),
   COLUMNSTATSCOLLECTOR_IO_ERROR(30010, "Encountered I/O exception while parsing rewritten query"),
   DROP_COMMAND_NOT_ALLOWED_FOR_PARTITION(30011, "Partition protected from being dropped"),
-    ;
+
+
+  FAILED_TO_RESOLVE_DRIVER_ALIAS_FOR_AUTOMAPJOIN(30018,
+      "Failed to resolve driver alias.. fall back to common join"),
+  FOUND_DRIVER_ALIAS_FOR_AUTOMAPJOIN(30019, "Driver alias is {0} with estimated size {1}", true),
+  ;
 
   private int errorCode;
   private String mesg;
@@ -625,6 +630,10 @@ public enum ErrorMsg {
 
   public String getErrorCodedMsg() {
     return "[Error " + errorCode + "]: " + mesg;
+  }
+
+  public String getErrorCodedMsg(String... reasons) {
+    return "[Error " + errorCode + "]: " + format(reasons);
   }
 
   public static Pattern getErrorCodePattern() {
