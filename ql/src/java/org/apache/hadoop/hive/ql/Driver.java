@@ -990,6 +990,10 @@ public class Driver implements CommandProcessor {
       return new CommandProcessorResponse(12, errorMessage, SQLState);
     }
 
+    if (SessionState.get() != null) {
+      SessionState.get().getLineageState().clear();
+    }
+
     hookContext = new HiveDriverRunHookContextImpl(conf, command);
     // Get all the driver run hooks and pre-execute them.
     try {
