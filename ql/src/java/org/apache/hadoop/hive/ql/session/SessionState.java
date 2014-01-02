@@ -133,9 +133,11 @@ public class SessionState {
   /**
    * Lineage state.
    */
-  LineageState ls;
+  private final LineageState ls;
 
   private String currentDB;
+
+  private boolean initialized;
 
   /**
    * Get the lineage state stored in this session.
@@ -251,52 +253,50 @@ public class SessionState {
 
     tss.set(startSs);
 
-    HiveConf conf = startSs.getConf();
-    Thread.currentThread().setContextClassLoader(conf.getClassLoader());
-
-    if (StringUtils.isEmpty(conf.getVar(HiveConf.ConfVars.HIVESESSIONID))) {
-      conf.setVar(HiveConf.ConfVars.HIVESESSIONID, makeSessionId());
-    }
-
-    if (startSs.hiveHist == null) {
-      startSs.hiveHist = new HiveHistory(startSs);
-    }
-
-    if (startSs.getTmpOutputFile() == null) {
-      // per-session temp file containing results to be sent from HiveServer to HiveClient
-      File tmpDir = new File(
-          HiveConf.getVar(conf, HiveConf.ConfVars.HIVEHISTORYFILELOC));
-      String sessionID = conf.getVar(HiveConf.ConfVars.HIVESESSIONID);
-      try {
-        File tmpFile = File.createTempFile(sessionID, ".pipeout", tmpDir);
-        tmpFile.deleteOnExit();
-        startSs.setTmpOutputFile(tmpFile);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-
     try {
-      Hive hive = Hive.get(conf);
-      hive.setCurrentDatabase(startSs.getCurrentDB());
-
-      startSs.authenticator = HiveUtils.getAuthenticator(
-          conf,HiveConf.ConfVars.HIVE_AUTHENTICATOR_MANAGER);
-      startSs.authorizer = HiveUtils.getAuthorizeProviderManager(
-          conf, HiveConf.ConfVars.HIVE_AUTHORIZATION_MANAGER,
-          startSs.authenticator);
-      startSs.createTableGrants = CreateTableAutomaticGrant.create(conf);
-    } catch (HiveException e) {
+      startSs.start();
+    } catch (Exception e) {
       throw new RuntimeException(e);
     }
 
+    return startSs;
+  }
+
+  private void start() throws Exception {
+
+    Thread.currentThread().setContextClassLoader(conf.getClassLoader());
+
+    if (!initialized) {
+      String sessionID = makeSessionId();
+      conf.setVar(HiveConf.ConfVars.HIVESESSIONID, sessionID);
+
+      hiveHist = new HiveHistory(this);
+
+      // per-session temp file containing results to be sent from HiveServer to HiveClient
+      File tmpDir = new File(
+          HiveConf.getVar(conf, HiveConf.ConfVars.HIVEHISTORYFILELOC));
+
+      File tmpFile = File.createTempFile(sessionID, ".pipeout", tmpDir);
+      tmpFile.deleteOnExit();
+      setTmpOutputFile(tmpFile);
+
+      Hive hive = Hive.get(conf);
+      hive.setCurrentDatabase(currentDB);
+
+      authenticator = HiveUtils.getAuthenticator(
+          conf,HiveConf.ConfVars.HIVE_AUTHENTICATOR_MANAGER);
+      authorizer = HiveUtils.getAuthorizeProviderManager(
+          conf, HiveConf.ConfVars.HIVE_AUTHORIZATION_MANAGER,
+          authenticator);
+      createTableGrants = CreateTableAutomaticGrant.create(conf);
+
+      initialized = true;
+    }
 
     if (Thread.interrupted()) {
       getConsole().printInfo("Worker thread " + Thread.currentThread() +
           " is in interrupted state.. flag is cleaned-up");
     }
-
-    return startSs;
   }
 
   /**
@@ -809,6 +809,20 @@ public class SessionState {
       }
     } catch (IOException e) {
       LOG.info("Error removing session resource dir " + resourceDir, e);
+    } finally {
+      tss.remove();
+      clear();
     }
+  }
+
+  private void clear() {
+    ls.clear();
+    authorizer = null;
+    authenticator = null;
+    lastMapRedStatsList = null;
+    hiveVariables = null;
+    stackTraces = null;
+    overriddenConfigurations = null;
+    localMapRedErrors = null;
   }
 }

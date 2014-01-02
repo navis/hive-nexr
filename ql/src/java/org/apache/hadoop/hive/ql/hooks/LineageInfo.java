@@ -401,4 +401,8 @@ public class LineageInfo implements Serializable {
   public Set<Map.Entry<DependencyKey, Dependency>> entrySet() {
     return index.entrySet();
   }
+
+  public void clear() {
+    index.clear();
+  }
 }
