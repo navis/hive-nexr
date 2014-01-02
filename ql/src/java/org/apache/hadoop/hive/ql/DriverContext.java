@@ -106,7 +106,9 @@ public class DriverContext {
    * Cleans up remaining tasks in case of failure
    */
   public void shutdown() {
-    LOG.warn("Shutting down query " + ctx.getCmd());
+    if (isRunning()) {
+      LOG.warn("Shutting down query " + ctx.getCmd());
+    }
     shutdown = true;
     for (TaskRunner runner : running) {
       if (runner.isRunning()) {
