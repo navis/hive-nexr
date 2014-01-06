@@ -83,7 +83,9 @@ public class HashReducer extends ExecReducer implements OutputCollector<HiveKey,
     BytesIterator iterator = new BytesIterator();
     try {
       for (Map.Entry<HiveKey, List<byte[]>> entry : tree.entrySet()) {
-        reduce(entry.getKey(), iterator.reset(entry.getValue()), this, null);
+        List<byte[]> values = entry.getValue();
+        reduce(entry.getKey(), iterator.reset(values), this, null);
+        values.clear();
         if (reducer.getDone()) {
           break;  // early exit
         }
@@ -99,8 +101,6 @@ public class HashReducer extends ExecReducer implements OutputCollector<HiveKey,
 
   private static class BytesIterator implements Iterator<BytesWritable> {
 
-    private final BytesWritable WRITABLE = new BytesWritable();
-
     private Iterator<byte[]> values;
 
     public Iterator<BytesWritable> reset(List<byte[]> values) {
@@ -113,9 +113,7 @@ public class HashReducer extends ExecReducer implements OutputCollector<HiveKey,
     }
 
     public BytesWritable next() {
-      byte[] value = values.next();
-      WRITABLE.set(value, 0, value.length);
-      return WRITABLE;
+      return new BytesWritable(values.next());
     }
 
     public void remove() {
