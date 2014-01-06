@@ -169,21 +169,23 @@ public class Driver implements CommandProcessor {
 
     if (lockManager instanceof SharedLockManager) {
       sharedLockMgr = (SharedLockManager) lockManager;
-      Runtime.getRuntime().addShutdownHook(new Thread() {
-        @Override
-        public void run() {
-          try {
-            sharedLockMgr.close();
-          } catch (Exception e) {
-            LOG.error("Failed to close lock manager", e);
-          }
-          sharedLockMgr = null;
-        }
-      });
+      Runtime.getRuntime().addShutdownHook(new LockShutdownHook());
     } else {
       hiveLockMgr = lockManager;
     }
     return lockManager != null;
+  }
+
+  private static class LockShutdownHook extends Thread {
+    @Override
+    public void run() {
+      try {
+        sharedLockMgr.close();
+      } catch (Exception e) {
+        LOG.error("Failed to close lock manager", e);
+      }
+      sharedLockMgr = null;
+    }
   }
 
   private HiveLockManager createLockManager() throws SemanticException {

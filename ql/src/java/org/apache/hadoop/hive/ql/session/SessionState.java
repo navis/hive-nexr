@@ -251,7 +251,7 @@ public class SessionState {
    */
   public static SessionState start(SessionState startSs) {
 
-    tss.set(startSs);
+    attachSession(startSs);
 
     try {
       startSs.start();
@@ -260,6 +260,14 @@ public class SessionState {
     }
 
     return startSs;
+  }
+
+  public static void attachSession(SessionState startSs) {
+    tss.set(startSs);
+  }
+
+  public static void detachSession() {
+    tss.remove();
   }
 
   private void start() throws Exception {
@@ -810,7 +818,7 @@ public class SessionState {
     } catch (IOException e) {
       LOG.info("Error removing session resource dir " + resourceDir, e);
     } finally {
-      tss.remove();
+      detachSession();
       clear();
     }
   }

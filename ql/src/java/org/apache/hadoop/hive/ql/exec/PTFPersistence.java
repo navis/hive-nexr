@@ -198,9 +198,9 @@ public class PTFPersistence {
       try
       {
         i = index(i);
-        DataIStream dis = PTFPersistence.dis.get();
-        ByteArrayIS bis = dis.getUnderlyingStream();
+        ByteArrayIS bis = new ByteArrayIS();
         bis.setBuffer(bytes, offsetsArray[i], offsetsArray[i+1]);
+        DataIStream dis = new DataIStream(bis);
         wObj.readFields(dis);
       }
       catch(IOException ie)
@@ -1077,24 +1077,6 @@ public class PTFPersistence {
       buffer.put(b, off, len);
     }
   }
-
-  public static ThreadLocal<ByteArrayIS> bis = new ThreadLocal<ByteArrayIS>()
-  {
-    @Override
-    protected ByteArrayIS initialValue()
-    {
-      return new ByteArrayIS();
-    }
-  };
-
-  public static ThreadLocal<DataIStream> dis = new ThreadLocal<DataIStream>()
-  {
-    @Override
-    protected DataIStream initialValue()
-    {
-      return new DataIStream(bis.get());
-    }
-  };
 
   public static ThreadLocal<ByteArrayOS> bos = new ThreadLocal<ByteArrayOS>()
   {

@@ -119,12 +119,11 @@ public class HiveSessionImpl implements HiveSession {
   }
 
   protected synchronized void acquire() throws HiveSQLException {
-    SessionState.start(sessionState);
+    SessionState.attachSession(sessionState);
   }
 
   protected synchronized void release() {
-    assert sessionState != null;
-    // no need to release sessionState...
+    SessionState.detachSession();
   }
 
   public SessionHandle getSessionHandle() {
@@ -377,10 +376,10 @@ public class HiveSessionImpl implements HiveSession {
         hiveHist.closeStream();
       }
       sessionState.close();
-      release();
     } catch (IOException ioe) {
-      release();
       throw new HiveSQLException("Failure to close", ioe);
+    } finally {
+      release();
     }
   }
 
