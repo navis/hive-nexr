@@ -171,5 +171,12 @@ public abstract class TableFunctionEvaluator
   {
     return null;
   }
+
+  public void close() {
+    if (outputPartition != null) {
+      outputPartition.close();
+    }
+    outputPartition = null;
+  }
 }
 

@@ -119,6 +119,9 @@ public class LineageState {
   public void clear() {
     dirToFop.clear();
     linfo.clear();
-    index = null;
+    if (index != null) {
+      index.clear();
+      index = null;
+    }
   }
 }

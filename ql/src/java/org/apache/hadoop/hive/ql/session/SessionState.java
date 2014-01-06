@@ -251,7 +251,7 @@ public class SessionState {
    */
   public static SessionState start(SessionState startSs) {
 
-    tss.set(startSs);
+    attachSession(startSs);
 
     try {
       startSs.start();
@@ -262,9 +262,16 @@ public class SessionState {
     return startSs;
   }
 
-  private void start() throws Exception {
+  public static void attachSession(SessionState startSs) {
+    tss.set(startSs);
+    Thread.currentThread().setContextClassLoader(startSs.getConf().getClassLoader());
+  }
 
-    Thread.currentThread().setContextClassLoader(conf.getClassLoader());
+  public static void detachSession() {
+    tss.remove();
+  }
+
+  private void start() throws Exception {
 
     if (!initialized) {
       String sessionID = makeSessionId();
@@ -810,7 +817,7 @@ public class SessionState {
     } catch (IOException e) {
       LOG.info("Error removing session resource dir " + resourceDir, e);
     } finally {
-      tss.remove();
+      detachSession();
       clear();
     }
   }
