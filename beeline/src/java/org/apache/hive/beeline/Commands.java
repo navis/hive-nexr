@@ -44,6 +44,8 @@
  */
 package org.apache.hive.beeline;
 
+import jline.ConsoleReader;
+
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileReader;
@@ -692,18 +694,29 @@ public class Commands {
 
     // use multiple lines for statements not terminated by ";"
     try {
-      while (!(line.trim().endsWith(";"))) {
-        StringBuilder prompt = new StringBuilder(beeLine.getPrompt());
-        for (int i = 0; i < prompt.length() - 1; i++) {
-          if (prompt.charAt(i) != '>') {
-            prompt.setCharAt(i, i % 2 == 0 ? '.' : ' ');
+      if (!line.trim().endsWith(";")) {
+        StringBuilder prefix = new StringBuilder(beeLine.getPrompt());
+        for (int i = 0; i < prefix.length() - 1; i++) {
+          if (prefix.charAt(i) != '>') {
+            prefix.setCharAt(i, i % 2 == 0 ? '.' : ' ');
           }
         }
+        String prompt = prefix.toString();
 
-        String extra = beeLine.getConsoleReader().readLine(prompt.toString());
-        if (!beeLine.isComment(extra)) {
-          line += " " + extra;
+        StringBuilder command = new StringBuilder();
+        command.append(line).append('\n');
+
+        ConsoleReader reader = beeLine.getConsoleReader();
+        while ((line = reader.readLine(prompt)) != null) {
+          if (!beeLine.isComment(line)) {
+            command.append(line);
+            if (line.endsWith(";")) {
+              break;
+            }
+            command.append('\n');
+          }
         }
+        line = command.toString();
       }
     } catch (Exception e) {
       beeLine.handleException(e);
