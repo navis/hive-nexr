@@ -39,7 +39,7 @@ public class DBRecordWriter implements RecordWriter {
     PrimitiveCategory[] categories = ConfigurationUtils.toTypes(types);
     ColumnAccess[] columns = new ColumnAccess[types.length];
     for (int i = 0; i < types.length; i++) {
-      columns[i] = new ColumnAccess(categories[i], i + 1);
+      columns[i] = new ColumnAccess(dbProperties.getDatabaseType(), categories[i], i + 1);
     }
     this.columns = columns;
 

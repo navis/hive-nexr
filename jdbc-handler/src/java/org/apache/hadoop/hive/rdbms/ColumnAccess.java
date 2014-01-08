@@ -8,14 +8,17 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
 
+import org.apache.hadoop.hive.rdbms.db.DatabaseType;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.PrimitiveCategory;
 
 public class ColumnAccess {
 
+  public final DatabaseType database;
   public final PrimitiveCategory type;
   public final int index;
 
-  public ColumnAccess(PrimitiveCategory type, int index) {
+  public ColumnAccess(DatabaseType database, PrimitiveCategory type, int index) {
+    this.database = database;
     this.type = type;
     this.index = index;
   }
@@ -27,6 +30,12 @@ public class ColumnAccess {
       case VOID:
         return null;
       case BOOLEAN:
+        if (database == DatabaseType.ORACLE) {
+          // support non-spec boolean expression
+          String stringVal = results.getString(index);
+          return results.wasNull() ? null :
+              (stringVal.equals("0") || stringVal.equals("t") || stringVal.equals("true"));
+        }
         boolean boolVal = results.getBoolean(index);
         return results.wasNull() ? null : boolVal;
       case BYTE:

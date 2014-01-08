@@ -87,7 +87,7 @@ public class DBRecordReader implements RecordReader<LongWritable, RowWritable> {
       if (index == null) {
         log.warn("Invalid column name " + names[i] + ":" + name);
       } else {
-        columns[i] = new ColumnAccess(types[i], index);
+        columns[i] = new ColumnAccess(properties.getDatabaseType(), types[i], index);
       }
     }
     this.columns = columns;
