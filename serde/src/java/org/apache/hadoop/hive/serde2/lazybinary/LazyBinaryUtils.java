@@ -197,10 +197,7 @@ public final class LazyBinaryUtils {
         break;
       case TIMESTAMP:
         recordInfo.elementOffset = 0;
-        recordInfo.elementSize = 4;
-        if (TimestampWritable.hasDecimal(bytes[offset])) {
-          recordInfo.elementSize += WritableUtils.decodeVIntSize(bytes[offset+4]);
-        }
+        recordInfo.elementSize = TimestampWritable.getTotalLength(bytes, offset);
         break;
       case DECIMAL:
         // using vint instead of 4 bytes
@@ -328,6 +325,28 @@ public final class LazyBinaryUtils {
 
   public static void writeVLong(Output byteStream, long l) {
     writeVLongToStream(byteStream, l);
+  }
+
+  /**
+   * Read a zero-compressed encoded long from a byte array.
+   *
+   * @param bytes the byte array
+   * @param offset the offset in the byte array where the VLong is stored
+   * @return the long
+   */
+  public static long readVLongFromByteArray(final byte[] bytes, int offset) {
+    byte firstByte = bytes[offset++];
+    int len = WritableUtils.decodeVIntSize(firstByte);
+    if (len == 1) {
+      return firstByte;
+    }
+    long i = 0;
+    for (int idx = 0; idx < len-1; idx++) {
+      byte b = bytes[offset++];
+      i = i << 8;
+      i = i | (b & 0xFF);
+    }
+    return (WritableUtils.isNegativeVInt(firstByte) ? ~i : i);
   }
 
   /**
