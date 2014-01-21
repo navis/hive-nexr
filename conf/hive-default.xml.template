@@ -375,7 +375,7 @@
 
 <property>
   <name>hive.optimize.multigroupby.common.distincts</name>
-  <value>true</value>
+  <value>false</value>
   <description>Whether to optimize a multi-groupby query with the same distinct.
     Consider a query like:
 
