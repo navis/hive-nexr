@@ -410,7 +410,7 @@ public class HiveConf extends Configuration {
     HIVEMAPSIDEAGGREGATE("hive.map.aggr", true),
     HIVEGROUPBYSKEW("hive.groupby.skewindata", false),
     HIVE_OPTIMIZE_MULTI_GROUPBY_COMMON_DISTINCTS("hive.optimize.multigroupby.common.distincts",
-        true),
+        false),
     HIVEJOINEMITINTERVAL("hive.join.emit.interval", 1000),
     HIVEJOINCACHESIZE("hive.join.cache.size", 25000),
     HIVEMAPJOINBUCKETCACHESIZE("hive.mapjoin.bucket.cache.size", 100),
