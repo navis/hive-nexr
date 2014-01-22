@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaHook;
+import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.ql.plan.AlterTableDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.serde2.SerDe;
@@ -101,5 +102,9 @@ public class DefaultStorageHandler implements HiveStorageHandler {
   @Override
   public void setConf(Configuration conf) {
     this.conf = conf;
+  }
+
+  public void truncateTable(org.apache.hadoop.hive.metastore.api.Table table) throws MetaException {
+    throw new UnsupportedOperationException("truncateTable");
   }
 }

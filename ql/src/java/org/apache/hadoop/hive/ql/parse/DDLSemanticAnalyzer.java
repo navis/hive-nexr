@@ -839,8 +839,8 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
     if (table.getTableType() != TableType.MANAGED_TABLE) {
       throw new SemanticException(ErrorMsg.TRUNCATE_FOR_NON_MANAGED_TABLE.format(tableName));
     }
-    if (table.isNonNative()) {
-      throw new SemanticException(ErrorMsg.TRUNCATE_FOR_NON_NATIVE_TABLE.format(tableName)); //TODO
+    if (table.isNonNative() && table.getStorageHandler().getMetaHook() == null) {
+      throw new SemanticException(ErrorMsg.TRUNCATE_FOR_NON_NATIVE_TABLE.format(tableName));
     }
     if (!table.isPartitioned() && root.getChildCount() > 1) {
       throw new SemanticException(ErrorMsg.PARTSPEC_FOR_NON_PARTITIONED_TABLE.format(tableName));
