@@ -146,4 +146,12 @@ public interface HiveMetaHook {
    */
   public void commitDropPartition(Table table, Partition partition, boolean deleteData)
     throws MetaException;
+
+  /**
+   * Called for truncate table
+   *
+   * @param table table definition
+   * @throws MetaException
+   */
+  public void truncateTable(Table table) throws MetaException;
 }
