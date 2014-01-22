@@ -816,6 +816,20 @@ POSTHOOK: Input: default@hbase_table_8
 #### A masked pattern was here ####
 98	val_98	99	100
 100	val_100	101	102
+PREHOOK: query: truncate table hbase_table_8
+PREHOOK: type: TRUNCATETABLE
+PREHOOK: Output: default@hbase_table_8
+POSTHOOK: query: truncate table hbase_table_8
+POSTHOOK: type: TRUNCATETABLE
+POSTHOOK: Output: default@hbase_table_8
+PREHOOK: query: SELECT * FROM hbase_table_8
+PREHOOK: type: QUERY
+PREHOOK: Input: default@hbase_table_8
+#### A masked pattern was here ####
+POSTHOOK: query: SELECT * FROM hbase_table_8
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@hbase_table_8
+#### A masked pattern was here ####
 PREHOOK: query: DROP TABLE hbase_table_1
 PREHOOK: type: DROPTABLE
 PREHOOK: Input: default@hbase_table_1

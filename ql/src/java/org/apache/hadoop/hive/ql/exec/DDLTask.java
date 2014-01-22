@@ -60,6 +60,7 @@ import org.apache.hadoop.hive.common.StatsSetupConst;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
+import org.apache.hadoop.hive.metastore.HiveMetaHook;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.ProtectMode;
 import org.apache.hadoop.hive.metastore.TableType;
@@ -4245,6 +4246,18 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
     Map<String, String> partSpec = truncateTableDesc.getPartSpec();
 
     Table table = db.getTable(tableName, true);
+
+    if (table.isNonNative()) {
+      HiveMetaHook metaHook = table.getStorageHandler().getMetaHook();
+      try {
+        metaHook.truncateTable(table.getTTable());
+      } catch (MetaException e) {
+        throw new HiveException(e.toString(), e);
+      } catch (UnsupportedOperationException e) {
+        throw new HiveException(ErrorMsg.TRUNCATE_FOR_NON_NATIVE_TABLE.format(tableName));
+      }
+      return 0;
+    }
 
     try {
       // this is not transactional

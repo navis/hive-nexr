@@ -579,4 +579,22 @@ public class HBaseStorageHandler extends DefaultStorageHandler
     decomposedPredicate.residualPredicate = residualPredicate;
     return decomposedPredicate;
   }
+
+  @Override
+  public void truncateTable(Table table) throws MetaException {
+    String tableName = getHBaseTableName(table);
+    try {
+      HBaseAdmin admin = getHBaseAdmin();
+      HTableDescriptor tableDesc = admin.getTableDescriptor(Bytes.toBytes(tableName));
+      if (admin.tableExists(tableName)) {
+        if (admin.isTableEnabled(tableName)) {
+          admin.disableTable(tableName);
+        }
+        admin.deleteTable(tableName);
+        admin.createTable(tableDesc);
+      }
+    } catch (IOException ie) {
+      throw new MetaException(StringUtils.stringifyException(ie));
+    }
+  }
 }

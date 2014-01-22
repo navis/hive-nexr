@@ -19,7 +19,6 @@
 package org.apache.hadoop.hive.metastore;
 
 import org.apache.hadoop.hive.metastore.api.MetaException;
-import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
 
 /**
@@ -89,4 +88,12 @@ public interface HiveMetaHook {
    */
   public void commitDropTable(Table table, boolean deleteData)
     throws MetaException;
+
+  /**
+   * Called for truncate table
+   *
+   * @param table table definition
+   * @throws MetaException
+   */
+  public void truncateTable(Table table) throws MetaException;
 }

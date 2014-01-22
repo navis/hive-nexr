@@ -148,6 +148,9 @@ FROM src WHERE key=98 OR key=100;
 
 SELECT * FROM hbase_table_8 ORDER BY key;
 
+truncate table hbase_table_8;
+SELECT * FROM hbase_table_8;
+
 DROP TABLE hbase_table_1;
 DROP TABLE hbase_table_2;
 DROP TABLE hbase_table_3;
