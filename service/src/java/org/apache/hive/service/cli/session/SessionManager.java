@@ -81,9 +81,6 @@ public class SessionManager extends CompositeService {
 
   public SessionHandle openSession(String username, String password, Map<String, String> sessionConf,
           boolean withImpersonation, String delegationToken) throws HiveSQLException {
-    if (username == null) {
-      username = threadLocalUserName.get();
-    }
     HiveSession session;
     if (withImpersonation) {
       HiveSessionImplwithUGI hiveSessionUgi = new HiveSessionImplwithUGI(new HiveConf(hiveConf),
@@ -104,9 +101,19 @@ public class SessionManager extends CompositeService {
       session.getHiveConf().setClassLoader(serverState.getConf().getClassLoader());
       clientState.addResourceMap(serverState.getResourceMap());
     }
-    SessionState.start(clientState);
+
+    session.startSession();
 
     return session.getSessionHandle();
+  }
+
+  public HiveSession openServerSession(boolean inheritToClient) throws HiveSQLException {
+    if (serverSession != null) {
+      return serverSession;
+    }
+    SessionHandle handle = openSession(null, null, null);
+    this.inheritToClient = inheritToClient;
+    return serverSession = handleToSession.get(handle);
   }
 
   public void closeSession(SessionHandle sessionHandle) throws HiveSQLException {
@@ -134,45 +141,6 @@ public class SessionManager extends CompositeService {
 
   public OperationManager getOperationManager() {
     return operationManager;
-  }
-
-  private static ThreadLocal<String> threadLocalIpAddress = new ThreadLocal<String>() {
-    @Override
-    protected synchronized String initialValue() {
-      return null;
-    }
-  };
-
-  public static void setIpAddress(String ipAddress) {
-    threadLocalIpAddress.set(ipAddress);
-  }
-
-  private void clearIpAddress() {
-    threadLocalIpAddress.remove();
-  }
-
-  private static ThreadLocal<String> threadLocalUserName = new ThreadLocal<String>(){
-    @Override
-    protected synchronized String initialValue() {
-      return null;
-    }
-  };
-
-  public static void setUserName(String userName) {
-    threadLocalUserName.set(userName);
-  }
-
-  private void clearUserName() {
-    threadLocalUserName.remove();
-  }
-
-  public HiveSession openServerSession(boolean inheritToClient) throws HiveSQLException {
-    if (serverSession != null) {
-      return serverSession;
-    }
-    SessionHandle handle = openSession(null, null, null);
-    this.inheritToClient = inheritToClient;
-    return serverSession = handleToSession.get(handle);
   }
 
   public List<Operation> getOperations() {

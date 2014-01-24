@@ -817,6 +817,7 @@ public class SessionState {
     } catch (IOException e) {
       LOG.info("Error removing session resource dir " + resourceDir, e);
     } finally {
+      initialized = false;
       detachSession();
       clear();
     }

@@ -118,6 +118,10 @@ public class HiveSessionImpl implements HiveSession {
     this.operationManager = operationManager;
   }
 
+  public void startSession() {
+    SessionState.start(sessionState);
+  }
+
   protected synchronized void acquire() throws HiveSQLException {
     SessionState.attachSession(sessionState);
   }
