@@ -34,6 +34,7 @@ import org.apache.hive.service.CompileResult;
 import org.apache.hive.service.OperationInfo;
 import org.apache.hive.service.SessionInfo;
 import org.apache.hive.service.auth.HiveAuthFactory;
+import org.apache.hive.service.auth.TSetIpAddressProcessor;
 import org.apache.hive.service.cli.CLIService;
 import org.apache.hive.service.cli.FetchOrientation;
 import org.apache.hive.service.cli.GetInfoType;
@@ -111,7 +112,6 @@ public class ThriftCLIService extends AbstractService implements TCLIService.Ifa
     super.stop();
   }
 
-
   @Override
   public TOpenSessionResp OpenSession(TOpenSessionReq req) throws TException {
     TOpenSessionResp resp = new TOpenSessionResp();
@@ -129,12 +129,14 @@ public class ThriftCLIService extends AbstractService implements TCLIService.Ifa
   }
 
   private String getUserName(TOpenSessionReq req) {
-    if (hiveAuthFactory != null
-        && hiveAuthFactory.getRemoteUser() != null) {
-      return hiveAuthFactory.getRemoteUser();
-    } else {
-      return req.getUsername();
+    String userName = null;
+    if (hiveAuthFactory != null) {
+      userName = hiveAuthFactory.getRemoteUser();       // kerberos
     }
+    if (userName == null) {
+      userName = TSetIpAddressProcessor.getUserName();  // except kerberos, nosasl
+    }
+    return userName != null ? userName : req.getUsername();
   }
 
   SessionHandle getSessionHandle(TOpenSessionReq req)
@@ -142,28 +144,29 @@ public class ThriftCLIService extends AbstractService implements TCLIService.Ifa
 
     String userName = getUserName(req);
 
-    SessionHandle sessionHandle = null;
-    if (
-        cliService.getHiveConf().getVar(ConfVars.HIVE_SERVER2_AUTHENTICATION)
-        .equals(HiveAuthFactory.AuthTypes.KERBEROS.toString())
-        &&
-        cliService.getHiveConf().
-        getBoolVar(ConfVars.HIVE_SERVER2_ENABLE_DOAS)
-        )
-    {
-      String delegationTokenStr = null;
-      try {
-        delegationTokenStr = cliService.getDelegationTokenFromMetaStore(userName);
-      } catch (UnsupportedOperationException e) {
-        // The delegation token is not applicable in the given deployment mode
-      }
-      sessionHandle = cliService.openSessionWithImpersonation(userName, req.getPassword(),
-            req.getConfiguration(), delegationTokenStr);
+    SessionHandle sessionHandle;
+    if (cliService.getHiveConf().getBoolVar(ConfVars.HIVE_SERVER2_ENABLE_DOAS)) {
+      String delegationTokenStr = getDelegationToken(userName);
+      sessionHandle = cliService.openSessionWithImpersonation(
+          userName, req.getPassword(), req.getConfiguration(), delegationTokenStr);
     } else {
-      sessionHandle = cliService.openSession(userName, req.getPassword(),
-            req.getConfiguration());
+      sessionHandle = cliService.openSession(
+          userName, req.getPassword(), req.getConfiguration());
     }
     return sessionHandle;
+  }
+
+  private String getDelegationToken(String userName) throws HiveSQLException, LoginException, IOException {
+    if (userName == null || !cliService.getHiveConf().getVar(ConfVars.HIVE_SERVER2_AUTHENTICATION)
+        .equals(HiveAuthFactory.AuthTypes.KERBEROS.toString())) {
+      return null;
+    }
+    try {
+      return cliService.getDelegationTokenFromMetaStore(userName);
+    } catch (UnsupportedOperationException e) {
+      // The delegation token is not applicable in the given deployment mode
+    }
+    return null;
   }
 
   @Override
