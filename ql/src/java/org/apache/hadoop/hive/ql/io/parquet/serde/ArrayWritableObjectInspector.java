@@ -139,14 +139,14 @@ public class ArrayWritableObjectInspector extends SettableStructObjectInspector 
 
     if (data instanceof ArrayWritable) {
       final ArrayWritable arr = (ArrayWritable) data;
-      return arr.get()[((StructFieldImpl) fieldRef).getIndex()];
+      return arr.get()[fieldRef.getFieldID()];
     }
 
     //since setStructFieldData and create return a list, getStructFieldData should be able to
     //handle list data. This is required when table serde is ParquetHiveSerDe and partition serde
     //is something else.
     if (data instanceof List) {
-      return ((List) data).get(((StructFieldImpl) fieldRef).getIndex());
+      return ((List) data).get(fieldRef.getFieldID());
     }
 
     throw new UnsupportedOperationException("Cannot inspect " + data.getClass().getCanonicalName());
@@ -184,7 +184,7 @@ public class ArrayWritableObjectInspector extends SettableStructObjectInspector 
   @Override
   public Object setStructFieldData(Object struct, StructField field, Object fieldValue) {
     final ArrayList<Object> list = (ArrayList<Object>) struct;
-    list.set(((StructFieldImpl) field).getIndex(), fieldValue);
+    list.set(field.getFieldID(), fieldValue);
     return list;
   }
 
@@ -232,18 +232,13 @@ public class ArrayWritableObjectInspector extends SettableStructObjectInspector 
       return name;
     }
 
-    public int getIndex() {
+    public int getFieldID() {
       return index;
     }
 
     @Override
     public ObjectInspector getFieldObjectInspector() {
       return inspector;
-    }
-
-    @Override
-    public int getFieldID() {
-      return index;
     }
   }
 }

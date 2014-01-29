@@ -35,6 +35,7 @@ import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeSpec;
 import org.apache.hadoop.hive.serde2.SerDeStats;
 import org.apache.hadoop.hive.serde2.lazy.LazySerDeParameters;
+import org.apache.hadoop.hive.serde2.FieldRewritable;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazySimpleStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.io.Writable;
@@ -66,7 +67,7 @@ import org.apache.hadoop.mapred.JobConf;
     HBaseSerDe.HBASE_SCAN_CACHEBLOCKS,
     HBaseSerDe.HBASE_SCAN_BATCH,
     HBaseSerDe.HBASE_AUTOGENERATE_STRUCT})
-public class HBaseSerDe extends AbstractSerDe {
+public class HBaseSerDe extends AbstractSerDe implements FieldRewritable {
   public static final Log LOG = LogFactory.getLog(HBaseSerDe.class);
 
   public static final String HBASE_COLUMNS_MAPPING = "hbase.columns.mapping";
@@ -124,6 +125,8 @@ public class HBaseSerDe extends AbstractSerDe {
 
     cachedHBaseRow = new LazyHBaseRow(
         (LazySimpleStructObjectInspector) cachedObjectInspector, serdeParams);
+
+    cachedHBaseRow.setSerdeParams(serdeParams.getSerdeParams());
 
     serializer = new HBaseRowSerializer(serdeParams);
 

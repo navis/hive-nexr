@@ -33,7 +33,6 @@ import org.apache.commons.lang.ClassUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.serde2.SerDeException;
-import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazy.LazyArray;
 import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
 import org.apache.hadoop.hive.serde2.lazy.LazyMap;
@@ -371,14 +370,13 @@ public class AvroLazyObjectInspector extends LazySimpleStructObjectInspector {
     }
 
     LazyObject<? extends ObjectInspector> lazyObject = LazyFactory.createLazyObject(oi);
-    ByteArrayRef ref = new ByteArrayRef();
 
     String objAsString = obj.toString().trim();
 
-    ref.setData(objAsString.getBytes());
+    byte[] bytes = objAsString.getBytes();
 
     // initialize the lazy object
-    lazyObject.init(ref, 0, ref.getData().length);
+    lazyObject.init(bytes, 0, bytes.length);
 
     return lazyObject;
   }

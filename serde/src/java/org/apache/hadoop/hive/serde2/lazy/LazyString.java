@@ -36,14 +36,13 @@ public class LazyString extends LazyPrimitive<LazyStringObjectInspector, Text> {
   }
 
   @Override
-  public void init(ByteArrayRef bytes, int start, int length) {
+  public void init(byte[] bytes, int start, int length) {
     if (oi.isEscaped()) {
       byte escapeChar = oi.getEscapeChar();
-      byte[] inputBytes = bytes.getData();
-      LazyUtils.copyAndEscapeStringDataToText(inputBytes, start, length, escapeChar, data);
+      LazyUtils.copyAndEscapeStringDataToText(bytes, start, length, escapeChar, data);
     } else {
       // if the data is not escaped, simply copy the data.
-      data.set(bytes.getData(), start, length);
+      data.set(bytes, start, length);
     }
     isNull = false;
   }

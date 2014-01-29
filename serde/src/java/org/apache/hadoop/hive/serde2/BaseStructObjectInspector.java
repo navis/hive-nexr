@@ -137,4 +137,8 @@ public abstract class BaseStructObjectInspector extends StructObjectInspector {
   public List<? extends StructField> getAllStructFieldRefs() {
     return fields;
   }
+
+  public StructField getFieldRef(int fieldID) {
+    return fields.get(fieldID);
+  }
 }

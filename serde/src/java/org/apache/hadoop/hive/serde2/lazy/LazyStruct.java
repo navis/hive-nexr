@@ -17,6 +17,7 @@
  */
 package org.apache.hadoop.hive.serde2.lazy;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -24,7 +25,6 @@ import java.util.List;
 import com.google.common.primitives.Bytes;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeStatsStruct;
 import org.apache.hadoop.hive.serde2.StructObject;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazySimpleStructObjectInspector;
@@ -69,6 +69,9 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
    */
   boolean[] fieldInited;
 
+  // non-null only for top level object (this struct is a row)
+  protected LazySerDeParameters serdeParams;
+
   /**
    * Construct a LazyStruct object with the ObjectInspector.
    */
@@ -79,10 +82,10 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
   /**
    * Set the row data for this LazyStruct.
    *
-   * @see LazyObject#init(ByteArrayRef, int, int)
+   * @see LazyObjectBase#init(byte[], int, int)
    */
   @Override
-  public void init(ByteArrayRef bytes, int start, int length) {
+  public void init(byte[] bytes, int start, int length) {
     super.init(bytes, start, length);
     parsed = false;
     serializedSize = length;
@@ -109,7 +112,6 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
     int fieldId = 0;
     int fieldByteBegin = start;
     int fieldByteEnd = start;
-    byte[] bytes = this.bytes.getData();
 
     // Go through all bytes in the byte[]
     while (fieldByteEnd <= structByteEnd) {
@@ -167,7 +169,7 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
     fields = new LazyObjectBase[fieldRefs.size()];
     for (int i = 0; i < fields.length; i++) {
       try {
-        fields[i] = createLazyField(i, fieldRefs.get(i));
+        fields[i] = createLazyField(fieldRefs.get(i));
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
@@ -178,7 +180,7 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
     startPosition = new int[fields.length + 1];
   }
 
-  protected LazyObjectBase createLazyField(int fieldID, StructField fieldRef) throws SerDeException {
+  protected LazyObjectBase createLazyField(StructField fieldRef) throws Exception {
     return LazyFactory.createLazyObject(fieldRef.getFieldObjectInspector());
   }
 
@@ -218,12 +220,25 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
     }
     fieldInited[fieldID] = true;
 
+    byte[] binary = bytes;
     int fieldByteBegin = startPosition[fieldID];
     int fieldLength = startPosition[fieldID + 1] - startPosition[fieldID] - 1;
-    if (isNull(oi.getNullSequence(), bytes, fieldByteBegin, fieldLength)) {
+    
+    if (serdeParams != null && serdeParams.isEncoded(fieldID)) {
+      try {
+        serdeParams.decode(fieldID, binary, fieldByteBegin, fieldLength);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+      binary = serdeParams.output.getData();
+      fieldLength = serdeParams.output.getCount();
+      fieldByteBegin = 0;
+    }
+
+    if (isNull(oi.getNullSequence(), binary, fieldByteBegin, fieldLength)) {
       fields[fieldID].setNull();
     } else {
-      fields[fieldID].init(bytes, fieldByteBegin, fieldLength);
+      fields[fieldID].init(binary, fieldByteBegin, fieldLength);
     }
     return fields[fieldID].getObject();
   }
@@ -333,12 +348,7 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
     return indexes;
   }
 
-  /**
-   * Return the data in bytes corresponding to this given struct. This is useful specifically in
-   * cases where the data is stored in serialized formats like protobufs or thrift and would need
-   * custom deserializers to be deserialized.
-   * */
-  public byte[] getBytes() {
-    return bytes.getData();
+  public void setSerdeParams(LazySerDeParameters serdeParams) {
+    this.serdeParams = serdeParams;
   }
 }

@@ -19,27 +19,23 @@
 package org.apache.hadoop.hive.serde2.lazy;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.AbstractEncodingAwareSerDe;
 import org.apache.hadoop.hive.serde2.ByteStream;
+import org.apache.hadoop.hive.serde2.FieldRewritable;
+import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeSpec;
 import org.apache.hadoop.hive.serde2.SerDeStats;
 import org.apache.hadoop.hive.serde2.SerDeUtils;
-import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyObjectInspectorParameters;
-import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyObjectInspectorParametersImpl;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.MapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -50,13 +46,10 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.UnionObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.io.BinaryComparable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.hive.common.util.HiveStringUtils;
 
 
 /**
@@ -79,12 +72,12 @@ import org.apache.hive.common.util.HiveStringUtils;
     LazySerDeParameters.SERIALIZATION_EXTEND_NESTING_LEVELS,
     LazySerDeParameters.SERIALIZATION_EXTEND_ADDITIONAL_NESTING_LEVELS
     })
-public class LazySimpleSerDe extends AbstractEncodingAwareSerDe {
+public class LazySimpleSerDe extends AbstractEncodingAwareSerDe implements FieldRewritable {
 
   public static final Log LOG = LogFactory.getLog(LazySimpleSerDe.class
       .getName());
 
-  private LazySerDeParameters serdeParams = null;
+  protected LazySerDeParameters serdeParams;
 
   private ObjectInspector cachedObjectInspector;
 
@@ -131,6 +124,8 @@ public class LazySimpleSerDe extends AbstractEncodingAwareSerDe {
     cachedLazyStruct = (LazyStruct) LazyFactory
         .createLazyObject(cachedObjectInspector);
 
+    cachedLazyStruct.setSerdeParams(serdeParams);
+
     LOG.debug(getClass().getName() + " initialized with: columnNames="
         + serdeParams.getColumnNames() + " columnTypes=" + serdeParams.getColumnTypes()
         + " separator=" + Arrays.asList(serdeParams.getSeparators())
@@ -146,9 +141,6 @@ public class LazySimpleSerDe extends AbstractEncodingAwareSerDe {
   // The object for storing row data
   LazyStruct cachedLazyStruct;
 
-  // The wrapper for byte array
-  ByteArrayRef byteArrayRef;
-
   /**
    * Deserialize a row from the Writable to a LazyObject.
    *
@@ -159,12 +151,8 @@ public class LazySimpleSerDe extends AbstractEncodingAwareSerDe {
    */
   @Override
   public Object doDeserialize(Writable field) throws SerDeException {
-    if (byteArrayRef == null) {
-      byteArrayRef = new ByteArrayRef();
-    }
     BinaryComparable b = (BinaryComparable) field;
-    byteArrayRef.setData(b.getBytes());
-    cachedLazyStruct.init(byteArrayRef, 0, b.getLength());
+    cachedLazyStruct.init(b.getBytes(), 0, b.getLength());
     lastOperationSerialize = false;
     lastOperationDeserialize = true;
     return cachedLazyStruct;
@@ -242,7 +230,7 @@ public class LazySimpleSerDe extends AbstractEncodingAwareSerDe {
             + TypeInfoUtils.getTypeInfoFromObjectInspector(objInspector));
       }
 
-      serializeField(serializeStream, f, foi, serdeParams);
+      serializeField(serializeStream, f, foi, serdeParams, i);
     }
 
     // TODO: The copy of data is unnecessary, but there is no work-around
@@ -256,10 +244,14 @@ public class LazySimpleSerDe extends AbstractEncodingAwareSerDe {
   }
 
   protected void serializeField(ByteStream.Output out, Object obj, ObjectInspector objInspector,
-      LazySerDeParameters serdeParams) throws SerDeException {
+      LazySerDeParameters serdeParams, int index) throws SerDeException {
     try {
+      int pos = out.getCount();
       serialize(out, obj, objInspector, serdeParams.getSeparators(), 1, serdeParams.getNullSequence(),
           serdeParams.isEscaped(), serdeParams.getEscapeChar(), serdeParams.getNeedsEscape());
+      if (serdeParams.isEncoded(index)) {
+        serdeParams.encode(index, out, pos);
+      }
     } catch (IOException e) {
       throw new SerDeException(e);
     }

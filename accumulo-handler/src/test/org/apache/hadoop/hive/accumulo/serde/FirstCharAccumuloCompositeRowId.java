@@ -42,9 +42,9 @@ public class FirstCharAccumuloCompositeRowId extends AccumuloCompositeRowId {
 
   @Override
   public Object getField(int fieldID) {
-    String bytesAsString = new String(bytes.getData(), start, length);
+    String bytesAsString = new String(bytes, start, length);
 
-    log.info("Data: " + bytesAsString + ", " + Arrays.toString(bytes.getData()));
+    log.info("Data: " + bytesAsString + ", " + Arrays.toString(bytes));
 
     // The separator for the hive row would be using \x02, so the separator for this struct would be
     // \x02 + 1 = \x03

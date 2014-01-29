@@ -25,15 +25,15 @@ public interface LazyObjectBase {
    * that we will be able to drop the reference to byte[] by a single
    * assignment. The ByteArrayRef object can be reused across multiple rows.
    * 
+   *
    * @param bytes
    *          The wrapper of the byte[].
    * @param start
    *          The start position inside the bytes.
    * @param length
    *          The length of the data, starting from "start"
-   * @see ByteArrayRef
    */
-  void init(ByteArrayRef bytes, int start, int length);
+  void init(byte[] bytes, int start, int length);
 
   /**
    * called for null binary, hbase columns, for example
@@ -46,4 +46,5 @@ public interface LazyObjectBase {
    */
   Object getObject();
 
+  int hashCode();
 }

@@ -21,7 +21,6 @@ package org.apache.hadoop.hive.hbase;
 import org.apache.hadoop.hive.serde2.BaseStructObjectInspector;
 import org.apache.hadoop.hive.serde2.ByteStream;
 import org.apache.hadoop.hive.serde2.SerDeException;
-import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazy.LazyObjectBase;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
@@ -74,8 +73,8 @@ public class SampleHBaseKeyFactory extends DefaultHBaseKeyFactory {
     private transient boolean isNull;
 
     @Override
-    public void init(ByteArrayRef bytes, int start, int length) {
-      fields = new String(bytes.getData(), start, length).split(DELIMITER_PATTERN);
+    public void init(byte[] bytes, int start, int length) {
+      fields = new String(bytes, start, length).split(DELIMITER_PATTERN);
       isNull = false;
     }
 
@@ -105,7 +104,7 @@ public class SampleHBaseKeyFactory extends DefaultHBaseKeyFactory {
 
     @Override
     public Object getStructFieldData(Object data, StructField fieldRef) {
-      return ((DoubleDollarSeparated)data).fields[((MyField)fieldRef).getFieldID()];
+      return ((DoubleDollarSeparated)data).fields[fieldRef.getFieldID()];
     }
 
     @Override

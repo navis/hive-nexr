@@ -115,7 +115,7 @@ public class HBaseRowSerializer {
       }
       field = fields.get(i);
       value = values.get(i);
-      serializeField(value, field, columnMappings[i], put);
+      serializeField(i, value, field, columnMappings[i], put);
     }
 
     return new PutWritable(put);
@@ -131,16 +131,16 @@ public class HBaseRowSerializer {
     if (!keyFieldOI.getCategory().equals(ObjectInspector.Category.PRIMITIVE) &&
         keyMapping.isCategory(ObjectInspector.Category.PRIMITIVE)) {
       // we always serialize the String type using the escaped algorithm for LazyString
-      return serialize(SerDeUtils.getJSONString(keyValue, keyFieldOI),
+      return serialize(-1, SerDeUtils.getJSONString(keyValue, keyFieldOI),
           PrimitiveObjectInspectorFactory.javaStringObjectInspector, 1, false);
     }
     // use the serialization option switch to write primitive values as either a variable
     // length UTF8 string or a fixed width bytes if serializing in binary format
     boolean writeBinary = keyMapping.binaryStorage.get(0);
-    return serialize(keyValue, keyFieldOI, 1, writeBinary);
+    return serialize(-1, keyValue, keyFieldOI, 1, writeBinary);
   }
 
-  private void serializeField(
+  private void serializeField(int index,
       Object value, StructField field, ColumnMapping colMap, Put put) throws IOException {
     if (value == null) {
       // a null object, we do not serialize it
@@ -162,14 +162,14 @@ public class HBaseRowSerializer {
       for (Map.Entry<?, ?> entry: map.entrySet()) {
         // Get the Key
         // Map keys are required to be primitive and may be serialized in binary format
-        byte[] columnQualifierBytes = serialize(entry.getKey(), koi, 3, colMap.binaryStorage.get(0));
+        byte[] columnQualifierBytes = serialize(index, entry.getKey(), koi, 3, colMap.binaryStorage.get(0));
         if (columnQualifierBytes == null) {
           continue;
         }
 
         // Map values may be serialized in binary format when they are primitive and binary
         // serialization is the option selected
-        byte[] bytes = serialize(entry.getValue(), voi, 3, colMap.binaryStorage.get(1));
+        byte[] bytes = serialize(index, entry.getValue(), voi, 3, colMap.binaryStorage.get(1));
         if (bytes == null) {
           continue;
         }
@@ -186,12 +186,12 @@ public class HBaseRowSerializer {
       if (!foi.getCategory().equals(ObjectInspector.Category.PRIMITIVE)
           && colMap.isCategory(ObjectInspector.Category.PRIMITIVE)) {
         // we always serialize the String type using the escaped algorithm for LazyString
-        bytes = serialize(SerDeUtils.getJSONString(value, foi),
+        bytes = serialize(index, SerDeUtils.getJSONString(value, foi),
             PrimitiveObjectInspectorFactory.javaStringObjectInspector, 1, false);
       } else {
         // use the serialization option switch to write primitive values as either a variable
         // length UTF8 string or a fixed width bytes if serializing in binary format
-        bytes = serialize(value, foi, 1, colMap.binaryStorage.get(0));
+        bytes = serialize(index, value, foi, 1, colMap.binaryStorage.get(0));
       }
 
       if (bytes == null) {
@@ -213,7 +213,7 @@ public class HBaseRowSerializer {
    * @throws IOException  On error in writing to the serialization stream.
    * @return true         On serializing a non-null object, otherwise false.
    */
-  private byte[] serialize(Object obj, ObjectInspector objInspector, int level, boolean writeBinary)
+  private byte[] serialize(int index, Object obj, ObjectInspector objInspector, int level, boolean writeBinary)
       throws IOException {
     output.reset();
     if (objInspector.getCategory() == ObjectInspector.Category.PRIMITIVE && writeBinary) {
@@ -222,6 +222,9 @@ public class HBaseRowSerializer {
       if (!serialize(obj, objInspector, level, output)) {
         return null;
       }
+    }
+    if (serdeParam.isEncoded(index)) {
+      serdeParam.encode(index, output, 0);
     }
     return output.toByteArray();
   }

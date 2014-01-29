@@ -43,10 +43,10 @@ public class LazyBinary extends LazyPrimitive<LazyBinaryObjectInspector, BytesWr
   }
 
   @Override
-  public void init(ByteArrayRef bytes, int start, int length) {
+  public void init(byte[] bytes, int start, int length) {
     super.init(bytes, start, length);
     byte[] recv = new byte[length];
-    System.arraycopy(bytes.getData(), start, recv, 0, length);
+    System.arraycopy(bytes, start, recv, 0, length);
     byte[] decoded = decodeIfNeeded(recv);
     // use the original bytes in case decoding should fail
     decoded = decoded.length > 0 ? decoded : recv;

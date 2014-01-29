@@ -382,7 +382,7 @@ public class HBaseSerDeHelper {
     ColumnMapping colMap = columnMappings[fieldID];
     if (colMap.getQualifierName() == null && !colMap.isHbaseRowKey()) {
       // a column family
-      return new LazyHBaseCellMap((LazyMapObjectInspector) inspector);
+      return new LazyHBaseCellMap(fieldID, (LazyMapObjectInspector) inspector);
     }
     return LazyFactory.createLazyObject(inspector, colMap.getBinaryStorage().get(0));
   }

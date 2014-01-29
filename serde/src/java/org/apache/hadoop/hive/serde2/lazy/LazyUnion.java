@@ -73,10 +73,10 @@ public class LazyUnion extends LazyNonPrimitive<LazyUnionObjectInspector> {
   /**
    * Set the row data for this LazyUnion.
    *
-   * @see LazyObject#init(ByteArrayRef, int, int)
+   * @see LazyObjectBase#init(byte[], int, int)
    */
   @Override
-  public void init(ByteArrayRef bytes, int start, int length) {
+  public void init(byte[] bytes, int start, int length) {
     super.init(bytes, start, length);
     parsed = false;
   }
@@ -97,7 +97,6 @@ public class LazyUnion extends LazyNonPrimitive<LazyUnionObjectInspector> {
 
     int unionByteEnd = start + length;
     int fieldByteEnd = start;
-    byte[] bytes = this.bytes.getData();
     // Go through all bytes in the byte[]
     while (fieldByteEnd < unionByteEnd) {
       if (bytes[fieldByteEnd] != separator) {

@@ -40,9 +40,6 @@ public abstract class LazyObject<OI extends ObjectInspector> implements LazyObje
     this.oi = oi;
   }
 
-  @Override
-  public abstract int hashCode();
-
   protected OI getInspector() {
     return oi;
   }
@@ -54,7 +51,7 @@ public abstract class LazyObject<OI extends ObjectInspector> implements LazyObje
   protected boolean isNull;
 
   @Override
-  public void init(ByteArrayRef bytes, int start, int length) {
+  public void init(byte[] bytes, int start, int length) {
     if (bytes == null) {
       throw new RuntimeException("bytes cannot be null!");
     }

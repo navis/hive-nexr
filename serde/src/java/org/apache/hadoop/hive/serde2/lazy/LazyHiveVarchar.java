@@ -36,6 +36,7 @@ public class LazyHiveVarchar extends
   private static final Log LOG = LogFactory.getLog(LazyHiveVarchar.class);
 
   protected int maxLength = -1;
+  protected transient boolean warned;
 
   public LazyHiveVarchar(LazyHiveVarcharObjectInspector oi) {
     super(oi);
@@ -54,24 +55,27 @@ public class LazyHiveVarchar extends
   }
 
   @Override
-  public void init(ByteArrayRef bytes, int start, int length) {
+  public void init(byte[] bytes, int start, int length) {
     if (oi.isEscaped()) {
       Text textData =  data.getTextValue();
       // This is doing a lot of copying here, this could be improved by enforcing length
       // at the same time as escaping rather than as separate steps.
-      LazyUtils.copyAndEscapeStringDataToText(bytes.getData(), start, length,
-          oi.getEscapeChar(),textData);
+      LazyUtils.copyAndEscapeStringDataToText(bytes, start, length,
+          oi.getEscapeChar(), textData);
       data.set(textData.toString(), maxLength);
       isNull = false;
     } else {
       try {
-        String byteData = null;
-        byteData = Text.decode(bytes.getData(), start, length);
+        String byteData = Text.decode(bytes, start, length);
         data.set(byteData, maxLength);
         isNull = false;
       } catch (CharacterCodingException e) {
         isNull = true;
-        LOG.debug("Data not in the HiveVarchar data type range so converted to null.", e);
+        if (!warned) {
+          warned = true;
+          LOG.info("Data not in the HiveVarchar data type range so converted to null. " +
+              "Similar problems will not be logged further.", e);
+        }
       }
     }
   }

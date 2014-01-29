@@ -30,9 +30,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.*;
-import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
-import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.serde2.lazy.LazyStruct;
 import org.apache.hadoop.hive.serde2.lazy.LazyUtils;
 import org.apache.hadoop.hive.serde2.lazy.LazySerDeParameters;
@@ -83,9 +81,6 @@ public class MultiDelimitSerDe extends AbstractSerDe {
   private LazyStruct cachedLazyStruct;
   //the lazy struct object inspector
   private ObjectInspector cachedObjectInspector;
-
-  // The wrapper for byte array
-  private ByteArrayRef byteArrayRef;
 
   private LazySerDeParameters serdeParams = null;
   // The output stream of serialized objects
@@ -138,9 +133,6 @@ public class MultiDelimitSerDe extends AbstractSerDe {
 
   @Override
   public Object deserialize(Writable blob) throws SerDeException {
-    if (byteArrayRef == null) {
-      byteArrayRef = new ByteArrayRef();
-    }
 
     // we use the default field delimiter('\1') to replace the multiple-char field delimiter
     // but we cannot use it to parse the row since column data can contain '\1' as well
@@ -154,8 +146,8 @@ public class MultiDelimitSerDe extends AbstractSerDe {
     } else {
       throw new SerDeException(getClass() + ": expects either BytesWritable or Text object!");
     }
-    byteArrayRef.setData(rowStr.replaceAll(Pattern.quote(fieldDelimited), "\1").getBytes());
-    cachedLazyStruct.init(byteArrayRef, 0, byteArrayRef.getData().length);
+    byte[] bytes = rowStr.replaceAll(Pattern.quote(fieldDelimited), "\1").getBytes();
+    cachedLazyStruct.init(bytes, 0, bytes.length);
     // use the multi-char delimiter to parse the lazy struct
     cachedLazyStruct.parseMultiDelimit(rowStr.getBytes(), fieldDelimited.getBytes());
     return cachedLazyStruct;

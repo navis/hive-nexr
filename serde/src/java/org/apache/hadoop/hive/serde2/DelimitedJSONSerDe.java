@@ -18,10 +18,9 @@
 
 package org.apache.hadoop.hive.serde2;
 
-import java.io.IOException;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.serde2.lazy.LazySerDeParameters;
@@ -29,6 +28,8 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.io.Writable;
+
+import java.util.Properties;
 
 /**
  * DelimitedJSONSerDe.
@@ -43,6 +44,14 @@ public class DelimitedJSONSerDe extends LazySimpleSerDe {
   public DelimitedJSONSerDe() throws SerDeException {
   }
 
+  private String nullStr;
+
+  @Override
+  public void initialize(Configuration job, Properties tbl)
+      throws SerDeException {
+    super.initialize(job, tbl);
+    nullStr = serdeParams.getNullSequence().toString();
+  }
   /**
    * Not implemented.
    */
@@ -54,22 +63,13 @@ public class DelimitedJSONSerDe extends LazySimpleSerDe {
 
   @Override
   protected void serializeField(ByteStream.Output out, Object obj, ObjectInspector objInspector,
-      LazySerDeParameters serdeParams) throws SerDeException {
-    if (!objInspector.getCategory().equals(Category.PRIMITIVE) || (objInspector.getTypeName().equalsIgnoreCase(serdeConstants.BINARY_TYPE_NAME))) {
+      LazySerDeParameters serdeParams, int index) throws SerDeException {
+    if (!objInspector.getCategory().equals(Category.PRIMITIVE) ||
+        (objInspector.getTypeName().equalsIgnoreCase(serdeConstants.BINARY_TYPE_NAME))) {
       //do this for all complex types and binary
-      try {
-        serialize(out, SerDeUtils.getJSONString(obj, objInspector, serdeParams.getNullSequence().toString()),
-            PrimitiveObjectInspectorFactory.javaStringObjectInspector, serdeParams.getSeparators(),
-            1, serdeParams.getNullSequence(), serdeParams.isEscaped(), serdeParams.getEscapeChar(),
-            serdeParams.getNeedsEscape());
-
-      } catch (IOException e) {
-        throw new SerDeException(e);
-      }
-
-    } else {
-      //primitives except binary
-      super.serializeField(out, obj, objInspector, serdeParams);
+      obj = SerDeUtils.getJSONString(obj, objInspector, nullStr);
+      objInspector = PrimitiveObjectInspectorFactory.javaStringObjectInspector;
     }
+    super.serializeField(out, obj, objInspector, serdeParams, index);
   }
 }

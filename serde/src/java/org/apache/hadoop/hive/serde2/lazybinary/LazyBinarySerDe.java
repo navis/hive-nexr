@@ -37,7 +37,6 @@ import org.apache.hadoop.hive.serde2.SerDeStats;
 import org.apache.hadoop.hive.serde2.io.DateWritable;
 import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.io.TimestampWritable;
-import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.MapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -150,23 +149,16 @@ public class LazyBinarySerDe extends AbstractSerDe {
     return BytesWritable.class;
   }
 
-  // The wrapper for byte array
-  ByteArrayRef byteArrayRef;
-
   /**
    * Deserialize a table record to a lazybinary struct.
    */
   @Override
   public Object deserialize(Writable field) throws SerDeException {
-    if (byteArrayRef == null) {
-      byteArrayRef = new ByteArrayRef();
-    }
     BinaryComparable b = (BinaryComparable) field;
     if (b.getLength() == 0) {
       return null;
     }
-    byteArrayRef.setData(b.getBytes());
-    cachedLazyBinaryStruct.init(byteArrayRef, 0, b.getLength());
+    cachedLazyBinaryStruct.init(b.getBytes(), 0, b.getLength());
     lastOperationSerialize = false;
     lastOperationDeserialize = true;
     return cachedLazyBinaryStruct;

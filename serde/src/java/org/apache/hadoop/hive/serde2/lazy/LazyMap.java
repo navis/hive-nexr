@@ -96,10 +96,10 @@ public class LazyMap extends LazyNonPrimitive<LazyMapObjectInspector> {
   /**
    * Set the row data for this LazyArray.
    *
-   * @see LazyObject#init(ByteArrayRef, int, int)
+   * @see LazyObjectBase#init(byte[], int, int)
    */
   @Override
-  public void init(ByteArrayRef bytes, int start, int length) {
+  public void init(byte[] bytes, int start, int length) {
     super.init(bytes, start, length);
     parsed = false;
     cachedMap = null;
@@ -153,7 +153,7 @@ public class LazyMap extends LazyNonPrimitive<LazyMapObjectInspector> {
     int elementByteBegin = start;
     int keyValueSeparatorPosition = -1;
     int elementByteEnd = start;
-    byte[] bytes = this.bytes.getData();
+
     Set<Object> keySet = new LinkedHashSet<Object>();
 
     // Go through all bytes in the byte[]

@@ -15,18 +15,12 @@
    * See the License for the specific language governing permissions and
    * limitations under the License.
    */
-  package org.apache.hadoop.hive.serde2.lazybinary;
+package org.apache.hadoop.hive.serde2.lazybinary;
 
-  import java.util.ArrayList;
-  import java.util.Arrays;
-  import java.util.List;
-
-  import org.apache.commons.logging.Log;
-  import org.apache.commons.logging.LogFactory;
-  import org.apache.hadoop.hive.serde2.SerDeStatsStruct;
-  import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
-  import org.apache.hadoop.hive.serde2.lazybinary.objectinspector.LazyBinaryUnionObjectInspector;
-  import org.apache.hadoop.hive.serde2.objectinspector.*;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.hive.serde2.SerDeStatsStruct;
+import org.apache.hadoop.hive.serde2.lazybinary.objectinspector.LazyBinaryUnionObjectInspector;
 
 /**
  * LazyBinaryUnion is serialized as follows: start TAG FIELD end bytes[] ->
@@ -77,7 +71,7 @@
     }
 
     @Override
-    public void init(ByteArrayRef bytes, int start, int length) {
+    public void init(byte[] bytes, int start, int length) {
       super.init(bytes, start, length);
       parsed = false;
       serializedSize = length;
@@ -95,13 +89,13 @@
      * fieldIsNull.
      */
     private void parse() {
-      LazyBinaryUnionObjectInspector uoi = (LazyBinaryUnionObjectInspector) oi;
+      LazyBinaryUnionObjectInspector uoi = oi;
 
       /**
        * Please note that tag is followed by field
        */
       int unionByteEnd = start + length;
-      byte[] byteArr = this.bytes.getData();
+      byte[] byteArr = bytes;
 
       //Tag of union field is the first byte to be parsed
       final int tagEnd = start + 1;

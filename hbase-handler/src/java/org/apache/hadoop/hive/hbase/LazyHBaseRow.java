@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hive.hbase;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -27,7 +28,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hive.hbase.ColumnMappings.ColumnMapping;
 import org.apache.hadoop.hive.hbase.struct.HBaseValueFactory;
 import org.apache.hadoop.hive.serde2.SerDeException;
-import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
 import org.apache.hadoop.hive.serde2.lazy.LazyLong;
 import org.apache.hadoop.hive.serde2.lazy.LazyObjectBase;
@@ -80,8 +80,8 @@ public class LazyHBaseRow extends LazyStruct {
   }
 
   @Override
-  protected LazyObjectBase createLazyField(final int fieldID, final StructField fieldRef)
-      throws SerDeException {
+  protected LazyObjectBase createLazyField(final StructField fieldRef) throws SerDeException {
+    int fieldID = fieldRef.getFieldID();
     if (columnsMapping[fieldID].hbaseRowKey) {
       return keyFactory.createKey(fieldRef.getFieldObjectInspector());
     }
@@ -162,7 +162,6 @@ public class LazyHBaseRow extends LazyStruct {
         }
         return lz.getObject();
       }
-
       byte[] bytes;
       if (colMap.hbaseRowKey) {
         bytes = result.getRow();
@@ -170,12 +169,22 @@ public class LazyHBaseRow extends LazyStruct {
         // it is a column i.e. a column-family with column-qualifier
         bytes = result.getValue(colMap.familyNameBytes, colMap.qualifierNameBytes);
       }
+      
+      int length = bytes == null ? 0 : bytes.length;
+      if (bytes != null && serdeParams != null && serdeParams.isEncoded(fieldID)) {
+        try {
+          serdeParams.decode(fieldID, bytes, 0, bytes.length);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+        bytes = serdeParams.output.getData();
+        length = serdeParams.output.getCount();
+      }
+
       if (bytes == null || isNull(oi.getNullSequence(), bytes, 0, bytes.length)) {
         fields[fieldID].setNull();
       } else {
-        ByteArrayRef ref = new ByteArrayRef();
-        ref.setData(bytes);
-        fields[fieldID].init(ref, 0, bytes.length);
+        fields[fieldID].init(bytes, 0, length);
       }
     }
 

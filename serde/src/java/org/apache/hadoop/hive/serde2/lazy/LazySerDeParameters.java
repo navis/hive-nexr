@@ -1,21 +1,24 @@
 package org.apache.hadoop.hive.serde2.lazy;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
+import java.util.TreeSet;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.serde.serdeConstants;
+import org.apache.hadoop.hive.serde2.ByteStream;
+import org.apache.hadoop.hive.serde2.FieldRewriter;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyObjectInspectorParameters;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hive.common.util.HiveStringUtils;
 
 /**
@@ -50,6 +53,12 @@ public class LazySerDeParameters implements LazyObjectInspectorParameters {
 
   private boolean extendedBooleanLiteral;
   List<String> timestampFormats;
+
+  boolean[] needEncoding;
+
+  public FieldRewriter rewriter;
+  public transient final ByteStream.Input input = new ByteStream.Input();
+  public transient final ByteStream.Output output = new ByteStream.Output();
   
   public LazySerDeParameters(Configuration job, Properties tbl, String serdeName) throws SerDeException {
    this.tableProperties = tbl;
@@ -90,8 +99,58 @@ public class LazySerDeParameters implements LazyObjectInspectorParameters {
     if (timestampFormatsArray != null) {
       timestampFormats = Arrays.asList(timestampFormatsArray);
     }
+
+    String encodeIndices = tbl.getProperty(serdeConstants.COLUMN_ENCODE_INDICES);
+    if (encodeIndices != null) {
+      TreeSet<Integer> indices = new TreeSet<Integer>();
+      for (String index : encodeIndices.split(",")) {
+        indices.add(Integer.parseInt(index.trim()));
+      }
+      needEncoding = new boolean[columnNames.size()];
+      for (int index : indices) {
+        needEncoding[index] = true;
+      }
+    }
+    String encodeColumns = tbl.getProperty(serdeConstants.COLUMN_ENCODE_COLUMNS);
+    if (encodeColumns != null) {
+      if (needEncoding == null) {
+        needEncoding = new boolean[columnNames.size()];
+      }
+      for (String column : encodeColumns.split(",")) {
+        needEncoding[findIndex(columnNames, column.trim())] = true;
+      }
+    }
+
+    String encoderClass = tbl.getProperty(serdeConstants.COLUMN_ENCODE_CLASSNAME);
+    if (encoderClass != null) {
+      rewriter = createRewriter(encoderClass, tbl, job);
+    }
+    if (needEncoding != null && rewriter == null) {
+      throw new SerDeException("Encoder is not specified by serde property 'column.encode.classname'");
+    }
   }
-  
+
+  private int findIndex(List<String> columnNames, String column) {
+    for (int i = 0; i < columnNames.size(); i++) {
+      if (columnNames.get(i).equals(column)) {
+        return i;
+      }
+    }
+    throw new IllegalArgumentException("Invalid column name " + column + " in " + columnNames);
+  }
+
+  private FieldRewriter createRewriter(String encoderClass, Properties properties, 
+      Configuration job) throws SerDeException {
+    try {
+      FieldRewriter rewriter =
+          (FieldRewriter) ReflectionUtils.newInstance(Class.forName(encoderClass), job);
+      rewriter.init(columnNames, columnTypes, properties);
+      return rewriter;
+    } catch (Exception e) {
+      throw new SerDeException(e);
+    }
+  }
+
   /**
    * Extracts and set column names and column types from the table properties
    * @throws SerDeException
@@ -176,7 +235,25 @@ public class LazySerDeParameters implements LazyObjectInspectorParameters {
   public List<String> getTimestampFormats() {
     return timestampFormats;
   }
-  
+
+
+  public boolean isEncoded(int index) {
+    return needEncoding != null && index >= 0 && needEncoding[index];
+  }
+
+  public void encode(int index, ByteStream.Output out, int pos) throws IOException {
+    input.reset(out.getData(), pos, out.getCount() - pos);
+    output.reset();
+    rewriter.encode(index, input, output);
+    out.writeTo(pos, output);
+  }
+
+  public void decode(int index, byte[] bytes, int start, int length) throws IOException {
+    input.reset(bytes, start, length);
+    output.reset();
+    rewriter.decode(index, input, output);
+  }
+
   public void setSeparator(int index, byte separator) throws SerDeException {
     if (index < 0 || index >= separators.length) {
       throw new SerDeException("Invalid separator array index value: " + index);

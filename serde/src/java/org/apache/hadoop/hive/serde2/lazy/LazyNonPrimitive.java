@@ -26,7 +26,7 @@ import org.apache.hadoop.io.Text;
 public abstract class LazyNonPrimitive<OI extends ObjectInspector> extends
     LazyObject<OI> {
 
-  protected ByteArrayRef bytes;
+  protected byte[] bytes;
   protected int start;
   protected int length;
 
@@ -49,13 +49,22 @@ public abstract class LazyNonPrimitive<OI extends ObjectInspector> extends
   }
 
   @Override
-  public void init(ByteArrayRef bytes, int start, int length) {
+  public void init(byte[] bytes, int start, int length) {
     super.init(bytes, start, length);
     this.bytes = bytes;
     this.start = start;
     this.length = length;
     assert start >= 0;
-    assert start + length <= bytes.getData().length;
+    assert start + length <= bytes.length;
+  }
+
+  /**
+   * Return the data in bytes corresponding to this given struct. This is useful specifically in
+   * cases where the data is stored in serialized formats like protobufs or thrift and would need
+   * custom deserializers to be deserialized.
+   * */
+  public byte[] getBytes() {
+    return bytes;
   }
 
   protected final boolean isNull(
@@ -74,6 +83,6 @@ public abstract class LazyNonPrimitive<OI extends ObjectInspector> extends
 
   @Override
   public int hashCode() {
-    return LazyUtils.hashBytes(bytes.getData(), start, length);
+    return LazyUtils.hashBytes(bytes, start, length);
   }
 }

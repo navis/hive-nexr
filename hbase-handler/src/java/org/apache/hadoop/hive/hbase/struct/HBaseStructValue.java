@@ -72,7 +72,7 @@ public class HBaseStructValue extends LazyStruct {
    * @param familyName The column family name
    * @param qualifierName The column qualifier name
    */
-  public void init(ByteArrayRef bytes, int start, int length, String familyName,
+  public void init(byte[] bytes, int start, int length, String familyName,
       String qualifierName) {
     init(bytes, start, length);
     this.familyName = familyName;
@@ -100,16 +100,12 @@ public class HBaseStructValue extends LazyStruct {
    * @return initialized {@link LazyObject}
    * */
   public LazyObject<? extends ObjectInspector> toLazyObject(int fieldID, byte[] bytes) {
-    ObjectInspector fieldOI = oi.getAllStructFieldRefs().get(fieldID).getFieldObjectInspector();
+    ObjectInspector fieldOI = oi.getFieldRef(fieldID).getFieldObjectInspector();
 
     LazyObject<? extends ObjectInspector> lazyObject = LazyFactory.createLazyObject(fieldOI);
 
-    ByteArrayRef ref = new ByteArrayRef();
-
-    ref.setData(bytes);
-
     // initialize the lazy object
-    lazyObject.init(ref, 0, ref.getData().length);
+    lazyObject.init(bytes, 0, bytes.length);
 
     return lazyObject;
   }

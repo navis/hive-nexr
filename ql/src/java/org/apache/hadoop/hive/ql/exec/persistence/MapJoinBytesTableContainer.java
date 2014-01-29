@@ -39,7 +39,6 @@ import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.WriteBuffers;
 import org.apache.hadoop.hive.serde2.binarysortable.BinarySortableSerDe;
 import org.apache.hadoop.hive.serde2.io.ShortWritable;
-import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryFactory;
 import org.apache.hadoop.hive.serde2.lazybinary.LazyBinarySerDe;
 import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryStruct;
@@ -408,7 +407,6 @@ public class MapJoinBytesTableContainer implements MapJoinTableContainer {
      */
     private List<Object> dummyRow = null;
 
-    private final ByteArrayRef uselessIndirection; // LBStruct needs ByteArrayRef
     private final LazyBinaryStruct valueStruct;
 
     public ReusableRowContainer() {
@@ -418,7 +416,6 @@ public class MapJoinBytesTableContainer implements MapJoinTableContainer {
       } else {
         valueStruct = null; // No rows?
       }
-      uselessIndirection = new ByteArrayRef();
       clearRows();
     }
 
@@ -492,8 +489,7 @@ public class MapJoinBytesTableContainer implements MapJoinTableContainer {
       if (ref.getBytes() == null) {
         hashMap.populateValue(ref);
       }
-      uselessIndirection.setData(ref.getBytes());
-      valueStruct.init(uselessIndirection, (int)ref.getOffset(), ref.getLength());
+      valueStruct.init(ref.getBytes(), (int)ref.getOffset(), ref.getLength());
       return valueStruct.getFieldsAsList(); // TODO: should we unset bytes after that?
     }
 

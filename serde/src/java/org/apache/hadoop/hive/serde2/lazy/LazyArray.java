@@ -74,10 +74,10 @@ public class LazyArray extends LazyNonPrimitive<LazyListObjectInspector> {
   /**
    * Set the row data for this LazyArray.
    *
-   * @see LazyObject#init(ByteArrayRef, int, int)
+   * @see LazyObjectBase#init(byte[], int, int)
    */
   @Override
-  public void init(ByteArrayRef bytes, int start, int length) {
+  public void init(byte[] bytes, int start, int length) {
     super.init(bytes, start, length);
     parsed = false;
     cachedList = null;
@@ -115,8 +115,6 @@ public class LazyArray extends LazyNonPrimitive<LazyListObjectInspector> {
       arrayLength = 0;
       return;
     }
-
-    byte[] bytes = this.bytes.getData();
 
     arrayLength = 0;
     int arrayByteEnd = start + length;
