@@ -18,13 +18,13 @@
 
 package org.apache.hadoop.hive.hbase;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hive.hbase.HBaseSerDe.ColumnMapping;
-import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
 import org.apache.hadoop.hive.serde2.lazy.LazyObject;
 import org.apache.hadoop.hive.serde2.lazy.LazyStruct;
@@ -32,7 +32,6 @@ import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazyMapObjectInspector
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazySimpleStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
-import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
 /**
  * LazyObject for storing an HBase row.  The field of an HBase row can be
@@ -72,8 +71,7 @@ public class LazyHBaseRow extends LazyStruct {
   private void parse() {
 
     if (getFields() == null) {
-      List<? extends StructField> fieldRefs =
-        ((StructObjectInspector)getInspector()).getAllStructFieldRefs();
+      List<? extends StructField> fieldRefs = getInspector().getAllStructFieldRefs();
       LazyObject<? extends ObjectInspector> [] fields = new LazyObject<?>[fieldRefs.size()];
 
       for (int i = 0; i < fields.length; i++) {
@@ -81,8 +79,11 @@ public class LazyHBaseRow extends LazyStruct {
 
         if (colMap.qualifierName == null && !colMap.hbaseRowKey) {
           // a column family
-          fields[i] = new LazyHBaseCellMap(
+          fields[i] = new LazyHBaseCellMap(i,
               (LazyMapObjectInspector) fieldRefs.get(i).getFieldObjectInspector());
+          if (serdeParams != null && serdeParams.isEncoded(i)) {
+            ((LazyHBaseCellMap)fields[i]).setSerdeParams(serdeParams);
+          }
           continue;
         }
 
@@ -133,12 +134,11 @@ public class LazyHBaseRow extends LazyStruct {
     boolean [] fieldsInited = getFieldInited();
 
     if (!fieldsInited[fieldID]) {
-      ByteArrayRef ref = null;
       ColumnMapping colMap = columnsMapping.get(fieldID);
 
+      byte[] bytes = null;
       if (colMap.hbaseRowKey) {
-        ref = new ByteArrayRef();
-        ref.setData(result.getRow());
+        bytes = result.getRow();
       } else {
         if (colMap.qualifierName == null) {
           // it is a column family
@@ -147,19 +147,25 @@ public class LazyHBaseRow extends LazyStruct {
               result, colMap.familyNameBytes, colMap.binaryStorage);
         } else {
           // it is a column i.e. a column-family with column-qualifier
-          byte [] res = result.getValue(colMap.familyNameBytes, colMap.qualifierNameBytes);
-
-          if (res == null) {
+          bytes = result.getValue(colMap.familyNameBytes, colMap.qualifierNameBytes);
+          if (bytes == null) {
             return null;
-          } else {
-            ref = new ByteArrayRef();
-            ref.setData(res);
           }
         }
       }
+      int length = bytes == null ? 0 : bytes.length;
+      if (bytes != null && serdeParams != null && serdeParams.isEncoded(fieldID)) {
+        try {
+          serdeParams.decode(fieldID, bytes, 0, bytes.length);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+        bytes = serdeParams.output.getData();
+        length = serdeParams.output.getCount();
+      }
 
-      if (ref != null) {
-        fields[fieldID].init(ref, 0, ref.getData().length);
+      if (bytes != null) {
+        fields[fieldID].init(bytes, 0, length);
       }
     }
 

@@ -48,10 +48,10 @@ public class LazyHiveDecimal extends LazyPrimitive<LazyHiveDecimalObjectInspecto
    * @param length
    */
   @Override
-  public void init(ByteArrayRef bytes, int start, int length) {
+  public void init(byte[] bytes, int start, int length) {
     String byteData = null;
     try {
-      byteData = Text.decode(bytes.getData(), start, length);
+      byteData = Text.decode(bytes, start, length);
       data.set(new HiveDecimal(byteData));
       isNull = false;
     } catch (NumberFormatException e) {

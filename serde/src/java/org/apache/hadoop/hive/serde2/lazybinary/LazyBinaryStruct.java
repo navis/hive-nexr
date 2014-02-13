@@ -24,7 +24,6 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.serde2.SerDeStatsStruct;
-import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryUtils.RecordInfo;
 import org.apache.hadoop.hive.serde2.lazybinary.objectinspector.LazyBinaryStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -87,7 +86,7 @@ public class LazyBinaryStruct extends
   }
 
   @Override
-  public void init(ByteArrayRef bytes, int start, int length) {
+  public void init(byte[] bytes, int start, int length) {
     super.init(bytes, start, length);
     parsed = false;
     serializedSize = length;
@@ -124,7 +123,6 @@ public class LazyBinaryStruct extends
 
     int fieldId = 0;
     int structByteEnd = start + length;
-    byte[] bytes = this.bytes.getData();
 
     byte nullByte = bytes[start];
     int lastFieldByteEnd = start + 1;

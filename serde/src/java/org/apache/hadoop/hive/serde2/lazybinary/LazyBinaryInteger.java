@@ -17,7 +17,6 @@
  */
 package org.apache.hadoop.hive.serde2.lazybinary;
 
-import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.WritableIntObjectInspector;
 import org.apache.hadoop.io.IntWritable;
 
@@ -40,8 +39,8 @@ public class LazyBinaryInteger extends
   }
 
   @Override
-  public void init(ByteArrayRef bytes, int start, int length) {
-    int[] vInt = LazyBinaryUtils.readVInt(bytes.getData(), start);
+  public void init(byte[] bytes, int start, int length) {
+    int[] vInt = LazyBinaryUtils.readVInt(bytes, start);
     assert length == vInt[LazyBinaryUtils.VINT_LEN];
     data.set(vInt[LazyBinaryUtils.VINT_VAL]);
   }

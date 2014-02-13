@@ -61,6 +61,12 @@ public class serdeConstants {
 
   public static final String ESCAPE_CHAR = "escape.delim";
 
+  public static final String COLUMN_ENCODE_COLUMNS = "column.encode.columns";
+
+  public static final String COLUMN_ENCODE_INDICES = "column.encode.indices";
+
+  public static final String COLUMN_ENCODE_CLASSNAME = "column.encode.classname";
+
   public static final String VOID_TYPE_NAME = "void";
 
   public static final String BOOLEAN_TYPE_NAME = "boolean";

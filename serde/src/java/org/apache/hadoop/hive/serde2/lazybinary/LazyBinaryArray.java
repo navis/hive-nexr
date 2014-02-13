@@ -21,8 +21,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
-import org.apache.hadoop.hive.serde2.lazy.LazyObject;
 import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryUtils.RecordInfo;
 import org.apache.hadoop.hive.serde2.lazybinary.objectinspector.LazyBinaryListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -89,10 +87,10 @@ public class LazyBinaryArray extends
   /**
    * Set the row data for this LazyBinaryArray.
    * 
-   * @see LazyObject#init(ByteArrayRef, int, int)
+   * @see org.apache.hadoop.hive.serde2.lazy.LazyObjectBase#init(byte[], int, int)
    */
   @Override
-  public void init(ByteArrayRef bytes, int start, int length) {
+  public void init(byte[] bytes, int start, int length) {
     super.init(bytes, start, length);
     parsed = false;
   }
@@ -118,8 +116,6 @@ public class LazyBinaryArray extends
    * elementIsNull.
    */
   private void parse() {
-
-    byte[] bytes = this.bytes.getData();
 
     // get the vlong that represents the map size
     int[] vInt = LazyBinaryUtils.readVInt(bytes, start);

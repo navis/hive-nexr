@@ -67,9 +67,9 @@ public abstract class LazyPrimitive<OI extends ObjectInspector, T extends Writab
     return isNull ? 0 : data.hashCode();
   }
 
-  public void logExceptionMessage(ByteArrayRef bytes, int start, int length, String dataType) {
+  public void logExceptionMessage(byte[] bytes, int start, int length, String dataType) {
     try {
-      String byteData = Text.decode(bytes.getData(), start, length);
+      String byteData = Text.decode(bytes, start, length);
       LOG.debug("Data not in the " + dataType
           + " data type range so converted to null. Given data is :" +
                   byteData);

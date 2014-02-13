@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TreeSet;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -30,6 +31,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.AbstractSerDe;
 import org.apache.hadoop.hive.serde2.ByteStream;
+import org.apache.hadoop.hive.serde2.FieldRewritable;
+import org.apache.hadoop.hive.serde2.FieldRewriter;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeStats;
@@ -49,6 +52,7 @@ import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.util.ReflectionUtils;
 
 /**
  * LazySimpleSerDe can be used to read the same data format as
@@ -60,7 +64,7 @@ import org.apache.hadoop.io.Writable;
  * Also LazySimpleSerDe outputs typed columns instead of treating all columns as
  * String like MetadataTypedColumnsetSerDe.
  */
-public class LazySimpleSerDe extends AbstractSerDe {
+public class LazySimpleSerDe extends AbstractSerDe implements FieldRewritable {
 
   public static final Log LOG = LogFactory.getLog(LazySimpleSerDe.class
       .getName());
@@ -125,6 +129,11 @@ public class LazySimpleSerDe extends AbstractSerDe {
     boolean escaped;
     byte escapeChar;
     boolean[] needsEscape;
+    boolean[] needEncoding;
+
+    public FieldRewriter rewriter;
+    public transient final ByteStream.Input input = new ByteStream.Input();
+    public transient final ByteStream.Output output = new ByteStream.Output();
 
     public List<TypeInfo> getColumnTypes() {
       return columnTypes;
@@ -165,9 +174,26 @@ public class LazySimpleSerDe extends AbstractSerDe {
     public boolean[] getNeedsEscape() {
       return needsEscape;
     }
+
+    public boolean isEncoded(int index) {
+      return needEncoding != null && index >= 0 && needEncoding[index];
+    }
+
+    public void encode(int index, ByteStream.Output out, int pos) throws IOException {
+      input.reset(out.getData(), pos, out.getCount() - pos);
+      output.reset();
+      rewriter.encode(index, input, output);
+      out.writeTo(pos, output);
+    }
+
+    public void decode(int index, byte[] bytes, int start, int length) throws IOException {
+      input.reset(bytes, start, length);
+      output.reset();
+      rewriter.decode(index, input, output);
+    }
   }
 
-  SerDeParameters serdeParams = null;
+  protected SerDeParameters serdeParams = null;
 
   /**
    * Initialize the SerDe given the parameters. serialization.format: separator
@@ -192,6 +218,8 @@ public class LazySimpleSerDe extends AbstractSerDe {
 
     cachedLazyStruct = (LazyStruct) LazyFactory
         .createLazyObject(cachedObjectInspector);
+
+    cachedLazyStruct.setSerdeParams(serdeParams);
 
     LOG.debug(getClass().getName() + " initialized with: columnNames="
         + serdeParams.columnNames + " columnTypes=" + serdeParams.columnTypes
@@ -255,14 +283,61 @@ public class LazySimpleSerDe extends AbstractSerDe {
       }
     }
 
+    String encodeIndices = tbl.getProperty(serdeConstants.COLUMN_ENCODE_INDICES);
+    if (encodeIndices != null) {
+      TreeSet<Integer> indices = new TreeSet<Integer>();
+      for (String index : encodeIndices.split(",")) {
+        indices.add(Integer.parseInt(index.trim()));
+      }
+      serdeParams.needEncoding = new boolean[serdeParams.columnNames.size()];
+      for (int index : indices) {
+        serdeParams.needEncoding[index] = true;
+      }
+    }
+    String encodeColumns = tbl.getProperty(serdeConstants.COLUMN_ENCODE_COLUMNS);
+    if (encodeColumns != null) {
+      if (serdeParams.needEncoding == null) {
+        serdeParams.needEncoding = new boolean[serdeParams.columnNames.size()];
+      }
+      for (String column : encodeColumns.split(",")) {
+        serdeParams.needEncoding[findIndex(serdeParams.columnNames, column.trim())] = true;
+      }
+    }
+
+    String encoderClass = tbl.getProperty(serdeConstants.COLUMN_ENCODE_CLASSNAME);
+    if (encoderClass != null) {
+      serdeParams.rewriter = createRewriter(encoderClass, tbl, serdeParams, job);
+    }
+    if (serdeParams.needEncoding != null && serdeParams.rewriter == null) {
+      throw new SerDeException("Encoder is not specified by serde property 'column.encode.classname'");
+    }
+
     return serdeParams;
+  }
+
+  private static int findIndex(List<String> columnNames, String column) {
+    for (int i = 0; i < columnNames.size(); i++) {
+      if (columnNames.get(i).equals(column)) {
+        return i;
+      }
+    }
+    throw new IllegalArgumentException("Invalid column name " + column + " in " + columnNames);
+  }
+
+  private static FieldRewriter createRewriter(String encoderClass, Properties properties,
+      SerDeParameters parameters, Configuration job) throws SerDeException {
+    try {
+      FieldRewriter rewriter =
+          (FieldRewriter) ReflectionUtils.newInstance(Class.forName(encoderClass), job);
+      rewriter.init(parameters.columnNames, parameters.columnTypes, properties);
+      return rewriter;
+    } catch (Exception e) {
+      throw new SerDeException(e);
+    }
   }
 
   // The object for storing row data
   LazyStruct cachedLazyStruct;
-
-  // The wrapper for byte array
-  ByteArrayRef byteArrayRef;
 
   /**
    * Deserialize a row from the Writable to a LazyObject.
@@ -273,18 +348,13 @@ public class LazySimpleSerDe extends AbstractSerDe {
    * @see SerDe#deserialize(Writable)
    */
   public Object deserialize(Writable field) throws SerDeException {
-    if (byteArrayRef == null) {
-      byteArrayRef = new ByteArrayRef();
-    }
     if (field instanceof BytesWritable) {
       BytesWritable b = (BytesWritable) field;
       // For backward-compatibility with hadoop 0.17
-      byteArrayRef.setData(b.getBytes());
-      cachedLazyStruct.init(byteArrayRef, 0, b.getLength());
+      cachedLazyStruct.init(b.getBytes(), 0, b.getLength());
     } else if (field instanceof Text) {
       Text t = (Text) field;
-      byteArrayRef.setData(t.getBytes());
-      cachedLazyStruct.init(byteArrayRef, 0, t.getLength());
+      cachedLazyStruct.init(t.getBytes(), 0, t.getLength());
     } else {
       throw new SerDeException(getClass().toString()
           + ": expects either BytesWritable or Text object!");
@@ -363,7 +433,7 @@ public class LazySimpleSerDe extends AbstractSerDe {
             + TypeInfoUtils.getTypeInfoFromObjectInspector(objInspector));
       }
 
-      serializeField(serializeStream, f, foi, serdeParams);
+      serializeField(serializeStream, f, foi, serdeParams, i);
     }
 
     // TODO: The copy of data is unnecessary, but there is no work-around
@@ -377,10 +447,14 @@ public class LazySimpleSerDe extends AbstractSerDe {
   }
 
   protected void serializeField(ByteStream.Output out, Object obj, ObjectInspector objInspector,
-      SerDeParameters serdeParams) throws SerDeException {
+      SerDeParameters serdeParams, int index) throws SerDeException {
     try {
+      int pos = out.getCount();
       serialize(out, obj, objInspector, serdeParams.separators, 1, serdeParams.nullSequence,
           serdeParams.escaped, serdeParams.escapeChar, serdeParams.needsEscape);
+      if (serdeParams.isEncoded(index)) {
+        serdeParams.encode(index, out, pos);
+      }
     } catch (IOException e) {
       throw new SerDeException(e);
     }
