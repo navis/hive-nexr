@@ -17,6 +17,7 @@
  */
 package org.apache.hadoop.hive.serde2.lazy;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -26,7 +27,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.serde2.SerDeStatsStruct;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazySimpleStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
-import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -68,6 +68,9 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
    */
   boolean[] fieldInited;
 
+  // non-null only for top level object (this struct is a row)
+  protected LazySimpleSerDe.SerDeParameters serdeParams;
+
   /**
    * Construct a LazyStruct object with the ObjectInspector.
    */
@@ -78,10 +81,10 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
   /**
    * Set the row data for this LazyStruct.
    *
-   * @see LazyObject#init(ByteArrayRef, int, int)
+   * @see LazyObjectBase#init(byte[], int, int)
    */
   @Override
-  public void init(ByteArrayRef bytes, int start, int length) {
+  public void init(byte[] bytes, int start, int length) {
     super.init(bytes, start, length);
     parsed = false;
     serializedSize = length;
@@ -101,8 +104,7 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
     byte escapeChar = oi.getEscapeChar();
 
     if (fields == null) {
-      List<? extends StructField> fieldRefs = ((StructObjectInspector) oi)
-          .getAllStructFieldRefs();
+      List<? extends StructField> fieldRefs = oi.getAllStructFieldRefs();
       fields = new LazyObject[fieldRefs.size()];
       for (int i = 0; i < fields.length; i++) {
         fields[i] = LazyFactory.createLazyObject(fieldRefs.get(i)
@@ -118,7 +120,6 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
     int fieldId = 0;
     int fieldByteBegin = start;
     int fieldByteEnd = start;
-    byte[] bytes = this.bytes.getData();
 
     // Go through all bytes in the byte[]
     while (fieldByteEnd <= structByteEnd) {
@@ -210,13 +211,24 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
     int fieldLength = startPosition[fieldID + 1] - startPosition[fieldID] - 1;
     if ((fieldLength < 0)
         || (fieldLength == nullSequence.getLength() && LazyUtils.compare(bytes
-            .getData(), fieldByteBegin, fieldLength, nullSequence.getBytes(),
+            , fieldByteBegin, fieldLength, nullSequence.getBytes(),
             0, nullSequence.getLength()) == 0)) {
       return null;
     }
+    byte[] binary = bytes;
     if (!fieldInited[fieldID]) {
       fieldInited[fieldID] = true;
-      fields[fieldID].init(bytes, fieldByteBegin, fieldLength);
+      if (serdeParams != null && serdeParams.isEncoded(fieldID)) {
+        try {
+          serdeParams.decode(fieldID, binary, fieldByteBegin, fieldLength);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+        binary = serdeParams.output.getData();
+        fieldLength = serdeParams.output.getCount();
+        fieldByteBegin = 0;
+      }
+      fields[fieldID].init(binary, fieldByteBegin, fieldLength);
     }
     return fields[fieldID].getObject();
   }
@@ -274,5 +286,9 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
 
   public long getRawDataSerializedSize() {
     return serializedSize;
+  }
+
+  public void setSerdeParams(LazySimpleSerDe.SerDeParameters serdeParams) {
+    this.serdeParams = serdeParams;
   }
 }

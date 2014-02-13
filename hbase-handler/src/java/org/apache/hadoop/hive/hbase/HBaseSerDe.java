@@ -34,6 +34,7 @@ import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.AbstractSerDe;
 import org.apache.hadoop.hive.serde2.ByteStream;
+import org.apache.hadoop.hive.serde2.FieldRewritable;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeStats;
@@ -60,7 +61,7 @@ import org.apache.hadoop.io.Writable;
  * HBaseSerDe can be used to serialize object into an HBase table and
  * deserialize objects from an HBase table.
  */
-public class HBaseSerDe extends AbstractSerDe {
+public class HBaseSerDe extends AbstractSerDe implements FieldRewritable {
 
   public static final String HBASE_COLUMNS_MAPPING = "hbase.columns.mapping";
   public static final String HBASE_TABLE_NAME = "hbase.table.name";
@@ -123,6 +124,8 @@ public class HBaseSerDe extends AbstractSerDe {
 
     cachedHBaseRow = new LazyHBaseRow(
       (LazySimpleStructObjectInspector) cachedObjectInspector);
+
+    cachedHBaseRow.setSerdeParams(serdeParams);
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("HBaseSerDe initialized with : columnNames = "
@@ -460,6 +463,10 @@ public class HBaseSerDe extends AbstractSerDe {
         " (counting the key if implicit)");
     }
 
+    if (serdeParams.isEncoded(getRowKeyColumnOffset(columnsMapping))) {
+      throw new SerDeException("row key column cannot be encoded");
+    }
+
     separators = serdeParams.getSeparators();
     escaped = serdeParams.isEscaped();
     escapeChar = serdeParams.getEscapeChar();
@@ -588,6 +595,8 @@ public class HBaseSerDe extends AbstractSerDe {
       return null;
     }
 
+    ByteStream.Output out = serializeStream;
+
     // If the field corresponds to a column family in HBase
     if (colMap.qualifierName == null && !colMap.hbaseRowKey) {
       MapObjectInspector moi = (MapObjectInspector) foi;
@@ -597,35 +606,32 @@ public class HBaseSerDe extends AbstractSerDe {
       Map<?, ?> map = moi.getMap(f);
       if (map == null) {
         return null;
-      } else {
-        for (Map.Entry<?, ?> entry: map.entrySet()) {
-          // Get the Key
-          serializeStream.reset();
+      }
+      for (Map.Entry<?, ?> entry: map.entrySet()) {
+        // Get the Key
+        out.reset();
 
-          // Map keys are required to be primitive and may be serialized in binary format
-          boolean isNotNull = serialize(entry.getKey(), koi, 3, colMap.binaryStorage.get(0));
-          if (!isNotNull) {
-            continue;
-          }
-
-          // Get the column-qualifier
-          byte [] columnQualifierBytes = new byte[serializeStream.getCount()];
-          System.arraycopy(
-              serializeStream.getData(), 0, columnQualifierBytes, 0, serializeStream.getCount());
-
-          // Get the Value
-          serializeStream.reset();
-
-          // Map values may be serialized in binary format when they are primitive and binary
-          // serialization is the option selected
-          isNotNull = serialize(entry.getValue(), voi, 3, colMap.binaryStorage.get(1));
-          if (!isNotNull) {
-            continue;
-          }
-          byte [] value = new byte[serializeStream.getCount()];
-          System.arraycopy(serializeStream.getData(), 0, value, 0, serializeStream.getCount());
-          put.add(colMap.familyNameBytes, columnQualifierBytes, value);
+        // Map keys are required to be primitive and may be serialized in binary format
+        Object key = entry.getKey();
+        boolean keyBinary = colMap.binaryStorage.get(0);
+        if (!serializeField(out, key, koi, -1, 3, keyBinary)) {
+          continue;
         }
+
+        // Get the column-qualifier
+        byte[] columnQualifierBytes = out.toByteArray();
+
+        // Get the Value
+        out.reset();
+
+        // Map values may be serialized in binary format when they are primitive and binary
+        // serialization is the option selected
+        Object value = entry.getValue();
+        boolean valueBinary = colMap.binaryStorage.get(1);
+        if (!serializeField(out, value, voi, i, 3, valueBinary)) {
+          continue;
+        }
+        put.add(colMap.familyNameBytes, columnQualifierBytes, out.toByteArray());
       }
     } else {
       // If the field that is passed in is NOT a primitive, and either the
@@ -633,7 +639,7 @@ public class HBaseSerDe extends AbstractSerDe {
       // the field is declared as a primitive in initialization, serialize
       // the data to JSON string.  Otherwise serialize the data in the
       // delimited way.
-      serializeStream.reset();
+      out.reset();
       boolean isNotNull;
       if (!foi.getCategory().equals(Category.PRIMITIVE)
           && (declaredFields == null ||
@@ -641,20 +647,19 @@ public class HBaseSerDe extends AbstractSerDe {
               .equals(Category.PRIMITIVE) || useJSONSerialize)) {
 
         // we always serialize the String type using the escaped algorithm for LazyString
-        isNotNull = serialize(
+        isNotNull = serializeField(out,
             SerDeUtils.getJSONString(f, foi),
-            PrimitiveObjectInspectorFactory.javaStringObjectInspector,
+            PrimitiveObjectInspectorFactory.javaStringObjectInspector, i,
             1, false);
       } else {
         // use the serialization option switch to write primitive values as either a variable
         // length UTF8 string or a fixed width bytes if serializing in binary format
-        isNotNull = serialize(f, foi, 1, colMap.binaryStorage.get(0));
+        isNotNull = serializeField(out, f, foi, i, 1, colMap.binaryStorage.get(0));
       }
       if (!isNotNull) {
         return null;
       }
-      byte [] key = new byte[serializeStream.getCount()];
-      System.arraycopy(serializeStream.getData(), 0, key, 0, serializeStream.getCount());
+      byte[] key = serializeStream.toByteArray();
       if (i == iKey) {
         return key;
       }
@@ -675,18 +680,19 @@ public class HBaseSerDe extends AbstractSerDe {
    * @throws IOException  On error in writing to the serialization stream.
    * @return true         On serializing a non-null object, otherwise false.
    */
-  private boolean serialize(
-      Object obj,
-      ObjectInspector objInspector,
-      int level,
-      boolean writeBinary) throws IOException {
-
+  private boolean serializeField(ByteStream.Output out, Object obj, ObjectInspector objInspector,
+      int index, int level, boolean writeBinary) throws IOException {
+    int pos = out.getCount();
+    boolean serialized = true;
     if (objInspector.getCategory() == Category.PRIMITIVE && writeBinary) {
-      LazyUtils.writePrimitive(serializeStream, obj, (PrimitiveObjectInspector) objInspector);
-      return true;
+      LazyUtils.writePrimitive(out, obj, (PrimitiveObjectInspector) objInspector);
     } else {
-      return serialize(obj, objInspector, level);
+      serialized = serialize(obj, objInspector, level);
     }
+    if (serialized && serdeParams.isEncoded(index)) {
+      serdeParams.encode(index, out, pos);
+    }
+    return serialized;
   }
 
   private boolean serialize(

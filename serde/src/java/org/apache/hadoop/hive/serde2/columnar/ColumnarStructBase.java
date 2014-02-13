@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.serde2.SerDeStatsStruct;
-import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazy.LazyObjectBase;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
@@ -37,7 +36,6 @@ public abstract class ColumnarStructBase implements SerDeStatsStruct {
      * use an array instead of only one object in case in future hive does not do
      * the byte copy.
      */
-    ByteArrayRef cachedByteArrayRef;
     BytesRefWritable rawBytesField;
     boolean inited;
     boolean fieldSkipped;
@@ -45,7 +43,6 @@ public abstract class ColumnarStructBase implements SerDeStatsStruct {
 
     public FieldInfo(LazyObjectBase lazyObject, boolean fieldSkipped, ObjectInspector oi) {
       field = lazyObject;
-      cachedByteArrayRef = new ByteArrayRef();
       objectInspector = oi;
       if (fieldSkipped) {
         this.fieldSkipped = true;
@@ -93,23 +90,24 @@ public abstract class ColumnarStructBase implements SerDeStatsStruct {
       if (fieldSkipped) {
         return null;
       }
+      byte[] data;
+      try {
+        data = rawBytesField.getData();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
       if (!inited) {
-        try {
-          cachedByteArrayRef.setData(rawBytesField.getData());
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
         inited = true;
-        int byteLength = getLength(objectInspector, cachedByteArrayRef, rawBytesField.getStart(),
+        int byteLength = getLength(objectInspector, data, rawBytesField.getStart(),
             rawBytesField.getLength());
         if (byteLength == -1) {
           return null;
         }
 
-        field.init(cachedByteArrayRef, rawBytesField.getStart(), byteLength);
+        field.init(data, rawBytesField.getStart(), byteLength);
         return field.getObject();
       } else {
-        if (getLength(objectInspector, cachedByteArrayRef, rawBytesField.getStart(),
+        if (getLength(objectInspector, data, rawBytesField.getStart(),
             rawBytesField.getLength()) == -1) {
           return null;
         }
@@ -182,8 +180,9 @@ public abstract class ColumnarStructBase implements SerDeStatsStruct {
   /**
    * Check if the object is null and return the length of the stream
    *
+   *
    * @param objectInspector
-   * @param cachedByteArrayRef
+   * @param bytes
    *          the bytes of the object
    * @param start
    *          the start offset
@@ -193,7 +192,7 @@ public abstract class ColumnarStructBase implements SerDeStatsStruct {
    * @return -1 for null, >=0 for length
    */
   protected abstract int getLength(ObjectInspector objectInspector,
-      ByteArrayRef cachedByteArrayRef, int start, int length);
+      byte[] bytes, int start, int length);
 
   /**
    * create the lazy object for this field
