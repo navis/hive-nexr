@@ -27,6 +27,8 @@ public class DatabaseProperties {
   // db-side
   private String[] fieldNames;
 
+  private boolean useUpperCase;
+
   private transient int batchSize;
 
   public DatabaseType getDatabaseType() {
@@ -140,5 +142,13 @@ public class DatabaseProperties {
 
   public void setBatchSize(int batchSize) {
     this.batchSize = batchSize;
+  }
+
+  public boolean useUpperCaseTableName() {
+    return databaseType == DatabaseType.ORACLE && useUpperCase;
+  }
+
+  public void setUseUpperCase(boolean useUpperCase) {
+    this.useUpperCase = useUpperCase;
   }
 }

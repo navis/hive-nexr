@@ -31,8 +31,12 @@ public class JDBCDataInputFormat extends HiveInputFormat<LongWritable, MapWritab
         conf.get(ConfigurationUtils.LIST_COLUMN_TYPES),
         false);
 
-    dbProperties.setBatchSize(conf.getInt(ConfigurationUtils.HIVE_JDBC_INPUT_BATCH_SIZE,
-          ConfigurationUtils.HIVE_JDBC_INPUT_BATCH_SIZE_DEFAULT));
+    dbProperties.setBatchSize(conf.getInt(
+        ConfigurationUtils.HIVE_JDBC_INPUT_BATCH_SIZE,
+        ConfigurationUtils.HIVE_JDBC_INPUT_BATCH_SIZE_DEFAULT));
+    dbProperties.setUseUpperCase(conf.getBoolean(
+        ConfigurationUtils.HIVE_JDBC_ORACLE_USE_UPPERCASE_TABLENAME,
+        ConfigurationUtils.HIVE_JDBC_ORACLE_USE_UPPERCASE_TABLENAME_DEFAULT));
 
     List<Integer> columns = ColumnProjectionUtils.getReadColumnIDs(conf);
     int rowLimit = ColumnProjectionUtils.getRowLimit(conf);
