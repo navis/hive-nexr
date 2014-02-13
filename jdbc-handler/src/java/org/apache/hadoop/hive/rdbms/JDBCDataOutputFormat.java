@@ -38,8 +38,12 @@ public class JDBCDataOutputFormat implements OutputFormat<NullWritable, MapWrita
           conf.get(LIST_COLUMN_TYPES),
           true);
 
-      dbProperties.setBatchSize(conf.getInt(ConfigurationUtils.HIVE_JDBC_OUTPUT_BATCH_SIZE,
+      dbProperties.setBatchSize(conf.getInt(
+          ConfigurationUtils.HIVE_JDBC_OUTPUT_BATCH_SIZE,
           ConfigurationUtils.HIVE_JDBC_OUTPUT_BATCH_SIZE_DEFAULT));
+      dbProperties.setUseUpperCase(conf.getBoolean(
+          ConfigurationUtils.HIVE_JDBC_ORACLE_USE_UPPERCASE_TABLENAME,
+          ConfigurationUtils.HIVE_JDBC_ORACLE_USE_UPPERCASE_TABLENAME_DEFAULT));
 
       Connection connection = DBOperation.createConnection(conf);
       return new DBRecordWriter(dbProperties, connection);

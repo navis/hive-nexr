@@ -12,7 +12,7 @@ public class QueryConstructor {
 
     StringBuilder query = new StringBuilder();
     query.append("INSERT INTO ");
-    query.append(tableName);
+    query.append(dbProperties.useUpperCaseTableName() ? tableName.toUpperCase() : tableName);
 
     query.append(" (");
     type.quote(query, fieldNames);
@@ -193,7 +193,7 @@ public class QueryConstructor {
     query.append("SELECT ");
     type.quote(query, fieldNames);
     query.append(" FROM ");
-    query.append(tableName);
+    query.append(dbProperties.useUpperCaseTableName() ? tableName.toUpperCase() : tableName);
 
     if (filter != null) {
       query.append(" WHERE ");

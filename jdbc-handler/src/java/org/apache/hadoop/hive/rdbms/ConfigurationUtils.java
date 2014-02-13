@@ -43,6 +43,9 @@ public class ConfigurationUtils {
   public static final String HIVE_JDBC_ENABLE_FILTER_PUSHDOWN = "hive.jdbc.enable.filter.pushdown";
   public static final boolean HIVE_JDBC_ENABLE_FILTER_PUSHDOWN_DEFAULT = false;
 
+  public static final String HIVE_JDBC_ORACLE_USE_UPPERCASE_TABLENAME = "hive.jdbc.oracle.use.uppercase.tablename";
+  public static final boolean HIVE_JDBC_ORACLE_USE_UPPERCASE_TABLENAME_DEFAULT = false;
+
   // serdeConstants
   public static final String LIST_COLUMNS = "columns";
   public static final String LIST_COLUMN_TYPES = "columns.types";
