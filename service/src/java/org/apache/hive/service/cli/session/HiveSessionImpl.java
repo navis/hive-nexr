@@ -98,7 +98,7 @@ public class HiveSessionImpl implements HiveSession {
     hiveConf.set(ListSinkOperator.OUTPUT_FORMATTER, FetchFormatter.JdbcFormatter.class.getName());
 
     this.hiveConf = hiveConf;
-    this.sessionState = new SessionState(hiveConf);
+    this.sessionState = new SessionState(hiveConf, username);
     this.startTime = System.currentTimeMillis();
   }
 
