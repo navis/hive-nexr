@@ -19,10 +19,15 @@
 package org.apache.hadoop.hive.ql.hooks;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.hadoop.hive.metastore.api.Database;
+import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.ql.exec.Operator;
+import org.apache.hadoop.hive.ql.exec.TableScanOperator;
 import org.apache.hadoop.hive.ql.metadata.Partition;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.plan.HiveOperation;
@@ -39,6 +44,8 @@ public class ReadEntity extends Entity implements Serializable {
 
   // For views, the entities can be nested - by default, entities are at the top level
   private final Set<ReadEntity> parents = new HashSet<ReadEntity>();
+
+  private transient Operator<?> source;
 
   /**
    * For serialization only.
@@ -82,9 +89,10 @@ public class ReadEntity extends Entity implements Serializable {
     }
   }
 
-  public ReadEntity(Table t, ReadEntity parent) {
+  public ReadEntity(Table t, Operator<?> source, ReadEntity parent) {
     super(t, true);
     initParent(parent);
+    this.source = source;
   }
 
   /**
@@ -103,13 +111,44 @@ public class ReadEntity extends Entity implements Serializable {
     setOutputRequiredPrivileges(operation.getOutputRequiredPrivileges());
   }
 
-  public ReadEntity(Partition p, ReadEntity parent) {
+  public ReadEntity(Partition p, Operator<?> source, ReadEntity parent) {
     super(p, true);
     initParent(parent);
+    this.source = source;
   }
 
   public Set<ReadEntity> getParents() {
     return parents;
+  }
+
+  public List<FieldSchema> getColumnRefs() {
+    if (getTable() == null || getTable().isView()) {
+      return null;
+    }
+    List<FieldSchema> fields = getTable().getCols();
+    if (source instanceof TableScanOperator) {
+      List<Integer> columns = ((TableScanOperator)source).getNeededColumnIDs();
+      if (columns != null) {
+        List<FieldSchema> copy = new ArrayList<FieldSchema>();
+        for (int index : columns) {
+          copy.add(fields.get(index));
+        }
+        return copy;
+      }
+    }
+    return new ArrayList<FieldSchema>(fields);
+  }
+
+  public List<String> getColumnRefNames() {
+    List<FieldSchema> refs = getColumnRefs();
+    if (refs == null) {
+      return null;
+    }
+    List<String> columns = new ArrayList<String>();
+    for (FieldSchema ref : refs) {
+      columns.add(ref.getName());
+    }
+    return columns;
   }
 
   /**

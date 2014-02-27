@@ -862,7 +862,7 @@ public final class PlanUtils {
 
       // Adds tables only for create view (PPD filter can be appended by outer query)
       Table table = parseCtx.getTopToTable().get(topOp);
-      PlanUtils.addInput(inputs, new ReadEntity(table, parentViewInfo));
+      PlanUtils.addInput(inputs, new ReadEntity(table, topOp, parentViewInfo));
     }
   }
 
