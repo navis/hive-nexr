@@ -18,21 +18,23 @@
 
 package org.apache.hadoop.hive.ql.security;
 
-import java.util.Arrays;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.ql.session.SessionState;
+
+import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.ql.metadata.HiveException;
-import org.apache.hadoop.hive.shims.ShimLoader;
-import org.apache.hadoop.security.UserGroupInformation;
+/**
+ * Authenticator that returns the userName set in SessionState. For use when authorizing with HS2
+ * so that HS2 can set the user for the session through SessionState
+ */
+public class SessionStateUserAuthenticator implements HiveAuthenticationProvider {
 
-public class HadoopDefaultAuthenticator implements HiveAuthenticationProvider {
+  private final List<String> groupNames = new ArrayList<String>();
 
-  private String userName;
-  private List<String> groupNames;
-
-  private Configuration conf;
+  protected Configuration conf;
+  private SessionState sessionState;
 
   @Override
   public List<String> getGroupNames() {
@@ -41,36 +43,11 @@ public class HadoopDefaultAuthenticator implements HiveAuthenticationProvider {
 
   @Override
   public String getUserName() {
-    return userName;
-  }
-
-  @Override
-  public void setConf(Configuration conf) {
-    this.conf = conf;
-    UserGroupInformation ugi = getUserGroupInformation(conf);
-
-    this.userName = ugi.getUserName();
-
-    if (HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_AUTHORIZATION_SKIP_GROUPNAMES)) {
-      return;
+    String username = SessionState.get().getUserName();
+    if (username == null) {
+      return HadoopDefaultAuthenticator.getUserGroupInformation(conf).getUserName();
     }
-    if (ugi.getGroupNames() != null) {
-      this.groupNames = Arrays.asList(ugi.getGroupNames());
-    }
-  }
-
-  static UserGroupInformation getUserGroupInformation(Configuration conf) {
-    UserGroupInformation ugi;
-    try {
-      ugi = ShimLoader.getHadoopShims().getUGIForConf(conf);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-    if (ugi == null) {
-      throw new RuntimeException(
-          "Can not initialize HadoopDefaultAuthenticator.");
-    }
-    return ugi;
+    return username;
   }
 
   @Override
@@ -80,7 +57,10 @@ public class HadoopDefaultAuthenticator implements HiveAuthenticationProvider {
 
   @Override
   public Configuration getConf() {
-    return this.conf;
+    return null;
   }
 
+  @Override
+  public void setConf(Configuration arg0) {
+  }
 }

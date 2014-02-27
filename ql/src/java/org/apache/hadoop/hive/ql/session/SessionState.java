@@ -65,7 +65,12 @@ public class SessionState {
   /**
    * current configuration.
    */
-  protected HiveConf conf;
+  protected final HiveConf conf;
+
+  /**
+   * current configuration.
+   */
+  protected final String userName;
 
   /**
    * silent mode.
@@ -152,8 +157,8 @@ public class SessionState {
     return conf;
   }
 
-  public void setConf(HiveConf conf) {
-    this.conf = conf;
+  public String getUserName() {
+    return userName;
   }
 
   public File getTmpOutputFile() {
@@ -188,7 +193,12 @@ public class SessionState {
   }
 
   public SessionState(HiveConf conf) {
+    this(conf, null);
+  }
+
+  public SessionState(HiveConf conf, String userName) {
     this.conf = conf;
+    this.userName = userName;
     isSilent = conf.getBoolVar(HiveConf.ConfVars.HIVESESSIONSILENT);
     ls = new LineageState();
     overriddenConfigurations = new HashMap<String, String>();
