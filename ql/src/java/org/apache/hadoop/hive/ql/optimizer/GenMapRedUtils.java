@@ -475,6 +475,9 @@ public final class GenMapRedUtils {
   public static void setMapWork(MapWork plan, ParseContext parseCtx, Set<ReadEntity> inputs,
       PrunedPartitionList partsList, Operator<? extends OperatorDesc> topOp, String alias_id,
       HiveConf conf, boolean local) throws SemanticException {
+
+    TableScanOperator tsOp = (TableScanOperator) topOp;
+
     ArrayList<Path> partDir = new ArrayList<Path>();
     ArrayList<PartitionDesc> partDesc = new ArrayList<PartitionDesc>();
 
@@ -485,7 +488,6 @@ public final class GenMapRedUtils {
 
     if (partsList == null) {
       try {
-        TableScanOperator tsOp = (TableScanOperator) topOp;
         partsList = PartitionPruner.prune(tsOp, parseCtx, alias_id);
       } catch (SemanticException e) {
         throw e;
@@ -512,11 +514,11 @@ public final class GenMapRedUtils {
     // The table does not have any partitions
     if (aliasPartnDesc == null) {
       aliasPartnDesc = new PartitionDesc(Utilities.getTableDesc(parseCtx
-          .getTopToTable().get(topOp)), null);
+          .getTopToTable().get(tsOp)), null);
 
     }
 
-    Map<String, String> props = parseCtx.getTopToProps().get(topOp);
+    Map<String, String> props = parseCtx.getTopToProps().get(tsOp);
     if (props != null) {
       Properties target = aliasPartnDesc.getProperties();
       if (target == null) {
@@ -567,24 +569,23 @@ public final class GenMapRedUtils {
 
     //This read entity is a direct read entity and not an indirect read (that is when
     // this is being read because it is a dependency of a view).
-    boolean isDirectRead = (parentViewInfo == null);
     PlanUtils.addInput(inputs,
-        new ReadEntity(parseCtx.getTopToTable().get(topOp), parentViewInfo, isDirectRead));
+        new ReadEntity(parseCtx.getTopToTable().get(tsOp), tsOp, parentViewInfo));
 
     for (Partition part : parts) {
       if (part.getTable().isPartitioned()) {
-        PlanUtils.addInput(inputs, new ReadEntity(part, parentViewInfo, isDirectRead));
+        PlanUtils.addInput(inputs, new ReadEntity(part, tsOp, parentViewInfo));
       } else {
-        PlanUtils.addInput(inputs, new ReadEntity(part.getTable(), parentViewInfo, isDirectRead));
+        PlanUtils.addInput(inputs, new ReadEntity(part.getTable(), tsOp, parentViewInfo));
       }
 
       // Later the properties have to come from the partition as opposed
       // to from the table in order to support versioning.
       Path[] paths = null;
-      sampleDesc sampleDescr = parseCtx.getOpToSamplePruner().get(topOp);
+      sampleDesc sampleDescr = parseCtx.getOpToSamplePruner().get(tsOp);
 
       // Lookup list bucketing pruner
-      Map<String, ExprNodeDesc> partToPruner = parseCtx.getOpToPartToSkewedPruner().get(topOp);
+      Map<String, ExprNodeDesc> partToPruner = parseCtx.getOpToPartToSkewedPruner().get(tsOp);
       ExprNodeDesc listBucketingPruner = (partToPruner != null) ? partToPruner.get(part.getName())
           : null;
 
@@ -707,7 +708,7 @@ public final class GenMapRedUtils {
       }
 
       assert plan.getAliasToWork().get(alias_id) == null;
-      plan.getAliasToWork().put(alias_id, topOp);
+      plan.getAliasToWork().put(alias_id, tsOp);
     } else {
       // populate local work if needed
       MapredLocalWork localPlan = plan.getMapLocalWork();
@@ -719,7 +720,7 @@ public final class GenMapRedUtils {
 
       assert localPlan.getAliasToWork().get(alias_id) == null;
       assert localPlan.getAliasToFetchWork().get(alias_id) == null;
-      localPlan.getAliasToWork().put(alias_id, topOp);
+      localPlan.getAliasToWork().put(alias_id, tsOp);
       if (tblDir == null) {
         tblDesc = Utilities.getTableDesc(partsList.getSourceTable());
         localPlan.getAliasToFetchWork().put(
