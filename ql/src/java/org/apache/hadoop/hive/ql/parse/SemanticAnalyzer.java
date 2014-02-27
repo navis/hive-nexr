@@ -1137,7 +1137,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           replaceViewReferenceWithDefinition(qb, tab, tab_name, alias);
           // This is the last time we'll see the Table objects for views, so add it to the inputs
           // now
-          ReadEntity viewInput = new ReadEntity(tab, parentInput);
+          ReadEntity viewInput = new ReadEntity(tab, null, parentInput);
           viewInput = PlanUtils.addInput(inputs, viewInput);
           aliasToViewInfo.put(alias, new ObjectPair<String, ReadEntity>(fullViewName, viewInput));
           viewAliasToInput.put(getAliasId(alias, qb), viewInput);

@@ -364,7 +364,7 @@ public class SimpleFetchOptimizer {
     private FetchWork convertToWork() throws HiveException {
       inputs.clear();
       if (!table.isPartitioned()) {
-        inputs.add(new ReadEntity(table, parent));
+        inputs.add(new ReadEntity(table, scanOp, parent));
         String path = table.getPath().toString();
         FetchWork work = new FetchWork(path, Utilities.getTableDesc(table));
         PlanUtils.configureInputJobPropertiesForStorageHandler(work.getTblDesc());
@@ -375,12 +375,12 @@ public class SimpleFetchOptimizer {
       List<PartitionDesc> partP = new ArrayList<PartitionDesc>();
 
       for (Partition partition : partsList.getNotDeniedPartns()) {
-        inputs.add(new ReadEntity(partition, parent));
+        inputs.add(new ReadEntity(partition, scanOp, parent));
         listP.add(partition.getPartitionPath().toString());
         partP.add(Utilities.getPartitionDesc(partition));
       }
       Table sourceTable = partsList.getSourceTable();
-      inputs.add(new ReadEntity(sourceTable, parent));
+      inputs.add(new ReadEntity(sourceTable, scanOp, parent));
       TableDesc table = Utilities.getTableDesc(sourceTable);
       FetchWork work = new FetchWork(listP, partP, table);
       if (!work.getPartDesc().isEmpty()) {

@@ -506,13 +506,13 @@ public final class GenMapRedUtils {
     // The table should also be considered a part of inputs, even if the table is a
     // partitioned table and whether any partition is selected or not
     PlanUtils.addInput(inputs,
-        new ReadEntity(parseCtx.getTopToTable().get(topOp), parentViewInfo));
+        new ReadEntity(parseCtx.getTopToTable().get(topOp), topOp, parentViewInfo));
 
     for (Partition part : parts) {
       if (part.getTable().isPartitioned()) {
-        PlanUtils.addInput(inputs, new ReadEntity(part, parentViewInfo));
+        PlanUtils.addInput(inputs, new ReadEntity(part, topOp, parentViewInfo));
       } else {
-        PlanUtils.addInput(inputs, new ReadEntity(part.getTable(), parentViewInfo));
+        PlanUtils.addInput(inputs, new ReadEntity(part.getTable(), topOp, parentViewInfo));
       }
 
       // Later the properties have to come from the partition as opposed
