@@ -760,6 +760,7 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
         break;
       case TOK_DATABASELOCATION:
         dbLocation = unescapeSQLString(childNode.getChild(0).getText());
+        outputs.add(toWriteEntity(dbLocation));
         break;
       default:
         throw new SemanticException("Unrecognized token in CREATE DATABASE statement");
@@ -924,6 +925,7 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
         break;
       case HiveParser.TOK_TABLELOCATION:
         location = unescapeSQLString(child.getChild(0).getText());
+        outputs.add(toWriteEntity(location));
         break;
       case HiveParser.TOK_TABLEPROPERTIES:
         tblProps = DDLSemanticAnalyzer.getProps((ASTNode) child.getChild(0));
@@ -1300,6 +1302,7 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
       HashMap<String, String> partSpec) throws SemanticException {
 
     String newLocation = unescapeSQLString(ast.getChild(0).getText());
+    outputs.add(toWriteEntity(newLocation));
 
     AlterTableDesc alterTblDesc = new AlterTableDesc(tableName, newLocation, partSpec);
 
@@ -2530,6 +2533,7 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
       case HiveParser.TOK_PARTITIONLOCATION:
         // if location specified, set in partition
         currentLocation = unescapeSQLString(child.getChild(0).getText());
+        outputs.add(toWriteEntity(currentLocation));
         break;
       default:
         throw new SemanticException("Unknown child: " + child);
@@ -3092,6 +3096,7 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
                       .stripQuotes(unescapeSQLString(((ASTNode) locMapAstNodeMaps.get(1))
                           .getText()));
                   validateSkewedLocationString(newLocation);
+                  outputs.add(toWriteEntity(newLocation));
                   locations.put(keyList, newLocation);
                 }
               }

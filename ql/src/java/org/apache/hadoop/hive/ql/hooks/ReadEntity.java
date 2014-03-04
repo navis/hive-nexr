@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.ql.exec.Operator;
@@ -115,6 +116,18 @@ public class ReadEntity extends Entity implements Serializable {
     super(p, true);
     initParent(parent);
     this.source = source;
+  }
+
+  /**
+   * Constructor for a file.
+   *
+   * @param d
+   *          The name of the directory that is being written to.
+   * @param islocal
+   *          Flag to decide whether this directory is local or in dfs.
+   */
+  public ReadEntity(Path d, boolean islocal) {
+    super(d.toString(), islocal, true);
   }
 
   public Set<ReadEntity> getParents() {

@@ -20,6 +20,7 @@ package org.apache.hadoop.hive.ql.parse;
 
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -34,6 +35,7 @@ import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.Tree;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -1134,6 +1136,20 @@ public abstract class BaseSemanticAnalyzer {
 
   public boolean isUsingPseudoMR() {
     return usingPseudoMR;
+  }
+
+  protected WriteEntity toWriteEntity(String location) throws SemanticException {
+    Path path = new Path(location);
+    try {
+      path = path.getFileSystem(conf).makeQualified(path);
+      return new WriteEntity(path, "file".equals(path.toUri().getScheme()));
+    } catch (Exception e) {
+      throw new SemanticException(e);
+    }
+  }
+
+  protected ReadEntity toReadEntity(URI location) throws SemanticException {
+    return new ReadEntity(new Path(location), "file".equals(location.getScheme()));
   }
 
   protected Database getDatabase(String dbName) throws SemanticException {

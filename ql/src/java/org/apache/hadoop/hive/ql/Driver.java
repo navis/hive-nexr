@@ -614,6 +614,9 @@ public class Driver implements CommandProcessor {
           authorizer.authorize(write.getDatabase(), null, outputPrivs, grantedOnly);
           continue;
         }
+        if (write.getType() == Entity.Type.DFS_DIR || write.getType() == Entity.Type.LOCAL_DIR) {
+          continue;
+        }
 
         if (write.getType() == WriteEntity.Type.PARTITION) {
           Partition part = db.getPartition(write.getTable(), write
@@ -640,7 +643,8 @@ public class Driver implements CommandProcessor {
 
       Map<String, Boolean> tableUsePartLevelAuth = new HashMap<String, Boolean>();
       for (ReadEntity read : inputs) {
-        if (read.isDummy() || read.getType() == Entity.Type.DATABASE) {
+        if (read.isDummy() ||
+            (read.getType() != Entity.Type.TABLE && read.getType() != Entity.Type.PARTITION)) {
           continue;
         }
         Table tbl = read.getTable();
@@ -732,6 +736,9 @@ public class Driver implements CommandProcessor {
 
         if (read.getType() == Entity.Type.DATABASE) {
           delegator.authorize(read.getDatabase(), inputPrivs, null, grantedOnly);
+          continue;
+        }
+        if (read.getType() == Entity.Type.DFS_DIR || read.getType() == Entity.Type.LOCAL_DIR) {
           continue;
         }
         Table tbl = read.getTable();
