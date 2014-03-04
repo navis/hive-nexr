@@ -16,19 +16,23 @@ POSTHOOK: Output: default@exim_employee
 PREHOOK: query: load data local inpath "../data/files/test.dat" 
 	into table exim_employee partition (emp_country="in", emp_state="tn")
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@exim_employee
 POSTHOOK: query: load data local inpath "../data/files/test.dat" 
 	into table exim_employee partition (emp_country="in", emp_state="tn")
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@exim_employee
 POSTHOOK: Output: default@exim_employee@emp_country=in/emp_state=tn
 PREHOOK: query: load data local inpath "../data/files/test2.dat" 
 	into table exim_employee partition (emp_country="in", emp_state="ka")
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@exim_employee
 POSTHOOK: query: load data local inpath "../data/files/test2.dat" 
 	into table exim_employee partition (emp_country="in", emp_state="ka")
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@exim_employee
 POSTHOOK: Output: default@exim_employee@emp_country=in/emp_state=ka
 #### A masked pattern was here ####
@@ -63,15 +67,19 @@ PREHOOK: query: import external table exim_employee
 	from 'ql/test/data/exports/exim_employee'
 	location 'ql/test/data/tablestore/exim_employee'
 PREHOOK: type: IMPORT
+#### A masked pattern was here ####
 PREHOOK: Output: database:importer
+#### A masked pattern was here ####
 POSTHOOK: query: import external table exim_employee 
 	from 'ql/test/data/exports/exim_employee'
 	location 'ql/test/data/tablestore/exim_employee'
 POSTHOOK: type: IMPORT
+#### A masked pattern was here ####
 POSTHOOK: Output: database:importer
 POSTHOOK: Output: importer@exim_employee
 POSTHOOK: Output: importer@exim_employee@emp_country=in/emp_state=ka
 POSTHOOK: Output: importer@exim_employee@emp_country=in/emp_state=tn
+#### A masked pattern was here ####
 PREHOOK: query: describe extended exim_employee
 PREHOOK: type: DESCTABLE
 POSTHOOK: query: describe extended exim_employee

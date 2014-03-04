@@ -23,30 +23,38 @@ POSTHOOK: Output: database:default
 POSTHOOK: Output: default@gl_src1
 PREHOOK: query: load data local inpath '../data/files/srcbucket20.txt' INTO TABLE gl_src1
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@gl_src1
 POSTHOOK: query: load data local inpath '../data/files/srcbucket20.txt' INTO TABLE gl_src1
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@gl_src1
 PREHOOK: query: load data local inpath '../data/files/srcbucket20.txt' INTO TABLE gl_src1
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@gl_src1
 POSTHOOK: query: load data local inpath '../data/files/srcbucket20.txt' INTO TABLE gl_src1
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@gl_src1
 PREHOOK: query: load data local inpath '../data/files/srcbucket20.txt' INTO TABLE gl_src1
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@gl_src1
 POSTHOOK: query: load data local inpath '../data/files/srcbucket20.txt' INTO TABLE gl_src1
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@gl_src1
 PREHOOK: query: -- need one file
 create table gl_tgt as select key from gl_src1 limit 1
 PREHOOK: type: CREATETABLE_AS_SELECT
 PREHOOK: Input: default@gl_src1
+PREHOOK: Output: database:default
 POSTHOOK: query: -- need one file
 create table gl_tgt as select key from gl_src1 limit 1
 POSTHOOK: type: CREATETABLE_AS_SELECT
 POSTHOOK: Input: default@gl_src1
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@gl_tgt
 PREHOOK: query: select * from gl_tgt ORDER BY key ASC
 PREHOOK: type: QUERY
@@ -1142,32 +1150,40 @@ POSTHOOK: Output: default@gl_src_part1
 POSTHOOK: Lineage: gl_tgt.key EXPRESSION [(gl_src1)gl_src1.FieldSchema(name:key, type:int, comment:null), ]
 PREHOOK: query: load data local inpath '../data/files/srcbucket21.txt' INTO TABLE gl_src_part1 partition(p='11')
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@gl_src_part1
 POSTHOOK: query: load data local inpath '../data/files/srcbucket21.txt' INTO TABLE gl_src_part1 partition(p='11')
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@gl_src_part1
 POSTHOOK: Output: default@gl_src_part1@p=11
 POSTHOOK: Lineage: gl_tgt.key EXPRESSION [(gl_src1)gl_src1.FieldSchema(name:key, type:int, comment:null), ]
 PREHOOK: query: load data local inpath '../data/files/srcbucket20.txt' INTO TABLE gl_src_part1 partition(p='12')
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@gl_src_part1
 POSTHOOK: query: load data local inpath '../data/files/srcbucket20.txt' INTO TABLE gl_src_part1 partition(p='12')
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@gl_src_part1
 POSTHOOK: Output: default@gl_src_part1@p=12
 POSTHOOK: Lineage: gl_tgt.key EXPRESSION [(gl_src1)gl_src1.FieldSchema(name:key, type:int, comment:null), ]
 PREHOOK: query: load data local inpath '../data/files/srcbucket20.txt' INTO TABLE gl_src_part1 partition(p='12')
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@gl_src_part1@p=12
 POSTHOOK: query: load data local inpath '../data/files/srcbucket20.txt' INTO TABLE gl_src_part1 partition(p='12')
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@gl_src_part1@p=12
 POSTHOOK: Lineage: gl_tgt.key EXPRESSION [(gl_src1)gl_src1.FieldSchema(name:key, type:int, comment:null), ]
 PREHOOK: query: load data local inpath '../data/files/srcbucket20.txt' INTO TABLE gl_src_part1 partition(p='12')
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@gl_src_part1@p=12
 POSTHOOK: query: load data local inpath '../data/files/srcbucket20.txt' INTO TABLE gl_src_part1 partition(p='12')
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@gl_src_part1@p=12
 POSTHOOK: Lineage: gl_tgt.key EXPRESSION [(gl_src1)gl_src1.FieldSchema(name:key, type:int, comment:null), ]
 PREHOOK: query: select key from gl_src_part1 where p like '1%' ORDER BY key ASC limit 10

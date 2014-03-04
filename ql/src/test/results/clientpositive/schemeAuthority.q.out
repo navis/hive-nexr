@@ -31,6 +31,7 @@ PREHOOK: Input: default@dynpart
 POSTHOOK: type: ALTERTABLE_ADDPARTS
 POSTHOOK: Input: default@dynpart
 POSTHOOK: Output: default@dynpart@value=1
+#### A masked pattern was here ####
 PREHOOK: query: select count(*) from dynPart
 PREHOOK: type: QUERY
 PREHOOK: Input: default@dynpart

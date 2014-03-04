@@ -6,6 +6,7 @@ STORED AS textfile
 #### A masked pattern was here ####
 PREHOOK: type: CREATETABLE
 PREHOOK: Output: database:default
+#### A masked pattern was here ####
 POSTHOOK: query: -- Test SHOW CREATE TABLE on a table with delimiters, stored format, and location.
 
 CREATE TABLE tmp_showcrt1 (key int, value string, newvalue bigint)
@@ -15,6 +16,7 @@ STORED AS textfile
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: database:default
 POSTHOOK: Output: default@tmp_showcrt1
+#### A masked pattern was here ####
 PREHOOK: query: SHOW CREATE TABLE tmp_showcrt1
 PREHOOK: type: SHOW_CREATETABLE
 PREHOOK: Input: default@tmp_showcrt1

@@ -146,9 +146,11 @@ POSTHOOK: Output: default@binay_udf
 POSTHOOK: Lineage: timestamp_udf.t EXPRESSION []
 PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/string.txt' INTO TABLE binay_udf
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@binay_udf
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../data/files/string.txt' INTO TABLE binay_udf
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@binay_udf
 POSTHOOK: Lineage: timestamp_udf.t EXPRESSION []
 PREHOOK: query: create table dest1 (key binary, value int)

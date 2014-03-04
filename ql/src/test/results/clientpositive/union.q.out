@@ -142,7 +142,7 @@ PREHOOK: query: FROM (
 INSERT OVERWRITE DIRECTORY '../build/ql/test/data/warehouse/union.out' SELECT unioninput.*
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
-PREHOOK: Output: ../build/ql/test/data/warehouse/union.out
+#### A masked pattern was here ####
 POSTHOOK: query: FROM (
   FROM src select src.key, src.value WHERE src.key < 100
   UNION ALL
@@ -151,7 +151,7 @@ POSTHOOK: query: FROM (
 INSERT OVERWRITE DIRECTORY '../build/ql/test/data/warehouse/union.out' SELECT unioninput.*
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
-POSTHOOK: Output: ../build/ql/test/data/warehouse/union.out
+#### A masked pattern was here ####
 238val_238
 86val_86
 311val_311

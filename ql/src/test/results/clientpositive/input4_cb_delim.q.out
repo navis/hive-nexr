@@ -7,9 +7,11 @@ POSTHOOK: Output: database:default
 POSTHOOK: Output: default@INPUT4_CB
 PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/kv1_cb.txt' INTO TABLE INPUT4_CB
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@input4_cb
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../data/files/kv1_cb.txt' INTO TABLE INPUT4_CB
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@input4_cb
 PREHOOK: query: SELECT INPUT4_CB.VALUE, INPUT4_CB.KEY FROM INPUT4_CB
 PREHOOK: type: QUERY

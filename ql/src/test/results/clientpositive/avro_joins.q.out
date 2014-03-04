@@ -85,9 +85,11 @@ last_name           	string              	from deserializer
 extra_field         	string              	from deserializer   
 PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/doctors.avro' INTO TABLE doctors4
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@doctors4
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../data/files/doctors.avro' INTO TABLE doctors4
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@doctors4
 PREHOOK: query: CREATE TABLE episodes
 ROW FORMAT
@@ -159,9 +161,11 @@ air_date            	string              	from deserializer
 doctor              	int                 	from deserializer   
 PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/episodes.avro' INTO TABLE episodes
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@episodes
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../data/files/episodes.avro' INTO TABLE episodes
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@episodes
 PREHOOK: query: SELECT e.title, e.air_date, d.first_name, d.last_name, d.extra_field, e.air_date
 FROM doctors4 d JOIN episodes e ON (d.number=e.doctor)

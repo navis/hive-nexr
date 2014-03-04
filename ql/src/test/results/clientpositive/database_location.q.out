@@ -56,10 +56,12 @@ PREHOOK: query: CREATE DATABASE db2
 COMMENT 'database 2'
 #### A masked pattern was here ####
 PREHOOK: type: CREATEDATABASE
+#### A masked pattern was here ####
 POSTHOOK: query: CREATE DATABASE db2
 COMMENT 'database 2'
 #### A masked pattern was here ####
 POSTHOOK: type: CREATEDATABASE
+#### A masked pattern was here ####
 PREHOOK: query: DESCRIBE DATABASE EXTENDED db2
 PREHOOK: type: DESCDATABASE
 POSTHOOK: query: DESCRIBE DATABASE EXTENDED db2

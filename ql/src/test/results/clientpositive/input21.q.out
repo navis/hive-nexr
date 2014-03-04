@@ -7,9 +7,11 @@ POSTHOOK: Output: database:default
 POSTHOOK: Output: default@src_null
 PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/null.txt' INTO TABLE src_null
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@src_null
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../data/files/null.txt' INTO TABLE src_null
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@src_null
 PREHOOK: query: EXPLAIN SELECT * FROM src_null DISTRIBUTE BY c SORT BY d
 PREHOOK: type: QUERY

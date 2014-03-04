@@ -16,10 +16,12 @@ POSTHOOK: Output: default@covar_tab
 PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/covar_tab.txt' OVERWRITE
 INTO TABLE covar_tab
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@covar_tab
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../data/files/covar_tab.txt' OVERWRITE
 INTO TABLE covar_tab
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@covar_tab
 PREHOOK: query: DESCRIBE FUNCTION corr
 PREHOOK: type: DESCFUNCTION

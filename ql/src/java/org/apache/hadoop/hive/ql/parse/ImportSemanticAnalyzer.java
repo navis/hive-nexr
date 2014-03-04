@@ -84,6 +84,8 @@ public class ImportSemanticAnalyzer extends BaseSemanticAnalyzer {
       List<AddPartitionDesc> partitionDescs = new ArrayList<AddPartitionDesc>();
       Path fromPath = new Path(fromURI.getScheme(), fromURI.getAuthority(),
           fromURI.getPath());
+      inputs.add(toReadEntity(fromURI));
+
       try {
         Path metadataPath = new Path(fromPath, "_metadata");
         Map.Entry<org.apache.hadoop.hive.metastore.api.Table,
@@ -150,6 +152,7 @@ public class ImportSemanticAnalyzer extends BaseSemanticAnalyzer {
         case HiveParser.TOK_TABLELOCATION:
           String location = unescapeSQLString(child.getChild(0).getText());
           location = EximUtil.relativeToAbsolutePath(conf, location);
+          outputs.add(toWriteEntity(location));
           tblDesc.setLocation(location);
           break;
         case HiveParser.TOK_TAB:

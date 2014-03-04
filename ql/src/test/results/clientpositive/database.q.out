@@ -175,11 +175,13 @@ PREHOOK: query: -- LOAD and SELECT
 LOAD DATA LOCAL INPATH '../data/files/test.dat'
 OVERWRITE INTO TABLE test_table
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: test_db@test_table
 POSTHOOK: query: -- LOAD and SELECT
 LOAD DATA LOCAL INPATH '../data/files/test.dat'
 OVERWRITE INTO TABLE test_table
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: test_db@test_table
 PREHOOK: query: SELECT * FROM test_table
 PREHOOK: type: QUERY
@@ -550,11 +552,13 @@ PREHOOK: query: -- LOAD into foreign table
 LOAD DATA LOCAL INPATH '../data/files/kv1.txt'
 OVERWRITE INTO TABLE db1.src
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: db1@src
 POSTHOOK: query: -- LOAD into foreign table
 LOAD DATA LOCAL INPATH '../data/files/kv1.txt'
 OVERWRITE INTO TABLE db1.src
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: db1@src
 POSTHOOK: Lineage: temp_tbl2.c EXPRESSION [(temp_tbl)temp_tbl.null, ]
 PREHOOK: query: -- SELECT from foreign table
@@ -1087,12 +1091,14 @@ LOAD DATA LOCAL INPATH '../data/files/kv1.txt'
 OVERWRITE INTO TABLE db1.srcpart
 PARTITION (ds='2008-04-08', hr='11')
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: db1@srcpart
 POSTHOOK: query: -- LOAD data into Partitioned foreign table
 LOAD DATA LOCAL INPATH '../data/files/kv1.txt'
 OVERWRITE INTO TABLE db1.srcpart
 PARTITION (ds='2008-04-08', hr='11')
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: db1@srcpart
 POSTHOOK: Output: db1@srcpart@ds=2008-04-08/hr=11
 POSTHOOK: Lineage: temp_tbl2.c EXPRESSION [(temp_tbl)temp_tbl.null, ]
@@ -1257,11 +1263,13 @@ CREATE TABLE conflict_name AS
 SELECT value FROM default.src WHERE key = 66
 PREHOOK: type: CREATETABLE_AS_SELECT
 PREHOOK: Input: default@src
+PREHOOK: Output: database:db2
 POSTHOOK: query: -- CREATE TABLE AS SELECT from foreign table
 CREATE TABLE conflict_name AS
 SELECT value FROM default.src WHERE key = 66
 POSTHOOK: type: CREATETABLE_AS_SELECT
 POSTHOOK: Input: default@src
+POSTHOOK: Output: database:db2
 POSTHOOK: Output: db2@conflict_name
 POSTHOOK: Lineage: temp_tbl2.c EXPRESSION [(temp_tbl)temp_tbl.null, ]
 PREHOOK: query: -- CREATE foreign table
@@ -1269,11 +1277,13 @@ CREATE TABLE db1.conflict_name AS
 SELECT value FROM db1.src WHERE key = 8
 PREHOOK: type: CREATETABLE_AS_SELECT
 PREHOOK: Input: db1@src
+PREHOOK: Output: database:db1
 POSTHOOK: query: -- CREATE foreign table
 CREATE TABLE db1.conflict_name AS
 SELECT value FROM db1.src WHERE key = 8
 POSTHOOK: type: CREATETABLE_AS_SELECT
 POSTHOOK: Input: db1@src
+POSTHOOK: Output: database:db1
 POSTHOOK: Output: db1@conflict_name
 POSTHOOK: Lineage: temp_tbl2.c EXPRESSION [(temp_tbl)temp_tbl.null, ]
 PREHOOK: query: -- query tables with the same names in different DBs

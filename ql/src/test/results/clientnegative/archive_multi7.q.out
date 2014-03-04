@@ -29,11 +29,13 @@ PREHOOK: query: ALTER TABLE tstsrcpart ADD PARTITION (ds='2008-04-08', hr='12')
 #### A masked pattern was here ####
 PREHOOK: type: ALTERTABLE_ADDPARTS
 PREHOOK: Input: default@tstsrcpart
+#### A masked pattern was here ####
 POSTHOOK: query: ALTER TABLE tstsrcpart ADD PARTITION (ds='2008-04-08', hr='12')
 #### A masked pattern was here ####
 POSTHOOK: type: ALTERTABLE_ADDPARTS
 POSTHOOK: Input: default@tstsrcpart
 POSTHOOK: Output: default@tstsrcpart@ds=2008-04-08/hr=12
+#### A masked pattern was here ####
 POSTHOOK: Lineage: tstsrcpart PARTITION(ds=2008-04-08,hr=11).key SIMPLE [(srcpart)srcpart.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: tstsrcpart PARTITION(ds=2008-04-08,hr=11).value SIMPLE [(srcpart)srcpart.FieldSchema(name:value, type:string, comment:default), ]
 PREHOOK: query: ALTER TABLE tstsrcpart ARCHIVE PARTITION (ds='2008-04-08')

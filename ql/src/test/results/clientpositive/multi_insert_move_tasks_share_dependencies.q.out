@@ -5537,18 +5537,18 @@ insert overwrite table src_multi2 select * where key > 10 and key < 20
 #### A masked pattern was here ####
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
-#### A masked pattern was here ####
 PREHOOK: Output: default@src_multi1
 PREHOOK: Output: default@src_multi2
+#### A masked pattern was here ####
 POSTHOOK: query: from src
 insert overwrite table src_multi1 select * where key < 10
 insert overwrite table src_multi2 select * where key > 10 and key < 20
 #### A masked pattern was here ####
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
-#### A masked pattern was here ####
 POSTHOOK: Output: default@src_multi1
 POSTHOOK: Output: default@src_multi2
+#### A masked pattern was here ####
 POSTHOOK: Lineage: src_multi1.key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: src_multi1.key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: src_multi1.key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
@@ -5982,18 +5982,18 @@ insert overwrite table src_multi2 select * where key > 10 and key < 20
 #### A masked pattern was here ####
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
-#### A masked pattern was here ####
 PREHOOK: Output: default@src_multi1
 PREHOOK: Output: default@src_multi2
+#### A masked pattern was here ####
 POSTHOOK: query: from src
 insert overwrite table src_multi1 select * where key < 10
 insert overwrite table src_multi2 select * where key > 10 and key < 20
 #### A masked pattern was here ####
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
-#### A masked pattern was here ####
 POSTHOOK: Output: default@src_multi1
 POSTHOOK: Output: default@src_multi2
+#### A masked pattern was here ####
 POSTHOOK: Lineage: src_multi1.key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: src_multi1.key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: src_multi1.key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
@@ -6535,18 +6535,18 @@ insert overwrite table src_multi2 select * where key > 10 and key < 20
 #### A masked pattern was here ####
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
-#### A masked pattern was here ####
 PREHOOK: Output: default@src_multi1
 PREHOOK: Output: default@src_multi2
+#### A masked pattern was here ####
 POSTHOOK: query: from src
 insert overwrite table src_multi1 select * where key < 10
 insert overwrite table src_multi2 select * where key > 10 and key < 20
 #### A masked pattern was here ####
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
-#### A masked pattern was here ####
 POSTHOOK: Output: default@src_multi1
 POSTHOOK: Output: default@src_multi2
+#### A masked pattern was here ####
 POSTHOOK: Lineage: src_multi1.key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: src_multi1.key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: src_multi1.key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
@@ -7104,18 +7104,18 @@ insert overwrite table src_multi2 select * where key > 10 and key < 20
 #### A masked pattern was here ####
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
-#### A masked pattern was here ####
 PREHOOK: Output: default@src_multi1
 PREHOOK: Output: default@src_multi2
+#### A masked pattern was here ####
 POSTHOOK: query: from src
 insert overwrite table src_multi1 select * where key < 10
 insert overwrite table src_multi2 select * where key > 10 and key < 20
 #### A masked pattern was here ####
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
-#### A masked pattern was here ####
 POSTHOOK: Output: default@src_multi1
 POSTHOOK: Output: default@src_multi2
+#### A masked pattern was here ####
 POSTHOOK: Lineage: src_multi1.key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: src_multi1.key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: src_multi1.key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]

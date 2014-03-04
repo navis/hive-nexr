@@ -9,27 +9,35 @@ POSTHOOK: Output: database:default
 POSTHOOK: Output: default@bucket_small
 PREHOOK: query: load data local inpath '../data/files/srcsortbucket1outof4.txt' INTO TABLE bucket_small
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@bucket_small
 POSTHOOK: query: load data local inpath '../data/files/srcsortbucket1outof4.txt' INTO TABLE bucket_small
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@bucket_small
 PREHOOK: query: load data local inpath '../data/files/srcsortbucket2outof4.txt' INTO TABLE bucket_small
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@bucket_small
 POSTHOOK: query: load data local inpath '../data/files/srcsortbucket2outof4.txt' INTO TABLE bucket_small
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@bucket_small
 PREHOOK: query: load data local inpath '../data/files/srcsortbucket3outof4.txt' INTO TABLE bucket_small
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@bucket_small
 POSTHOOK: query: load data local inpath '../data/files/srcsortbucket3outof4.txt' INTO TABLE bucket_small
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@bucket_small
 PREHOOK: query: load data local inpath '../data/files/srcsortbucket4outof4.txt' INTO TABLE bucket_small
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@bucket_small
 POSTHOOK: query: load data local inpath '../data/files/srcsortbucket4outof4.txt' INTO TABLE bucket_small
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@bucket_small
 PREHOOK: query: CREATE TABLE bucket_big (key string, value string) CLUSTERED BY (key) SORTED BY (key) INTO 2 BUCKETS STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
@@ -40,15 +48,19 @@ POSTHOOK: Output: database:default
 POSTHOOK: Output: default@bucket_big
 PREHOOK: query: load data local inpath '../data/files/srcsortbucket1outof4.txt' INTO TABLE bucket_big
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@bucket_big
 POSTHOOK: query: load data local inpath '../data/files/srcsortbucket1outof4.txt' INTO TABLE bucket_big
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@bucket_big
 PREHOOK: query: load data local inpath '../data/files/srcsortbucket2outof4.txt' INTO TABLE bucket_big
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@bucket_big
 POSTHOOK: query: load data local inpath '../data/files/srcsortbucket2outof4.txt' INTO TABLE bucket_big
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@bucket_big
 PREHOOK: query: explain extended select /* + MAPJOIN(a) */ count(*) FROM bucket_small a JOIN bucket_big b ON a.key = b.key
 PREHOOK: type: QUERY

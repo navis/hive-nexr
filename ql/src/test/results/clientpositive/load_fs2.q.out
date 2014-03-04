@@ -20,15 +20,19 @@ POSTHOOK: Output: database:default
 POSTHOOK: Output: default@loader
 PREHOOK: query: load data local inpath '../data/files/kv1.txt' into table loader
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@loader
 POSTHOOK: query: load data local inpath '../data/files/kv1.txt' into table loader
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@loader
 PREHOOK: query: load data inpath '/build/ql/test/data/warehouse/loader/kv1.txt' into table result
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@result
 POSTHOOK: query: load data inpath '/build/ql/test/data/warehouse/loader/kv1.txt' into table result
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@result
 PREHOOK: query: show table extended like result
 PREHOOK: type: SHOW_TABLESTATUS
@@ -49,15 +53,19 @@ minFileSize:5812
 
 PREHOOK: query: load data local inpath '../data/files/kv1.txt' into table loader
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@loader
 POSTHOOK: query: load data local inpath '../data/files/kv1.txt' into table loader
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@loader
 PREHOOK: query: load data inpath '/build/ql/test/data/warehouse/loader/kv1.txt' into table result
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@result
 POSTHOOK: query: load data inpath '/build/ql/test/data/warehouse/loader/kv1.txt' into table result
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@result
 PREHOOK: query: show table extended like result
 PREHOOK: type: SHOW_TABLESTATUS
@@ -78,15 +86,19 @@ minFileSize:5812
 
 PREHOOK: query: load data local inpath '../data/files/kv1.txt' into table loader
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@loader
 POSTHOOK: query: load data local inpath '../data/files/kv1.txt' into table loader
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@loader
 PREHOOK: query: load data inpath '/build/ql/test/data/warehouse/loader/kv1.txt' into table result
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@result
 POSTHOOK: query: load data inpath '/build/ql/test/data/warehouse/loader/kv1.txt' into table result
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@result
 PREHOOK: query: show table extended like result
 PREHOOK: type: SHOW_TABLESTATUS

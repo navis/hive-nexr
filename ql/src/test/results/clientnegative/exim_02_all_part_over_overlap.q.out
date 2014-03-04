@@ -16,37 +16,45 @@ POSTHOOK: Output: default@exim_employee
 PREHOOK: query: load data local inpath "../data/files/test.dat" 
 	into table exim_employee partition (emp_country="in", emp_state="tn")
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@exim_employee
 POSTHOOK: query: load data local inpath "../data/files/test.dat" 
 	into table exim_employee partition (emp_country="in", emp_state="tn")
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@exim_employee
 POSTHOOK: Output: default@exim_employee@emp_country=in/emp_state=tn
 PREHOOK: query: load data local inpath "../data/files/test.dat" 
 	into table exim_employee partition (emp_country="in", emp_state="ka")
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@exim_employee
 POSTHOOK: query: load data local inpath "../data/files/test.dat" 
 	into table exim_employee partition (emp_country="in", emp_state="ka")
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@exim_employee
 POSTHOOK: Output: default@exim_employee@emp_country=in/emp_state=ka
 PREHOOK: query: load data local inpath "../data/files/test.dat" 
 	into table exim_employee partition (emp_country="us", emp_state="tn")
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@exim_employee
 POSTHOOK: query: load data local inpath "../data/files/test.dat" 
 	into table exim_employee partition (emp_country="us", emp_state="tn")
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@exim_employee
 POSTHOOK: Output: default@exim_employee@emp_country=us/emp_state=tn
 PREHOOK: query: load data local inpath "../data/files/test.dat" 
 	into table exim_employee partition (emp_country="us", emp_state="ka")
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@exim_employee
 POSTHOOK: query: load data local inpath "../data/files/test.dat" 
 	into table exim_employee partition (emp_country="us", emp_state="ka")
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@exim_employee
 POSTHOOK: Output: default@exim_employee@emp_country=us/emp_state=ka
 #### A masked pattern was here ####
@@ -98,10 +106,12 @@ POSTHOOK: Output: importer@exim_employee
 PREHOOK: query: load data local inpath "../data/files/test.dat" 
 	into table exim_employee partition (emp_country="us", emp_state="ka")
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: importer@exim_employee
 POSTHOOK: query: load data local inpath "../data/files/test.dat" 
 	into table exim_employee partition (emp_country="us", emp_state="ka")
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: importer@exim_employee
 POSTHOOK: Output: importer@exim_employee@emp_country=us/emp_state=ka
 FAILED: SemanticException [Error 10118]: Partition already exists emp_country=us,emp_state=ka

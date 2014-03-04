@@ -31,8 +31,10 @@ POSTHOOK: Output: database:default
 POSTHOOK: Output: default@UserVisits_web_text_none
 PREHOOK: query: LOAD DATA LOCAL INPATH "../data/files/UserVisits.dat" INTO TABLE UserVisits_web_text_none
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@uservisits_web_text_none
 POSTHOOK: query: LOAD DATA LOCAL INPATH "../data/files/UserVisits.dat" INTO TABLE UserVisits_web_text_none
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@uservisits_web_text_none
 FAILED: SemanticException [Error 10004]: Line 1:21 Invalid table alias or column reference 'destIP': (possible column names are: sourceip, desturl, visitdate, adrevenue, useragent, ccode, lcode, skeyword, avgtimeonsite)

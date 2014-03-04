@@ -77,9 +77,11 @@ POSTHOOK: Output: database:default
 POSTHOOK: Output: default@test_table
 PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/kv1.txt' INTO TABLE test_table
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@test_table
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../data/files/kv1.txt' INTO TABLE test_table
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@test_table
 PREHOOK: query: select col1,col2,
   field("66",col1),
@@ -122,9 +124,11 @@ POSTHOOK: Output: database:default
 POSTHOOK: Output: default@test_table1
 PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/kv1.txt' INTO TABLE test_table1
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@test_table1
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../data/files/kv1.txt' INTO TABLE test_table1
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@test_table1
 PREHOOK: query: select col1,col2,
   field(66,col1),

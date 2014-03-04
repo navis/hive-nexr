@@ -21,9 +21,11 @@ POSTHOOK: Output: database:default
 POSTHOOK: Output: default@INPUT
 PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/kv5.txt' INTO TABLE INPUT
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@input
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../data/files/kv5.txt' INTO TABLE INPUT
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@input
 PREHOOK: query: EXPLAIN
 FROM INPUT 

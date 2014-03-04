@@ -306,9 +306,11 @@ Storage Desc Params:
 	serialization.format	1                   
 PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/orc_create.txt' OVERWRITE INTO TABLE orc_create_staging
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@orc_create_staging
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../data/files/orc_create.txt' OVERWRITE INTO TABLE orc_create_staging
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@orc_create_staging
 PREHOOK: query: SELECT * from orc_create_staging
 PREHOOK: type: QUERY

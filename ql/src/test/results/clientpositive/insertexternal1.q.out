@@ -12,6 +12,7 @@ PREHOOK: Input: default@texternal
 POSTHOOK: type: ALTERTABLE_ADDPARTS
 POSTHOOK: Input: default@texternal
 POSTHOOK: Output: default@texternal@insertdate=2008-01-01
+#### A masked pattern was here ####
 PREHOOK: query: from src insert overwrite table texternal partition (insertdate='2008-01-01') select *
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src

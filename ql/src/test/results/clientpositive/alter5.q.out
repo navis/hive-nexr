@@ -15,9 +15,11 @@ POSTHOOK: Output: database:default
 POSTHOOK: Output: default@alter5_src
 PREHOOK: query: load data local inpath '../data/files/test.dat' overwrite into table alter5_src
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@alter5_src
 POSTHOOK: query: load data local inpath '../data/files/test.dat' overwrite into table alter5_src
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@alter5_src
 PREHOOK: query: create table alter5 ( col1 string ) partitioned by (dt string)
 PREHOOK: type: CREATETABLE
@@ -33,6 +35,7 @@ PREHOOK: query: --
 alter table alter5 add partition (dt='a') location 'parta'
 PREHOOK: type: ALTERTABLE_ADDPARTS
 PREHOOK: Input: default@alter5
+#### A masked pattern was here ####
 POSTHOOK: query: --
 -- Here's the interesting bit for HIVE-2117 - partition subdir should be
 -- named "parta".
@@ -41,6 +44,7 @@ alter table alter5 add partition (dt='a') location 'parta'
 POSTHOOK: type: ALTERTABLE_ADDPARTS
 POSTHOOK: Input: default@alter5
 POSTHOOK: Output: default@alter5@dt=a
+#### A masked pattern was here ####
 PREHOOK: query: describe extended alter5 partition (dt='a')
 PREHOOK: type: DESCTABLE
 POSTHOOK: query: describe extended alter5 partition (dt='a')
@@ -156,9 +160,11 @@ POSTHOOK: Output: database:alter5_db
 POSTHOOK: Lineage: alter5 PARTITION(dt=a).col1 SIMPLE [(alter5_src)alter5_src.FieldSchema(name:col1, type:string, comment:null), ]
 PREHOOK: query: load data local inpath '../data/files/test.dat' overwrite into table alter5_src
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: alter5_db@alter5_src
 POSTHOOK: query: load data local inpath '../data/files/test.dat' overwrite into table alter5_src
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: alter5_db@alter5_src
 POSTHOOK: Lineage: alter5 PARTITION(dt=a).col1 SIMPLE [(alter5_src)alter5_src.FieldSchema(name:col1, type:string, comment:null), ]
 PREHOOK: query: create table alter5 ( col1 string ) partitioned by (dt string)
@@ -172,10 +178,12 @@ POSTHOOK: Lineage: alter5 PARTITION(dt=a).col1 SIMPLE [(alter5_src)alter5_src.Fi
 PREHOOK: query: alter table alter5 add partition (dt='a') location 'parta'
 PREHOOK: type: ALTERTABLE_ADDPARTS
 PREHOOK: Input: alter5_db@alter5
+#### A masked pattern was here ####
 POSTHOOK: query: alter table alter5 add partition (dt='a') location 'parta'
 POSTHOOK: type: ALTERTABLE_ADDPARTS
 POSTHOOK: Input: alter5_db@alter5
 POSTHOOK: Output: alter5_db@alter5@dt=a
+#### A masked pattern was here ####
 POSTHOOK: Lineage: alter5 PARTITION(dt=a).col1 SIMPLE [(alter5_src)alter5_src.FieldSchema(name:col1, type:string, comment:null), ]
 PREHOOK: query: describe extended alter5 partition (dt='a')
 PREHOOK: type: DESCTABLE

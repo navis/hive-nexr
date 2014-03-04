@@ -7,9 +7,11 @@ POSTHOOK: Output: database:default
 POSTHOOK: Output: default@temp_null
 PREHOOK: query: load data local inpath '../data/files/test.dat' overwrite into table temp_null
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@temp_null
 POSTHOOK: query: load data local inpath '../data/files/test.dat' overwrite into table temp_null
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@temp_null
 PREHOOK: query: select null, null from temp_null
 PREHOOK: type: QUERY
@@ -100,11 +102,11 @@ NULL	NULL
 PREHOOK: query: insert overwrite directory "../build/ql/test/data/warehouse/null_columns.out" select null, null from temp_null
 PREHOOK: type: QUERY
 PREHOOK: Input: default@temp_null
-PREHOOK: Output: ../build/ql/test/data/warehouse/null_columns.out
+#### A masked pattern was here ####
 POSTHOOK: query: insert overwrite directory "../build/ql/test/data/warehouse/null_columns.out" select null, null from temp_null
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@temp_null
-POSTHOOK: Output: ../build/ql/test/data/warehouse/null_columns.out
+#### A masked pattern was here ####
 POSTHOOK: Lineage: tt.a EXPRESSION []
 POSTHOOK: Lineage: tt.b SIMPLE []
 POSTHOOK: Lineage: tt_b.a EXPRESSION []

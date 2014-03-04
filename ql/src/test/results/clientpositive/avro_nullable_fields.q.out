@@ -41,9 +41,11 @@ POSTHOOK: Output: database:default
 POSTHOOK: Output: default@test_serializer
 PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/csv.txt' INTO TABLE test_serializer
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@test_serializer
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../data/files/csv.txt' INTO TABLE test_serializer
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@test_serializer
 PREHOOK: query: CREATE TABLE as_avro
   ROW FORMAT

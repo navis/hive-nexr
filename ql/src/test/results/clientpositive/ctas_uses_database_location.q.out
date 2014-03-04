@@ -5,6 +5,7 @@ PREHOOK: query: -- Tests that CTAS queries in non-default databases use the loca
 CREATE DATABASE db1
 #### A masked pattern was here ####
 PREHOOK: type: CREATEDATABASE
+#### A masked pattern was here ####
 POSTHOOK: query: -- Tests that CTAS queries in non-default databases use the location of the database
 -- not the hive.metastore.warehouse.dir for intermediate files (FileSinkOperator output).
 -- If hive.metastore.warehouse.dir were used this would fail because the scheme is invalid.
@@ -12,6 +13,7 @@ POSTHOOK: query: -- Tests that CTAS queries in non-default databases use the loc
 CREATE DATABASE db1
 #### A masked pattern was here ####
 POSTHOOK: type: CREATEDATABASE
+#### A masked pattern was here ####
 PREHOOK: query: USE db1
 PREHOOK: type: SWITCHDATABASE
 POSTHOOK: query: USE db1
@@ -118,9 +120,11 @@ STAGE PLANS:
 PREHOOK: query: CREATE TABLE table_db1 AS SELECT * FROM default.src
 PREHOOK: type: CREATETABLE_AS_SELECT
 PREHOOK: Input: default@src
+PREHOOK: Output: database:db1
 POSTHOOK: query: CREATE TABLE table_db1 AS SELECT * FROM default.src
 POSTHOOK: type: CREATETABLE_AS_SELECT
 POSTHOOK: Input: default@src
+POSTHOOK: Output: database:db1
 POSTHOOK: Output: db1@table_db1
 PREHOOK: query: DESCRIBE FORMATTED table_db1
 PREHOOK: type: DESCTABLE

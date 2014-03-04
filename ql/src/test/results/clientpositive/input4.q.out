@@ -39,9 +39,11 @@ STAGE PLANS:
 
 PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/kv1.txt' INTO TABLE INPUT4
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@input4
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../data/files/kv1.txt' INTO TABLE INPUT4
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@input4
 PREHOOK: query: EXPLAIN FORMATTED
 SELECT INPUT4.VALUE, INPUT4.KEY FROM INPUT4

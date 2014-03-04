@@ -52,9 +52,6 @@ import org.apache.hadoop.hive.ql.plan.StatsWork;
  */
 public class LoadSemanticAnalyzer extends BaseSemanticAnalyzer {
 
-  private boolean isLocal;
-  private boolean isOverWrite;
-
   public LoadSemanticAnalyzer(HiveConf conf) throws SemanticException {
     super(conf);
   }
@@ -70,7 +67,7 @@ public class LoadSemanticAnalyzer extends BaseSemanticAnalyzer {
     return (srcs);
   }
 
-  private URI initializeFromURI(String fromPath) throws IOException,
+  private URI initializeFromURI(String fromPath, boolean isLocal) throws IOException,
       URISyntaxException {
     URI fromURI = new Path(fromPath).toUri();
 
@@ -159,8 +156,8 @@ public class LoadSemanticAnalyzer extends BaseSemanticAnalyzer {
 
   @Override
   public void analyzeInternal(ASTNode ast) throws SemanticException {
-    isLocal = false;
-    isOverWrite = false;
+    boolean isLocal = false;
+    boolean isOverWrite = false;
     Tree fromTree = ast.getChild(0);
     Tree tableTree = ast.getChild(1);
 
@@ -181,7 +178,7 @@ public class LoadSemanticAnalyzer extends BaseSemanticAnalyzer {
     URI fromURI;
     try {
       String fromPath = stripQuotes(fromTree.getText());
-      fromURI = initializeFromURI(fromPath);
+      fromURI = initializeFromURI(fromPath, isLocal);
     } catch (IOException e) {
       throw new SemanticException(ErrorMsg.INVALID_PATH.getMsg(fromTree, e
           .getMessage()), e);
@@ -189,6 +186,8 @@ public class LoadSemanticAnalyzer extends BaseSemanticAnalyzer {
       throw new SemanticException(ErrorMsg.INVALID_PATH.getMsg(fromTree, e
           .getMessage()), e);
     }
+
+    inputs.add(toReadEntity(fromURI));
 
     // initialize destination table/partition
     tableSpec ts = new tableSpec(db, conf, (ASTNode) tableTree);
@@ -259,7 +258,6 @@ public class LoadSemanticAnalyzer extends BaseSemanticAnalyzer {
         throw new SemanticException(e);
       }
     }
-
 
     LoadTableDesc loadTableWork = new LoadTableDesc(fromURI.toString(),
         loadTmpPath, Utilities.getTableDesc(ts.tableHandle), partSpec, isOverWrite);

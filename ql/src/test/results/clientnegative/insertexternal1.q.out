@@ -12,4 +12,5 @@ PREHOOK: Input: default@texternal
 POSTHOOK: type: ALTERTABLE_ADDPARTS
 POSTHOOK: Input: default@texternal
 POSTHOOK: Output: default@texternal@insertdate=2008-01-01
+#### A masked pattern was here ####
 FAILED: SemanticException [Error 10071]: Inserting into a external table is not allowed texternal

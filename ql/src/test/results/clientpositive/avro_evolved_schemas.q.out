@@ -83,9 +83,11 @@ last_name           	string              	from deserializer
 extra_field         	string              	from deserializer   
 PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/doctors.avro' INTO TABLE doctors_with_new_field
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@doctors_with_new_field
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../data/files/doctors.avro' INTO TABLE doctors_with_new_field
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@doctors_with_new_field
 PREHOOK: query: SELECT * FROM doctors_with_new_field ORDER BY first_name
 PREHOOK: type: QUERY
