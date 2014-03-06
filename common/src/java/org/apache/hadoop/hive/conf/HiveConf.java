@@ -731,6 +731,8 @@ public class HiveConf extends Configuration {
     HIVE_SERVER2_CUSTOM_AUTHENTICATION_CLASS("hive.server2.custom.authentication.class", null),
     HIVE_SERVER2_ENABLE_DOAS("hive.server2.enable.doAs", true),
 
+    HIVE_SERVER2_SASL_MESSAGE_LIMIT("hive.server2.sasl.message.limit", -1),
+
     HIVE_CONF_RESTRICTED_LIST("hive.conf.restricted.list", null),
 
     // If this is set all move tasks at the end of a multi-insert query will only begin once all
