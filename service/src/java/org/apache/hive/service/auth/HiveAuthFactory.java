@@ -51,53 +51,49 @@ public class HiveAuthFactory {
 
   };
 
-  private HadoopThriftAuthBridge.Server saslServer = null;
-  private String authTypeStr;
-  HiveConf conf;
+  private final HadoopThriftAuthBridge.Server saslServer;
+  private final String authTypeStr;
+  private final AuthTypes authType;
+  private final int saslMessageLimit;
+  private final HiveConf conf;
 
   public HiveAuthFactory() throws TTransportException {
     conf = new HiveConf();
 
-    authTypeStr = conf.getVar(HiveConf.ConfVars.HIVE_SERVER2_AUTHENTICATION);
-    if (authTypeStr == null) {
+    String config = conf.getVar(HiveConf.ConfVars.HIVE_SERVER2_AUTHENTICATION);
+    if (config == null) {
+      authType = AuthTypes.NONE;
       authTypeStr = AuthTypes.NONE.getAuthName();
+    } else {
+      authType = AuthTypes.valueOf(config.toUpperCase());;
+      authTypeStr = config;
     }
-    if (authTypeStr.equalsIgnoreCase(AuthTypes.KERBEROS.getAuthName())
+    if (authType == AuthTypes.KERBEROS
         && ShimLoader.getHadoopShims().isSecureShimImpl()) {
       saslServer = ShimLoader.getHadoopThriftAuthBridge().createServer(
         conf.getVar(ConfVars.HIVE_SERVER2_KERBEROS_KEYTAB),
         conf.getVar(ConfVars.HIVE_SERVER2_KERBEROS_PRINCIPAL)
         );
+    } else {
+      saslServer = null;
     }
+    saslMessageLimit = conf.getIntVar(ConfVars.HIVE_SERVER2_SASL_MESSAGE_LIMIT);
   }
 
   public TTransportFactory getAuthTransFactory() throws LoginException {
-
-    TTransportFactory transportFactory;
-
-    if (authTypeStr.equalsIgnoreCase(AuthTypes.KERBEROS.getAuthName())) {
+    if (authType == AuthTypes.KERBEROS) {
       try {
-        transportFactory = saslServer.createTransportFactory();
+        return saslServer.createTransportFactory();
       } catch (TTransportException e) {
         throw new LoginException(e.getMessage());
       }
-    } else if (authTypeStr.equalsIgnoreCase(AuthTypes.NONE.getAuthName())) {
-      transportFactory = PlainSaslHelper.getPlainTransportFactory(authTypeStr);
-    } else if (authTypeStr.equalsIgnoreCase(AuthTypes.LDAP.getAuthName())) {
-      transportFactory = PlainSaslHelper.getPlainTransportFactory(authTypeStr);
-    } else if (authTypeStr.equalsIgnoreCase(AuthTypes.NOSASL.getAuthName())) {
-      transportFactory = new TTransportFactory();
-    } else if (authTypeStr.equalsIgnoreCase(AuthTypes.CUSTOM.getAuthName())) {
-      transportFactory = PlainSaslHelper.getPlainTransportFactory(authTypeStr);
-    } else {
-      throw new LoginException("Unsupported authentication type " + authTypeStr);
     }
-    return transportFactory;
+    return PlainSaslHelper.getPlainTransportFactory(authTypeStr, saslMessageLimit);
   }
 
   public TProcessorFactory getAuthProcFactory(ThriftCLIService service)
       throws LoginException {
-    if (authTypeStr.equalsIgnoreCase(AuthTypes.KERBEROS.getAuthName())) {
+    if (authType == AuthTypes.KERBEROS) {
       return KerberosSaslHelper.getKerberosProcessorFactory(saslServer, service);
     } else {
       return PlainSaslHelper.getPlainProcessorFactory(service);
