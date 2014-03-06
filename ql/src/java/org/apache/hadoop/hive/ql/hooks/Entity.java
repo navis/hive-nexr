@@ -255,7 +255,7 @@ public class Entity implements Serializable {
    */
   public URI getLocation() throws Exception {
     if (typ == Type.DATABASE) {
-      return null;
+      return new URI(database.getLocationUri());
     }
 
     if (typ == Type.TABLE) {
