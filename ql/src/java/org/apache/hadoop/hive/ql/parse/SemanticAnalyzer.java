@@ -5244,7 +5244,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         table_desc = PlanUtils.getTableDesc(tblDesc, cols, colTypes);
       }
 
-      if (!outputs.add(new WriteEntity(dest_path, !isDfsDir))) {
+      if (!qb.isCTAS() && !outputs.add(toWriteEntity(dest_path))) {
         throw new SemanticException(ErrorMsg.OUTPUT_SPECIFIED_MULTIPLE_TIMES
             .getMsg(destStr));
       }
@@ -8439,11 +8439,6 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       CreateTableDesc crtTblDesc = qb.getTableDesc();
 
       crtTblDesc.validate();
-
-      // Clear the output for CTAS since we don't need the output from the
-      // mapredWork, the
-      // DDLWork at the tail of the chain will have the output
-      getOutputs().clear();
 
       Task<? extends Serializable> crtTblTask = TaskFactory.get(new DDLWork(
           getInputs(), getOutputs(), crtTblDesc), conf);

@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hive.ql.parse;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -1139,7 +1140,10 @@ public abstract class BaseSemanticAnalyzer {
   }
 
   protected WriteEntity toWriteEntity(String location) throws SemanticException {
-    Path path = new Path(location);
+    return toWriteEntity(new Path(location));
+  }
+
+  protected WriteEntity toWriteEntity(Path path) throws SemanticException {
     try {
       path = path.getFileSystem(conf).makeQualified(path);
       return new WriteEntity(path, "file".equals(path.toUri().getScheme()));
@@ -1149,7 +1153,13 @@ public abstract class BaseSemanticAnalyzer {
   }
 
   protected ReadEntity toReadEntity(URI location) throws SemanticException {
-    return new ReadEntity(new Path(location), "file".equals(location.getScheme()));
+    Path path = new Path(location);
+    try {
+      path = path.getFileSystem(conf).makeQualified(path);
+      return new ReadEntity(path, "file".equals(location.getScheme()));
+    } catch (IOException e) {
+      throw new SemanticException(e);
+    }
   }
 
   protected Database getDatabase(String dbName) throws SemanticException {

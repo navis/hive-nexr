@@ -33,7 +33,6 @@ import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.exec.TaskFactory;
 import org.apache.hadoop.hive.ql.hooks.ReadEntity;
-import org.apache.hadoop.hive.ql.hooks.WriteEntity;
 import org.apache.hadoop.hive.ql.metadata.Partition;
 import org.apache.hadoop.hive.ql.plan.CopyWork;
 
@@ -121,6 +120,6 @@ public class ExportSemanticAnalyzer extends BaseSemanticAnalyzer {
       rootTasks.add(rTask);
       inputs.add(new ReadEntity(ts.tableHandle));
     }
-    outputs.add(new WriteEntity(parentPath, toURI.getScheme().equals("hdfs")));
+    outputs.add(toWriteEntity(parentPath));
   }
 }
