@@ -553,6 +553,8 @@ public class BeeLine {
         url = args[i++ + 1];
       } else if (args[i].equals("-e")) {
         commands.add(args[i++ + 1]);
+      } else if (args[i].equals("-f")) {
+        getOpts().setScriptFile(args[i++ + 1]);
       } else {
         files.add(args[i]);
       }
@@ -605,7 +607,7 @@ public class BeeLine {
    * to the appropriate {@link CommandHandler} until the
    * global variable <code>exit</code> is true.
    */
-  void begin(String[] args, InputStream inputStream) throws IOException {
+  public void begin(String[] args, InputStream inputStream) throws IOException {
     try {
       // load the options first, so we can override on the command line
       getOpts().load();
@@ -613,10 +615,23 @@ public class BeeLine {
       // nothing
     }
 
-    ConsoleReader reader = getConsoleReader(inputStream);
     if (!(initArgs(args))) {
       usage();
       return;
+    }
+
+    ConsoleReader reader = null;
+    boolean runningScript = (getOpts().getScriptFile() != null);
+    if (runningScript) {
+      try {
+        FileInputStream scriptStream = new FileInputStream(getOpts().getScriptFile());
+        reader = getConsoleReader(scriptStream);
+      } catch (Throwable t) {
+        handleException(t);
+        commands.quit(null);
+      }
+    } else {
+      reader = getConsoleReader(inputStream);
     }
 
     try {
@@ -627,7 +642,10 @@ public class BeeLine {
 
     while (!exit) {
       try {
-        dispatch(reader.readLine(getPrompt()));
+        // Execute one instruction; terminate on executing a script if there is an error
+        if (!dispatch(reader.readLine(getPrompt())) && runningScript) {
+          commands.quit(null);
+        }
       } catch (EOFException eof) {
         // CTRL-D
         commands.quit(null);
@@ -682,6 +700,11 @@ public class BeeLine {
       consoleReader.getHistory().setOutput(historyOut);
     } catch (Exception e) {
       handleException(e);
+    }
+
+    if (inputStream instanceof FileInputStream) {
+      // from script.. no need to load history and no need of completor, either
+      return consoleReader;
     }
 
     try {
