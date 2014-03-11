@@ -18,6 +18,7 @@ import org.apache.hadoop.hive.rdbms.JDBCSplit;
 import org.apache.hadoop.hive.rdbms.RowWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.PrimitiveCategory;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.RecordReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,13 +27,13 @@ public class DBRecordReader implements RecordReader<LongWritable, RowWritable> {
 
   private static final Logger log = LoggerFactory.getLogger(DBRecordReader.class);
 
-  private DatabaseProperties properties;
-
   private Connection connection;
   private Statement statement;
   private ResultSet results;
-  private JDBCSplit split;
+  private InputSplit split;
+
   private long pos = 0;
+  private long offset = 0;
 
   private ColumnAccess[] columns;
 
@@ -41,8 +42,9 @@ public class DBRecordReader implements RecordReader<LongWritable, RowWritable> {
       throws Exception {
 
     this.split = split;
-    this.properties = properties;
     this.connection = connection;
+
+    this.offset = split.getStart();
 
     if (properties.getDatabaseType() == null) {
       properties.setDatabaseType(DatabaseType.getDatabaseType(properties, connection));
@@ -95,13 +97,21 @@ public class DBRecordReader implements RecordReader<LongWritable, RowWritable> {
     this.columns = columns;
   }
 
+  public DBRecordReader(InputSplit split, Connection connection, ResultSet results, ColumnAccess[] columns)
+      throws Exception {
+    this.split = split;
+    this.connection = connection;
+    this.results = results;
+    this.columns = columns;
+  }
+
   public boolean next(LongWritable key, RowWritable value) throws IOException {
     try {
       if (!results.next()) {
         return false;
       }
       // Set the key field value as the output key value
-      key.set(pos + split.getStart());
+      key.set(pos + offset);
 
       value.clear();
       for (ColumnAccess expr : columns) {

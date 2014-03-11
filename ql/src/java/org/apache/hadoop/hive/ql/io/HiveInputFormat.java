@@ -341,6 +341,13 @@ public class HiveInputFormat<K extends WritableComparable, V extends Writable>
 
   public static void pushFilters(JobConf jobConf, TableScanOperator tableScan) {
 
+    Map<String, String> scanPlan = tableScan.getScanPlan();
+    if (scanPlan != null && !scanPlan.isEmpty()) {
+      for (Map.Entry<String, String> entry : scanPlan.entrySet()) {
+        jobConf.set(entry.getKey(), entry.getValue());
+      }
+    }
+
     TableScanDesc scanDesc = tableScan.getConf();
     if (scanDesc == null) {
       return;

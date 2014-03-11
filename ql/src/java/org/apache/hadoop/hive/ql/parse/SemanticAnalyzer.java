@@ -33,6 +33,7 @@ import java.util.TreeSet;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import org.antlr.runtime.TokenRewriteStream;
 import org.antlr.runtime.tree.BaseTree;
 import org.antlr.runtime.tree.Tree;
 import org.antlr.runtime.tree.TreeWizard;
@@ -105,6 +106,7 @@ import org.apache.hadoop.hive.ql.lib.RuleRegExp;
 import org.apache.hadoop.hive.ql.metadata.DummyPartition;
 import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.ql.metadata.HiveStorageSubQueryHandler;
 import org.apache.hadoop.hive.ql.metadata.HiveUtils;
 import org.apache.hadoop.hive.ql.metadata.InvalidTableException;
 import org.apache.hadoop.hive.ql.metadata.Partition;
@@ -371,6 +373,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
   @SuppressWarnings("nls")
   public void doPhase1QBExpr(ASTNode ast, QBExpr qbexpr, String id, String alias)
       throws SemanticException {
+
+    qbexpr.setSource(ast);
 
     assert (ast.getToken() != null);
     switch (ast.getToken().getType()) {
@@ -7990,7 +7994,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
   private Operator genPlan(QBExpr qbexpr) throws SemanticException {
     if (qbexpr.getOpcode() == QBExpr.Opcode.NULLOP) {
-      return genPlan(qbexpr.getQB());
+      return genPlan(qbexpr.getSource(), qbexpr.getQB());
     }
     if (qbexpr.getOpcode() == QBExpr.Opcode.UNION) {
       Operator qbexpr1Ops = genPlan(qbexpr.getQBExpr1());
@@ -8002,11 +8006,50 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     return null;
   }
 
-  @SuppressWarnings("nls")
   public Operator genPlan(QB qb) throws SemanticException {
+    return genPlan(null, qb);
+  }
+
+  @SuppressWarnings("nls")
+  public Operator genPlan(ASTNode source, QB qb) throws SemanticException {
 
     // First generate all the opInfos for the elements in the from clause
     Map<String, Operator> aliasToOpInfo = new HashMap<String, Operator>();
+
+    if (qb.getSubqAliases().isEmpty() && qb.getTabAliases().size() == 1 && source != null) {
+      String tabAlias = qb.getTabAliases().iterator().next();
+      Table table = qb.getMetaData().getSrcForAlias(tabAlias);
+      if (table.getStorageHandler() instanceof HiveStorageSubQueryHandler) {
+        HiveStorageSubQueryHandler handler = (HiveStorageSubQueryHandler) table.getStorageHandler();
+        TokenRewriteStream rewriter = ctx.getTokenRewriteStream();
+
+        QBParseInfo parseInfo = qb.getParseInfo();
+        org.apache.hadoop.hive.metastore.api.Table tTable = table.getTTable();
+        TableScanOperator operator = handler.handleSubQuery(parseInfo, tTable, rewriter, source);
+        if (operator != null && operator.getSchema() != null) {
+          List<FieldSchema> cols = new ArrayList<FieldSchema>();
+          for (ColumnInfo column : operator.getSchema().getSignature()) {
+            cols.add(new FieldSchema(column.getAlias(), column.getType().getTypeName(), null));
+          }
+          tTable.getSd().setCols(cols);
+          topToTable.put(operator, table);
+          topOps.put(getAliasId(tabAlias, qb), operator);
+
+          Operator curr = operator;
+          if (parseInfo.getIsSubQ()) {
+            tabAlias = parseInfo.getAlias();
+          }
+          RowResolver rr = new RowResolver(tabAlias, operator.getSchema());
+          putOpInsertMap(operator, rr);
+          if (!parseInfo.getIsSubQ()) {
+            for (String dest : new TreeSet<String>(parseInfo.getClauseNames())) {
+              curr = genFileSinkPlan(dest, qb, operator);
+            }
+          }
+          return curr;
+        }
+      }
+    }
 
     // Recurse over the subqueries to fill the subquery part of the plan
     for (String alias : qb.getSubqAliases()) {
@@ -8833,7 +8876,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     // by genPlan. This has the correct column names, which clients
     // such as JDBC would prefer instead of the c0, c1 we'll end
     // up with later.
-    Operator sinkOp = genPlan(qb);
+    Operator sinkOp = genPlan(ast, qb);
 
     resultSchema =
         convertRowSchemaToViewSchema(opParseCtx.get(sinkOp).getRowResolver());

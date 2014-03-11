@@ -91,7 +91,7 @@ public class DatabaseProperties {
   }
 
   public String getTableName() {
-    return tableName;
+    return useUpperCaseTableName() ? tableName.toUpperCase() : tableName;
   }
 
   public void setTableName(String tableName) {
@@ -109,7 +109,7 @@ public class DatabaseProperties {
   // output schema is from serde, which is delimited by colon
   public void setColumnNameTypes(String columnNames, String columnTypes, boolean output) {
     String[] names = columnNames.split(",");
-    String[] types = output ? columnTypes.split(":") : columnTypes.split(",");
+    String[] types = columnTypes.split(output ? ":" : ",");
     assert names.length == types.length;
 
     List<String> newNames = new ArrayList<String>();

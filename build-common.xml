@@ -84,6 +84,7 @@
       <pathelement location="${build.dir.hive}/common/test/classes"/>
       <pathelement location="${build.dir.hive}/hbase-handler/test/classes"/>
       <pathelement location="${build.dir.hive}/jdbc-handler/test/classes"/>
+      <pathelement location="${build.dir.hive}/phoenix-handler/test/classes"/>
       <pathelement location="${build.dir.hive}/hwi/test/classes"/>
       <pathelement location="${build.dir.hive}/jdbc/test/classes"/>
       <pathelement location="${build.dir.hive}/metastore/test/classes"/>
@@ -208,6 +209,7 @@
     <pathelement location="${build.dir.hive}/jdbc/classes"/>
     <pathelement location="${build.dir.hive}/hbase-handler/classes"/>
     <pathelement location="${build.dir.hive}/jdbc-handler/classes"/>
+    <pathelement location="${build.dir.hive}/phoenix-handler/classes"/>
     <fileset dir="${basedir}" includes="lib/*.jar"/>
     <path refid="common-classpath"/>
   </path>

@@ -106,25 +106,30 @@ public class DBOperation {
     String sqlQueryBeforeDataInsert = tableParameters
         .get(ConfigurationUtils.HIVE_JDBC_OUTPUT_SQL_QUERY_BEFORE_DATA_INSERT);
     if (sqlQueryBeforeDataInsert != null) {
-      DatabaseProperties dbProperties = new DatabaseProperties();
-      dbProperties.setUserName(tableParameters.get(DBConfiguration.USERNAME_PROPERTY));
-      dbProperties.setPassword(tableParameters.get(DBConfiguration.PASSWORD_PROPERTY));
-      dbProperties.setConnectionUrl(tableParameters.get(DBConfiguration.URL_PROPERTY));
-      dbProperties.setDriverClass(tableParameters.get(DBConfiguration.DRIVER_CLASS_PROPERTY));
+      runSQLQuery(tableParameters, sqlQueryBeforeDataInsert);
+    }
+  }
 
-      if (dbProperties.getConnectionUrl() == null) {
-        throw new IllegalArgumentException("connection url is missing");
-      }
+  public static boolean runSQLQuery(Map<String, String> tableParameters, String query)
+      throws Exception {
+    DatabaseProperties dbProperties = new DatabaseProperties();
+    dbProperties.setUserName(tableParameters.get(DBConfiguration.USERNAME_PROPERTY));
+    dbProperties.setPassword(tableParameters.get(DBConfiguration.PASSWORD_PROPERTY));
+    dbProperties.setConnectionUrl(tableParameters.get(DBConfiguration.URL_PROPERTY));
+    dbProperties.setDriverClass(tableParameters.get(DBConfiguration.DRIVER_CLASS_PROPERTY));
 
-      Connection connection = createConnection(dbProperties);
-      Statement statement = null;
-      try {
-        statement = connection.createStatement();
-        statement.executeUpdate(sqlQueryBeforeDataInsert);
-      } finally {
-        closeStatement(statement, log);
-        closeConnection(connection, log);
-      }
+    if (dbProperties.getConnectionUrl() == null) {
+      throw new IllegalArgumentException("connection url is missing");
+    }
+
+    Connection connection = createConnection(dbProperties);
+    Statement statement = null;
+    try {
+      statement = connection.createStatement();
+      return statement.execute(query);
+    } finally {
+      closeStatement(statement, log);
+      closeConnection(connection, log);
     }
   }
 

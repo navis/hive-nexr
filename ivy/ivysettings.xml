@@ -48,6 +48,10 @@
              checkmodified="${ivy.checkmodified}" 
              changingPattern="${ivy.changingPattern}"/>
 
+    <url name="mvn-local" m2compatible="true">
+      <artifact pattern="/home/navis/.m2/repository/[organisation]/[module]/[revision]/[module]-[revision](-[classifier]).[ext]"/>
+    </url>
+
     <url name="datanucleus-repo" m2compatible="true">
       <artifact pattern="${datanucleus.repo}/[organisation]/[module]/[revision]/[module]-[revision](-[classifier]).[ext]"/>
     </url>
@@ -65,6 +69,7 @@
            checkmodified="${ivy.checkmodified}" 
            changingPattern="${ivy.changingPattern}">
       <resolver ref="local" />
+      <resolver ref="fs"/>
       <resolver ref="apache-snapshot"/>
       <resolver ref="maven2"/>
       <resolver ref="datanucleus-repo"/>

@@ -11,8 +11,12 @@ public class QueryConstructor {
     String[] fieldNames = dbProperties.getFieldNames();
 
     StringBuilder query = new StringBuilder();
-    query.append("INSERT INTO ");
-    query.append(dbProperties.useUpperCaseTableName() ? tableName.toUpperCase() : tableName);
+    if (dbProperties.getDatabaseType() == DatabaseType.PHOENIX) {
+      query.append("UPSERT INTO ");
+    } else {
+      query.append("INSERT INTO ");
+    }
+    query.append(tableName);
 
     query.append(" (");
     type.quote(query, fieldNames);
@@ -193,7 +197,7 @@ public class QueryConstructor {
     query.append("SELECT ");
     type.quote(query, fieldNames);
     query.append(" FROM ");
-    query.append(dbProperties.useUpperCaseTableName() ? tableName.toUpperCase() : tableName);
+    query.append(tableName);
 
     if (filter != null) {
       query.append(" WHERE ");

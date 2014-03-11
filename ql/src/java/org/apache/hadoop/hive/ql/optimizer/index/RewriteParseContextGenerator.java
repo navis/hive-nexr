@@ -119,7 +119,7 @@ public final class RewriteParseContextGenerator {
     LOG.info("Completed getting MetaData in Sub-query Semantic Analysis");
 
     LOG.info("Sub-query Abstract syntax tree: " + ast.toStringTree());
-    sem.genPlan(qb);
+    sem.genPlan(ast, qb);
 
     LOG.info("Sub-query Completed plan generation");
   }

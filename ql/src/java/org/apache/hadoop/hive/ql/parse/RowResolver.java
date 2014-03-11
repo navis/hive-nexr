@@ -59,6 +59,13 @@ public class RowResolver implements Serializable{
     isExprResolver = false;
   }
 
+  public RowResolver(String tab_alias, RowSchema schema) {
+    this();
+    for (ColumnInfo info : schema.getSignature()) {
+      put(tab_alias, info.getAlias(), info);
+    }
+  }
+
   /**
    * Puts a resolver entry corresponding to a source expression which is to be
    * used for identical expression recognition (e.g. for matching expressions

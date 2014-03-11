@@ -1,10 +1,5 @@
 package org.apache.hadoop.hive.rdbms;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaHook;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
@@ -24,10 +19,15 @@ import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.util.StringUtils;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
 public class JDBCStorageHandler extends DefaultStorageHandler
     implements HiveMetaHook, HiveStoragePredicateHandler {
 
-  private Configuration conf;
+  protected Configuration conf;
 
   @Override
   public boolean supports(org.apache.hadoop.hive.ql.metadata.Table tbl,
@@ -82,15 +82,8 @@ public class JDBCStorageHandler extends DefaultStorageHandler
 
   @Override
   public void preCreateTable(Table table) throws MetaException {
-    boolean isExternal = MetaStoreUtils.isExternalTable(table);
-
-    if (!isExternal) {
+    if (!MetaStoreUtils.isExternalTable(table)) {
       throw new MetaException("Tables must be external.");
-    }
-    try {
-      DBOperation.createTableIfNotExist(table.getParameters());
-    } catch (Exception e) {
-      throw new MetaException(StringUtils.stringifyException(e));
     }
   }
 
@@ -100,15 +93,15 @@ public class JDBCStorageHandler extends DefaultStorageHandler
 
   @Override
   public void commitCreateTable(Table table) throws MetaException {
+    try {
+      DBOperation.createTableIfNotExist(table.getParameters());
+    } catch (Exception e) {
+      throw new MetaException(StringUtils.stringifyException(e));
+    }
   }
 
   @Override
   public void preDropTable(Table table) throws MetaException {
-    try {
-      DBOperation.runSQLQueryBeforeDataInsert(table.getParameters());
-    } catch (Exception e) {
-      throw new MetaException(StringUtils.stringifyException(e));
-    }
   }
 
   @Override
@@ -117,6 +110,11 @@ public class JDBCStorageHandler extends DefaultStorageHandler
 
   @Override
   public void commitDropTable(Table table, boolean b) throws MetaException {
+    try {
+      DBOperation.runSQLQueryBeforeDataInsert(table.getParameters());
+    } catch (Exception e) {
+      throw new MetaException(StringUtils.stringifyException(e));
+    }
   }
 
   @Override

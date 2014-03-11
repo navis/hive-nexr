@@ -63,6 +63,8 @@ public class TableScanOperator extends Operator<TableScanDesc> implements
   private transient int rowLimit = -1;
   private transient int currCount = 0;
 
+  private transient Map<String, String> scanPlan;
+
   public TableDesc getTableDesc() {
     return tableDesc;
   }
@@ -247,6 +249,14 @@ public class TableScanOperator extends Operator<TableScanDesc> implements
 
   public java.util.ArrayList<Integer> getNeededColumnIDs() {
     return neededColumnIDs;
+  }
+
+  public void setScanPlan(Map<String, String> scanPlan) {
+    this.scanPlan = scanPlan;
+  }
+
+  public Map<String, String> getScanPlan() {
+    return scanPlan;
   }
 
   @Override
