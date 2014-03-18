@@ -18,8 +18,10 @@
 
 package org.apache.hive.jdbc;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.Reader;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.net.URL;
@@ -132,11 +134,29 @@ public abstract class HiveBaseResultSet implements ResultSet {
   }
 
   public InputStream getBinaryStream(int columnIndex) throws SQLException {
-    throw new SQLException("Method not supported");
+    Object obj = getObject(columnIndex);
+    if (obj == null) {
+      return null;
+    } else if (obj instanceof InputStream) {
+      return (InputStream)obj;
+    } else if (obj instanceof byte[]) {
+      byte[] byteArray = (byte[])obj;
+      InputStream is = new ByteArrayInputStream(byteArray);
+      return is;
+    } else if (obj instanceof String) {
+      String str = (String)obj;
+      try {
+        return new ByteArrayInputStream(str.getBytes("UTF-8"));
+      } catch (UnsupportedEncodingException e) {
+        throw new SQLException("Illegal conversion to binary stream from column " +
+            columnIndex + " - Unsupported encoding exception");
+      }
+    }
+    throw new SQLException("Illegal conversion to binary stream from column " + columnIndex);
   }
 
   public InputStream getBinaryStream(String columnName) throws SQLException {
-    throw new SQLException("Method not supported");
+    return getBinaryStream(findColumn(columnName));
   }
 
   public Blob getBlob(int i) throws SQLException {
@@ -216,13 +236,20 @@ public abstract class HiveBaseResultSet implements ResultSet {
     if (obj == null) {
       return null;
     }
-
+    if (obj instanceof Date) {
+      return (Date) obj;
+    }
     try {
-      return Date.valueOf((String) obj);
+      if (obj instanceof String) {
+        return Date.valueOf((String)obj);
+      }
     } catch (Exception e) {
       throw new SQLException("Cannot convert column " + columnIndex
-              + " to date: " + e.toString());
+          + " to date: " + e, e);
     }
+    // If we fell through to here this is not a valid type conversion
+    throw new SQLException("Cannot convert column " + columnIndex
+        + " to date: Illegal conversion");
   }
 
   public Date getDate(String columnName) throws SQLException {
@@ -250,7 +277,7 @@ public abstract class HiveBaseResultSet implements ResultSet {
       throw new Exception("Illegal conversion");
     } catch (Exception e) {
       throw new SQLException("Cannot convert column " + columnIndex
-              + " to double: " + e.toString());
+              + " to double: " + e, e);
     }
   }
 
@@ -279,7 +306,7 @@ public abstract class HiveBaseResultSet implements ResultSet {
       throw new Exception("Illegal conversion");
     } catch (Exception e) {
       throw new SQLException("Cannot convert column " + columnIndex
-              + " to float: " + e.toString());
+              + " to float: " + e, e);
     }
   }
 
@@ -303,7 +330,7 @@ public abstract class HiveBaseResultSet implements ResultSet {
       }
       throw new Exception("Illegal conversion");
     } catch (Exception e) {
-      throw new SQLException("Cannot convert column " + columnIndex + " to integer" + e.toString());
+      throw new SQLException("Cannot convert column " + columnIndex + " to integer" + e, e);
     }
   }
 
@@ -323,7 +350,7 @@ public abstract class HiveBaseResultSet implements ResultSet {
       }
       throw new Exception("Illegal conversion");
     } catch (Exception e) {
-      throw new SQLException("Cannot convert column " + columnIndex + " to long: " + e.toString());
+      throw new SQLException("Cannot convert column " + columnIndex + " to long: " + e, e);
     }
   }
 
@@ -363,7 +390,7 @@ public abstract class HiveBaseResultSet implements ResultSet {
     if (row == null) {
       throw new SQLException("No row found.");
     }
-    if (row == null) {
+    if (row.length == 0) {
       throw new SQLException("RowSet does not contain any columns!");
     }
     if (columnIndex > row.length) {
@@ -376,7 +403,7 @@ public abstract class HiveBaseResultSet implements ResultSet {
       wasNull = evaluated == null;
       return evaluated;
     } catch (Exception e) {
-      throw new SQLException("Unrecognized column type:" + columnType);
+      throw new SQLException("Unrecognized column type:" + columnType, e);
     }
   }
 
@@ -437,7 +464,7 @@ public abstract class HiveBaseResultSet implements ResultSet {
       throw new Exception("Illegal conversion");
     } catch (Exception e) {
       throw new SQLException("Cannot convert column " + columnIndex
-              + " to short: " + e.toString());
+              + " to short: " + e.toString(), e);
     }
   }
 

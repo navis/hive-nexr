@@ -107,6 +107,11 @@ public class RowSet implements Iterable<Object[]> {
         return value == null ? null : new BigDecimal((String)value);
       case VOID_TYPE:
         return null;
+      case ARRAY_TYPE:
+      case MAP_TYPE:
+      case STRUCT_TYPE:
+        // todo: returns json string. should recreate object from it?
+        return value;
       default:
         throw new IllegalArgumentException("Unrecognized column type:" + type);
     }
