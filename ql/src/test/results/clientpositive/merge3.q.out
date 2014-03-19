@@ -31,7 +31,7 @@ PREHOOK: Input: default@srcpart@ds=2008-04-08/hr=11
 PREHOOK: Input: default@srcpart@ds=2008-04-08/hr=12
 PREHOOK: Input: default@srcpart@ds=2008-04-09/hr=11
 PREHOOK: Input: default@srcpart@ds=2008-04-09/hr=12
-PREHOOK: Output: default@merge_src_part
+PREHOOK: Output: default@merge_src_part@
 POSTHOOK: query: insert overwrite table merge_src_part partition(ds) select key, value, ds from srcpart where ds is not null
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@srcpart
@@ -39,6 +39,7 @@ POSTHOOK: Input: default@srcpart@ds=2008-04-08/hr=11
 POSTHOOK: Input: default@srcpart@ds=2008-04-08/hr=12
 POSTHOOK: Input: default@srcpart@ds=2008-04-09/hr=11
 POSTHOOK: Input: default@srcpart@ds=2008-04-09/hr=12
+POSTHOOK: Output: default@merge_src_part@
 POSTHOOK: Output: default@merge_src_part@ds=2008-04-08
 POSTHOOK: Output: default@merge_src_part@ds=2008-04-09
 POSTHOOK: Lineage: merge_src_part PARTITION(ds=2008-04-08).key SIMPLE [(srcpart)srcpart.FieldSchema(name:key, type:string, comment:default), ]
@@ -2717,7 +2718,7 @@ PREHOOK: type: QUERY
 PREHOOK: Input: default@merge_src_part
 PREHOOK: Input: default@merge_src_part@ds=2008-04-08
 PREHOOK: Input: default@merge_src_part@ds=2008-04-09
-PREHOOK: Output: default@merge_src_part2
+PREHOOK: Output: default@merge_src_part2@
 POSTHOOK: query: insert overwrite table merge_src_part2 partition(ds)
 select key, value, ds from merge_src_part
 where ds is not null
@@ -2725,6 +2726,7 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: default@merge_src_part
 POSTHOOK: Input: default@merge_src_part@ds=2008-04-08
 POSTHOOK: Input: default@merge_src_part@ds=2008-04-09
+POSTHOOK: Output: default@merge_src_part2@
 POSTHOOK: Output: default@merge_src_part2@ds=2008-04-08
 POSTHOOK: Output: default@merge_src_part2@ds=2008-04-09
 POSTHOOK: Lineage: merge_src_part PARTITION(ds=2008-04-08).key SIMPLE [(srcpart)srcpart.FieldSchema(name:key, type:string, comment:default), ]
@@ -5184,7 +5186,7 @@ PREHOOK: type: QUERY
 PREHOOK: Input: default@merge_src_part
 PREHOOK: Input: default@merge_src_part@ds=2008-04-08
 PREHOOK: Input: default@merge_src_part@ds=2008-04-09
-PREHOOK: Output: default@merge_src_part2
+PREHOOK: Output: default@merge_src_part2@
 POSTHOOK: query: from (select * from merge_src_part where ds is not null distribute by ds) s
 insert overwrite table merge_src_part2 partition(ds)
 select key, value, ds
@@ -5192,6 +5194,7 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: default@merge_src_part
 POSTHOOK: Input: default@merge_src_part@ds=2008-04-08
 POSTHOOK: Input: default@merge_src_part@ds=2008-04-09
+POSTHOOK: Output: default@merge_src_part2@
 POSTHOOK: Output: default@merge_src_part2@ds=2008-04-08
 POSTHOOK: Output: default@merge_src_part2@ds=2008-04-09
 POSTHOOK: Lineage: merge_src_part PARTITION(ds=2008-04-08).key SIMPLE [(srcpart)srcpart.FieldSchema(name:key, type:string, comment:default), ]

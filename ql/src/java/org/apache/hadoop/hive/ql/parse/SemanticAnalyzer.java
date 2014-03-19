@@ -21,6 +21,7 @@ package org.apache.hadoop.hive.ql.parse;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -5053,25 +5054,24 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       if ((dpCtx != null) && (dpCtx.getNumDPCols() >= 0)) {
         // No static partition specified
         if (dpCtx.getNumSPCols() == 0) {
-          output = new WriteEntity(dest_tab, false);
+          DummyPartition p =
+              new DummyPartition(dest_tab, dest_tab.getDbName()
+                  + "@" + dest_tab.getTableName() + "@", Collections.<String, String>emptyMap());
+          output = new WriteEntity(p);
           outputs.add(output);
         }
         // part of the partition specified
         // Create a DummyPartition in this case. Since, the metastore does not store partial
         // partitions currently, we need to store dummy partitions
         else {
-          try {
-            String ppath = dpCtx.getSPPath();
-            ppath = ppath.substring(0, ppath.length() - 1);
-            DummyPartition p =
-                new DummyPartition(dest_tab, dest_tab.getDbName()
-                    + "@" + dest_tab.getTableName() + "@" + ppath,
-                    partSpec);
-            output = new WriteEntity(p, false);
-            outputs.add(output);
-          } catch (HiveException e) {
-            throw new SemanticException(e.getMessage(), e);
-          }
+          String ppath = dpCtx.getSPPath();
+          ppath = ppath.substring(0, ppath.length() - 1);
+          DummyPartition p =
+              new DummyPartition(dest_tab, dest_tab.getDbName()
+                  + "@" + dest_tab.getTableName() + "@" + ppath,
+                  partSpec);
+          output = new WriteEntity(p);
+          outputs.add(output);
         }
       }
 
@@ -7969,11 +7969,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       String k = tblName + Path.SEPARATOR;
       tsDesc.setStatsAggPrefix(k);
 
-      // set up WritenEntity for replication
-      outputs.add(new WriteEntity(tab));
-
-      // add WriteEntity for each matching partition
       if (tab.isPartitioned()) {
+        // add WriteEntity for each matching partition
         if (partSpec == null) {
           throw new SemanticException(ErrorMsg.NEED_PARTITION_SPECIFICATION.getMsg());
         }
@@ -7984,6 +7981,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
             outputs.add(new WriteEntity(partn));
           }
         }
+      } else {
+        // set up WritenEntity for replication
+        outputs.add(new WriteEntity(tab));
       }
     }
   }

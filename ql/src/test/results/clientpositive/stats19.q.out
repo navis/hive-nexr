@@ -291,6 +291,7 @@ POSTHOOK: query: -- Do the same for dynamic partitions
 insert overwrite table stats_part partition (ds='2010-04-08', hr) select key, value, '13' from src
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
+POSTHOOK: Output: default@stats_part@ds=2010-04-08
 POSTHOOK: Output: default@stats_part@ds=2010-04-08/hr=13
 POSTHOOK: Lineage: stats_part PARTITION(ds=2010-04-08,hr=13).key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: stats_part PARTITION(ds=2010-04-08,hr=13).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
@@ -317,6 +318,7 @@ POSTHOOK: query: -- The stats key should not be hashed since the max length is l
 insert overwrite table stats_part partition (ds='2010-04-08', hr) select key, value, '13' from src
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
+POSTHOOK: Output: default@stats_part@ds=2010-04-08
 POSTHOOK: Output: default@stats_part@ds=2010-04-08/hr=13
 POSTHOOK: Lineage: stats_part PARTITION(ds=2010-04-08,hr=13).key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: stats_part PARTITION(ds=2010-04-08,hr=13).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
@@ -345,6 +347,7 @@ POSTHOOK: query: -- The stats key should not be hashed since negative values sho
 insert overwrite table stats_part partition (ds='2010-04-08', hr) select key, value, '13' from src
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
+POSTHOOK: Output: default@stats_part@ds=2010-04-08
 POSTHOOK: Output: default@stats_part@ds=2010-04-08/hr=13
 POSTHOOK: Lineage: stats_part PARTITION(ds=2010-04-08,hr=13).key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: stats_part PARTITION(ds=2010-04-08,hr=13).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
@@ -379,6 +382,7 @@ POSTHOOK: query: -- Run the tests again and verify the stats are correct, this s
 insert overwrite table stats_part partition (ds='2010-04-08', hr) select key, value, '13' from src
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
+POSTHOOK: Output: default@stats_part@ds=2010-04-08
 POSTHOOK: Output: default@stats_part@ds=2010-04-08/hr=13
 POSTHOOK: Lineage: stats_part PARTITION(ds=2010-04-08,hr=13).key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: stats_part PARTITION(ds=2010-04-08,hr=13).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
@@ -468,6 +472,7 @@ POSTHOOK: query: -- The stats key should not be hashed since the max length is l
 insert overwrite table stats_part partition (ds='2010-04-08', hr) select key, value, '13' from src
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
+POSTHOOK: Output: default@stats_part@ds=2010-04-08
 POSTHOOK: Output: default@stats_part@ds=2010-04-08/hr=13
 POSTHOOK: Lineage: stats_part PARTITION(ds=2010-04-08,hr=13).key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: stats_part PARTITION(ds=2010-04-08,hr=13).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
@@ -561,6 +566,7 @@ POSTHOOK: query: -- The stats key should not be hashed since negative values sho
 insert overwrite table stats_part partition (ds='2010-04-08', hr) select key, value, '13' from src
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
+POSTHOOK: Output: default@stats_part@ds=2010-04-08
 POSTHOOK: Output: default@stats_part@ds=2010-04-08/hr=13
 POSTHOOK: Lineage: stats_part PARTITION(ds=2010-04-08,hr=13).key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: stats_part PARTITION(ds=2010-04-08,hr=13).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]

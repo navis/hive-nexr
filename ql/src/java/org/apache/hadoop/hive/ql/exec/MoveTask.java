@@ -184,7 +184,7 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
         if (lock.getHiveLockMode() == lockObj.getMode()) {
           LOG.info("about to release lock for output: " + output.toString() +
               " lock: " + lock.getHiveLockObject().getName());
-          lockMgr.unlock(lock);
+          lockMgr.unlock(lock, false);
           ctx.getHiveLocks().remove(lock);
         }
       }

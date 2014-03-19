@@ -27,10 +27,11 @@ POSTHOOK: Output: default@sc_part
 PREHOOK: query: insert overwrite table sc_part partition(ts) select * from sc
 PREHOOK: type: QUERY
 PREHOOK: Input: default@sc
-PREHOOK: Output: default@sc_part
+PREHOOK: Output: default@sc_part@
 POSTHOOK: query: insert overwrite table sc_part partition(ts) select * from sc
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@sc
+POSTHOOK: Output: default@sc_part@
 POSTHOOK: Output: default@sc_part@ts=2011-01-11+14%3A18%3A26
 POSTHOOK: Output: default@sc_part@ts=2011-01-11+15%3A18%3A26
 POSTHOOK: Output: default@sc_part@ts=2011-01-11+16%3A18%3A26
@@ -68,10 +69,11 @@ POSTHOOK: Lineage: sc_part PARTITION(ts=2011-01-11+16:18:26).key SIMPLE [(sc)sc.
 PREHOOK: query: insert overwrite table sc_part partition(ts) select * from sc
 PREHOOK: type: QUERY
 PREHOOK: Input: default@sc
-PREHOOK: Output: default@sc_part
+PREHOOK: Output: default@sc_part@
 POSTHOOK: query: insert overwrite table sc_part partition(ts) select * from sc
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@sc
+POSTHOOK: Output: default@sc_part@
 POSTHOOK: Output: default@sc_part@ts=2011-01-11+14%3A18%3A26
 POSTHOOK: Output: default@sc_part@ts=2011-01-11+15%3A18%3A26
 POSTHOOK: Output: default@sc_part@ts=2011-01-11+16%3A18%3A26

@@ -2521,7 +2521,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
     }
 
     for (HiveLock lock: locks) {
-      lockMgr.unlock(lock);
+      lockMgr.unlock(lock, false);
 
     }
     return 0;
@@ -2575,7 +2575,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
     Iterator<HiveLock> locksIter = locks.iterator();
     while (locksIter.hasNext()) {
       HiveLock lock = locksIter.next();
-      lockMgr.unlock(lock);
+      lockMgr.unlock(lock, false);
     }
 
     return 0;

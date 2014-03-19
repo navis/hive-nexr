@@ -193,4 +193,9 @@
     <value>true</value>
   </property>
 
+  <property>
+    <name>hive.lock.manager</name>
+    <value>org.apache.hadoop.hive.ql.lockmgr.EmbeddedLockManager</value>
+  </property>
+
 </configuration>

@@ -41,11 +41,11 @@ public class WriteEntity extends Entity implements Serializable {
   }
 
   public WriteEntity(Database database) {
-    super(database, true);
+    super(database);
   }
 
   public WriteEntity(Database database, HiveOperation operation) {
-    super(database, true);
+    super(database);
     setInputRequiredPrivileges(operation.getInputRequiredPrivileges());
     setOutputRequiredPrivileges(operation.getOutputRequiredPrivileges());
   }
@@ -57,17 +57,13 @@ public class WriteEntity extends Entity implements Serializable {
    *          Table that is written to.
    */
   public WriteEntity(Table t) {
-    super(t, true);
+    super(t);
   }
 
   public WriteEntity(Table t, HiveOperation operation) {
-    super(t, true);
+    super(t);
     setInputRequiredPrivileges(operation.getInputRequiredPrivileges());
     setOutputRequiredPrivileges(operation.getOutputRequiredPrivileges());
-  }
-
-  public WriteEntity(Table t, boolean complete) {
-    super(t, complete);
   }
 
   /**
@@ -77,17 +73,17 @@ public class WriteEntity extends Entity implements Serializable {
    *          Partition that is written to.
    */
   public WriteEntity(Partition p) {
-    super(p, true);
+    super(p);
   }
 
   public WriteEntity(Partition p, HiveOperation operation) {
-    super(p, true);
+    super(p);
     setInputRequiredPrivileges(operation.getInputRequiredPrivileges());
     setOutputRequiredPrivileges(operation.getOutputRequiredPrivileges());
   }
 
-  public WriteEntity(DummyPartition p, boolean complete) {
-    super(p, complete);
+  public WriteEntity(DummyPartition p) {
+    super(p);
   }
 
   /**
@@ -99,7 +95,7 @@ public class WriteEntity extends Entity implements Serializable {
    *          Flag to decide whether this directory is local or in dfs.
    */
   public WriteEntity(Path d, boolean islocal) {
-    super(d.toString(), islocal, true);
+    super(d.toString(), islocal);
   }
 
   /**

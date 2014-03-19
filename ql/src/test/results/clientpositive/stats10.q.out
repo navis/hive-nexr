@@ -417,7 +417,6 @@ PREHOOK: type: QUERY
 PREHOOK: Input: default@bucket3_1
 PREHOOK: Input: default@bucket3_1@ds=1
 PREHOOK: Input: default@bucket3_1@ds=2
-PREHOOK: Output: default@bucket3_1
 PREHOOK: Output: default@bucket3_1@ds=1
 PREHOOK: Output: default@bucket3_1@ds=2
 POSTHOOK: query: analyze table bucket3_1 partition (ds) compute statistics
@@ -425,7 +424,6 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: default@bucket3_1
 POSTHOOK: Input: default@bucket3_1@ds=1
 POSTHOOK: Input: default@bucket3_1@ds=2
-POSTHOOK: Output: default@bucket3_1
 POSTHOOK: Output: default@bucket3_1@ds=1
 POSTHOOK: Output: default@bucket3_1@ds=2
 POSTHOOK: Lineage: bucket3_1 PARTITION(ds=1).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]

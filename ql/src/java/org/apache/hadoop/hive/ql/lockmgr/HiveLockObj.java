@@ -19,8 +19,9 @@
 package org.apache.hadoop.hive.ql.lockmgr;
 
 public class HiveLockObj {
-  HiveLockObject obj;
-  HiveLockMode   mode;
+
+  final HiveLockObject obj;
+  final HiveLockMode mode;
 
   public HiveLockObj(HiveLockObject obj, HiveLockMode mode) {
     this.obj  = obj;
@@ -31,19 +32,27 @@ public class HiveLockObj {
     return obj;
   }
 
-  public void setObj(HiveLockObject obj) {
-    this.obj = obj;
-  }
-
   public HiveLockMode getMode() {
     return mode;
   }
 
-  public void setMode(HiveLockMode mode) {
-    this.mode = mode;
-  }
-
   public String getName() {
     return obj.getName();
+  }
+
+  public int hashCode() {
+    return obj.hashCode();
+  }
+
+  public boolean equals(Object o) {
+    if (!(o instanceof HiveLockObj)) {
+      return false;
+    }
+    HiveLockObj other = (HiveLockObj) o;
+    return obj.equals(other.obj);
+  }
+
+  public String toString() {
+    return obj.getName() + "[" + mode + "]";
   }
 }

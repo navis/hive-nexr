@@ -20,20 +20,23 @@ package org.apache.hadoop.hive.ql.lockmgr;
 
 import java.util.Arrays;
 
+import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.ql.metadata.DummyPartition;
 import org.apache.hadoop.hive.ql.metadata.Partition;
 import org.apache.hadoop.hive.ql.metadata.Table;
 
 public class HiveLockObject {
-  String[] pathNames = null;
+
+  final String[] pathNames;
 
   public static class HiveLockObjectData {
 
-    private String queryId; // queryId of the command
-    private String lockTime; // time at which lock was acquired
+    private final String queryId; // queryId of the command
+    private final String lockTime; // time at which lock was acquired
     // mode of the lock: EXPLICIT(lock command)/IMPLICIT(query)
-    private String lockMode;
-    private String queryStr;
+    private final String lockMode;
+    private final String queryStr;
+
     private String clientIp;
 
     public HiveLockObjectData(String queryId,
@@ -46,17 +49,16 @@ public class HiveLockObject {
       this.queryStr = queryStr.trim();
     }
 
-
     public HiveLockObjectData(String data) {
-      if (data == null) {
-        return;
-      }
-
       String[] elem = data.split(":");
       queryId = elem[0];
       lockTime = elem[1];
       lockMode = elem[2];
       queryStr = elem[3];
+    }
+
+    public HiveLockObjectData clone() {
+      return new HiveLockObjectData(queryId, lockTime, lockMode, queryStr);
     }
 
     public String getQueryId() {
@@ -114,10 +116,6 @@ public class HiveLockObject {
   /* user supplied data for that object */
   private HiveLockObjectData data;
 
-  public HiveLockObject() {
-    this.data = null;
-  }
-
   public HiveLockObject(String path, HiveLockObjectData lockData) {
     this.pathNames = new String[1];
     this.pathNames[0] = path;
@@ -127,6 +125,10 @@ public class HiveLockObject {
   public HiveLockObject(String[] paths, HiveLockObjectData lockData) {
     this.pathNames = paths;
     this.data = lockData;
+  }
+
+  public HiveLockObject(Database d, HiveLockObjectData lockData) {
+    this(new String[] {d.getName()}, lockData);
   }
 
   public HiveLockObject(Table tbl, HiveLockObjectData lockData) {
@@ -197,14 +199,22 @@ public class HiveLockObject {
   }
 
   @Override
+  public int hashCode() {
+    return Arrays.hashCode(pathNames);
+  }
+
+  @Override
   public boolean equals(Object o) {
     if (!(o instanceof HiveLockObject)) {
       return false;
     }
-
     HiveLockObject tgt = (HiveLockObject) o;
     return Arrays.equals(pathNames, tgt.pathNames) &&
-        data == null ? tgt.getData() == null :
-        tgt.getData() != null && data.equals(tgt.getData());
+      (data == null ? tgt.getData() == null :
+        tgt.getData() != null && data.equals(tgt.getData()));
+  }
+
+  public String toString() {
+    return Arrays.toString(pathNames);
   }
 }

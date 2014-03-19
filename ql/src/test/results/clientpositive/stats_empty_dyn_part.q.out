@@ -116,7 +116,8 @@ STAGE PLANS:
 PREHOOK: query: insert overwrite table tmptable partition (part) select key, value from src where key = 'no_such_value'
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
-PREHOOK: Output: default@tmptable
+PREHOOK: Output: default@tmptable@
 POSTHOOK: query: insert overwrite table tmptable partition (part) select key, value from src where key = 'no_such_value'
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
+POSTHOOK: Output: default@tmptable@

@@ -117,6 +117,7 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: default@srcpart
 POSTHOOK: Input: default@srcpart@ds=2008-04-08/hr=11
 POSTHOOK: Input: default@srcpart@ds=2008-04-08/hr=12
+POSTHOOK: Output: default@nzhang_part@ds=2010-08-15
 POSTHOOK: Output: default@nzhang_part@ds=2010-08-15/hr=11
 POSTHOOK: Output: default@nzhang_part@ds=2010-08-15/hr=12
 POSTHOOK: Lineage: nzhang_part PARTITION(ds=2010-08-15,hr=11).key SIMPLE [(srcpart)srcpart.FieldSchema(name:key, type:string, comment:default), ]
@@ -2981,6 +2982,7 @@ POSTHOOK: Input: default@src
 POSTHOOK: Input: default@srcpart
 POSTHOOK: Input: default@srcpart@ds=2008-04-08/hr=11
 POSTHOOK: Input: default@srcpart@ds=2008-04-08/hr=12
+POSTHOOK: Output: default@nzhang_part@ds=2010-08-15
 POSTHOOK: Output: default@nzhang_part@ds=2010-08-15/hr=11
 POSTHOOK: Output: default@nzhang_part@ds=2010-08-15/hr=12
 POSTHOOK: Output: default@nzhang_part@ds=2010-08-15/hr=file,

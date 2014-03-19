@@ -230,7 +230,7 @@ public class ZooKeeperHiveLockManager implements HiveLockManager {
       }
 
       if (lock == null) {
-        releaseLocks(hiveLocks);
+        releaseLocks(hiveLocks, false);
         return null;
       }
 
@@ -247,14 +247,14 @@ public class ZooKeeperHiveLockManager implements HiveLockManager {
    *          list of hive locks to be released Release all the locks specified. If some of the
    *          locks have already been released, ignore them
    **/
-  public void releaseLocks(List<HiveLock> hiveLocks) {
+  public void releaseLocks(List<HiveLock> hiveLocks, boolean recursive) {
     if (hiveLocks != null) {
       int len = hiveLocks.size();
       for (int pos = len-1; pos >= 0; pos--) {
         HiveLock hiveLock = hiveLocks.get(pos);
         try {
           LOG.info(" about to release lock for " + hiveLock.getHiveLockObject().getName());
-          unlock(hiveLock);
+          unlock(hiveLock, recursive);
         } catch (LockException e) {
           // The lock may have been released. Ignore and continue
           LOG.warn("Error when releasing lock", e);
@@ -411,7 +411,7 @@ public class ZooKeeperHiveLockManager implements HiveLockManager {
   }
 
   /* Remove the lock specified */
-  public void unlock(HiveLock hiveLock) throws LockException {
+  public void unlock(HiveLock hiveLock, boolean recursive) throws LockException {
     unlockWithRetry(ctx.getConf(), zooKeeper, hiveLock, parent);
   }
 

@@ -59,11 +59,11 @@ public class ReadEntity extends Entity implements Serializable {
    * Constructor for a database.
    */
   public ReadEntity(Database database) {
-    super(database, true);
+    super(database);
   }
 
   public ReadEntity(Database database, HiveOperation operation) {
-    super(database, true);
+    super(database);
     setInputRequiredPrivileges(operation.getInputRequiredPrivileges());
     setOutputRequiredPrivileges(operation.getOutputRequiredPrivileges());
   }
@@ -75,11 +75,11 @@ public class ReadEntity extends Entity implements Serializable {
    *          The Table that the query reads from.
    */
   public ReadEntity(Table t) {
-    super(t, true);
+    super(t);
   }
 
   public ReadEntity(Table t, HiveOperation operation) {
-    super(t, true);
+    super(t);
     setInputRequiredPrivileges(operation.getInputRequiredPrivileges());
     setOutputRequiredPrivileges(operation.getOutputRequiredPrivileges());
   }
@@ -91,7 +91,7 @@ public class ReadEntity extends Entity implements Serializable {
   }
 
   public ReadEntity(Table t, Operator<?> source, ReadEntity parent) {
-    super(t, true);
+    super(t);
     initParent(parent);
     this.source = source;
   }
@@ -103,17 +103,17 @@ public class ReadEntity extends Entity implements Serializable {
    *          The partition that the query reads from.
    */
   public ReadEntity(Partition p) {
-    super(p, true);
+    super(p);
   }
 
   public ReadEntity(Partition p, HiveOperation operation) {
-    super(p, true);
+    super(p);
     setInputRequiredPrivileges(operation.getInputRequiredPrivileges());
     setOutputRequiredPrivileges(operation.getOutputRequiredPrivileges());
   }
 
   public ReadEntity(Partition p, Operator<?> source, ReadEntity parent) {
-    super(p, true);
+    super(p);
     initParent(parent);
     this.source = source;
   }
@@ -127,7 +127,7 @@ public class ReadEntity extends Entity implements Serializable {
    *          Flag to decide whether this directory is local or in dfs.
    */
   public ReadEntity(Path d, boolean islocal) {
-    super(d.toString(), islocal, true);
+    super(d.toString(), islocal);
   }
 
   public Set<ReadEntity> getParents() {

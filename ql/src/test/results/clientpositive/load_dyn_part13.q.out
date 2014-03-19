@@ -171,6 +171,7 @@ select * from (
    where key > 20 and key < 40) s
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
+POSTHOOK: Output: default@nzhang_part13@ds=2010-03-03
 POSTHOOK: Output: default@nzhang_part13@ds=2010-03-03/hr=22
 POSTHOOK: Output: default@nzhang_part13@ds=2010-03-03/hr=33
 POSTHOOK: Lineage: nzhang_part13 PARTITION(ds=2010-03-03,hr=22).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), (src)src.FieldSchema(name:key, type:string, comment:default), ]

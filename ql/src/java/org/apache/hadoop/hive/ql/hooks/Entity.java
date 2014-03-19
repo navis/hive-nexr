@@ -75,12 +75,6 @@ public class Entity implements Serializable {
    */
   private String name;
 
-  /**
-   * Whether the output is complete or not. For eg, for dynamic partitions, the
-   * complete output may not be known
-   */
-  private boolean complete;
-
   private Privilege[] inputRequiredPrivileges;
 
   private Privilege[] outputRequiredPrivileges;
@@ -101,14 +95,6 @@ public class Entity implements Serializable {
 
   public Privilege[] getOutputRequiredPrivileges() {
     return outputRequiredPrivileges;
-  }
-
-  public boolean isComplete() {
-    return complete;
-  }
-
-  public void setComplete(boolean complete) {
-    this.complete = complete;
   }
 
   public String getName() {
@@ -170,14 +156,12 @@ public class Entity implements Serializable {
    *
    * @param database
    *          The name of the database.
-   * @param complete
-   *          Means the database is target, not for table or partition, etc.
+   *
    */
-  public Entity(Database database, boolean complete) {
+  public Entity(Database database) {
     this.database = database;
     this.typ = Type.DATABASE;
     this.name = computeName();
-    this.complete = complete;
   }
 
   /**
@@ -186,13 +170,12 @@ public class Entity implements Serializable {
    * @param t
    *          Table that is read or written to.
    */
-  public Entity(Table t, boolean complete) {
+  public Entity(Table t) {
     d = null;
     p = null;
     this.t = t;
     typ = Type.TABLE;
     name = computeName();
-    this.complete = complete;
   }
 
   /**
@@ -201,25 +184,23 @@ public class Entity implements Serializable {
    * @param p
    *          Partition that is read or written to.
    */
-  public Entity(Partition p, boolean complete) {
+  public Entity(Partition p) {
     d = null;
     this.p = p;
     t = p.getTable();
     typ = Type.PARTITION;
     name = computeName();
-    this.complete = complete;
   }
 
-  public Entity(DummyPartition p, boolean complete) {
+  public Entity(DummyPartition p) {
     d = null;
     this.p = p;
     t = p.getTable();
     typ = Type.DUMMYPARTITION;
     name = computeName();
-    this.complete = complete;
   }
 
-  public Entity(String d, boolean islocal, boolean complete) {
+  public Entity(String d, boolean islocal) {
     this.d = d;
     p = null;
     t = null;
@@ -229,7 +210,6 @@ public class Entity implements Serializable {
       typ = Type.DFS_DIR;
     }
     name = computeName();
-    this.complete = complete;
   }
 
   /**

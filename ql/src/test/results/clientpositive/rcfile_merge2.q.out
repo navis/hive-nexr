@@ -114,6 +114,7 @@ POSTHOOK: query: INSERT OVERWRITE TABLE rcfile_merge2a PARTITION (one='1', two, 
     FROM src
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
+POSTHOOK: Output: default@rcfile_merge2a@one=1
 POSTHOOK: Output: default@rcfile_merge2a@one=1/two=0/three=2
 POSTHOOK: Output: default@rcfile_merge2a@one=1/two=0/three=8
 POSTHOOK: Output: default@rcfile_merge2a@one=1/two=1/three=3

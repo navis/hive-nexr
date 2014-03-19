@@ -37,6 +37,7 @@ import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.Partition;
 import org.apache.hadoop.hive.ql.metadata.Table;
+import org.apache.hadoop.hive.ql.session.SessionState;
 
 /**
  * shared lock manager for dedicated hive server. all locks are managed in memory
@@ -44,6 +45,7 @@ import org.apache.hadoop.hive.ql.metadata.Table;
 public class EmbeddedLockManager implements SharedLockManager {
 
   private static final Log LOG = LogFactory.getLog("EmbeddedHiveLockManager");
+  private static final SessionState.LogHelper console = new SessionState.LogHelper(LOG);
 
   private final Node root = new Node();
 
@@ -72,12 +74,12 @@ public class EmbeddedLockManager implements SharedLockManager {
     return lock(objs, numRetriesForLock, sleepTime);
   }
 
-  public void unlock(HiveLock hiveLock) throws LockException {
-    unlock(hiveLock, numRetriesForUnLock, sleepTime);
+  public void unlock(HiveLock hiveLock, boolean recursive) throws LockException {
+    unlock(hiveLock, numRetriesForUnLock, sleepTime, recursive);
   }
 
-  public void releaseLocks(List<HiveLock> hiveLocks) {
-    releaseLocks(hiveLocks, numRetriesForUnLock, sleepTime);
+  public void releaseLocks(List<HiveLock> hiveLocks, boolean recursive) {
+    releaseLocks(hiveLocks, numRetriesForUnLock, sleepTime, recursive);
   }
 
   public List<HiveLock> getLocks(boolean verifyTablePartitions, boolean fetchData)
@@ -144,7 +146,9 @@ public class EmbeddedLockManager implements SharedLockManager {
     for (HiveLockObj obj : objs) {
       HiveLock lock = root.lock(obj.getObj(), obj.getMode(), lockTimeout);
       if (lock == null) {
-        releaseLocks(locks, numRetriesForLock, sleepTime);
+        console.printError("conflicting lock present for " +
+            obj.getObj().getDisplayName() + " mode " + obj.getMode());
+        releaseLocks(locks, numRetriesForLock, sleepTime, false);
         return null;
       }
       locks.add(lock);
@@ -171,7 +175,7 @@ public class EmbeddedLockManager implements SharedLockManager {
     });
   }
 
-  public void unlock(HiveLock hiveLock, int numRetriesForUnLock, int sleepTime)
+  public void unlock(HiveLock hiveLock, int numRetriesForUnLock, int sleepTime, boolean recursive)
       throws LockException {
     String[] paths = hiveLock.getHiveLockObject().getPaths();
     HiveLockObjectData data = hiveLock.getHiveLockObject().getData();
@@ -179,17 +183,18 @@ public class EmbeddedLockManager implements SharedLockManager {
       if (i > 0) {
         sleep(sleepTime);
       }
-      if (root.unlock(paths, data)) {
+      if (root.unlock(paths, data, recursive)) {
         return;
       }
     }
     throw new LockException("Failed to release lock " + hiveLock);
   }
 
-  public void releaseLocks(List<HiveLock> hiveLocks, int numRetriesForUnLock, int sleepTime) {
+  public void releaseLocks(List<HiveLock> hiveLocks, int numRetriesForUnLock, int sleepTime,
+      boolean recursive) {
     for (HiveLock locked : hiveLocks) {
       try {
-        unlock(locked, numRetriesForUnLock, sleepTime);
+        unlock(locked, numRetriesForUnLock, sleepTime, recursive);
       } catch (LockException e) {
         LOG.info(e);
       }
@@ -284,8 +289,8 @@ public class EmbeddedLockManager implements SharedLockManager {
       }
     }
 
-    public boolean unlock(String[] paths, HiveLockObjectData data) {
-      return unlock(paths, 0, data);
+    public boolean unlock(String[] paths, HiveLockObjectData data, boolean recursive) {
+      return unlock(paths, 0, data, recursive);
     }
 
     private List<HiveLock> getLocks(boolean verify, boolean fetchData, HiveConf conf)
@@ -310,7 +315,7 @@ public class EmbeddedLockManager implements SharedLockManager {
 
     private HiveLock timedLock(HiveLockObject key, int index, HiveLockMode mode, long remain)
         throws InterruptedException {
-      if (remain < 0) {
+      if (remain <= 0) {
         if (!lock.tryLock()) {
           return null;
         }
@@ -320,6 +325,9 @@ public class EmbeddedLockManager implements SharedLockManager {
           return null;
         }
         remain -= System.currentTimeMillis() - start;
+        if (remain <= 0 && index < key.pathNames.length) {
+          return null;
+        }
       }
       try {
         return lock(key, index, mode, remain);
@@ -363,22 +371,30 @@ public class EmbeddedLockManager implements SharedLockManager {
       return child.timedLock(key, index + 1, mode, remain);
     }
 
-    private boolean unlock(String[] paths, int index, HiveLockObjectData data) {
+    private boolean unlock(String[] paths, int index, HiveLockObjectData data, boolean recursive) {
       if (!lock.tryLock()) {
         return false;
       }
       try {
         if (index == paths.length) {
           if (hasLock()) {
-            datas.remove(data.getQueryId());
+            if (data == null) {
+              datas.clear();
+            } else {
+              datas.remove(data.getQueryId());
+            }
           }
+          if (lockMode == HiveLockMode.EXCLUSIVE && recursive) {
+            children = null;
+          }
+          lockMode = null;
           return true;
         }
         Node child = hasChild() ? children.get(paths[index]) : null;
         if (child == null) {
-          return true; // should not happen
+          return true; // can be happened
         }
-        if (child.unlock(paths, index + 1, data)) {
+        if (child.unlock(paths, index + 1, data, recursive)) {
           if (!child.hasLock() && !child.hasChild()) {
             children.remove(paths[index]);
           }
@@ -488,8 +504,8 @@ public class EmbeddedLockManager implements SharedLockManager {
       }
 
       SimpleHiveLock simpleLock = (SimpleHiveLock) o;
-      return lockObj.equals(simpleLock.getHiveLockObject()) &&
-          lockMode == simpleLock.getHiveLockMode();
+      return lockMode == simpleLock.lockMode &&
+        lockObj.equals(simpleLock.lockObj);
     }
   }
 }

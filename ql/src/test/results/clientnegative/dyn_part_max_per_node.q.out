@@ -19,7 +19,7 @@ FROM src
 LIMIT 50
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
-PREHOOK: Output: default@max_parts
+PREHOOK: Output: default@max_parts@
 Execution failed with exit status: 2
 Obtaining error information
 

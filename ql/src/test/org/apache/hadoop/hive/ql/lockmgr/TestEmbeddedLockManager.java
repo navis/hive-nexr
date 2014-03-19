@@ -75,7 +75,7 @@ public class TestEmbeddedLockManager extends TestCase {
     Assert.assertEquals(1, manager.getLocks(path3sel, false, true).size());
     Assert.assertEquals(4, manager.getLocks(false, true).size());
 
-    manager.unlock(path1sel1Lock);
+    manager.unlock(path1sel1Lock, false);
     Assert.assertEquals(1, manager.getLocks(path1sel1, false, false).size());
     Assert.assertEquals(1, manager.getLocks(path1sel1, false, true).size());
     Assert.assertEquals(1, manager.getLocks(path1sel2, false, true).size());
@@ -83,16 +83,16 @@ public class TestEmbeddedLockManager extends TestCase {
     Assert.assertEquals(1, manager.getLocks(path3sel, false, true).size());
     Assert.assertEquals(3, manager.getLocks(false, true).size());
 
-    manager.unlock(path1sel2Lock);
+    manager.unlock(path1sel2Lock, false);
     Assert.assertEquals(1, manager.getLocks(path2sel1, false, true).size());
     Assert.assertEquals(1, manager.getLocks(path3sel, false, true).size());
     Assert.assertEquals(2, manager.getLocks(false, true).size());
 
-    manager.unlock(path2sel1Lock);
+    manager.unlock(path2sel1Lock, false);
     Assert.assertEquals(1, manager.getLocks(path3sel, false, true).size());
     Assert.assertEquals(1, manager.getLocks(false, true).size());
 
-    manager.unlock(path3selLock);
+    manager.unlock(path3selLock, false);
     Assert.assertEquals(0, manager.getLocks(false, true).size());
 
     HiveLockObject path2up1 = lockObj(path2, "update");

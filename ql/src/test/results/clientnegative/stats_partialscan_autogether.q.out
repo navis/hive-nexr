@@ -22,7 +22,7 @@ PREHOOK: Input: default@srcpart@ds=2008-04-08/hr=11
 PREHOOK: Input: default@srcpart@ds=2008-04-08/hr=12
 PREHOOK: Input: default@srcpart@ds=2008-04-09/hr=11
 PREHOOK: Input: default@srcpart@ds=2008-04-09/hr=12
-PREHOOK: Output: default@analyze_srcpart_partial_scan
+PREHOOK: Output: default@analyze_srcpart_partial_scan@
 POSTHOOK: query: insert overwrite table analyze_srcpart_partial_scan partition (ds, hr) select * from srcpart where ds is not null
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@srcpart
@@ -30,6 +30,7 @@ POSTHOOK: Input: default@srcpart@ds=2008-04-08/hr=11
 POSTHOOK: Input: default@srcpart@ds=2008-04-08/hr=12
 POSTHOOK: Input: default@srcpart@ds=2008-04-09/hr=11
 POSTHOOK: Input: default@srcpart@ds=2008-04-09/hr=12
+POSTHOOK: Output: default@analyze_srcpart_partial_scan@
 POSTHOOK: Output: default@analyze_srcpart_partial_scan@ds=2008-04-08/hr=11
 POSTHOOK: Output: default@analyze_srcpart_partial_scan@ds=2008-04-08/hr=12
 POSTHOOK: Output: default@analyze_srcpart_partial_scan@ds=2008-04-09/hr=11

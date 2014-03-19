@@ -230,7 +230,7 @@ PREHOOK: Input: default@srcpart_merge_dp@ds=2008-04-08/hr=11
 PREHOOK: Input: default@srcpart_merge_dp@ds=2008-04-08/hr=12
 PREHOOK: Input: default@srcpart_merge_dp@ds=2008-04-09/hr=11
 PREHOOK: Input: default@srcpart_merge_dp@ds=2008-04-09/hr=12
-PREHOOK: Output: default@merge_dynamic_part
+PREHOOK: Output: default@merge_dynamic_part@
 POSTHOOK: query: insert overwrite table merge_dynamic_part partition (ds, hr) select key, value, ds, hr from srcpart_merge_dp where ds>='2008-04-08'
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@srcpart_merge_dp
@@ -238,6 +238,7 @@ POSTHOOK: Input: default@srcpart_merge_dp@ds=2008-04-08/hr=11
 POSTHOOK: Input: default@srcpart_merge_dp@ds=2008-04-08/hr=12
 POSTHOOK: Input: default@srcpart_merge_dp@ds=2008-04-09/hr=11
 POSTHOOK: Input: default@srcpart_merge_dp@ds=2008-04-09/hr=12
+POSTHOOK: Output: default@merge_dynamic_part@
 POSTHOOK: Output: default@merge_dynamic_part@ds=2008-04-08/hr=11
 POSTHOOK: Output: default@merge_dynamic_part@ds=2008-04-08/hr=12
 POSTHOOK: Output: default@merge_dynamic_part@ds=2008-04-09/hr=11

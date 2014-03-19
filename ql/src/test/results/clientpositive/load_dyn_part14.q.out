@@ -283,7 +283,7 @@ select key, value from (
 ) T
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
-PREHOOK: Output: default@nzhang_part14
+PREHOOK: Output: default@nzhang_part14@
 POSTHOOK: query: insert overwrite table nzhang_part14 partition(value) 
 select key, value from (
   select 'k1' as key, cast(null as string) as value from src limit 2
@@ -294,6 +294,7 @@ select key, value from (
 ) T
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
+POSTHOOK: Output: default@nzhang_part14@
 POSTHOOK: Output: default@nzhang_part14@value= 
 POSTHOOK: Output: default@nzhang_part14@value=__HIVE_DEFAULT_PARTITION__
 POSTHOOK: Lineage: nzhang_part14 PARTITION(value= ).key EXPRESSION []

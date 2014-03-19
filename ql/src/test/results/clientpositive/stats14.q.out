@@ -100,13 +100,11 @@ PREHOOK: query: analyze table stats_part partition(ds='2010-04-08', hr='11') com
 PREHOOK: type: QUERY
 PREHOOK: Input: default@stats_part
 PREHOOK: Input: default@stats_part@ds=2010-04-08/hr=11
-PREHOOK: Output: default@stats_part
 PREHOOK: Output: default@stats_part@ds=2010-04-08/hr=11
 POSTHOOK: query: analyze table stats_part partition(ds='2010-04-08', hr='11') compute statistics
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@stats_part
 POSTHOOK: Input: default@stats_part@ds=2010-04-08/hr=11
-POSTHOOK: Output: default@stats_part
 POSTHOOK: Output: default@stats_part@ds=2010-04-08/hr=11
 POSTHOOK: Lineage: stats_part PARTITION(ds=2010-04-08,hr=11).key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: stats_part PARTITION(ds=2010-04-08,hr=11).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
@@ -118,13 +116,11 @@ PREHOOK: query: analyze table stats_part partition(ds='2010-04-08', hr='12') com
 PREHOOK: type: QUERY
 PREHOOK: Input: default@stats_part
 PREHOOK: Input: default@stats_part@ds=2010-04-08/hr=12
-PREHOOK: Output: default@stats_part
 PREHOOK: Output: default@stats_part@ds=2010-04-08/hr=12
 POSTHOOK: query: analyze table stats_part partition(ds='2010-04-08', hr='12') compute statistics
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@stats_part
 POSTHOOK: Input: default@stats_part@ds=2010-04-08/hr=12
-POSTHOOK: Output: default@stats_part
 POSTHOOK: Output: default@stats_part@ds=2010-04-08/hr=12
 POSTHOOK: Lineage: stats_part PARTITION(ds=2010-04-08,hr=11).key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: stats_part PARTITION(ds=2010-04-08,hr=11).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
@@ -296,7 +292,6 @@ PREHOOK: Input: default@stats_part
 PREHOOK: Input: default@stats_part@ds=2010-04-08/hr=11
 PREHOOK: Input: default@stats_part@ds=2010-04-08/hr=12
 PREHOOK: Input: default@stats_part@ds=2010-04-08/hr=13
-PREHOOK: Output: default@stats_part
 PREHOOK: Output: default@stats_part@ds=2010-04-08/hr=11
 PREHOOK: Output: default@stats_part@ds=2010-04-08/hr=12
 PREHOOK: Output: default@stats_part@ds=2010-04-08/hr=13
@@ -306,7 +301,6 @@ POSTHOOK: Input: default@stats_part
 POSTHOOK: Input: default@stats_part@ds=2010-04-08/hr=11
 POSTHOOK: Input: default@stats_part@ds=2010-04-08/hr=12
 POSTHOOK: Input: default@stats_part@ds=2010-04-08/hr=13
-POSTHOOK: Output: default@stats_part
 POSTHOOK: Output: default@stats_part@ds=2010-04-08/hr=11
 POSTHOOK: Output: default@stats_part@ds=2010-04-08/hr=12
 POSTHOOK: Output: default@stats_part@ds=2010-04-08/hr=13

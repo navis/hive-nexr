@@ -109,6 +109,7 @@ POSTHOOK: query: insert overwrite table merge_dynamic_part partition (ds='2008-0
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@srcpart_merge_dp
 POSTHOOK: Input: default@srcpart_merge_dp@ds=2008-04-08/hr=11
+POSTHOOK: Output: default@merge_dynamic_part@ds=2008-04-08
 POSTHOOK: Output: default@merge_dynamic_part@ds=2008-04-08/hr=11
 POSTHOOK: Lineage: merge_dynamic_part PARTITION(ds=2008-04-08,hr=11).key SIMPLE [(srcpart_merge_dp)srcpart_merge_dp.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: merge_dynamic_part PARTITION(ds=2008-04-08,hr=11).value SIMPLE [(srcpart_merge_dp)srcpart_merge_dp.FieldSchema(name:value, type:string, comment:default), ]
@@ -1404,11 +1405,12 @@ PREHOOK: query: insert overwrite table merge_dynamic_part partition (ds, hr) sel
 PREHOOK: type: QUERY
 PREHOOK: Input: default@srcpart_merge_dp
 PREHOOK: Input: default@srcpart_merge_dp@ds=2008-04-08/hr=11
-PREHOOK: Output: default@merge_dynamic_part
+PREHOOK: Output: default@merge_dynamic_part@
 POSTHOOK: query: insert overwrite table merge_dynamic_part partition (ds, hr) select key, value, ds, hr from srcpart_merge_dp where ds='2008-04-08' and hr=11
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@srcpart_merge_dp
 POSTHOOK: Input: default@srcpart_merge_dp@ds=2008-04-08/hr=11
+POSTHOOK: Output: default@merge_dynamic_part@
 POSTHOOK: Output: default@merge_dynamic_part@ds=2008-04-08/hr=11
 POSTHOOK: Lineage: merge_dynamic_part PARTITION(ds=2008-04-08,hr=11).key SIMPLE [(srcpart_merge_dp)srcpart_merge_dp.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: merge_dynamic_part PARTITION(ds=2008-04-08,hr=11).value SIMPLE [(srcpart_merge_dp)srcpart_merge_dp.FieldSchema(name:value, type:string, comment:default), ]

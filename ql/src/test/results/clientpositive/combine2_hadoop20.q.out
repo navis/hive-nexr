@@ -34,7 +34,7 @@ select * from (
    select key, '2010-04-21 09:45:00' value from src where key = 19) s
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
-PREHOOK: Output: default@combine2
+PREHOOK: Output: default@combine2@
 POSTHOOK: query: -- INCLUDE_HADOOP_MAJOR_VERSIONS(0.20, 0.20S)
 -- This test sets mapred.max.split.size=256 and hive.merge.smallfiles.avgsize=0
 -- in an attempt to force the generation of multiple splits and multiple output files.
@@ -52,6 +52,7 @@ select * from (
    select key, '2010-04-21 09:45:00' value from src where key = 19) s
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
+POSTHOOK: Output: default@combine2@
 POSTHOOK: Output: default@combine2@value=2010-04-21 09%3A45%3A00
 POSTHOOK: Output: default@combine2@value=val_0
 POSTHOOK: Output: default@combine2@value=val_2
