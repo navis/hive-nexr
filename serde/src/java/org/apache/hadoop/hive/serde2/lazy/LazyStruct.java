@@ -27,7 +27,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.serde2.SerDeStatsStruct;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazySimpleStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
-import org.apache.hadoop.io.Text;
 
 /**
  * LazyObject for storing a struct. The field of a struct can be primitive or
@@ -204,31 +203,26 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
    * @return The value of the field
    */
   private Object uncheckedGetField(int fieldID) {
-    Text nullSequence = oi.getNullSequence();
-    // Test the length first so in most cases we avoid doing a byte[]
-    // comparison.
-    int fieldByteBegin = startPosition[fieldID];
-    int fieldLength = startPosition[fieldID + 1] - startPosition[fieldID] - 1;
-    if ((fieldLength < 0)
-        || (fieldLength == nullSequence.getLength() && LazyUtils.compare(bytes
-            , fieldByteBegin, fieldLength, nullSequence.getBytes(),
-            0, nullSequence.getLength()) == 0)) {
-      return null;
-    }
-    byte[] binary = bytes;
     if (!fieldInited[fieldID]) {
       fieldInited[fieldID] = true;
-      if (serdeParams != null && serdeParams.isEncoded(fieldID)) {
-        try {
-          serdeParams.decode(fieldID, binary, fieldByteBegin, fieldLength);
-        } catch (IOException e) {
-          throw new RuntimeException(e);
+      byte[] binary = bytes;
+      int fieldByteBegin = startPosition[fieldID];
+      int fieldLength = startPosition[fieldID + 1] - startPosition[fieldID] - 1;
+      if (isNull(oi.getNullSequence(), binary, fieldByteBegin, fieldLength)) {
+        fields[fieldID].setNull();
+      } else {
+        if (serdeParams != null && serdeParams.isEncoded(fieldID)) {
+          try {
+            serdeParams.decode(fieldID, binary, fieldByteBegin, fieldLength);
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+          binary = serdeParams.output.getData();
+          fieldLength = serdeParams.output.getCount();
+          fieldByteBegin = 0;
         }
-        binary = serdeParams.output.getData();
-        fieldLength = serdeParams.output.getCount();
-        fieldByteBegin = 0;
+        fields[fieldID].init(binary, fieldByteBegin, fieldLength);
       }
-      fields[fieldID].init(binary, fieldByteBegin, fieldLength);
     }
     return fields[fieldID].getObject();
   }
@@ -253,11 +247,6 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
       cachedList.add(uncheckedGetField(i));
     }
     return cachedList;
-  }
-
-  @Override
-  public Object getObject() {
-    return this;
   }
 
   protected boolean getParsed() {

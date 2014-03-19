@@ -154,31 +154,31 @@ public class LazyHBaseRow extends LazyStruct {
     boolean [] fieldsInited = getFieldInited();
 
     if (!fieldsInited[fieldID]) {
+      fieldsInited[fieldID] = true;
+
       ColumnMapping colMap = columnsMapping.get(fieldID);
 
-      byte[] bytes = null;
+      if (!colMap.hbaseRowKey && colMap.qualifierName == null) {
+        // it is a column family
+        // primitive type for Map<Key, Value> can be stored in binary format. Pass in the
+        // qualifier prefix to cherry pick the qualifiers that match the prefix instead of picking
+        // up everything
+        ((LazyHBaseCellMap) fields[fieldID]).init(
+            result, colMap.familyNameBytes, colMap.binaryStorage, colMap.qualifierPrefixBytes);
+        return fields[fieldID].getObject();
+      }
+
+      byte[] bytes;
       if (colMap.hbaseRowKey) {
         bytes = result.getRow();
       } else {
-        if (colMap.qualifierName == null) {
-          // it is a column family
-          // primitive type for Map<Key, Value> can be stored in binary format. Pass in the
-          // qualifier prefix to cherry pick the qualifiers that match the prefix instead of picking
-          // up everything
-          ((LazyHBaseCellMap) fields[fieldID]).init(
-              result, colMap.familyNameBytes, colMap.binaryStorage, colMap.qualifierPrefixBytes);
-        } else {
-          // it is a column i.e. a column-family with column-qualifier
-          bytes = result.getValue(colMap.familyNameBytes, colMap.qualifierNameBytes);
-          if (bytes == null) {
-            return null;
-          }
-        }
+        // it is a column i.e. a column-family with column-qualifier
+        bytes = result.getValue(colMap.familyNameBytes, colMap.qualifierNameBytes);
       }
       int length = bytes == null ? 0 : bytes.length;
       if (bytes != null && serdeParams != null && serdeParams.isEncoded(fieldID)) {
         try {
-          serdeParams.decode(fieldID, bytes, 0, bytes.length);
+          serdeParams.decode(fieldID, bytes, 0, length);
         } catch (IOException e) {
           throw new RuntimeException(e);
         }
@@ -186,20 +186,17 @@ public class LazyHBaseRow extends LazyStruct {
         length = serdeParams.output.getCount();
       }
 
-
-      if (bytes != null) {
+      if (bytes != null && !isNull(oi.getNullSequence(), bytes, 0, length)) {
         fields[fieldID].init(bytes, 0, length);
-
         // if it was a row key and we have been provided a custom composite key class, initialize it
         // with the bytes for the row key
         if (colMap.hbaseRowKey && compositeKeyObj != null) {
           ((LazyStruct) compositeKeyObj).init(bytes, 0, length);
         }
+      } else {
+        fields[fieldID].setNull();
       }
     }
-
-    // Has to be set last because of HIVE-3179: NULL fields would not work otherwise
-    fieldsInited[fieldID] = true;
 
     return fields[fieldID].getObject();
   }

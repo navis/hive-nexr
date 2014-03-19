@@ -262,10 +262,7 @@ public class LazyMap extends LazyNonPrimitive<LazyMapObjectInspector> {
     Text nullSequence = oi.getNullSequence();
     int valueIBegin = keyEnd[index] + 1;
     int valueILength = valueLength[index];
-    if (valueILength < 0
-        || ((valueILength == nullSequence.getLength()) && 0 == LazyUtils
-        .compare(bytes, valueIBegin, valueILength, nullSequence
-        .getBytes(), 0, nullSequence.getLength()))) {
+    if (isNull(oi.getNullSequence(), bytes, valueIBegin, valueILength)) {
       return valueObjects[index] = null;
     }
     valueObjects[index] = LazyFactory

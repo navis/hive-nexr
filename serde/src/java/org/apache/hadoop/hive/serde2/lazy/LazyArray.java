@@ -180,16 +180,14 @@ public class LazyArray extends LazyNonPrimitive<LazyListObjectInspector> {
 
     Text nullSequence = oi.getNullSequence();
 
-    int elementLength = startPosition[index + 1] - startPosition[index] - 1;
-    if (elementLength == nullSequence.getLength()
-        && 0 == LazyUtils
-        .compare(bytes, startPosition[index], elementLength,
-        nullSequence.getBytes(), 0, nullSequence.getLength())) {
+    int elementStart = startPosition[index];
+    int elementLength = startPosition[index + 1] - elementStart - 1;
+    if (isNull(oi.getNullSequence(), bytes, elementStart, elementLength)) {
       return arrayElements[index] = null;
     }
     arrayElements[index] = LazyFactory
         .createLazyObject(oi.getListElementObjectInspector());
-    arrayElements[index].init(bytes, startPosition[index], elementLength);
+    arrayElements[index].init(bytes, elementStart, elementLength);
     return arrayElements[index].getObject();
   }
 
