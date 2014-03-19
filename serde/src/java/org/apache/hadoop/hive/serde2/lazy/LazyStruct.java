@@ -204,33 +204,41 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
    * @return The value of the field
    */
   private Object uncheckedGetField(int fieldID) {
+    if (!fieldInited[fieldID]) {
+      fieldInited[fieldID] = true;
+      byte[] binary = bytes;
+      int fieldByteBegin = startPosition[fieldID];
+      int fieldLength = startPosition[fieldID + 1] - startPosition[fieldID] - 1;
+      if (isNull(binary, fieldByteBegin, fieldLength)) {
+        fields[fieldID].clear();
+      } else {
+        if (serdeParams != null && serdeParams.isEncoded(fieldID)) {
+          try {
+            serdeParams.decode(fieldID, binary, fieldByteBegin, fieldLength);
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+          binary = serdeParams.output.getData();
+          fieldLength = serdeParams.output.getCount();
+          fieldByteBegin = 0;
+        }
+        fields[fieldID].init(binary, fieldByteBegin, fieldLength);
+      }
+    }
+    return fields[fieldID].getObject();
+  }
+
+  private boolean isNull(byte[] bytes, int fieldByteBegin, int fieldLength) {
     Text nullSequence = oi.getNullSequence();
     // Test the length first so in most cases we avoid doing a byte[]
     // comparison.
-    int fieldByteBegin = startPosition[fieldID];
-    int fieldLength = startPosition[fieldID + 1] - startPosition[fieldID] - 1;
     if ((fieldLength < 0)
         || (fieldLength == nullSequence.getLength() && LazyUtils.compare(bytes
-            , fieldByteBegin, fieldLength, nullSequence.getBytes(),
-            0, nullSequence.getLength()) == 0)) {
-      return null;
+        , fieldByteBegin, fieldLength, nullSequence.getBytes(),
+        0, nullSequence.getLength()) == 0)) {
+      return true;
     }
-    byte[] binary = bytes;
-    if (!fieldInited[fieldID]) {
-      fieldInited[fieldID] = true;
-      if (serdeParams != null && serdeParams.isEncoded(fieldID)) {
-        try {
-          serdeParams.decode(fieldID, binary, fieldByteBegin, fieldLength);
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
-        binary = serdeParams.output.getData();
-        fieldLength = serdeParams.output.getCount();
-        fieldByteBegin = 0;
-      }
-      fields[fieldID].init(binary, fieldByteBegin, fieldLength);
-    }
-    return fields[fieldID].getObject();
+    return false;
   }
 
   ArrayList<Object> cachedList;
@@ -253,11 +261,6 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
       cachedList.add(uncheckedGetField(i));
     }
     return cachedList;
-  }
-
-  @Override
-  public Object getObject() {
-    return this;
   }
 
   protected boolean getParsed() {

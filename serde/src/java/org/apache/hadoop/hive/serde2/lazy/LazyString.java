@@ -77,6 +77,7 @@ public class LazyString extends LazyPrimitive<LazyStringObjectInspector, Text> {
       // if the data is not escaped, simply copy the data.
       data.set(bytes, start, length);
     }
+    isNull = false;
   }
 
 }

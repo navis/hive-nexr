@@ -50,4 +50,18 @@ public abstract class LazyObject<OI extends ObjectInspector> extends LazyObjectB
   protected void setInspector(OI oi) {
     this.oi = oi;
   }
+
+  protected boolean isNull;
+
+  public void clear() {
+    this.isNull = true;
+  }
+  /**
+   * Returns the primitive object represented by this LazyObject. This is useful
+   * because it can make sure we have "null" for null objects.
+   */
+  @Override
+  public Object getObject() {
+    return isNull ? null : this;
+  }
 }

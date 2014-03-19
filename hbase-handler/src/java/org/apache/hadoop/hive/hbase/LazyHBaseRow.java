@@ -134,6 +134,8 @@ public class LazyHBaseRow extends LazyStruct {
     boolean [] fieldsInited = getFieldInited();
 
     if (!fieldsInited[fieldID]) {
+      fieldsInited[fieldID] = true;
+
       ColumnMapping colMap = columnsMapping.get(fieldID);
 
       byte[] bytes = null;
@@ -148,9 +150,6 @@ public class LazyHBaseRow extends LazyStruct {
         } else {
           // it is a column i.e. a column-family with column-qualifier
           bytes = result.getValue(colMap.familyNameBytes, colMap.qualifierNameBytes);
-          if (bytes == null) {
-            return null;
-          }
         }
       }
       int length = bytes == null ? 0 : bytes.length;
@@ -166,11 +165,10 @@ public class LazyHBaseRow extends LazyStruct {
 
       if (bytes != null) {
         fields[fieldID].init(bytes, 0, length);
+      } else {
+        fields[fieldID].clear();
       }
     }
-
-    // Has to be set last because of HIVE-3179: NULL fields would not work otherwise
-    fieldsInited[fieldID] = true;
 
     return fields[fieldID].getObject();
   }

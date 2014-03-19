@@ -52,16 +52,12 @@ public abstract class LazyNonPrimitive<OI extends ObjectInspector> extends
     if (bytes == null) {
       throw new RuntimeException("bytes cannot be null!");
     }
+    this.isNull = false;
     this.bytes = bytes;
     this.start = start;
     this.length = length;
     assert start >= 0;
     assert start + length <= bytes.length;
-  }
-
-  @Override
-  public Object getObject() {
-    return this;
   }
 
   @Override
