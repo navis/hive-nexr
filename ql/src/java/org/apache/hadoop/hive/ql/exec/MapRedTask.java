@@ -582,7 +582,7 @@ public class MapRedTask extends ExecDriver implements Serializable {
   }
 
   @Override
-  public void shutdown() {
+  public void shutdown() throws Exception {
     super.shutdown();
     if (executor != null) {
       executor.destroy();

@@ -474,7 +474,7 @@ public class MapredLocalTask extends Task<MapredLocalWork> implements Serializab
   }
 
   @Override
-  public void shutdown() {
+  public void shutdown() throws Exception {
     super.shutdown();
     if (executor != null) {
       executor.destroy();

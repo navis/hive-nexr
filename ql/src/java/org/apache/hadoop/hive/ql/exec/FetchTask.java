@@ -282,4 +282,9 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
       fetch.clearFetchContext();
     }
   }
+
+  @Override
+  public void shutdown() throws HiveException {
+    fetch.clearFetchContext(true);
+  }
 }

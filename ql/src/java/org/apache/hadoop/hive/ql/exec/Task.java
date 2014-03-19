@@ -541,7 +541,7 @@ public abstract class Task<T extends Serializable> implements Serializable, Node
     return jobID;
   }
 
-  public void shutdown() {
+  public void shutdown() throws Exception {
   }
 
   public List<FieldSchema> getResultSchema() {
