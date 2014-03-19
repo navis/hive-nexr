@@ -836,7 +836,7 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
   }
 
   @Override
-  public void shutdown() {
+  public void shutdown() throws Exception {
     super.shutdown();
     if (rj != null) {
       try {
