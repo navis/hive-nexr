@@ -19,8 +19,11 @@
 package org.apache.hive.service.server;
 
 import org.apache.commons.lang.StringUtils;
+import java.io.IOException;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.LogUtils;
 import org.apache.hadoop.hive.common.LogUtils.LogInitializationException;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -112,6 +115,7 @@ public class HiveServer2 extends CompositeService {
           } catch (Exception e) {
             LOG.warn("Failed to run init script for hiveserver2. Ignore and continue...");
           }
+          server.validateJars(hiveConf);
         }
         server.start();
 
@@ -171,6 +175,18 @@ public class HiveServer2 extends CompositeService {
     } catch (Throwable t) {
       LOG.fatal("Error starting HiveServer2", t);
       System.exit(-1);
+    }
+  }
+
+  private void validateJars(HiveConf conf) throws IOException {
+    String auxJars = HiveConf.getVar(conf, HiveConf.ConfVars.HIVEAUXJARS);
+    if (auxJars != null && !auxJars.isEmpty()) {
+      for (String auxJar : auxJars.split(",")) {
+        Path path = new Path(auxJar);
+        if (!path.getFileSystem(conf).isFile(path)) {
+          throw new IllegalArgumentException("Failed to find aux path " + auxJar);
+        }
+      }
     }
   }
 
