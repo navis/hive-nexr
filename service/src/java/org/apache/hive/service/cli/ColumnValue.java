@@ -20,7 +20,6 @@ package org.apache.hive.service.cli;
 
 import java.nio.ByteBuffer;
 import java.util.AbstractList;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
@@ -59,8 +58,8 @@ public class ColumnValue extends AbstractList {
   private int[] intVars;
   private long[] longVars;
   private double[] doubleVars;
-  private List<String> stringVars;
-  private List<ByteBuffer> binaryVars;
+  private String[] stringVars;
+  private ByteBuffer[] binaryVars;
 
   public ColumnValue(Type type, BitSet nulls, Object values) {
     this.type = type;
@@ -84,11 +83,11 @@ public class ColumnValue extends AbstractList {
       doubleVars = (double[]) values;
       size = doubleVars.length;
     } else if (type == Type.BINARY_TYPE) {
-      binaryVars = (List<ByteBuffer>) values;
-      size = binaryVars.size();
+      binaryVars = (ByteBuffer[]) values;
+      size = binaryVars.length;
     } else if (type == Type.STRING_TYPE) {
-      stringVars = (List<String>) values;
-      size = stringVars.size();
+      stringVars = (String[]) values;
+      size = stringVars.length;
     } else {
       throw new IllegalStateException("invalid union object");
     }
@@ -118,11 +117,11 @@ public class ColumnValue extends AbstractList {
         doubleVars = new double[DEFAULT_SIZE];
         break;
       case BINARY_TYPE:
-        binaryVars = new ArrayList<ByteBuffer>();
+        binaryVars = new ByteBuffer[DEFAULT_SIZE];
         break;
       default:
         type = Type.STRING_TYPE;
-        stringVars = new ArrayList<String>();
+        stringVars = new String[DEFAULT_SIZE];
     }
     this.type = type;
   }
@@ -161,13 +160,15 @@ public class ColumnValue extends AbstractList {
     } else if (colValues.isSetBinaryVal()) {
       type = Type.BINARY_TYPE;
       nulls = toBitset(colValues.getBinaryVal().getNulls());
-      binaryVars = colValues.getBinaryVal().getValues();
-      size = binaryVars.size();
+      List<ByteBuffer> var = colValues.getBinaryVal().getValues();
+      binaryVars = var.toArray(new ByteBuffer[var.size()]);
+      size = binaryVars.length;
     } else if (colValues.isSetStringVal()) {
       type = Type.STRING_TYPE;
       nulls = toBitset(colValues.getStringVal().getNulls());
-      stringVars = colValues.getStringVal().getValues();
-      size = stringVars.size();
+      List<String> var = colValues.getStringVal().getValues();
+      stringVars = var.toArray(new String[var.size()]);
+      size = stringVars.length;
     } else {
       throw new IllegalStateException("invalid union object");
     }
@@ -218,17 +219,17 @@ public class ColumnValue extends AbstractList {
       return subset;
     }
     if (type == Type.BINARY_TYPE) {
-      ColumnValue subset = new ColumnValue(type, subNulls, binaryVars.subList(start, end));
-      binaryVars = binaryVars.subList(end, binaryVars.size());
+      ColumnValue subset = new ColumnValue(type, subNulls, Arrays.copyOfRange(binaryVars, start, end));
+      binaryVars = Arrays.copyOfRange(binaryVars, end, size);
       nulls = nulls.get(start, size);
-      size = binaryVars.size();
+      size = binaryVars.length;
       return subset;
     }
     if (type == Type.STRING_TYPE) {
-      ColumnValue subset = new ColumnValue(type, subNulls, stringVars.subList(start, end));
-      stringVars = stringVars.subList(end, stringVars.size());
+      ColumnValue subset = new ColumnValue(type, subNulls, Arrays.copyOfRange(stringVars, start, end));
+      stringVars = Arrays.copyOfRange(stringVars, end, size);
       nulls = nulls.get(start, size);
-      size = stringVars.size();
+      size = stringVars.length;
       return subset;
     }
     throw new IllegalStateException("invalid union object");
@@ -284,9 +285,9 @@ public class ColumnValue extends AbstractList {
       case DOUBLE_TYPE:
         return doubleVars[index];
       case STRING_TYPE:
-        return stringVars.get(index);
+        return stringVars[index];
       case BINARY_TYPE:
-        return binaryVars.get(index);
+        return binaryVars[index];
     }
     return null;
   }
@@ -319,10 +320,10 @@ public class ColumnValue extends AbstractList {
         value.setDoubleVal(new TDoubleValue(Doubles.asList(Arrays.copyOfRange(doubleVars, 0, size)), nullMasks));
         break;
       case STRING_TYPE:
-        value.setStringVal(new TStringValue(stringVars, nullMasks));
+        value.setStringVal(new TStringValue(Arrays.asList(Arrays.copyOfRange(stringVars, 0, size)), nullMasks));
         break;
       case BINARY_TYPE:
-        value.setBinaryVal(new TBinaryValue(binaryVars, nullMasks));
+        value.setBinaryVal(new TBinaryValue(Arrays.asList(Arrays.copyOfRange(binaryVars, 0, size)), nullMasks));
         break;
     }
     return value;
@@ -332,42 +333,34 @@ public class ColumnValue extends AbstractList {
   private static final String EMPTY_STRING = "";
 
   public void addValue(Type type, Object field) {
+    nulls.set(size, field == null);
     switch (type) {
       case BOOLEAN_TYPE:
-        nulls.set(size, field == null);
         boolVars()[size] = field == null ? true : (Boolean)field;
         break;
       case TINYINT_TYPE:
-        nulls.set(size, field == null);
         byteVars()[size] = field == null ? 0 : (Byte) field;
         break;
       case SMALLINT_TYPE:
-        nulls.set(size, field == null);
         shortVars()[size] = field == null ? 0 : (Short)field;
         break;
       case INT_TYPE:
-        nulls.set(size, field == null);
         intVars()[size] = field == null ? 0 : (Integer)field;
         break;
       case BIGINT_TYPE:
-        nulls.set(size, field == null);
         longVars()[size] = field == null ? 0 : (Long)field;
         break;
       case FLOAT_TYPE:
-        nulls.set(size, field == null);
         doubleVars()[size] = field == null ? 0 : ((Float)field).doubleValue();
         break;
       case DOUBLE_TYPE:
-        nulls.set(size, field == null);
         doubleVars()[size] = field == null ? 0 : (Double)field;
         break;
       case BINARY_TYPE:
-        nulls.set(binaryVars.size(), field == null);
-        binaryVars.add(field == null ? EMPTY_BINARY : ByteBuffer.wrap((byte[])field));
+        binaryVars()[size] = field == null ? EMPTY_BINARY : ByteBuffer.wrap((byte[])field);
         break;
       default:
-        nulls.set(stringVars.size(), field == null);
-        stringVars.add(field == null ? EMPTY_STRING : String.valueOf(field));
+        stringVars()[size] = field == null ? EMPTY_STRING : String.valueOf(field);
       break;
     }
     size++;
@@ -425,5 +418,23 @@ public class ColumnValue extends AbstractList {
       return doubleVars = newVars;
     }
     return doubleVars;
+  }
+
+  private ByteBuffer[] binaryVars() {
+    if (binaryVars.length == size) {
+      ByteBuffer[] newVars = new ByteBuffer[size << 1];
+      System.arraycopy(binaryVars, 0, newVars, 0, size);
+      return binaryVars = newVars;
+    }
+    return binaryVars;
+  }
+
+  private String[] stringVars() {
+    if (stringVars.length == size) {
+      String[] newVars = new String[size << 1];
+      System.arraycopy(stringVars, 0, newVars, 0, size);
+      return stringVars = newVars;
+    }
+    return stringVars;
   }
 }
