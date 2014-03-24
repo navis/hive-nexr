@@ -21,7 +21,7 @@
   </parent>
   <groupId>org.apache.hive</groupId>
   <artifactId>hive</artifactId>
-  <version>0.13.0</version>
+  <version>0.13.0-nr1000-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>Hive</name>
@@ -51,7 +51,7 @@
   </modules>
 
   <properties>
-    <hive.version.shortname>0.13.0</hive.version.shortname>
+    <hive.version.shortname>0.13.0-nr1000-SNAPSHOT</hive.version.shortname>
 
     <!-- Build Properties -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -147,6 +147,19 @@
     <zookeeper.version>3.4.5</zookeeper.version>
     <jpam.version>1.1</jpam.version>
   </properties>
+
+  <distributionManagement>
+    <repository>
+      <id>nexus-releases</id>
+      <name>Nexus Release Repo</name>
+      <url>http://nexus.nexrcorp.com:8080/nexus/content/repositories/releases/</url>
+    </repository>
+    <snapshotRepository>
+      <id>nexus-snapshots</id>
+      <name>Nexus Snapshot Repo</name>
+      <url>http://nexus.nexrcorp.com:8080/nexus/content/repositories/snapshots/</url>
+    </snapshotRepository>
+  </distributionManagement>
 
   <repositories>
     <repository>
