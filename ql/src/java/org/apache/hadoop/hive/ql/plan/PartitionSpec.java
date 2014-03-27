@@ -18,9 +18,16 @@
 
 package org.apache.hadoop.hive.ql.plan;
 
+import org.apache.hadoop.hive.common.FileUtils;
+import org.apache.hadoop.hive.metastore.api.FieldSchema;
+
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * PartitionSpec
@@ -127,5 +134,29 @@ public class PartitionSpec {
       }
     }
     return false;
+  }
+
+  public boolean isEqualBasedPartialSpec(List<FieldSchema> partCols) {
+    if (partSpec.size() >= partCols.size() || isNonEqualityOperator()) {
+      return false;
+    }
+    Set<String> cols = new HashSet<String>(partSpec.keySet());
+    for (FieldSchema field : partCols) {
+      if (!cols.remove(field.getName()) && !cols.isEmpty()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  public String toPartitionName(List<FieldSchema> partCols) {
+    partCols = partCols.subList(0, partSpec.size());
+    List<String> keys = new ArrayList<String>(partCols.size());
+    List<String> values = new ArrayList<String>(partCols.size());
+    for (FieldSchema field : partCols) {
+      keys.add(field.getName());
+      values.add(PlanUtils.stripQuotes(partSpec.get(field.getName()).getValue()));
+    }
+    return FileUtils.makePartName(keys, values);
   }
 }

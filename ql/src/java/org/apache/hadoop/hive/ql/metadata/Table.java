@@ -864,6 +864,11 @@ public class Table implements Serializable {
       != null;
   }
 
+  public boolean isExternal() {
+    String external = getParameters().get("EXTERNAL");
+    return external != null && "TRUE".equalsIgnoreCase(external);
+  }
+
   /**
    * @param protectMode
    */

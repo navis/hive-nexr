@@ -54,6 +54,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.common.ObjectPair;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.metastore.HiveMetaHook;
@@ -3546,8 +3547,22 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       }
     } else {
       // This is actually an ALTER TABLE DROP PARTITION
-      List<Partition> partsToDelete = new ArrayList<Partition>();
+      boolean tryBulkDelete = !tbl.isNonNative() && !tbl.isExternal();
+      List<ObjectPair<List<Partition>, Path>> partsToDelete =
+          new ArrayList<ObjectPair<List<Partition>, Path>>();
       for (PartitionSpec partSpec : dropTbl.getPartSpecs()) {
+        List<FieldSchema> partCols = tbl.getPartCols();
+        if (tryBulkDelete && partSpec.isEqualBasedPartialSpec(partCols)) {
+          List<Partition> partitions = db.getPartitions(tbl, partSpec.getPartSpecWithoutOperator());
+          if (!dropTbl.getIgnoreProtection()) {
+            validate(tbl, partitions, partSpec);
+          }
+          if (isAllStandardPath(tbl, partitions)) {
+            Path deletePath = new Path(tbl.getPath(), partSpec.toPartitionName(partCols));
+            partsToDelete.add(new ObjectPair<List<Partition>, Path>(partitions, deletePath));
+            continue;
+          }
+        }
         List<Partition> partitions = null;
         // getPartitionsByFilter only works for string columns.
         // Till that is fixed, only equality will work for non-string columns.
@@ -3561,48 +3576,75 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
         else {
           partitions = db.getPartitions(tbl, partSpec.getPartSpecWithoutOperator());
         }
-
-        // this is to prevent dropping archived partition which is archived in a
-        // different level the drop command specified.
-        int partPrefixToDrop = 0;
-        for (FieldSchema fs : tbl.getPartCols()) {
-          if (partSpec.existsKey(fs.getName())) {
-            partPrefixToDrop += 1;
-          } else {
-            break;
-          }
-        }
         if (!dropTbl.getIgnoreProtection()) {
-          for (Partition p : partitions) {
-            if (!p.canDrop()) {
-              throw new HiveException("Table " + tbl.getTableName()
-                  + " Partition " + p.getName()
-                  + " is protected from being dropped");
-            } else if (ArchiveUtils.isArchived(p)) {
-              int partAchiveLevel = ArchiveUtils.getArchivingLevel(p);
-              // trying to drop partitions inside a har, disallow it.
-              if (partAchiveLevel < partPrefixToDrop) {
-                throw new HiveException(
-                    "Cannot drop a subset of partitions in an archive, partition "
-                        + p.getName());
-              }
-            }
-          }
+          validate(tbl, partitions, partSpec);
         }
-        partsToDelete.addAll(partitions);
+        partsToDelete.add(new ObjectPair<List<Partition>, Path>(partitions, null));
       }
 
       // drop all existing partitions from the list
-      for (Partition partition : partsToDelete) {
-        console.printInfo("Dropping the partition " + partition.getName());
-        db.dropPartition(dropTbl.getTableName(), partition.getValues(), true);
-        work.getOutputs().add(new WriteEntity(partition));
+      for (ObjectPair<List<Partition>, Path> entry : partsToDelete) {
+        Path deletePath = entry.getSecond();
+        for (Partition partition : entry.getFirst()) {
+          console.printInfo("Dropping the partition " + partition.getName() +
+              ", delete = " + (deletePath == null));
+          db.dropPartition(dropTbl.getTableName(), partition.getValues(), deletePath == null);
+          work.getOutputs().add(new WriteEntity(partition));
+        }
+        if (deletePath != null) {
+          LOG.info("Deleting directory (bulk) " + deletePath);
+          try {
+            deletePath.getFileSystem(conf).delete(deletePath, true);
+          } catch (IOException e) {
+            LOG.warn("Failed to delete " + deletePath, e);
+          }
+        }
       }
     }
 
     return 0;
   }
 
+  private boolean isAllStandardPath(Table tbl, List<Partition> partitions) {
+    URI tablePath = tbl.getDataLocation();
+    for (Partition partition : partitions) {
+      URI partLoc = partition.getDataLocation();
+      URI relative = tablePath.relativize(partLoc);
+      if (relative == partLoc || !partition.getName().equals(relative.getPath())) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private void validate(Table tbl, List<Partition> partitions, PartitionSpec partSpec)
+      throws HiveException {
+    // this is to prevent dropping archived partition which is archived in a
+    // different level the drop command specified.
+    int partPrefixToDrop = 0;
+    for (FieldSchema fs : tbl.getPartCols()) {
+      if (partSpec.existsKey(fs.getName())) {
+        partPrefixToDrop += 1;
+      } else {
+        break;
+      }
+    }
+    for (Partition p : partitions) {
+      if (!p.canDrop()) {
+        throw new HiveException("Table " + tbl.getTableName()
+            + " Partition " + p.getName()
+            + " is protected from being dropped");
+      } else if (ArchiveUtils.isArchived(p)) {
+        int partAchiveLevel = ArchiveUtils.getArchivingLevel(p);
+        // trying to drop partitions inside a har, disallow it.
+        if (partAchiveLevel < partPrefixToDrop) {
+          throw new HiveException(
+              "Cannot drop a subset of partitions in an archive, partition "
+                  + p.getName());
+        }
+      }
+    }
+  }
   /**
    * Update last_modified_by and last_modified_time parameters in parameter map.
    *
