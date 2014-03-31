@@ -426,7 +426,7 @@ public class Driver implements CommandProcessor {
    */
   public int compile(String command, boolean run, boolean resetTaskIds) {
     PerfLogger perfLogger = PerfLogger.getPerfLogger();
-    perfLogger.PerfLogBegin(LOG, PerfLogger.COMPILE);
+    perfLogger.PerfLogBegin(PerfLogger.COMPILE);
 
     //holder for parent command type/string when executing reentrant queries
     QueryState queryState = new QueryState();
@@ -518,7 +518,7 @@ public class Driver implements CommandProcessor {
         boolean grantAuth = HiveConf.getBoolVar(conf,
           HiveConf.ConfVars.HIVE_AUTHORIZATION_GRANT_ENABLED);
         try {
-          perfLogger.PerfLogBegin(LOG, PerfLogger.DO_AUTHORIZATION);
+          perfLogger.PerfLogBegin(PerfLogger.DO_AUTHORIZATION);
           doAuthorization(sem, grantAuth,
               new AuthorizationFactory.DefaultAuthorizationExceptionHandler());
         } catch (AuthorizationException authExp) {
@@ -528,7 +528,7 @@ public class Driver implements CommandProcessor {
           SQLState = "01542";
           return 403;
         } finally {
-          perfLogger.PerfLogEnd(LOG, PerfLogger.DO_AUTHORIZATION);
+          perfLogger.PerfLogEnd(PerfLogger.DO_AUTHORIZATION);
         }
       }
 
@@ -546,7 +546,7 @@ public class Driver implements CommandProcessor {
       return error.getErrorCode();
     } finally {
       //restore state after we're done executing a specific query
-      perfLogger.PerfLogEnd(LOG, PerfLogger.COMPILE);
+      perfLogger.PerfLogEnd(PerfLogger.COMPILE);
       restoreSession(queryState);
     }
   }
@@ -852,7 +852,7 @@ public class Driver implements CommandProcessor {
    **/
   private int acquireReadWriteLocks() {
     PerfLogger perfLogger = PerfLogger.getPerfLogger();
-    perfLogger.PerfLogBegin(LOG, PerfLogger.ACQUIRE_READ_WRITE_LOCKS);
+    perfLogger.PerfLogBegin(PerfLogger.ACQUIRE_READ_WRITE_LOCKS);
 
     try {
       boolean supportConcurrency = conf.getBoolVar(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY);
@@ -935,7 +935,7 @@ public class Driver implements CommandProcessor {
           + org.apache.hadoop.util.StringUtils.stringifyException(e));
       return 11;
     } finally {
-      perfLogger.PerfLogEnd(LOG, PerfLogger.ACQUIRE_READ_WRITE_LOCKS);
+      perfLogger.PerfLogEnd(PerfLogger.ACQUIRE_READ_WRITE_LOCKS);
     }
   }
 
@@ -946,7 +946,7 @@ public class Driver implements CommandProcessor {
    **/
   private void releaseLocks(List<HiveLock> hiveLocks) {
     PerfLogger perfLogger = PerfLogger.getPerfLogger();
-    perfLogger.PerfLogBegin(LOG, PerfLogger.RELEASE_LOCKS);
+    perfLogger.PerfLogBegin(PerfLogger.RELEASE_LOCKS);
 
     if (hiveLocks != null) {
       HiveOperation operation =
@@ -957,7 +957,7 @@ public class Driver implements CommandProcessor {
     }
     ctx.setHiveLocks(null);
 
-    perfLogger.PerfLogEnd(LOG, PerfLogger.RELEASE_LOCKS);
+    perfLogger.PerfLogEnd(PerfLogger.RELEASE_LOCKS);
   }
 
   public CommandProcessorResponse run(String command) throws CommandNeedRetryException {
@@ -997,8 +997,8 @@ public class Driver implements CommandProcessor {
     // Reset the perf logger
     if (run) {
       PerfLogger perfLogger = PerfLogger.getPerfLogger(true);
-      perfLogger.PerfLogBegin(LOG, PerfLogger.DRIVER_RUN);
-      perfLogger.PerfLogBegin(LOG, PerfLogger.TIME_TO_SUBMIT);
+      perfLogger.PerfLogBegin(PerfLogger.DRIVER_RUN);
+      perfLogger.PerfLogBegin(PerfLogger.TIME_TO_SUBMIT);
     }
 
     int ret;
@@ -1060,9 +1060,9 @@ public class Driver implements CommandProcessor {
 
     PerfLogger perfLogger = PerfLogger.getPerfLogger(true);
     if (run) {
-      perfLogger.PerfLogEnd(LOG, PerfLogger.DRIVER_RUN);
+      perfLogger.PerfLogEnd(PerfLogger.DRIVER_RUN);
     }
-    perfLogger.close(LOG, plan);
+    perfLogger.close(plan);
 
     // Take all the driver run hooks and post-execute them.
     try {
@@ -1155,7 +1155,7 @@ public class Driver implements CommandProcessor {
 
   public int execute(boolean run) throws CommandNeedRetryException {
     PerfLogger perfLogger = PerfLogger.getPerfLogger();
-    perfLogger.PerfLogBegin(LOG, PerfLogger.DRIVER_EXECUTE);
+    perfLogger.PerfLogBegin(PerfLogger.DRIVER_EXECUTE);
 
     boolean noName = StringUtils.isEmpty(conf.getVar(HiveConf.ConfVars.HADOOPJOBNAME));
     int maxlen = conf.getIntVar(HiveConf.ConfVars.HIVEJOBNAMELENGTH);
@@ -1188,18 +1188,18 @@ public class Driver implements CommandProcessor {
 
       for (Hook peh : getHooks(HiveConf.ConfVars.PREEXECHOOKS)) {
         if (peh instanceof ExecuteWithHookContext) {
-          perfLogger.PerfLogBegin(LOG, PerfLogger.PRE_HOOK + peh.getClass().getName());
+          perfLogger.PerfLogBegin(PerfLogger.PRE_HOOK + peh.getClass().getName());
 
           ((ExecuteWithHookContext) peh).run(hookContext);
 
-          perfLogger.PerfLogEnd(LOG, PerfLogger.PRE_HOOK + peh.getClass().getName());
+          perfLogger.PerfLogEnd(PerfLogger.PRE_HOOK + peh.getClass().getName());
         } else if (peh instanceof PreExecute) {
-          perfLogger.PerfLogBegin(LOG, PerfLogger.PRE_HOOK + peh.getClass().getName());
+          perfLogger.PerfLogBegin(PerfLogger.PRE_HOOK + peh.getClass().getName());
 
           ((PreExecute) peh).run(SessionState.get(), plan.getInputs(), plan.getOutputs(),
               ShimLoader.getHadoopShims().getUGIForConf(conf));
 
-          perfLogger.PerfLogEnd(LOG, PerfLogger.PRE_HOOK + peh.getClass().getName());
+          perfLogger.PerfLogEnd(PerfLogger.PRE_HOOK + peh.getClass().getName());
         }
       }
 
@@ -1244,7 +1244,7 @@ public class Driver implements CommandProcessor {
       }
 
       if (run) {
-        perfLogger.PerfLogEnd(LOG, PerfLogger.TIME_TO_SUBMIT);
+        perfLogger.PerfLogEnd(PerfLogger.TIME_TO_SUBMIT);
       }
       // Loop while you either have tasks running, or tasks queued up
       while (!destroyed && driverCxt.isRunning()) {
@@ -1299,11 +1299,11 @@ public class Driver implements CommandProcessor {
             hookContext.setHookType(HookContext.HookType.ON_FAILURE_HOOK);
             // Get all the failure execution hooks and execute them.
             for (Hook ofh : getHooks(HiveConf.ConfVars.ONFAILUREHOOKS)) {
-              perfLogger.PerfLogBegin(LOG, PerfLogger.FAILURE_HOOK + ofh.getClass().getName());
+              perfLogger.PerfLogBegin(PerfLogger.FAILURE_HOOK + ofh.getClass().getName());
 
               ((ExecuteWithHookContext) ofh).run(hookContext);
 
-              perfLogger.PerfLogEnd(LOG, PerfLogger.FAILURE_HOOK + ofh.getClass().getName());
+              perfLogger.PerfLogEnd(PerfLogger.FAILURE_HOOK + ofh.getClass().getName());
             }
 
             errorMessage = "FAILED: Execution Error, return code " + exitVal + " from "
@@ -1353,19 +1353,19 @@ public class Driver implements CommandProcessor {
       // Get all the post execution hooks and execute them.
       for (Hook peh : getHooks(HiveConf.ConfVars.POSTEXECHOOKS)) {
         if (peh instanceof ExecuteWithHookContext) {
-          perfLogger.PerfLogBegin(LOG, PerfLogger.POST_HOOK + peh.getClass().getName());
+          perfLogger.PerfLogBegin(PerfLogger.POST_HOOK + peh.getClass().getName());
 
           ((ExecuteWithHookContext) peh).run(hookContext);
 
-          perfLogger.PerfLogEnd(LOG, PerfLogger.POST_HOOK + peh.getClass().getName());
+          perfLogger.PerfLogEnd(PerfLogger.POST_HOOK + peh.getClass().getName());
         } else if (peh instanceof PostExecute) {
-          perfLogger.PerfLogBegin(LOG, PerfLogger.POST_HOOK + peh.getClass().getName());
+          perfLogger.PerfLogBegin(PerfLogger.POST_HOOK + peh.getClass().getName());
 
           ((PostExecute) peh).run(SessionState.get(), plan.getInputs(), plan.getOutputs(),
               (SessionState.get() != null ? SessionState.get().getLineageState().getLineageInfo()
                   : null), ShimLoader.getHadoopShims().getUGIForConf(conf));
 
-          perfLogger.PerfLogEnd(LOG, PerfLogger.POST_HOOK + peh.getClass().getName());
+          perfLogger.PerfLogEnd(PerfLogger.POST_HOOK + peh.getClass().getName());
         }
       }
 
@@ -1396,7 +1396,7 @@ public class Driver implements CommandProcessor {
       if (noName) {
         conf.setVar(HiveConf.ConfVars.HADOOPJOBNAME, "");
       }
-      perfLogger.PerfLogEnd(LOG, PerfLogger.DRIVER_EXECUTE);
+      perfLogger.PerfLogEnd(PerfLogger.DRIVER_EXECUTE);
 
       if (SessionState.get().getLastMapRedStatsList() != null
           && SessionState.get().getLastMapRedStatsList().size() > 0) {

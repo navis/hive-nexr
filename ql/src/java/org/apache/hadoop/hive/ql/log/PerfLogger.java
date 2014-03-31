@@ -92,39 +92,43 @@ public class PerfLogger {
 
   /**
    * Call this function when you start to measure time spent by a piece of code.
-   * @param _log the logging object to be used.
    * @param method method or ID that identifies this perf log element.
    */
-  public void PerfLogBegin(Log _log, String method) {
+  public void PerfLogBegin(String method) {
     long startTime = System.currentTimeMillis();
-    _log.info("<PERFLOG method=" + method + ">");
+    if (LOG.isInfoEnabled()) {
+      LOG.info("<PERFLOG method=" + method + ">");
+    }
     startTimes.put(method, new Long(startTime));
   }
 
   /**
    * Call this function in correspondence of PerfLogBegin to mark the end of the measurement.
-   * @param _log
+   *
    * @param method
    * @return long duration  the difference between now and startTime, or -1 if startTime is null
    */
-  public long PerfLogEnd(Log _log, String method) {
+  public long PerfLogEnd(String method) {
     Long startTime = startTimes.get(method);
     long endTime = System.currentTimeMillis();
-    long duration = -1;
+    long duration = startTime != null ? endTime - startTime.longValue() : -1;
 
     endTimes.put(method, new Long(endTime));
 
-    StringBuilder sb = new StringBuilder("</PERFLOG method=").append(method);
-    if (startTime != null) {
-      sb.append(" start=").append(startTime);
+    if (LOG.isInfoEnabled()) {
+
+      StringBuilder sb = new StringBuilder("</PERFLOG method=").append(method);
+      if (startTime != null) {
+        sb.append(" start=").append(startTime);
+      }
+      sb.append(" end=").append(endTime);
+      if (startTime != null) {
+        duration = endTime - startTime.longValue();
+        sb.append(" duration=").append(duration);
+      }
+      sb.append(">");
+      LOG.info(sb);
     }
-    sb.append(" end=").append(endTime);
-    if (startTime != null) {
-      duration = endTime - startTime.longValue();
-      sb.append(" duration=").append(duration);
-    }
-    sb.append(">");
-    _log.info(sb);
 
     return duration;
   }
@@ -132,10 +136,8 @@ public class PerfLogger {
   /**
    * Call this function at the end of processing a query (any time after the last call to PerfLogEnd
    * for a given query) to run any cleanup/final steps that need to be run
-   * @param _log
    */
-  public void close(Log _log, QueryPlan queryPlan) {
-
+  public void close(QueryPlan queryPlan) {
   }
 
   public Long getStartTime(String method) {

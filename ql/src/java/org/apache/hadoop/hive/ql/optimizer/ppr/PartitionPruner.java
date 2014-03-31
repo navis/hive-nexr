@@ -311,7 +311,7 @@ public class PartitionPruner implements Transform {
 
     PerfLogger perfLogger = PerfLogger.getPerfLogger();
 
-    perfLogger.PerfLogBegin(LOG, PerfLogger.PRUNE_LISTING);
+    perfLogger.PerfLogBegin(PerfLogger.PRUNE_LISTING);
 
     List<String> partNames = Hive.get().getPartitionNames(tab.getDbName(),
         tab.getTableName(), (short) -1);
@@ -357,9 +357,9 @@ public class PartitionPruner implements Transform {
         LOG.debug("retained partition: " + partName);
       }
     }
-    perfLogger.PerfLogEnd(LOG, PerfLogger.PRUNE_LISTING);
+    perfLogger.PerfLogEnd(PerfLogger.PRUNE_LISTING);
 
-    perfLogger.PerfLogBegin(LOG, PerfLogger.PARTITION_RETRIEVING);
+    perfLogger.PerfLogBegin(PerfLogger.PARTITION_RETRIEVING);
     if (trueNames != null) {
       List<Partition> parts = Hive.get().getPartitionsByNames(tab, trueNames);
       true_parts.addAll(parts);
@@ -368,7 +368,7 @@ public class PartitionPruner implements Transform {
       List<Partition> parts = Hive.get().getPartitionsByNames(tab, unknNames);
       unkn_parts.addAll(parts);
     }
-    perfLogger.PerfLogEnd(LOG, PerfLogger.PARTITION_RETRIEVING);
+    perfLogger.PerfLogEnd(PerfLogger.PARTITION_RETRIEVING);
   }
 
   /**
