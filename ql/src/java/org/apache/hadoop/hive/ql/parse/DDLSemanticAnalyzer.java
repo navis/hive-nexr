@@ -663,35 +663,37 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
     Table destTable = getTable(qualified);
     Table sourceTable = getTable(getUnescapedName((ASTNode)ast.getChild(1)));
 
+    if (!MetaStoreUtils.compareFieldColumns(destTable.getCols(), sourceTable.getCols())) {
+      throw new SemanticException(ErrorMsg.TABLES_INCOMPATIBLE_SCHEMAS.getMsg());
+    }
     // Get the partition specs
     Map<String, String> partSpecs = getPartSpec((ASTNode) ast.getChild(0));
     validatePartitionValues(partSpecs);
-    boolean sameColumns = MetaStoreUtils.compareFieldColumns(
-        destTable.getAllCols(), sourceTable.getAllCols());
-    boolean samePartitions = MetaStoreUtils.compareFieldColumns(
-        destTable.getPartitionKeys(), sourceTable.getPartitionKeys());
-    if (!sameColumns || !samePartitions) {
-      throw new SemanticException(ErrorMsg.TABLES_INCOMPATIBLE_SCHEMAS.getMsg());
-    }
-    // check if source partition exists
-    getPartitions(sourceTable, partSpecs, true);
 
-    // Verify that the partitions specified are continuous
-    // If a subpartition value is specified without specifying a partition's value
-    // then we throw an exception
-    int counter = isPartitionValueContinuous(sourceTable.getPartitionKeys(), partSpecs);
+    List<FieldSchema> dPartKeys = destTable.getPartitionKeys();
+    List<FieldSchema> sPartKeys = sourceTable.getPartitionKeys();
+
+    int counter = isPartitionValueContinuous(dPartKeys, partSpecs);
     if (counter < 0) {
       throw new SemanticException(
           ErrorMsg.PARTITION_VALUE_NOT_CONTINUOUS.getMsg(partSpecs.toString()));
     }
-    List<Partition> destPartitions = null;
-    try {
-      destPartitions = getPartitions(destTable, partSpecs, true);
-    } catch (SemanticException ex) {
-      // We should expect a semantic exception being throw as this partition
-      // should not be present.
+
+    int offset = dPartKeys.size() - sPartKeys.size();
+    if (!MetaStoreUtils.compareLastFieldColumns(dPartKeys, sPartKeys, offset)) {
+      throw new SemanticException(ErrorMsg.TABLES_INCOMPATIBLE_SCHEMAS.getMsg());
     }
-    if (destPartitions != null) {
+
+    // check if source partition exists
+    if (sourceTable.isPartitioned()) {
+      getPartitions(sourceTable, partSpecs, true);
+    }
+
+    // Verify that the partitions specified are continuous
+    // If a subpartition value is specified without specifying a partition's value
+    // then we throw an exception
+    List<Partition> destPartitions = getPartitions(destTable, partSpecs, false);
+    if (destPartitions != null && !destPartitions.isEmpty()) {
       // If any destination partition is present then throw a Semantic Exception.
       throw new SemanticException(ErrorMsg.PARTITION_EXISTS.getMsg(destPartitions.toString()));
     }

@@ -1504,6 +1504,14 @@ public class MetaStoreUtils {
     return getPartitionValWithInvalidCharacter(partVals, partitionValidationPattern) == null;
   }
 
+  public static boolean compareLastFieldColumns(
+      List<FieldSchema> bigger, List<FieldSchema> smaller, int offset) {
+    if (offset != 0) {
+      bigger = bigger.subList(offset, bigger.size());
+    }
+    return compareFieldColumns(bigger, smaller);
+  }
+
   /**
    * @param schema1: The first schema to be compared
    * @param schema2: The second schema to be compared

@@ -2463,46 +2463,59 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       boolean pathCreated = false;
       RawStore ms = getMS();
       ms.openTransaction();
-      Table destinationTable = ms.getTable(destDbName, destTableName);
+      Table destTable = ms.getTable(destDbName, destTableName);
       Table sourceTable = ms.getTable(sourceDbName, sourceTableName);
-      List<String> partVals = MetaStoreUtils.getPvals(sourceTable.getPartitionKeys(),
-          partitionSpecs);
-      List<String> partValsPresent = new ArrayList<String> ();
-      List<FieldSchema> partitionKeysPresent = new ArrayList<FieldSchema> ();
-      int i = 0;
-      for (FieldSchema fs: sourceTable.getPartitionKeys()) {
-        String partVal = partVals.get(i);
-        if (partVal != null && !partVal.equals("")) {
-          partValsPresent.add(partVal);
-          partitionKeysPresent.add(fs);
-        }
-        i++;
+
+      List<FieldSchema> dPartKeys = destTable.getPartitionKeys();
+      List<FieldSchema> sPartKeys = sourceTable.getPartitionKeys();
+
+      List<String> sPartVals = MetaStoreUtils.getPvals(sPartKeys, partitionSpecs);
+      List<String> dPartVals = MetaStoreUtils.getPvals(dPartKeys, partitionSpecs);
+
+      boolean tableSourced = sPartKeys.isEmpty();
+
+      List<Partition> partitionsToExchange = Collections.emptyList();
+      if (!tableSourced) {
+        partitionsToExchange = get_partitions_ps(sourceDbName, sourceTableName, sPartVals, (short) -1);
       }
-      List<Partition> partitionsToExchange = get_partitions_ps(sourceDbName, sourceTableName,
-          partVals, (short)-1);
+
+      int offset = dPartKeys.size() - sPartKeys.size();
       boolean sameColumns = MetaStoreUtils.compareFieldColumns(
-          sourceTable.getSd().getCols(), destinationTable.getSd().getCols());
-      boolean samePartitions = MetaStoreUtils.compareFieldColumns(
-          sourceTable.getPartitionKeys(), destinationTable.getPartitionKeys());
+          sourceTable.getSd().getCols(), destTable.getSd().getCols());
+      boolean samePartitions = MetaStoreUtils.compareLastFieldColumns(dPartKeys, sPartKeys, offset);
       if (!sameColumns || !samePartitions) {
         throw new MetaException("The tables have different schemas." +
             " Their partitions cannot be exchanged.");
       }
-      Path sourcePath = new Path(sourceTable.getSd().getLocation(),
-          Warehouse.makePartName(partitionKeysPresent, partValsPresent));
-      Path destPath = new Path(destinationTable.getSd().getLocation(),
-          Warehouse.makePartName(partitionKeysPresent, partValsPresent));
+      Path sourcePath = toPartitionPath(sourceTable, sPartVals);
+      Path destPath = toPartitionPath(destTable, dPartVals);
       try {
         for (Partition partition: partitionsToExchange) {
           Partition destPartition = new Partition(partition);
           destPartition.setDbName(destDbName);
-          destPartition.setTableName(destinationTable.getTableName());
-          Path destPartitionPath = new Path(destinationTable.getSd().getLocation(),
-              Warehouse.makePartName(destinationTable.getPartitionKeys(), partition.getValues()));
+          destPartition.setTableName(destTable.getTableName());
+          destPartition.getValues().addAll(0, dPartVals.subList(0, offset));
+
+          List<String> values = partition.getValues();
+          Path destPartitionPath = new Path(destPath, Warehouse.makePartName(sPartKeys, values));
           destPartition.getSd().setLocation(destPartitionPath.toString());
           ms.addPartition(destPartition);
-          ms.dropPartition(partition.getDbName(), sourceTable.getTableName(),
-            partition.getValues());
+          ms.dropPartition(partition.getDbName(), sourceTable.getTableName(), values);
+        }
+        if (tableSourced) {
+          Partition destPartition = new Partition();
+          destPartition.setDbName(destDbName);
+          destPartition.setTableName(destTableName);
+          destPartition.setSd(new StorageDescriptor(destTable.getSd()));
+          destPartition.setParameters(new HashMap<String, String>(destTable.getParameters()));
+          if (destTable.isSetPrivileges()) {
+            destPartition.setPrivileges(destTable.getPrivileges());
+          }
+          destPartition.setValues(dPartVals);
+          Path destPartitionPath = new Path(destPath, Warehouse.makePartName(dPartKeys, dPartVals));
+          destPartition.getSd().setLocation(destPartitionPath.toString());
+          ms.addPartition(destPartition);
+          // should drop source table?
         }
         /**
          * TODO: Use the hard link feature of hdfs
@@ -2519,6 +2532,25 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         }
       }
       return new Partition();
+    }
+
+    private Path toPartitionPath(Table table, List<String> partValues) throws MetaException {
+      List<String> trimmed = trimPartValues(partValues);
+      Path tablePath = new Path(table.getSd().getLocation());
+      if (!trimmed.isEmpty()) {
+        List<FieldSchema> partCols = table.getPartitionKeys().subList(0, trimmed.size());
+        tablePath = new Path(tablePath, Warehouse.makePartName(partCols, trimmed));
+      }
+      return tablePath;
+    }
+
+    private List<String> trimPartValues(List<String> partVals) {
+      for (int i = partVals.size() - 1; i >= 0; i--) {
+        if (!partVals.get(i).isEmpty()) {
+          return i == partVals.size() - 1 ? partVals : partVals.subList(0, i + 1);
+        }
+      }
+      return Collections.emptyList();
     }
 
     private boolean drop_partition_common(RawStore ms, String db_name, String tbl_name,
