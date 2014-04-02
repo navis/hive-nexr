@@ -609,38 +609,38 @@ module ThriftHiveMetastore
       raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'append_partition_by_name_with_environment_context failed: unknown result')
     end
 
-    def drop_partition(db_name, tbl_name, part_vals, deleteData)
-      send_drop_partition(db_name, tbl_name, part_vals, deleteData)
-      return recv_drop_partition()
+    def drop_partitions(db_name, tbl_name, part_vals, deleteData)
+      send_drop_partitions(db_name, tbl_name, part_vals, deleteData)
+      return recv_drop_partitions()
     end
 
-    def send_drop_partition(db_name, tbl_name, part_vals, deleteData)
-      send_message('drop_partition', Drop_partition_args, :db_name => db_name, :tbl_name => tbl_name, :part_vals => part_vals, :deleteData => deleteData)
+    def send_drop_partitions(db_name, tbl_name, part_vals, deleteData)
+      send_message('drop_partitions', Drop_partitions_args, :db_name => db_name, :tbl_name => tbl_name, :part_vals => part_vals, :deleteData => deleteData)
     end
 
-    def recv_drop_partition()
-      result = receive_message(Drop_partition_result)
+    def recv_drop_partitions()
+      result = receive_message(Drop_partitions_result)
       return result.success unless result.success.nil?
       raise result.o1 unless result.o1.nil?
       raise result.o2 unless result.o2.nil?
-      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'drop_partition failed: unknown result')
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'drop_partitions failed: unknown result')
     end
 
-    def drop_partition_with_environment_context(db_name, tbl_name, part_vals, deleteData, environment_context)
-      send_drop_partition_with_environment_context(db_name, tbl_name, part_vals, deleteData, environment_context)
-      return recv_drop_partition_with_environment_context()
+    def drop_partitions_with_environment_context(db_name, tbl_name, part_vals, deleteData, environment_context)
+      send_drop_partitions_with_environment_context(db_name, tbl_name, part_vals, deleteData, environment_context)
+      return recv_drop_partitions_with_environment_context()
     end
 
-    def send_drop_partition_with_environment_context(db_name, tbl_name, part_vals, deleteData, environment_context)
-      send_message('drop_partition_with_environment_context', Drop_partition_with_environment_context_args, :db_name => db_name, :tbl_name => tbl_name, :part_vals => part_vals, :deleteData => deleteData, :environment_context => environment_context)
+    def send_drop_partitions_with_environment_context(db_name, tbl_name, part_vals, deleteData, environment_context)
+      send_message('drop_partitions_with_environment_context', Drop_partitions_with_environment_context_args, :db_name => db_name, :tbl_name => tbl_name, :part_vals => part_vals, :deleteData => deleteData, :environment_context => environment_context)
     end
 
-    def recv_drop_partition_with_environment_context()
-      result = receive_message(Drop_partition_with_environment_context_result)
+    def recv_drop_partitions_with_environment_context()
+      result = receive_message(Drop_partitions_with_environment_context_result)
       return result.success unless result.success.nil?
       raise result.o1 unless result.o1.nil?
       raise result.o2 unless result.o2.nil?
-      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'drop_partition_with_environment_context failed: unknown result')
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'drop_partitions_with_environment_context failed: unknown result')
     end
 
     def drop_partition_by_name(db_name, tbl_name, part_name, deleteData)
@@ -2508,30 +2508,30 @@ module ThriftHiveMetastore
       write_result(result, oprot, 'append_partition_by_name_with_environment_context', seqid)
     end
 
-    def process_drop_partition(seqid, iprot, oprot)
-      args = read_args(iprot, Drop_partition_args)
-      result = Drop_partition_result.new()
+    def process_drop_partitions(seqid, iprot, oprot)
+      args = read_args(iprot, Drop_partitions_args)
+      result = Drop_partitions_result.new()
       begin
-        result.success = @handler.drop_partition(args.db_name, args.tbl_name, args.part_vals, args.deleteData)
+        result.success = @handler.drop_partitions(args.db_name, args.tbl_name, args.part_vals, args.deleteData)
       rescue ::NoSuchObjectException => o1
         result.o1 = o1
       rescue ::MetaException => o2
         result.o2 = o2
       end
-      write_result(result, oprot, 'drop_partition', seqid)
+      write_result(result, oprot, 'drop_partitions', seqid)
     end
 
-    def process_drop_partition_with_environment_context(seqid, iprot, oprot)
-      args = read_args(iprot, Drop_partition_with_environment_context_args)
-      result = Drop_partition_with_environment_context_result.new()
+    def process_drop_partitions_with_environment_context(seqid, iprot, oprot)
+      args = read_args(iprot, Drop_partitions_with_environment_context_args)
+      result = Drop_partitions_with_environment_context_result.new()
       begin
-        result.success = @handler.drop_partition_with_environment_context(args.db_name, args.tbl_name, args.part_vals, args.deleteData, args.environment_context)
+        result.success = @handler.drop_partitions_with_environment_context(args.db_name, args.tbl_name, args.part_vals, args.deleteData, args.environment_context)
       rescue ::NoSuchObjectException => o1
         result.o1 = o1
       rescue ::MetaException => o2
         result.o2 = o2
       end
-      write_result(result, oprot, 'drop_partition_with_environment_context', seqid)
+      write_result(result, oprot, 'drop_partitions_with_environment_context', seqid)
     end
 
     def process_drop_partition_by_name(seqid, iprot, oprot)
@@ -4898,7 +4898,7 @@ module ThriftHiveMetastore
     ::Thrift::Struct.generate_accessors self
   end
 
-  class Drop_partition_args
+  class Drop_partitions_args
     include ::Thrift::Struct, ::Thrift::Struct_Union
     DB_NAME = 1
     TBL_NAME = 2
@@ -4920,14 +4920,14 @@ module ThriftHiveMetastore
     ::Thrift::Struct.generate_accessors self
   end
 
-  class Drop_partition_result
+  class Drop_partitions_result
     include ::Thrift::Struct, ::Thrift::Struct_Union
     SUCCESS = 0
     O1 = 1
     O2 = 2
 
     FIELDS = {
-      SUCCESS => {:type => ::Thrift::Types::BOOL, :name => 'success'},
+      SUCCESS => {:type => ::Thrift::Types::LIST, :name => 'success', :element => {:type => ::Thrift::Types::STRUCT, :class => ::Partition}},
       O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => ::NoSuchObjectException},
       O2 => {:type => ::Thrift::Types::STRUCT, :name => 'o2', :class => ::MetaException}
     }
@@ -4940,7 +4940,7 @@ module ThriftHiveMetastore
     ::Thrift::Struct.generate_accessors self
   end
 
-  class Drop_partition_with_environment_context_args
+  class Drop_partitions_with_environment_context_args
     include ::Thrift::Struct, ::Thrift::Struct_Union
     DB_NAME = 1
     TBL_NAME = 2
@@ -4964,14 +4964,14 @@ module ThriftHiveMetastore
     ::Thrift::Struct.generate_accessors self
   end
 
-  class Drop_partition_with_environment_context_result
+  class Drop_partitions_with_environment_context_result
     include ::Thrift::Struct, ::Thrift::Struct_Union
     SUCCESS = 0
     O1 = 1
     O2 = 2
 
     FIELDS = {
-      SUCCESS => {:type => ::Thrift::Types::BOOL, :name => 'success'},
+      SUCCESS => {:type => ::Thrift::Types::LIST, :name => 'success', :element => {:type => ::Thrift::Types::STRUCT, :class => ::Partition}},
       O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => ::NoSuchObjectException},
       O2 => {:type => ::Thrift::Types::STRUCT, :name => 'o2', :class => ::MetaException}
     }

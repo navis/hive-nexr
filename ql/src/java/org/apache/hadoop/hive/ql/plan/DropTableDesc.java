@@ -46,10 +46,16 @@ public class DropTableDesc extends DDLDesc implements Serializable {
     private ExprNodeGenericFuncDesc partSpec;
     // TODO: see if we can get rid of this... used in one place to distinguish archived parts
     private int prefixLength;
+
+    @Override
+    public String toString() {
+      return partSpec.getExprString();
+    }
   }
 
   String tableName;
   ArrayList<PartSpec> partSpecs;
+  List<Map<String, String>> simpleSpecs;
   boolean expectView;
   boolean ifExists;
   boolean ifPurge;
@@ -68,6 +74,15 @@ public class DropTableDesc extends DDLDesc implements Serializable {
     this.expectView = expectView;
     this.ifExists = ifExists;
     this.ifPurge = ifPurge;
+    this.ignoreProtection = false;
+  }
+
+  public DropTableDesc(String tableName, List<Map<String, String>> simpleSpecs,
+      boolean expectView, boolean ignoreProtection) {
+    this.tableName = tableName;
+    this.simpleSpecs = simpleSpecs;
+    this.partSpecs = null;
+    this.expectView = expectView;
     this.ignoreProtection = false;
   }
 
@@ -101,11 +116,25 @@ public class DropTableDesc extends DDLDesc implements Serializable {
     this.tableName = tableName;
   }
 
+  public List<Map<String, String>> getSimpleSpecs() {
+    return simpleSpecs;
+  }
+
+  @Explain(displayName = "partition spec")
+  public String getSimpleSpecsExplain() {
+    return simpleSpecs == null ? null : simpleSpecs.toString();
+  }
+
   /**
    * @return the partSpecs
    */
   public ArrayList<PartSpec> getPartSpecs() {
     return partSpecs;
+  }
+
+  @Explain(displayName = "partition expr")
+  public String getExprSpecsExplain() {
+    return partSpecs == null ? null : partSpecs.toString();
   }
 
   /**

@@ -216,6 +216,12 @@ public class DummyRawStoreControlledCommit implements RawStore, Configurable {
   }
 
   @Override
+  public List<Partition> getPartitions(String dbName, String tableName, List<String> partialSpec)
+      throws MetaException, NoSuchObjectException {
+    return objectStore.getPartitions(dbName, tableName, partialSpec);
+  }
+
+  @Override
   public void alterTable(String dbName, String name, Table newTable)
       throws InvalidObjectException, MetaException {
     objectStore.alterTable(dbName, name, newTable);

@@ -1,0 +1,88 @@
+PREHOOK: query: create table part (key string, value string) partitioned by (ds string, hr string)
+PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
+PREHOOK: Output: default@part
+POSTHOOK: query: create table part (key string, value string) partitioned by (ds string, hr string)
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@part
+PREHOOK: query: alter table part add partition (ds='2008-04-08', hr='11')
+PREHOOK: type: ALTERTABLE_ADDPARTS
+PREHOOK: Output: default@part
+POSTHOOK: query: alter table part add partition (ds='2008-04-08', hr='11')
+POSTHOOK: type: ALTERTABLE_ADDPARTS
+POSTHOOK: Output: default@part
+POSTHOOK: Output: default@part@ds=2008-04-08/hr=11
+PREHOOK: query: alter table part add partition (ds='2008-04-08', hr='12')
+PREHOOK: type: ALTERTABLE_ADDPARTS
+PREHOOK: Output: default@part
+POSTHOOK: query: alter table part add partition (ds='2008-04-08', hr='12')
+POSTHOOK: type: ALTERTABLE_ADDPARTS
+POSTHOOK: Output: default@part
+POSTHOOK: Output: default@part@ds=2008-04-08/hr=12
+PREHOOK: query: alter table part add partition (ds='2008-04-09', hr='11')
+PREHOOK: type: ALTERTABLE_ADDPARTS
+PREHOOK: Output: default@part
+POSTHOOK: query: alter table part add partition (ds='2008-04-09', hr='11')
+POSTHOOK: type: ALTERTABLE_ADDPARTS
+POSTHOOK: Output: default@part
+POSTHOOK: Output: default@part@ds=2008-04-09/hr=11
+PREHOOK: query: alter table part add partition (ds='2008-04-09', hr='12')
+PREHOOK: type: ALTERTABLE_ADDPARTS
+PREHOOK: Output: default@part
+POSTHOOK: query: alter table part add partition (ds='2008-04-09', hr='12')
+POSTHOOK: type: ALTERTABLE_ADDPARTS
+POSTHOOK: Output: default@part
+POSTHOOK: Output: default@part@ds=2008-04-09/hr=12
+PREHOOK: query: show partitions part
+PREHOOK: type: SHOWPARTITIONS
+PREHOOK: Input: default@part
+POSTHOOK: query: show partitions part
+POSTHOOK: type: SHOWPARTITIONS
+POSTHOOK: Input: default@part
+ds=2008-04-08/hr=11
+ds=2008-04-08/hr=12
+ds=2008-04-09/hr=11
+ds=2008-04-09/hr=12
+PREHOOK: query: explain
+alter table part drop partition (ds='2008-04-09')
+PREHOOK: type: ALTERTABLE_DROPPARTS
+POSTHOOK: query: explain
+alter table part drop partition (ds='2008-04-09')
+POSTHOOK: type: ALTERTABLE_DROPPARTS
+STAGE DEPENDENCIES:
+  Stage-0 is a root stage
+
+STAGE PLANS:
+  Stage: Stage-0
+      Drop Table Operator:
+        Drop Table
+          partition spec: [{ds=2008-04-09}]
+          table: default.part
+
+PREHOOK: query: alter table part drop partition (ds='2008-04-09')
+PREHOOK: type: ALTERTABLE_DROPPARTS
+PREHOOK: Input: default@part
+PREHOOK: Output: default@part@ds=2008-04-09/hr=11
+PREHOOK: Output: default@part@ds=2008-04-09/hr=12
+POSTHOOK: query: alter table part drop partition (ds='2008-04-09')
+POSTHOOK: type: ALTERTABLE_DROPPARTS
+POSTHOOK: Input: default@part
+POSTHOOK: Output: default@part@ds=2008-04-09/hr=11
+POSTHOOK: Output: default@part@ds=2008-04-09/hr=12
+PREHOOK: query: show partitions part
+PREHOOK: type: SHOWPARTITIONS
+PREHOOK: Input: default@part
+POSTHOOK: query: show partitions part
+POSTHOOK: type: SHOWPARTITIONS
+POSTHOOK: Input: default@part
+ds=2008-04-08/hr=11
+ds=2008-04-08/hr=12
+PREHOOK: query: -- does not throw exception for partial spec
+alter table part drop partition (ds='2008-04-09')
+PREHOOK: type: ALTERTABLE_DROPPARTS
+PREHOOK: Input: default@part
+POSTHOOK: query: -- does not throw exception for partial spec
+alter table part drop partition (ds='2008-04-09')
+POSTHOOK: type: ALTERTABLE_DROPPARTS
+POSTHOOK: Input: default@part

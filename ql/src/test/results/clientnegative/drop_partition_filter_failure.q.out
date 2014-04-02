@@ -20,4 +20,4 @@ POSTHOOK: query: show partitions ptestfilter1
 POSTHOOK: type: SHOWPARTITIONS
 POSTHOOK: Input: default@ptestfilter1
 c=US/d=1
-FAILED: SemanticException [Error 10006]: Partition not found ((c = 'US') and (d < '1'))
+FAILED: SemanticException [Error 10006]: Partition not found with expr ((c = 'US') and (d < '1'))

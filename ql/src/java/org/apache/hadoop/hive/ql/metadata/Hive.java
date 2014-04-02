@@ -1921,7 +1921,29 @@ private void constructOneLBLocationMap(FileStatus fSta,
   public boolean dropPartition(String db_name, String tbl_name,
       List<String> part_vals, boolean deleteData) throws HiveException {
     try {
-      return getMSC().dropPartition(db_name, tbl_name, part_vals, deleteData);
+      Table tbl = getTable(db_name, tbl_name);
+      String partName = Warehouse.makePartName(tbl.getPartitionKeys(), part_vals);
+      return getMSC().dropPartition(db_name, tbl_name, partName, deleteData);
+    } catch (NoSuchObjectException e) {
+      throw new HiveException("Partition or table doesn't exist.", e);
+    } catch (Exception e) {
+      throw new HiveException("Unknown error. Please check logs.", e);
+    }
+  }
+
+  public List<Partition> dropPartitions(String tblName, List<String> part_vals, boolean deleteData)
+  throws HiveException {
+    Table t = newTable(tblName);
+    return dropPartitions(t.getDbName(), t.getTableName(), part_vals, deleteData);
+  }
+
+  public List<Partition> dropPartitions(String db_name, String tbl_name,
+      List<String> part_vals, boolean deleteData) throws HiveException {
+    try {
+      Table tbl = getTable(db_name, tbl_name);
+      List<org.apache.hadoop.hive.metastore.api.Partition> tParts =
+          getMSC().dropPartitions(db_name, tbl_name, part_vals, deleteData);
+      return convertFromMetastore(tbl, tParts, null);
     } catch (NoSuchObjectException e) {
       throw new HiveException("Partition or table doesn't exist.", e);
     } catch (Exception e) {

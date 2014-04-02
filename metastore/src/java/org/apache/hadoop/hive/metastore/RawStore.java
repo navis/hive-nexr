@@ -152,6 +152,9 @@ public interface RawStore extends Configurable {
   public abstract List<Partition> getPartitions(String dbName,
       String tableName, int max) throws MetaException, NoSuchObjectException;
 
+  public abstract List<Partition> getPartitions(String dbName,
+      String tableName, List<String> partialSpec) throws MetaException, NoSuchObjectException;
+
   public abstract void alterTable(String dbname, String name, Table newTable)
       throws InvalidObjectException, MetaException;
 

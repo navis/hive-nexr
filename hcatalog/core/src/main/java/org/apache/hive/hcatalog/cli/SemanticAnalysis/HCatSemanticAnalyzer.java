@@ -19,7 +19,9 @@
 package org.apache.hive.hcatalog.cli.SemanticAnalysis;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.ql.exec.Task;
@@ -337,24 +339,31 @@ public class HCatSemanticAnalyzer extends HCatSemanticAnalyzerBase {
 
     DropTableDesc dropTable = work.getDropTblDesc();
     if (dropTable != null) {
-      if (dropTable.getPartSpecs() == null) {
-        // drop table is already enforced by Hive. We only check for table level location even if the
-        // table is partitioned.
-      } else {
-        //this is actually a ALTER TABLE DROP PARITITION statement
+      String tableName = dropTable.getTableName();
+      List<Partition> partitions = new ArrayList<Partition>();
+      if (dropTable.getSimpleSpecs() != null) {
+        Table table = hive.getTable(SessionState.get().getCurrentDatabase(), tableName);
+        for (Map<String, String> spec : dropTable.getSimpleSpecs()) {
+          partitions.addAll(hive.getPartitions(table, spec));
+        }
+      } else if (dropTable.getPartSpecs() != null) {
+        //this is actually a ALTER TABLE DROP PARTITION statement
+        Table table = hive.getTable(SessionState.get().getCurrentDatabase(), tableName);
         for (DropTableDesc.PartSpec partSpec : dropTable.getPartSpecs()) {
           // partitions are not added as write entries in drop partitions in Hive
-          Table table = hive.getTable(SessionState.get().getCurrentDatabase(), dropTable.getTableName());
-          List<Partition> partitions = null;
           try {
-            partitions = hive.getPartitionsByFilter(table, partSpec.getPartSpec().getExprString());
+            String filter = partSpec.getPartSpec().getExprString();
+            partitions.addAll(hive.getPartitionsByFilter(table, filter));
           } catch (Exception e) {
             throw new HiveException(e);
           }
-          for (Partition part : partitions) {
-            authorize(part, Privilege.DROP);
-          }
         }
+      } else {
+        // drop table is already enforced by Hive. We only check for table level location even if the
+        // table is partitioned.
+      }
+      for (Partition part : partitions) {
+        authorize(part, Privilege.DROP);
       }
     }
 

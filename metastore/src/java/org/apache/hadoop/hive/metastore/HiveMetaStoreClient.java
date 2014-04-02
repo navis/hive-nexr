@@ -767,7 +767,7 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   /**
    * @param db_name
    * @param tbl_name
-   * @param part_vals
+   * @param part_vals full spec of a partition
    * @param deleteData
    *          delete the underlying data or just delete the table in metadata
    * @return true or false
@@ -781,13 +781,31 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   public boolean dropPartition(String db_name, String tbl_name,
       List<String> part_vals, boolean deleteData) throws NoSuchObjectException,
       MetaException, TException {
-    return dropPartition(db_name, tbl_name, part_vals, deleteData, null);
+    Table tbl = getTable(db_name, tbl_name);
+    String partName = Warehouse.makePartName(tbl.getPartitionKeys(), part_vals);
+    return dropPartition(db_name, tbl_name, partName, deleteData, null);
   }
 
   public boolean dropPartition(String db_name, String tbl_name, List<String> part_vals,
       boolean deleteData, EnvironmentContext envContext) throws NoSuchObjectException,
       MetaException, TException {
-    return client.drop_partition_with_environment_context(db_name, tbl_name, part_vals, deleteData,
+    Table tbl = getTable(db_name, tbl_name);
+    String partName = Warehouse.makePartName(tbl.getPartitionKeys(), part_vals);
+    return client.drop_partition_by_name_with_environment_context(db_name, tbl_name, partName, deleteData,
+        envContext);
+  }
+
+  @Override
+  public List<Partition> dropPartitions(String db_name, String tbl_name,
+      List<String> part_vals, boolean deleteData) throws NoSuchObjectException,
+      MetaException, TException {
+    return dropPartitions(db_name, tbl_name, part_vals, deleteData, null);
+  }
+
+  public List<Partition> dropPartitions(String db_name, String tbl_name, List<String> part_vals,
+      boolean deleteData, EnvironmentContext envContext) throws NoSuchObjectException,
+      MetaException, TException {
+    return client.drop_partitions_with_environment_context(db_name, tbl_name, part_vals, deleteData,
         envContext);
   }
 

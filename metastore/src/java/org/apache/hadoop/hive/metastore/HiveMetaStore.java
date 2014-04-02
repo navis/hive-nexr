@@ -24,6 +24,7 @@ import static org.apache.hadoop.hive.metastore.MetaStoreUtils.DEFAULT_DATABASE_N
 import static org.apache.hadoop.hive.metastore.MetaStoreUtils.validateName;
 
 import java.io.IOException;
+import java.net.URI;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.AbstractMap;
@@ -59,6 +60,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.common.LogUtils;
 import org.apache.hadoop.hive.common.LogUtils.LogInitializationException;
+import org.apache.hadoop.hive.common.ObjectPair;
 import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.common.classification.InterfaceStability;
 import org.apache.hadoop.hive.common.cli.CommonCliOptions;
@@ -2521,64 +2523,116 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       return new Partition();
     }
 
-    private boolean drop_partition_common(RawStore ms, String db_name, String tbl_name,
-      List<String> part_vals, final boolean deleteData, final EnvironmentContext envContext)
+    private List<Partition> drop_partitions_common(RawStore ms, String db_name, String tbl_name,
+      List<String> part_vals, boolean deleteData, boolean ifExists, EnvironmentContext envContext)
       throws MetaException, NoSuchObjectException, IOException, InvalidObjectException,
       InvalidInputException {
       boolean success = false;
-      Path partPath = null;
       Table tbl = null;
-      Partition part = null;
-      boolean isArchived = false;
-      Path archiveParentDir = null;
+      List<Partition> parts = null;
+
+      Path bulkRemove = null;
+      List<ObjectPair<Path, Boolean>> paths = new ArrayList<ObjectPair<Path, Boolean>>();
 
       try {
         ms.openTransaction();
-        part = ms.getPartition(db_name, tbl_name, part_vals);
+        tbl = get_table(db_name, tbl_name);
+        boolean deletePath = deleteData && !isExternal(tbl);
+
+        parts = ms.getPartitions(db_name, tbl_name, part_vals);
         tbl = get_table_core(db_name, tbl_name);
-        firePreEvent(new PreDropPartitionEvent(tbl, part, deleteData, this));
-
-        if (part == null) {
-          throw new NoSuchObjectException("Partition doesn't exist. "
-              + part_vals);
+        if (parts.isEmpty() && !ifExists) {
+          throw new NoSuchObjectException("Partition doesn't exist. " + part_vals);
         }
-
-        isArchived = MetaStoreUtils.isArchived(part);
-        if (isArchived) {
-          archiveParentDir = MetaStoreUtils.getOriginalLocation(part);
-          verifyIsWritablePath(archiveParentDir);
+        for (Partition part : parts) {
+          firePreEvent(new PreDropPartitionEvent(tbl, part, deleteData, this));
         }
-        if (!ms.dropPartition(db_name, tbl_name, part_vals)) {
-          throw new MetaException("Unable to drop partition");
+        if (deletePath && !MetaStoreUtils.isView(tbl) && isAllStandardPath(tbl, parts)) {
+          String tblPath = tbl.getSd().getLocation();
+          List<FieldSchema> partialKeys = tbl.getPartitionKeys().subList(0, part_vals.size());
+          Path parentPath = new Path(tblPath, Warehouse.makePartName(partialKeys, part_vals));
+          if (wh.isWritable(parentPath)) {
+            verifyIsWritablePath(parentPath, true); // check writable for all children
+            bulkRemove = parentPath;
+          }
+        }
+        for (Partition part : parts) {
+          firePreEvent(new PreDropPartitionEvent(tbl, part, deleteData, this));
+        }
+        if (deletePath && bulkRemove == null) {
+          for (Partition part : parts) {
+            boolean isArchived = MetaStoreUtils.isArchived(part);
+            Path path = null;
+            if (isArchived) {
+              path = MetaStoreUtils.getOriginalLocation(part);
+            } else if (part.getSd() != null && part.getSd().getLocation() != null) {
+              path = new Path(part.getSd().getLocation());
+            }
+            if (path != null) {
+              verifyIsWritablePath(path);
+              paths.add(new ObjectPair<Path, Boolean>(path, isArchived));
+            }
+          }
+        }
+        for (Partition part : parts) {
+          // copy values, which would be removed after drop
+          part.setValues(new ArrayList<String>(part.getValues()));
+          if (!ms.dropPartition(db_name, tbl_name, part.getValues())) {
+            throw new MetaException("Unable to drop partition");
+          }
         }
         success = ms.commitTransaction();
-        if ((part.getSd() != null) && (part.getSd().getLocation() != null)) {
-          partPath = new Path(part.getSd().getLocation());
-          verifyIsWritablePath(partPath);
-        }
       } finally {
         if (!success) {
           ms.rollbackTransaction();
-        } else if (deleteData && ((partPath != null) || (archiveParentDir != null))) {
-          if (tbl != null && !isExternal(tbl)) {
-            // Archived partitions have har:/to_har_file as their location.
-            // The original directory was saved in params
-            if (isArchived) {
-              assert (archiveParentDir != null);
-              wh.deleteDir(archiveParentDir, true);
-            } else {
-              assert (partPath != null);
-              wh.deleteDir(partPath, true);
-              deleteParentRecursive(partPath.getParent(), part_vals.size() - 1);
+        } else if (deleteData) {
+          // Archived partitions have har:/to_har_file as their location.
+          // The original directory was saved in params
+          for (ObjectPair<Path, Boolean> pair : paths) {
+            Path path = pair.getFirst();
+            boolean isArchived = pair.getSecond();
+            wh.deleteDir(path, true);
+            if (!isArchived) {
+              deleteParentRecursive(path.getParent(), part_vals.size() - 1);
             }
-            // ok even if the data is not deleted
           }
+          if (bulkRemove != null) {
+            wh.deleteDir(bulkRemove, true);
+            deleteParentRecursive(bulkRemove.getParent(), part_vals.size() - 1);
+          }
+          // ok even if the data is not deleted
         }
         for (MetaStoreEventListener listener : listeners) {
-          DropPartitionEvent dropPartitionEvent =
-            new DropPartitionEvent(tbl, part, success, deleteData, this);
-          dropPartitionEvent.setEnvironmentContext(envContext);
-          listener.onDropPartition(dropPartitionEvent);
+          for (Partition part : parts) {
+            DropPartitionEvent dropPartitionEvent =
+                new DropPartitionEvent(tbl, part, success, deleteData, this);
+            dropPartitionEvent.setEnvironmentContext(envContext);
+            listener.onDropPartition(dropPartitionEvent);
+          }
+        }
+      }
+      return parts;
+    }
+
+    private boolean isAllStandardPath(Table tbl, List<Partition> partitions) throws MetaException {
+      for (Partition partition : partitions) {
+        if (MetaStoreUtils.isArchived(partition)) {
+          return false;
+        }
+      }
+      URI tablePath = new Path(tbl.getSd().getLocation()).toUri();
+      for (Partition partition : partitions) {
+        if (partition.getSd() == null || partition.getSd().getLocation() == null) {
+          continue;
+        }
+        URI partLoc = new Path(partition.getSd().getLocation()).toUri();
+        URI relative = tablePath.relativize(partLoc);
+        if (relative == partLoc) {
+          return false;
+        }
+        String standardPath = Warehouse.makePartName(tbl.getPartitionKeys(), partition.getValues());
+        if (!standardPath.equals(relative.getPath())) {
+          return false;
         }
       }
       return true;
@@ -2592,10 +2646,10 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     }
 
     @Override
-    public boolean drop_partition(final String db_name, final String tbl_name,
+    public List<Partition> drop_partitions(final String db_name, final String tbl_name,
         final List<String> part_vals, final boolean deleteData)
         throws NoSuchObjectException, MetaException, TException {
-      return drop_partition_with_environment_context(db_name, tbl_name, part_vals, deleteData,
+      return drop_partitions_with_environment_context(db_name, tbl_name, part_vals, deleteData,
           null);
     }
 
@@ -2743,8 +2797,12 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     }
 
     private void verifyIsWritablePath(Path dir) throws MetaException {
+      verifyIsWritablePath(dir, false);
+    }
+
+    private void verifyIsWritablePath(Path dir, boolean checkChildren) throws MetaException {
       try {
-        if (!wh.isWritable(dir.getParent())) {
+        if (!wh.isWritable(dir.getParent(), checkChildren)) {
           throw new MetaException("Table partition not deleted since " + dir.getParent()
               + " is not writable by " + hiveConf.getUser());
         }
@@ -2756,17 +2814,17 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     }
 
     @Override
-    public boolean drop_partition_with_environment_context(final String db_name,
+    public List<Partition> drop_partitions_with_environment_context(final String db_name,
         final String tbl_name, final List<String> part_vals, final boolean deleteData,
         final EnvironmentContext envContext)
         throws NoSuchObjectException, MetaException, TException {
       startPartitionFunction("drop_partition", db_name, tbl_name, part_vals);
       LOG.info("Partition values:" + part_vals);
 
-      boolean ret = false;
+      List<Partition> ret = null;
       Exception ex = null;
       try {
-        ret = drop_partition_common(getMS(), db_name, tbl_name, part_vals, deleteData, envContext);
+        ret = drop_partitions_common(getMS(), db_name, tbl_name, part_vals, deleteData, true, envContext);
       } catch (IOException e) {
         ex = e;
         throw new MetaException(e.getMessage());
@@ -2774,7 +2832,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         ex = e;
         rethrowException(e);
       } finally {
-        endFunction("drop_partition", ret, ex, tbl_name);
+        endFunction("drop_partitions", ret != null, ex, tbl_name);
       }
       return ret;
 
@@ -3665,7 +3723,9 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         throw new NoSuchObjectException(e.getMessage());
       }
 
-      return drop_partition_common(ms, db_name, tbl_name, partVals, deleteData, envContext);
+      List<Partition> partitions =
+          drop_partitions_common(ms, db_name, tbl_name, partVals, deleteData, false, envContext);
+      return !partitions.isEmpty();
     }
 
     @Override

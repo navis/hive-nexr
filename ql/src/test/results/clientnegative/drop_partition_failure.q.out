@@ -36,4 +36,4 @@ POSTHOOK: Input: default@mp
 b=1/c=1
 b=1/c=2
 b=2/c=2
-FAILED: SemanticException [Error 10006]: Partition not found (b = '3')
+FAILED: SemanticException [Error 10006]: Partition not found with spec {b=3}

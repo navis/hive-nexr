@@ -58,8 +58,8 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print '  Partition append_partition_with_environment_context(string db_name, string tbl_name,  part_vals, EnvironmentContext environment_context)'
   print '  Partition append_partition_by_name(string db_name, string tbl_name, string part_name)'
   print '  Partition append_partition_by_name_with_environment_context(string db_name, string tbl_name, string part_name, EnvironmentContext environment_context)'
-  print '  bool drop_partition(string db_name, string tbl_name,  part_vals, bool deleteData)'
-  print '  bool drop_partition_with_environment_context(string db_name, string tbl_name,  part_vals, bool deleteData, EnvironmentContext environment_context)'
+  print '   drop_partitions(string db_name, string tbl_name,  part_vals, bool deleteData)'
+  print '   drop_partitions_with_environment_context(string db_name, string tbl_name,  part_vals, bool deleteData, EnvironmentContext environment_context)'
   print '  bool drop_partition_by_name(string db_name, string tbl_name, string part_name, bool deleteData)'
   print '  bool drop_partition_by_name_with_environment_context(string db_name, string tbl_name, string part_name, bool deleteData, EnvironmentContext environment_context)'
   print '  DropPartitionsResult drop_partitions_req(DropPartitionsRequest req)'
@@ -404,17 +404,17 @@ elif cmd == 'append_partition_by_name_with_environment_context':
     sys.exit(1)
   pp.pprint(client.append_partition_by_name_with_environment_context(args[0],args[1],args[2],eval(args[3]),))
 
-elif cmd == 'drop_partition':
+elif cmd == 'drop_partitions':
   if len(args) != 4:
-    print 'drop_partition requires 4 args'
+    print 'drop_partitions requires 4 args'
     sys.exit(1)
-  pp.pprint(client.drop_partition(args[0],args[1],eval(args[2]),eval(args[3]),))
+  pp.pprint(client.drop_partitions(args[0],args[1],eval(args[2]),eval(args[3]),))
 
-elif cmd == 'drop_partition_with_environment_context':
+elif cmd == 'drop_partitions_with_environment_context':
   if len(args) != 5:
-    print 'drop_partition_with_environment_context requires 5 args'
+    print 'drop_partitions_with_environment_context requires 5 args'
     sys.exit(1)
-  pp.pprint(client.drop_partition_with_environment_context(args[0],args[1],eval(args[2]),eval(args[3]),eval(args[4]),))
+  pp.pprint(client.drop_partitions_with_environment_context(args[0],args[1],eval(args[2]),eval(args[3]),eval(args[4]),))
 
 elif cmd == 'drop_partition_by_name':
   if len(args) != 4:

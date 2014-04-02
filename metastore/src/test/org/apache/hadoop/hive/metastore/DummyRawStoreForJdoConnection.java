@@ -215,6 +215,12 @@ public class DummyRawStoreForJdoConnection implements RawStore {
   }
 
   @Override
+  public List<Partition> getPartitions(String dbName, String tableName, List<String> partialSpec)
+      throws MetaException, NoSuchObjectException {
+    return null;
+  }
+
+  @Override
   public void alterTable(String dbname, String name, Table newTable) throws InvalidObjectException,
       MetaException {
 

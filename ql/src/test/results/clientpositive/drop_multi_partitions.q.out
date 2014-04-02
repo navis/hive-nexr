@@ -67,6 +67,7 @@ STAGE PLANS:
   Stage: Stage-0
       Drop Table Operator:
         Drop Table
+          partition spec: [{b=1}]
           table: dmp.mp
 
 PREHOOK: query: alter table dmp.mp drop partition (b='1')

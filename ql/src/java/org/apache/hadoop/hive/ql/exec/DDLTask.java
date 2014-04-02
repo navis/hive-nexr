@@ -3670,7 +3670,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       // drop table is idempotent
     }
 
-    if (dropTbl.getPartSpecs() == null) {
+    if (dropTbl.getPartSpecs() == null && dropTbl.getSimpleSpecs() == null) {
       dropTable(db, tbl, dropTbl);
     } else {
       dropPartitions(db, tbl, dropTbl);
@@ -3679,13 +3679,40 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
 
   private void dropPartitions(Hive db, Table tbl, DropTableDesc dropTbl) throws HiveException {
     // ifExists is currently verified in DDLSemanticAnalyzer
-    List<Partition> droppedParts = db.dropPartitions(dropTbl.getTableName(),
-        dropTbl.getPartSpecs(), true, dropTbl.getIgnoreProtection(), true);
+    List<Partition> droppedParts;
+    List<Map<String, String>> simpleSpecs = dropTbl.getSimpleSpecs();
+    if (simpleSpecs != null) {
+      droppedParts = new ArrayList<Partition>();
+      for (Map<String, String> spec : simpleSpecs) {
+        List<Partition> dropped =
+            db.dropPartitions(tbl.getDbName(), tbl.getTableName(), toPartValues(tbl, spec), true);
+        droppedParts.addAll(dropped);
+      }
+    } else {
+      droppedParts = db.dropPartitions(dropTbl.getTableName(), dropTbl.getPartSpecs(),
+          true, dropTbl.getIgnoreProtection(), true);
+    }
     for (Partition partition : droppedParts) {
       console.printInfo("Dropped the partition " + partition.getName());
       // We have already locked the table, don't lock the partitions.
       work.getOutputs().add(new WriteEntity(partition, WriteEntity.WriteType.DDL_NO_LOCK));
     };
+  }
+
+  private List<String> toPartValues(Table tbl, Map<String, String> spec) throws HiveException {
+    List<String> values = new ArrayList<String>();
+    for (FieldSchema field : tbl.getPartitionKeys()) {
+      String value = spec.get(field.getName());
+      if (value == null) {
+        break;
+      }
+      values.add(value);
+    }
+    if (spec.size() != values.size()) {
+      // should not happen because it's checked in DDLSemanticAnalyzer
+      throw new HiveException(spec + " is not continuous partition keys");
+    }
+    return values;
   }
 
   private void dropTable(Hive db, Table tbl, DropTableDesc dropTbl) throws HiveException {

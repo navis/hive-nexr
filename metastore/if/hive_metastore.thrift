@@ -891,10 +891,10 @@ service ThriftHiveMetastore extends fb303.FacebookService
   Partition append_partition_by_name_with_environment_context(1:string db_name, 2:string tbl_name,
       3:string part_name, 4:EnvironmentContext environment_context)
                        throws (1:InvalidObjectException o1, 2:AlreadyExistsException o2, 3:MetaException o3)
-  bool drop_partition(1:string db_name, 2:string tbl_name, 3:list<string> part_vals, 4:bool deleteData)
+  list<Partition> drop_partitions(1:string db_name, 2:string tbl_name, 3:list<string> part_vals, 4:bool deleteData)
                        throws(1:NoSuchObjectException o1, 2:MetaException o2)
-  bool drop_partition_with_environment_context(1:string db_name, 2:string tbl_name,
-      3:list<string> part_vals, 4:bool deleteData, 5:EnvironmentContext environment_context)
+  list<Partition> drop_partitions_with_environment_context(1:string db_name, 2:string tbl_name,
+                       3:list<string> part_vals, 4:bool deleteData, 5:EnvironmentContext environment_context)
                        throws(1:NoSuchObjectException o1, 2:MetaException o2)
   bool drop_partition_by_name(1:string db_name, 2:string tbl_name, 3:string part_name, 4:bool deleteData)
                        throws(1:NoSuchObjectException o1, 2:MetaException o2)

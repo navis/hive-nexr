@@ -1699,6 +1699,17 @@ public class ObjectStore implements RawStore, Configurable {
     return getPartitionsInternal(dbName, tableName, maxParts, true, true);
   }
 
+  @Override
+  public List<Partition> getPartitions(String dbName, String tableName, List<String> partialSpec)
+      throws MetaException, NoSuchObjectException {
+    List<Partition> partitions = new ArrayList<Partition>();
+    for (Object partition :
+        getPartitionPsQueryResults(dbName, tableName, partialSpec, (short)-1, null)) {
+      partitions.add(convertToPart((MPartition) partition));
+    }
+    return partitions;
+  }
+
   protected List<Partition> getPartitionsInternal(
       String dbName, String tblName, final int maxParts, boolean allowSql, boolean allowJdo)
           throws MetaException, NoSuchObjectException {

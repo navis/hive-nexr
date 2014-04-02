@@ -667,6 +667,11 @@ public interface IMetaStoreClient {
   boolean dropPartition(String db_name, String tbl_name,
       String name, boolean deleteData) throws NoSuchObjectException,
       MetaException, TException;
+
+  List<Partition> dropPartitions(String db_name, String tbl_name,
+      List<String> part_vals, boolean deleteData) throws NoSuchObjectException,
+      MetaException, TException;
+
   /**
    * updates a partition to new partition
    *

@@ -44,6 +44,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsAction;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.common.HiveStatsUtils;
 import org.apache.hadoop.hive.common.JavaUtils;
@@ -54,7 +55,6 @@ import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
-import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.hive.shims.Utils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ReflectionUtils;
@@ -242,6 +242,10 @@ public class Warehouse {
   }
 
   public boolean isWritable(Path path) throws IOException {
+    return isWritable(path, false);
+  }
+
+  public boolean isWritable(Path path, boolean checkChildren) throws IOException {
     if (!storageAuthCheck) {
       // no checks for non-secure hadoop installations
       return true;
@@ -249,9 +253,11 @@ public class Warehouse {
     if (path == null) { //what??!!
       return false;
     }
-    final FileStatus stat;
+    FileStatus[] stats;
     try {
-      stat = getFs(path).getFileStatus(path);
+      FileSystem fs = getFs(path);
+      stats = checkChildren ? fs.globStatus(new Path(path, "*"))
+          : new FileStatus[] {fs.getFileStatus(path)};
     } catch (FileNotFoundException fnfe){
       // File named by path doesn't exist; nothing to validate.
       return true;
@@ -267,23 +273,30 @@ public class Warehouse {
       throw new IOException(le);
     }
     String user = ugi.getShortUserName();
+    String[] groups = ugi.getGroupNames();
     //check whether owner can delete
-    if (stat.getOwner().equals(user) &&
-        stat.getPermission().getUserAction().implies(FsAction.WRITE)) {
-      return true;
-    }
-    //check whether group of the user can delete
-    if (stat.getPermission().getGroupAction().implies(FsAction.WRITE)) {
-      String[] groups = ugi.getGroupNames();
-      if (ArrayUtils.contains(groups, stat.getGroup())) {
-        return true;
+    for (FileStatus stat : stats) {
+      if (!stat.isDir()) {
+        continue;
       }
+      FsPermission permission = stat.getPermission();
+      if (stat.getOwner().equals(user) &&
+          permission.getUserAction().implies(FsAction.WRITE)) {
+        continue;
+      }
+      //check whether group of the user can delete
+      if (permission.getGroupAction().implies(FsAction.WRITE)) {
+        if (ArrayUtils.contains(groups, stat.getGroup())) {
+          continue;
+        }
+      }
+      //check whether others can delete (uncommon case!!)
+      if (permission.getOtherAction().implies(FsAction.WRITE)) {
+        continue;
+      }
+      return false;
     }
-    //check whether others can delete (uncommon case!!)
-    if (stat.getPermission().getOtherAction().implies(FsAction.WRITE)) {
-      return true;
-    }
-    return false;
+    return true;
   }
   /*
   // NOTE: This is for generating the internal path name for partitions. Users
