@@ -19,14 +19,7 @@
 package org.apache.hadoop.hive.ql.optimizer;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -374,10 +367,12 @@ public class SimpleFetchOptimizer {
       List<String> listP = new ArrayList<String>();
       List<PartitionDesc> partP = new ArrayList<PartitionDesc>();
 
+      TableDesc tableDesc = Utilities.getTableDesc(table);
+      Properties tableProps = table.isFullManaged() ? table.getMetadata() : null;
       for (Partition partition : partsList.getNotDeniedPartns()) {
         inputs.add(new ReadEntity(partition, scanOp, parent));
         listP.add(partition.getPartitionPath().toString());
-        partP.add(Utilities.getPartitionDesc(partition));
+        partP.add(Utilities.getPartitionDesc(tableDesc, tableProps, partition));
       }
       Table sourceTable = partsList.getSourceTable();
       inputs.add(new ReadEntity(sourceTable, scanOp, parent));

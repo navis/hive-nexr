@@ -56,6 +56,7 @@ class ThriftHiveMetastoreIf : virtual public  ::facebook::fb303::FacebookService
   virtual void get_partitions(std::vector<Partition> & _return, const std::string& db_name, const std::string& tbl_name, const int16_t max_parts) = 0;
   virtual void get_partitions_with_auth(std::vector<Partition> & _return, const std::string& db_name, const std::string& tbl_name, const int16_t max_parts, const std::string& user_name, const std::vector<std::string> & group_names) = 0;
   virtual void get_partition_names(std::vector<std::string> & _return, const std::string& db_name, const std::string& tbl_name, const int16_t max_parts) = 0;
+  virtual void get_partition_names_by_filter(std::vector<std::string> & _return, const std::string& db_name, const std::string& tbl_name, const std::string& filter, const int16_t max_parts) = 0;
   virtual void get_partitions_ps(std::vector<Partition> & _return, const std::string& db_name, const std::string& tbl_name, const std::vector<std::string> & part_vals, const int16_t max_parts) = 0;
   virtual void get_partitions_ps_with_auth(std::vector<Partition> & _return, const std::string& db_name, const std::string& tbl_name, const std::vector<std::string> & part_vals, const int16_t max_parts, const std::string& user_name, const std::vector<std::string> & group_names) = 0;
   virtual void get_partition_names_ps(std::vector<std::string> & _return, const std::string& db_name, const std::string& tbl_name, const std::vector<std::string> & part_vals, const int16_t max_parts) = 0;
@@ -252,6 +253,9 @@ class ThriftHiveMetastoreNull : virtual public ThriftHiveMetastoreIf , virtual p
     return;
   }
   void get_partition_names(std::vector<std::string> & /* _return */, const std::string& /* db_name */, const std::string& /* tbl_name */, const int16_t /* max_parts */) {
+    return;
+  }
+  void get_partition_names_by_filter(std::vector<std::string> & /* _return */, const std::string& /* db_name */, const std::string& /* tbl_name */, const std::string& /* filter */, const int16_t /* max_parts */) {
     return;
   }
   void get_partitions_ps(std::vector<Partition> & /* _return */, const std::string& /* db_name */, const std::string& /* tbl_name */, const std::vector<std::string> & /* part_vals */, const int16_t /* max_parts */) {
@@ -6085,6 +6089,151 @@ class ThriftHiveMetastore_get_partition_names_presult {
   MetaException o2;
 
   _ThriftHiveMetastore_get_partition_names_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _ThriftHiveMetastore_get_partition_names_by_filter_args__isset {
+  _ThriftHiveMetastore_get_partition_names_by_filter_args__isset() : db_name(false), tbl_name(false), filter(false), max_parts(true) {}
+  bool db_name;
+  bool tbl_name;
+  bool filter;
+  bool max_parts;
+} _ThriftHiveMetastore_get_partition_names_by_filter_args__isset;
+
+class ThriftHiveMetastore_get_partition_names_by_filter_args {
+ public:
+
+  ThriftHiveMetastore_get_partition_names_by_filter_args() : db_name(), tbl_name(), filter(), max_parts(-1) {
+  }
+
+  virtual ~ThriftHiveMetastore_get_partition_names_by_filter_args() throw() {}
+
+  std::string db_name;
+  std::string tbl_name;
+  std::string filter;
+  int16_t max_parts;
+
+  _ThriftHiveMetastore_get_partition_names_by_filter_args__isset __isset;
+
+  void __set_db_name(const std::string& val) {
+    db_name = val;
+  }
+
+  void __set_tbl_name(const std::string& val) {
+    tbl_name = val;
+  }
+
+  void __set_filter(const std::string& val) {
+    filter = val;
+  }
+
+  void __set_max_parts(const int16_t val) {
+    max_parts = val;
+  }
+
+  bool operator == (const ThriftHiveMetastore_get_partition_names_by_filter_args & rhs) const
+  {
+    if (!(db_name == rhs.db_name))
+      return false;
+    if (!(tbl_name == rhs.tbl_name))
+      return false;
+    if (!(filter == rhs.filter))
+      return false;
+    if (!(max_parts == rhs.max_parts))
+      return false;
+    return true;
+  }
+  bool operator != (const ThriftHiveMetastore_get_partition_names_by_filter_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const ThriftHiveMetastore_get_partition_names_by_filter_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class ThriftHiveMetastore_get_partition_names_by_filter_pargs {
+ public:
+
+
+  virtual ~ThriftHiveMetastore_get_partition_names_by_filter_pargs() throw() {}
+
+  const std::string* db_name;
+  const std::string* tbl_name;
+  const std::string* filter;
+  const int16_t* max_parts;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _ThriftHiveMetastore_get_partition_names_by_filter_result__isset {
+  _ThriftHiveMetastore_get_partition_names_by_filter_result__isset() : success(false), o2(false) {}
+  bool success;
+  bool o2;
+} _ThriftHiveMetastore_get_partition_names_by_filter_result__isset;
+
+class ThriftHiveMetastore_get_partition_names_by_filter_result {
+ public:
+
+  ThriftHiveMetastore_get_partition_names_by_filter_result() {
+  }
+
+  virtual ~ThriftHiveMetastore_get_partition_names_by_filter_result() throw() {}
+
+  std::vector<std::string>  success;
+  MetaException o2;
+
+  _ThriftHiveMetastore_get_partition_names_by_filter_result__isset __isset;
+
+  void __set_success(const std::vector<std::string> & val) {
+    success = val;
+  }
+
+  void __set_o2(const MetaException& val) {
+    o2 = val;
+  }
+
+  bool operator == (const ThriftHiveMetastore_get_partition_names_by_filter_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    if (!(o2 == rhs.o2))
+      return false;
+    return true;
+  }
+  bool operator != (const ThriftHiveMetastore_get_partition_names_by_filter_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const ThriftHiveMetastore_get_partition_names_by_filter_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _ThriftHiveMetastore_get_partition_names_by_filter_presult__isset {
+  _ThriftHiveMetastore_get_partition_names_by_filter_presult__isset() : success(false), o2(false) {}
+  bool success;
+  bool o2;
+} _ThriftHiveMetastore_get_partition_names_by_filter_presult__isset;
+
+class ThriftHiveMetastore_get_partition_names_by_filter_presult {
+ public:
+
+
+  virtual ~ThriftHiveMetastore_get_partition_names_by_filter_presult() throw() {}
+
+  std::vector<std::string> * success;
+  MetaException o2;
+
+  _ThriftHiveMetastore_get_partition_names_by_filter_presult__isset __isset;
 
   uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
 
@@ -12172,6 +12321,9 @@ class ThriftHiveMetastoreClient : virtual public ThriftHiveMetastoreIf, public  
   void get_partition_names(std::vector<std::string> & _return, const std::string& db_name, const std::string& tbl_name, const int16_t max_parts);
   void send_get_partition_names(const std::string& db_name, const std::string& tbl_name, const int16_t max_parts);
   void recv_get_partition_names(std::vector<std::string> & _return);
+  void get_partition_names_by_filter(std::vector<std::string> & _return, const std::string& db_name, const std::string& tbl_name, const std::string& filter, const int16_t max_parts);
+  void send_get_partition_names_by_filter(const std::string& db_name, const std::string& tbl_name, const std::string& filter, const int16_t max_parts);
+  void recv_get_partition_names_by_filter(std::vector<std::string> & _return);
   void get_partitions_ps(std::vector<Partition> & _return, const std::string& db_name, const std::string& tbl_name, const std::vector<std::string> & part_vals, const int16_t max_parts);
   void send_get_partitions_ps(const std::string& db_name, const std::string& tbl_name, const std::vector<std::string> & part_vals, const int16_t max_parts);
   void recv_get_partitions_ps(std::vector<Partition> & _return);
@@ -12348,6 +12500,7 @@ class ThriftHiveMetastoreProcessor : public  ::facebook::fb303::FacebookServiceP
   void process_get_partitions(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_get_partitions_with_auth(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_get_partition_names(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_get_partition_names_by_filter(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_get_partitions_ps(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_get_partitions_ps_with_auth(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_get_partition_names_ps(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
@@ -12434,6 +12587,7 @@ class ThriftHiveMetastoreProcessor : public  ::facebook::fb303::FacebookServiceP
     processMap_["get_partitions"] = &ThriftHiveMetastoreProcessor::process_get_partitions;
     processMap_["get_partitions_with_auth"] = &ThriftHiveMetastoreProcessor::process_get_partitions_with_auth;
     processMap_["get_partition_names"] = &ThriftHiveMetastoreProcessor::process_get_partition_names;
+    processMap_["get_partition_names_by_filter"] = &ThriftHiveMetastoreProcessor::process_get_partition_names_by_filter;
     processMap_["get_partitions_ps"] = &ThriftHiveMetastoreProcessor::process_get_partitions_ps;
     processMap_["get_partitions_ps_with_auth"] = &ThriftHiveMetastoreProcessor::process_get_partitions_ps_with_auth;
     processMap_["get_partition_names_ps"] = &ThriftHiveMetastoreProcessor::process_get_partition_names_ps;
@@ -12890,6 +13044,16 @@ class ThriftHiveMetastoreMultiface : virtual public ThriftHiveMetastoreIf, publi
       ifaces_[i]->get_partition_names(_return, db_name, tbl_name, max_parts);
     }
     ifaces_[i]->get_partition_names(_return, db_name, tbl_name, max_parts);
+    return;
+  }
+
+  void get_partition_names_by_filter(std::vector<std::string> & _return, const std::string& db_name, const std::string& tbl_name, const std::string& filter, const int16_t max_parts) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->get_partition_names_by_filter(_return, db_name, tbl_name, filter, max_parts);
+    }
+    ifaces_[i]->get_partition_names_by_filter(_return, db_name, tbl_name, filter, max_parts);
     return;
   }
 

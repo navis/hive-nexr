@@ -243,12 +243,12 @@ public class MetaStoreUtils {
    *
    */
   static public Deserializer getDeserializer(Configuration conf,
-      org.apache.hadoop.hive.metastore.api.Partition part,
-      org.apache.hadoop.hive.metastore.api.Table table) throws MetaException {
+      org.apache.hadoop.hive.metastore.api.Partition part, List<FieldSchema> partKeys)
+      throws MetaException {
     String lib = part.getSd().getSerdeInfo().getSerializationLib();
     try {
       Deserializer deserializer = SerDeUtils.lookupDeserializer(lib);
-      deserializer.initialize(conf, MetaStoreUtils.getPartitionMetadata(part, table));
+      deserializer.initialize(conf, MetaStoreUtils.getPartitionMetadata(part, partKeys));
       return deserializer;
     } catch (RuntimeException e) {
       throw e;
@@ -542,24 +542,14 @@ public class MetaStoreUtils {
 
   public static Properties getTableMetadata(
       org.apache.hadoop.hive.metastore.api.Table table) {
-    return MetaStoreUtils.getSchema(table.getSd(), table.getSd(), table
-        .getParameters(), table.getDbName(), table.getTableName(), table.getPartitionKeys());
+    return MetaStoreUtils.getSchema(table.getSd(),
+      table.getParameters(), table.getDbName(), table.getTableName(), table.getPartitionKeys());
   }
 
   public static Properties getPartitionMetadata(
-      org.apache.hadoop.hive.metastore.api.Partition partition,
-      org.apache.hadoop.hive.metastore.api.Table table) {
-    return MetaStoreUtils
-        .getSchema(partition.getSd(), partition.getSd(), partition
-            .getParameters(), table.getDbName(), table.getTableName(),
-            table.getPartitionKeys());
-  }
-
-  public static Properties getSchema(
-      org.apache.hadoop.hive.metastore.api.Partition part,
-      org.apache.hadoop.hive.metastore.api.Table table) {
-    return MetaStoreUtils.getSchema(part.getSd(), table.getSd(), table
-        .getParameters(), table.getDbName(), table.getTableName(), table.getPartitionKeys());
+      org.apache.hadoop.hive.metastore.api.Partition partition, List<FieldSchema> partKeys) {
+    return MetaStoreUtils.getSchema(partition.getSd(),
+      partition.getParameters(), partition.getDbName(), partition.getTableName(), partKeys);
   }
 
   /**
@@ -582,7 +572,6 @@ public class MetaStoreUtils {
    */
   public static Properties getPartSchemaFromTableSchema(
       org.apache.hadoop.hive.metastore.api.StorageDescriptor sd,
-      org.apache.hadoop.hive.metastore.api.StorageDescriptor tblsd,
       Map<String, String> parameters, String databaseName, String tableName,
       List<FieldSchema> partitionKeys,
       Properties tblSchema) {
@@ -675,7 +664,6 @@ public class MetaStoreUtils {
 
   public static Properties getSchema(
       org.apache.hadoop.hive.metastore.api.StorageDescriptor sd,
-      org.apache.hadoop.hive.metastore.api.StorageDescriptor tblsd,
       Map<String, String> parameters, String databaseName, String tableName,
       List<FieldSchema> partitionKeys) {
     Properties schema = new Properties();
@@ -727,7 +715,7 @@ public class MetaStoreUtils {
     StringBuilder colNameBuf = new StringBuilder();
     StringBuilder colTypeBuf = new StringBuilder();
     boolean first = true;
-    for (FieldSchema col : tblsd.getCols()) {
+    for (FieldSchema col : sd.getCols()) {
       if (!first) {
         colNameBuf.append(",");
         colTypeBuf.append(":");

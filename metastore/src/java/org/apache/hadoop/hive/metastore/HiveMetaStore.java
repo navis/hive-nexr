@@ -2129,6 +2129,31 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     }
 
     @Override
+    public List<String> get_partition_names_by_filter(final String db_name,
+        final String tbl_name, final String filter, final short max_parts)
+      throws MetaException, TException {
+      startTableFunction("get_partition_names_by_filter", db_name, tbl_name);
+
+      List<String> ret = null;
+      Exception ex = null;
+      try {
+        ret = getMS().listPartitionNamesByFilter(db_name, tbl_name, filter, max_parts);
+      } catch (Exception e) {
+        ex = e;
+        if (e instanceof MetaException) {
+          throw (MetaException) e;
+        } else {
+          MetaException me = new MetaException(e.toString());
+          me.initCause(e);
+          throw me;
+        }
+      } finally {
+        endFunction("get_partition_names_by_filter", ret != null, ex, tbl_name);
+      }
+      return ret;
+    }
+
+    @Override
     public void alter_partition(final String db_name, final String tbl_name,
         final Partition new_part)
         throws InvalidOperationException, MetaException,

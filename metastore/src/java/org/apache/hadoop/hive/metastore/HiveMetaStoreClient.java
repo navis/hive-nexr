@@ -59,7 +59,6 @@ import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.PartitionEventType;
-import org.apache.hadoop.hive.metastore.api.PrincipalPrivilegeSet;
 import org.apache.hadoop.hive.metastore.api.PrincipalType;
 import org.apache.hadoop.hive.metastore.api.PrivilegeBag;
 import org.apache.hadoop.hive.metastore.api.Role;
@@ -1034,6 +1033,12 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   public List<String> listPartitionNames(String dbName, String tblName,
       short max) throws MetaException, TException {
     return client.get_partition_names(dbName, tblName, max);
+  }
+
+  @Override
+  public List<String> listPartitionNamesByFilter(String dbName, String tblName,
+      String filter, short max) throws MetaException, TException {
+    return client.get_partition_names_by_filter(dbName, tblName, filter, max);
   }
 
   @Override

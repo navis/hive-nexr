@@ -28,8 +28,6 @@ import org.apache.hadoop.hive.ql.io.HiveFileFormatUtils;
 import org.apache.hadoop.hive.ql.io.HiveOutputFormat;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.Deserializer;
-import org.apache.hadoop.hive.serde2.SerDeException;
-import org.apache.hadoop.hive.serde2.SerDeUtils;
 import org.apache.hadoop.mapred.InputFormat;
 
 /**
@@ -94,23 +92,15 @@ public class PartitionDesc implements Serializable, Cloneable {
     outputFileFormatClass = part.getOutputFormatClass();
     serdeClassName = properties
         .getProperty(org.apache.hadoop.hive.serde.serdeConstants.SERIALIZATION_LIB);
-    ;
   }
 
   public PartitionDesc(final org.apache.hadoop.hive.ql.metadata.Partition part,
-      final TableDesc tblDesc) throws HiveException {
+      final TableDesc tblDesc, final Properties tblProps) throws HiveException {
     tableDesc = tblDesc;
-    properties = part.getSchemaFromTableSchema(tblDesc.getProperties()); // each partition maintains a large properties
+    properties = tblProps; // each partition maintains a large properties
     partSpec = part.getSpec();
     // deserializerClass = part.getDeserializer(properties).getClass();
-    Deserializer deserializer;
-    try {
-      deserializer = SerDeUtils.lookupDeserializer(
-          properties.getProperty(org.apache.hadoop.hive.serde.serdeConstants.SERIALIZATION_LIB));
-    } catch (SerDeException e) {
-      throw new HiveException(e);
-    }
-    deserializerClass = deserializer.getClass();
+    deserializerClass = part.getDeserializer(properties).getClass();
     inputFileFormatClass = part.getInputFormatClass();
     outputFileFormatClass = part.getOutputFormatClass();
     serdeClassName = properties.getProperty(

@@ -695,6 +695,22 @@ module ThriftHiveMetastore
       raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'get_partition_names failed: unknown result')
     end
 
+    def get_partition_names_by_filter(db_name, tbl_name, filter, max_parts)
+      send_get_partition_names_by_filter(db_name, tbl_name, filter, max_parts)
+      return recv_get_partition_names_by_filter()
+    end
+
+    def send_get_partition_names_by_filter(db_name, tbl_name, filter, max_parts)
+      send_message('get_partition_names_by_filter', Get_partition_names_by_filter_args, :db_name => db_name, :tbl_name => tbl_name, :filter => filter, :max_parts => max_parts)
+    end
+
+    def recv_get_partition_names_by_filter()
+      result = receive_message(Get_partition_names_by_filter_result)
+      return result.success unless result.success.nil?
+      raise result.o2 unless result.o2.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'get_partition_names_by_filter failed: unknown result')
+    end
+
     def get_partitions_ps(db_name, tbl_name, part_vals, max_parts)
       send_get_partitions_ps(db_name, tbl_name, part_vals, max_parts)
       return recv_get_partitions_ps()
@@ -1950,6 +1966,17 @@ module ThriftHiveMetastore
         result.o2 = o2
       end
       write_result(result, oprot, 'get_partition_names', seqid)
+    end
+
+    def process_get_partition_names_by_filter(seqid, iprot, oprot)
+      args = read_args(iprot, Get_partition_names_by_filter_args)
+      result = Get_partition_names_by_filter_result.new()
+      begin
+        result.success = @handler.get_partition_names_by_filter(args.db_name, args.tbl_name, args.filter, args.max_parts)
+      rescue ::MetaException => o2
+        result.o2 = o2
+      end
+      write_result(result, oprot, 'get_partition_names_by_filter', seqid)
     end
 
     def process_get_partitions_ps(seqid, iprot, oprot)
@@ -4056,6 +4083,46 @@ module ThriftHiveMetastore
   end
 
   class Get_partition_names_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+    O2 = 1
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::LIST, :name => 'success', :element => {:type => ::Thrift::Types::STRING}},
+      O2 => {:type => ::Thrift::Types::STRUCT, :name => 'o2', :class => ::MetaException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Get_partition_names_by_filter_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    DB_NAME = 1
+    TBL_NAME = 2
+    FILTER = 3
+    MAX_PARTS = 4
+
+    FIELDS = {
+      DB_NAME => {:type => ::Thrift::Types::STRING, :name => 'db_name'},
+      TBL_NAME => {:type => ::Thrift::Types::STRING, :name => 'tbl_name'},
+      FILTER => {:type => ::Thrift::Types::STRING, :name => 'filter'},
+      MAX_PARTS => {:type => ::Thrift::Types::I16, :name => 'max_parts', :default => -1}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Get_partition_names_by_filter_result
     include ::Thrift::Struct, ::Thrift::Struct_Union
     SUCCESS = 0
     O2 = 1

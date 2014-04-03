@@ -869,6 +869,11 @@ public class Table implements Serializable {
     return external != null && "TRUE".equalsIgnoreCase(external);
   }
 
+  public boolean isFullManaged() {
+    String fullManaged = getParameters().get("FULL_MANAGED");
+    return fullManaged != null && "TRUE".equalsIgnoreCase(fullManaged);
+  }
+
   /**
    * @param protectMode
    */

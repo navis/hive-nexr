@@ -32,7 +32,6 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.Warehouse;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.MetaException;
-import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.exec.ExprNodeEvaluator;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
@@ -187,7 +186,7 @@ public class PartitionPruner implements Transform {
         if (prunerExpr == null) {
           // This can happen when hive.mapred.mode=nonstrict and there is no predicates at all
           // Add all partitions to the unknown_parts so that a MR job is generated.
-          true_parts.addAll(Hive.get().getPartitions(tab));
+          true_parts.addAll(getAllPartitions(tab));
         } else {
           // remove non-partition columns
           ExprNodeDesc compactExpr = prunerExpr.clone();
@@ -199,19 +198,20 @@ public class PartitionPruner implements Transform {
           if (compactExpr == null) {
             // This could happen when hive.mapred.mode=nonstrict and all the predicates
             // are on non-partition columns.
-            unkn_parts.addAll(Hive.get().getPartitions(tab));
+            unkn_parts.addAll(getAllPartitions(tab));
           } else {
             String message = Utilities.checkJDOPushDown(tab, compactExpr);
             if (message == null) {
               String filter = compactExpr.getExprString();
               String oldFilter = prunerExpr.getExprString();
 
+              List<Partition> partitions = getPartitionsWithFilter(tab, filter);
               if (filter.equals(oldFilter)) {
                 // pruneExpr contains only partition columns
-                pruneByPushDown(tab, true_parts, filter);
+                true_parts.addAll(partitions);
               } else {
                 // pruneExpr contains non-partition columns
-                pruneByPushDown(tab, unkn_parts, filter);
+                unkn_parts.addAll(partitions);
               }
             } else {
               LOG.info(ErrorMsg.INVALID_JDO_FILTER_EXPRESSION.getMsg("by condition '"
@@ -223,7 +223,7 @@ public class PartitionPruner implements Transform {
         }
         LOG.debug("tabname = " + tab.getTableName() + " is partitioned");
       } else {
-        true_parts.addAll(Hive.get().getPartitions(tab));
+        true_parts.addAll(getAllPartitions(tab));
       }
     } catch (HiveException e) {
       throw e;
@@ -235,6 +235,42 @@ public class PartitionPruner implements Transform {
     ret = new PrunedPartitionList(tab, true_parts, unkn_parts, denied_parts);
     prunedPartitionsMap.put(key, ret);
     return ret;
+  }
+
+  private static List<Partition> getPartitionsWithFilter(Table tab, String filter)
+    throws HiveException, TException {
+    if (tab.isFullManaged()) {
+      return createPassivePartitions(tab,
+        Hive.get().getPartitionNamesByFilter(tab.getDbName(), tab.getTableName(), filter, (short)-1));
+    }
+    return Hive.get().getPartitionsByFilter(tab, filter);
+  }
+
+  private static List<Partition> getAllPartitions(Table tab) throws HiveException, MetaException {
+    if (tab.isFullManaged()) {
+      return createPassivePartitions(tab,
+        Hive.get().getPartitionNames(tab.getDbName(), tab.getTableName(), (short) -1));
+    }
+    return Hive.get().getPartitions(tab);
+  }
+
+  private static List<Partition> getAllPartitions(Table tab, List<String> names)
+      throws HiveException, MetaException {
+    if (tab.isFullManaged()) {
+      return createPassivePartitions(tab, names);
+    }
+    return Hive.get().getPartitionsByNames(tab, names);
+  }
+
+  private static List<Partition> createPassivePartitions(Table tab, List<String> names)
+      throws HiveException, MetaException {
+    List<Partition> partitions = new ArrayList<Partition>();
+    for (String partName : names) {
+      Partition partition = new Partition(tab);
+      partition.getTPartition().setValues(Warehouse.makeValuesFromName(partName));
+      partitions.add(partition);
+    }
+    return partitions;
   }
 
   /**
@@ -253,7 +289,7 @@ public class PartitionPruner implements Transform {
       GenericUDF udf = ((ExprNodeGenericFuncDesc)expr).getGenericUDF();
       if (udf instanceof GenericUDFOPAnd ||
           udf instanceof GenericUDFOPOr) {
-        List<ExprNodeDesc> children = ((ExprNodeGenericFuncDesc)expr).getChildren();
+        List<ExprNodeDesc> children = expr.getChildren();
         ExprNodeDesc left = children.get(0);
         children.set(0, compactExpr(left));
         ExprNodeDesc right = children.get(1);
@@ -269,24 +305,6 @@ public class PartitionPruner implements Transform {
       return expr;
     }
     return expr;
-  }
-
-  /**
-   * Pruning partition using JDO filtering.
-   * @param tab the table containing the partitions.
-   * @param true_parts the resulting partitions.
-   * @param filter the SQL predicate that involves only partition columns
-   * @throws HiveException
-   * @throws MetaException
-   * @throws NoSuchObjectException
-   * @throws TException
-   */
-  static private void pruneByPushDown(Table tab, Set<Partition> true_parts, String filter)
-      throws HiveException, MetaException, NoSuchObjectException, TException {
-    Hive db = Hive.get();
-    List<Partition> parts = db.getPartitionsByFilter(tab, filter);
-    true_parts.addAll(parts);
-    return;
   }
 
   /**
@@ -361,11 +379,11 @@ public class PartitionPruner implements Transform {
 
     perfLogger.PerfLogBegin(PerfLogger.PARTITION_RETRIEVING);
     if (trueNames != null) {
-      List<Partition> parts = Hive.get().getPartitionsByNames(tab, trueNames);
+      List<Partition> parts = getAllPartitions(tab, trueNames);
       true_parts.addAll(parts);
     }
     if (unknNames != null) {
-      List<Partition> parts = Hive.get().getPartitionsByNames(tab, unknNames);
+      List<Partition> parts = getAllPartitions(tab, unknNames);
       unkn_parts.addAll(parts);
     }
     perfLogger.PerfLogEnd(PerfLogger.PARTITION_RETRIEVING);

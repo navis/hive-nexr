@@ -394,6 +394,9 @@ public interface IMetaStoreClient {
   public List<String> listPartitionNames(String db_name, String tbl_name,
       short max_parts) throws MetaException, TException;
 
+  public List<String> listPartitionNamesByFilter(String db_name, String tbl_name, String filter,
+      short max_parts) throws MetaException, TException;
+
   public List<String> listPartitionNames(String db_name, String tbl_name,
       List<String> part_vals, short max_parts)
       throws MetaException, TException, NoSuchObjectException;

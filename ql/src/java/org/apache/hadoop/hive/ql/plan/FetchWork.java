@@ -106,6 +106,10 @@ public class FetchWork implements Serializable {
     return tblDir != null;
   }
 
+  public boolean isFullManaged() {
+    return tblDesc.isFullManaged();
+  }
+
   public boolean isPartitioned() {
     return tblDir == null;
   }

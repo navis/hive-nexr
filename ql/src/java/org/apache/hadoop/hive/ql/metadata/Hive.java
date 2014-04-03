@@ -1667,6 +1667,16 @@ private void constructOneLBLocationMap(FileStatus fSta,
     return names;
   }
 
+  public List<String> getPartitionNamesByFilter(String dbName, String tblName,
+      String filter, short max) throws HiveException {
+    try {
+      return getMSC().listPartitionNamesByFilter(dbName, tblName, filter, max);
+    } catch (Exception e) {
+      LOG.error(StringUtils.stringifyException(e));
+      throw new HiveException(e);
+    }
+  }
+
   public List<String> getPartitionNames(String dbName, String tblName,
       Map<String, String> partSpec, short max) throws HiveException {
     List<String> names = null;
@@ -1959,7 +1969,7 @@ private void constructOneLBLocationMap(FileStatus fSta,
       boolean grantOption) throws HiveException {
     try {
       return getMSC().grant_role(roleName, userName, principalType, grantor,
-          grantorType, grantOption);
+        grantorType, grantOption);
     } catch (Exception e) {
       throw new HiveException(e);
     }

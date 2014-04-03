@@ -362,6 +362,10 @@ public class Warehouse {
 
   static final Pattern pat = Pattern.compile("([^/]+)=([^/]+)");
 
+  public static List<String> makeValuesFromName(String name) throws MetaException {
+    return new ArrayList<String>(makeSpecFromName(name).values());
+  }
+
   public static LinkedHashMap<String, String> makeSpecFromName(String name)
       throws MetaException {
     if (name == null || name.isEmpty()) {

@@ -787,12 +787,19 @@ public final class Utilities {
   }
 
   public static PartitionDesc getPartitionDesc(Partition part) throws HiveException {
-    return (new PartitionDesc(part));
+    return new PartitionDesc(part);
+  }
+
+  public static PartitionDesc getPartitionDesc(
+    TableDesc tblDesc, Properties tblProps, Partition part) throws HiveException {
+    return new PartitionDesc(part, tblDesc,
+      tblProps == null ? part.getMetadataFromPartitionSchema() : tblProps);
   }
 
   public static PartitionDesc getPartitionDescFromTableDesc(TableDesc tblDesc, Partition part)
       throws HiveException {
-    return new PartitionDesc(part, tblDesc);
+    Properties tblProps = part.getSchemaFromTableSchema(tblDesc.getProperties());
+    return new PartitionDesc(part, tblDesc, tblProps);
   }
 
   private static String getOpTreeSkel_helper(Operator<?> op, String indent) {
