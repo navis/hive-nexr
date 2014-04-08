@@ -25,6 +25,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -518,9 +519,13 @@ public class HiveInputFormat<K extends WritableComparable, V extends Writable>
       }
     }
 
+    pushProjectionsAndFilters(jobConf, aliases);
+  }
+
+  protected void pushProjectionsAndFilters(JobConf jobConf, List<String> aliases) {
+    Map<String,Operator<? extends OperatorDesc>> aliasToWork = mrwork.getAliasToWork();
     for (String alias : aliases) {
-      Operator<? extends OperatorDesc> op = this.mrwork.getAliasToWork().get(
-        alias);
+      Operator<? extends OperatorDesc> op = aliasToWork.get(alias);
       if (op instanceof TableScanOperator) {
         TableScanOperator ts = (TableScanOperator) op;
         // push down projections.

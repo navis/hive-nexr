@@ -324,6 +324,12 @@ public final class HiveFileFormatUtils {
   }
 
   public static PartitionDesc getPartitionDescFromPathRecursively(
+      Map<String, PartitionDesc> pathToPartitionInfo, Path dir) throws IOException {
+    return getPartitionDescFromPathRecursively(pathToPartitionInfo, dir,
+        IOPrepareCache.get().getPartitionDescMap());
+  }
+
+  public static PartitionDesc getPartitionDescFromPathRecursively(
       Map<String, PartitionDesc> pathToPartitionInfo, Path dir,
       Map<Map<String, PartitionDesc>, Map<String, PartitionDesc>> cacheMap)
       throws IOException {
@@ -452,7 +458,6 @@ public final class HiveFileFormatUtils {
     if (foundAlias(pathToAliases, dirPath)) {
       return dirPath;
     }
-    path = dirPath;
 
     String dirStr = dir.toString();
     int dirPathIndex = dirPath.lastIndexOf(Path.SEPARATOR);
@@ -493,7 +498,7 @@ public final class HiveFileFormatUtils {
   }
 
   /**
-   * Get the list of aliases from the opeerator tree that are needed for the path
+   * Get the list of aliases from the operator tree that are needed for the path
    * @param pathToAliases  mapping from path to aliases
    * @param dir            The path to look for
    **/

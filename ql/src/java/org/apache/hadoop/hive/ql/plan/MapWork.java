@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hive.ql.plan;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -37,6 +38,7 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.OperatorUtils;
+import org.apache.hadoop.hive.ql.io.HiveFileFormatUtils;
 import org.apache.hadoop.hive.ql.optimizer.physical.BucketingSortingCtx.BucketCol;
 import org.apache.hadoop.hive.ql.optimizer.physical.BucketingSortingCtx.SortCol;
 import org.apache.hadoop.hive.ql.parse.SplitSample;
@@ -319,7 +321,8 @@ public class MapWork extends BaseWork {
 
   @Override
   public void replaceRoots(Map<Operator<?>, Operator<?>> replacementMap) {
-    LinkedHashMap<String, Operator<?>> newAliasToWork = new LinkedHashMap<String, Operator<?>>();
+    LinkedHashMap<String, Operator<? extends OperatorDesc>> newAliasToWork =
+        new LinkedHashMap<String, Operator<? extends OperatorDesc>>();
 
     for (Map.Entry<String, Operator<?>> entry: aliasToWork.entrySet()) {
       newAliasToWork.put(entry.getKey(), replacementMap.get(entry.getValue()));
@@ -356,6 +359,14 @@ public class MapWork extends BaseWork {
     } else {
       aliases.add(alias);
     }
+  }
+
+  public List<String> getAliasesForPath(Path path) {
+    return HiveFileFormatUtils.doGetAliasesFromPath(pathToAliases, path);
+  }
+
+  public PartitionDesc getPartitionInfoForPath(Path path) throws IOException {
+    return HiveFileFormatUtils.getPartitionDescFromPathRecursively(pathToPartitionInfo, path);
   }
 
   public void initialize() {

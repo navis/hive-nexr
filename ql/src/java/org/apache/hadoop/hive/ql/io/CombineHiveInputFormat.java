@@ -48,6 +48,7 @@ import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.log.PerfLogger;
 import org.apache.hadoop.hive.ql.parse.SplitSample;
+import org.apache.hadoop.hive.ql.plan.MapWork;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.PartitionDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
@@ -375,7 +376,7 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
 
       // Since there is no easy way of knowing whether MAPREDUCE-1597 is present in the tree or not,
       // we use a configuration variable for the same
-      if (this.mrwork != null && !this.mrwork.getHadoopSupportsSplittable()) {
+      if (mrwork != null && !mrwork.getHadoopSupportsSplittable()) {
         // The following code should be removed, once
         // https://issues.apache.org/jira/browse/MAPREDUCE-1597 is fixed.
         // Hadoop does not handle non-splittable files correctly for CombineFileInputFormat,
@@ -483,7 +484,7 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
     }
 
     if (mrwork.getNameToSplitSample() != null && !mrwork.getNameToSplitSample().isEmpty()) {
-      iss = sampleSplits(iss);
+      iss = sampleSplits(mrwork, iss);
     }
 
     for (CombineFileSplit is : iss) {
@@ -603,21 +604,18 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
    * @param splits
    * @return the sampled splits
    */
-  private List<CombineFileSplit> sampleSplits(List<CombineFileSplit> splits) {
+  private List<CombineFileSplit> sampleSplits(MapWork mrwork, List<CombineFileSplit> splits) {
     HashMap<String, SplitSample> nameToSamples = mrwork.getNameToSplitSample();
     List<CombineFileSplit> retLists = new ArrayList<CombineFileSplit>();
-    Map<String, ArrayList<CombineFileSplit>> aliasToSplitList = new HashMap<String, ArrayList<CombineFileSplit>>();
-    Map<String, ArrayList<String>> pathToAliases = mrwork.getPathToAliases();
-    Map<String, ArrayList<String>> pathToAliasesNoScheme = removeScheme(pathToAliases);
+    Map<String, ArrayList<CombineFileSplit>> aliasToSplitList =
+        new HashMap<String, ArrayList<CombineFileSplit>>();
 
     // Populate list of exclusive splits for every sampled alias
     //
     for (CombineFileSplit split : splits) {
       String alias = null;
       for (Path path : split.getPaths()) {
-        boolean schemeless = path.toUri().getScheme() == null;
-        List<String> l = HiveFileFormatUtils.doGetAliasesFromPath(
-            schemeless ? pathToAliasesNoScheme : pathToAliases, path);
+        List<String> l = mrwork.getAliasesForPath(path);
         // a path for a split unqualified the split from being sampled if:
         // 1. it serves more than one alias
         // 2. the alias it serves is not sampled
@@ -677,15 +675,6 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
     return retLists;
   }
 
-  Map<String, ArrayList<String>> removeScheme(Map<String, ArrayList<String>> pathToAliases) {
-    Map<String, ArrayList<String>> result = new HashMap<String, ArrayList<String>>();
-    for (Map.Entry <String, ArrayList<String>> entry : pathToAliases.entrySet()) {
-      String newKey = new Path(entry.getKey()).toUri().getPath();
-      result.put(newKey, entry.getValue());
-    }
-    return result;
-  }
-
   /**
    * Create a generic Hive RecordReader than can iterate over all chunks in a
    * CombinedFileSplit.
@@ -698,19 +687,10 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
     }
 
     CombineHiveInputSplit hsplit = (CombineHiveInputSplit) split;
-
-    String inputFormatClassName = null;
-    Class inputFormatClass = null;
-    try {
-      inputFormatClassName = hsplit.inputFormatClassName();
-      inputFormatClass = job.getClassByName(inputFormatClassName);
-    } catch (Exception e) {
-      throw new IOException("cannot find class " + inputFormatClassName);
+    List<String> aliases = mrwork.getAliasesForPath(hsplit.getPath(0));
+    if (aliases != null) {
+      pushProjectionsAndFilters(job, aliases);
     }
-
-    pushProjectionsAndFilters(job, inputFormatClass,
-        hsplit.getPath(0).toString(),
-        hsplit.getPath(0).toUri().getPath());
 
     return ShimLoader.getHadoopShims().getCombineFileInputFormat()
         .getRecordReader(job,
