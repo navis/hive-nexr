@@ -69,6 +69,7 @@ public class HiveConnection implements java.sql.Connection {
   private static final String HIVE_ANONYMOUS_USER = "anonymous";
   private static final String HIVE_ANONYMOUS_PASSWD = "anonymous";
 
+  private static final String CONNECT_TIMEOUT = "connectTimeout";
   private static final String SOCKET_TIMEOUT = "socketTimeout";
   private static final String REUSE_ADDRESS = "reuseAddress";
   private static final String KEEP_ALIVE = "keepAlive";
@@ -158,7 +159,10 @@ public class HiveConnection implements java.sql.Connection {
   private TSocket createSocket(Utils.JdbcConnectionParams connParams) throws SocketException {
     TSocket tsocket = new TSocket(connParams.getHost(), connParams.getPort());
     Map<String, String> sessConf = connParams.getSessionVars();
-    String value = sessConf.get(SOCKET_TIMEOUT);
+    String value = sessConf.get(CONNECT_TIMEOUT);
+    if (value == null) {
+      value = sessConf.get(SOCKET_TIMEOUT);
+    }
     if (value != null) {
       tsocket.getSocket().setSoTimeout(Integer.parseInt(value));
     }
@@ -181,9 +185,10 @@ public class HiveConnection implements java.sql.Connection {
     return tsocket;
   }
 
-  private TTransport openTransport(Utils.JdbcConnectionParams connParams, TTransport transport)
+  private TTransport openTransport(Utils.JdbcConnectionParams connParams, TSocket tsocket)
       throws Exception {
 
+    TTransport transport = tsocket;
     Map<String, String> sessConf = connParams.getSessionVars();
     // handle secure connection if specified
     if (!sessConf.containsKey(HIVE_AUTH_TYPE)
@@ -204,6 +209,10 @@ public class HiveConnection implements java.sql.Connection {
       }
     }
     transport.open();
+
+    String value = sessConf.get(SOCKET_TIMEOUT);
+    tsocket.getSocket().setSoTimeout(value == null ? 0 : Integer.parseInt(value));
+
     return transport;
   }
 
