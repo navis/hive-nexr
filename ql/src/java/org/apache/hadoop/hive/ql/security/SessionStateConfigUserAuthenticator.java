@@ -22,8 +22,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.common.SessionBase;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
-import org.apache.hadoop.hive.ql.session.SessionState;
 
 /**
  * Authenticator to be used for testing and debugging. This picks the user.name
@@ -35,7 +35,7 @@ public class SessionStateConfigUserAuthenticator implements HiveAuthenticationPr
   private final List<String> groupNames = new ArrayList<String>();
 
   protected Configuration conf;
-  private SessionState sessionState;
+  private SessionBase sessionState;
 
   @Override
   public List<String> getGroupNames() {
@@ -67,7 +67,7 @@ public class SessionStateConfigUserAuthenticator implements HiveAuthenticationPr
   }
 
   @Override
-  public void setSessionState(SessionState sessionState) {
+  public void setSessionState(SessionBase sessionState) {
     this.sessionState = sessionState;
   }
 

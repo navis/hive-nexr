@@ -22,19 +22,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.common.SessionBase;
+import org.apache.hadoop.hive.metastore.HiveMetaStore;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
-import org.apache.hadoop.hive.ql.session.SessionState;
 
 /**
  * Authenticator that returns the userName set in SessionState. For use when authorizing with HS2
  * so that HS2 can set the user for the session through SessionState
  */
-public class SessionStateUserAuthenticator implements HiveAuthenticationProvider {
+public class SessionStateUserAuthenticator implements HiveMetastoreAuthenticationProvider {
 
   private final List<String> groupNames = new ArrayList<String>();
 
-  protected Configuration conf;
-  private SessionState sessionState;
+  private Configuration conf;
+  private SessionBase sessionState;
 
   @Override
   public List<String> getGroupNames() {
@@ -43,7 +44,12 @@ public class SessionStateUserAuthenticator implements HiveAuthenticationProvider
 
   @Override
   public String getUserName() {
-    return sessionState.getUserName();
+    String username = sessionState == null ? null : sessionState.getUserName();
+    if (username == null) {
+      Configuration sessionConf = sessionState == null ? conf : sessionState.getConf();
+      return HadoopDefaultAuthenticator.getUserGroupInformation(sessionConf).getUserName();
+    }
+    return username;
   }
 
   @Override
@@ -53,16 +59,21 @@ public class SessionStateUserAuthenticator implements HiveAuthenticationProvider
 
   @Override
   public Configuration getConf() {
-    return null;
+    return conf;
   }
 
   @Override
-  public void setConf(Configuration arg0) {
+  public void setConf(Configuration conf) {
+    this.conf = conf;
   }
 
   @Override
-  public void setSessionState(SessionState sessionState) {
+  public void setMetaStoreHandler(HiveMetaStore.HMSHandler handler) {
+    this.conf = handler.getConf();
+  }
+
+  @Override
+  public void setSessionState(SessionBase sessionState) {
     this.sessionState = sessionState;
   }
-
 }

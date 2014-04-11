@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.common.JavaUtils;
+import org.apache.hadoop.hive.common.SessionBase;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.ql.index.HiveIndexHandler;
@@ -29,7 +30,6 @@ import org.apache.hadoop.hive.ql.security.HadoopDefaultAuthenticator;
 import org.apache.hadoop.hive.ql.security.HiveAuthenticationProvider;
 import org.apache.hadoop.hive.ql.security.authorization.DefaultHiveAuthorizationProvider;
 import org.apache.hadoop.hive.ql.security.authorization.HiveAuthorizationProvider;
-import org.apache.hadoop.hive.ql.security.authorization.plugin.HiveAuthorizer;
 import org.apache.hadoop.hive.ql.security.authorization.plugin.HiveAuthorizerFactory;
 import org.apache.hadoop.hive.ql.security.authorization.plugin.sqlstd.SQLStdHiveAuthorizerFactory;
 import org.apache.hadoop.io.Text;
@@ -422,6 +422,9 @@ public final class HiveUtils {
       }
       if (cls != null) {
         ret = ReflectionUtils.newInstance(cls, conf);
+      }
+      if (SessionBase.get() != null) {
+        ret.setSessionState(SessionBase.get()); // local metastore. propagate session
       }
     } catch (Exception e) {
       throw new HiveException(e);

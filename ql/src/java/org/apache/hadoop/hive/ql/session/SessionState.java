@@ -41,6 +41,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.JavaUtils;
+import org.apache.hadoop.hive.common.SessionBase;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.ql.HiveDriverRunHookContext;
@@ -72,15 +73,11 @@ import org.apache.hadoop.util.ReflectionUtils;
  * from any point in the code to interact with the user and to retrieve
  * configuration information
  */
-public class SessionState {
+public class SessionState extends SessionBase {
+
   private static final Log LOG = LogFactory.getLog(SessionState.class);
 
   protected ClassLoader parentLoader;
-
-  /**
-   * current configuration.
-   */
-  protected HiveConf conf;
 
   /**
    * silent mode.
@@ -149,7 +146,7 @@ public class SessionState {
   private Map<String, List<List<String>>> stackTraces;
 
   // This mapping collects all the configuration variables which have been set by the user
-  // explicitely, either via SET in the CLI, the hiveconf option, or a System property.
+  // explicitly, either via SET in the CLI, the hiveconf option, or a System property.
   // It is a mapping from the variable name to its value.  Note that if a user repeatedly
   // changes the value of a variable, the corresponding change will be made in this mapping.
   private Map<String, String> overriddenConfigurations;
@@ -173,8 +170,6 @@ public class SessionState {
 
   private PerfLogger perfLogger;
 
-  private final String userName;
-
   /**
    * Get the lineage state stored in this session.
    *
@@ -182,14 +177,6 @@ public class SessionState {
    */
   public LineageState getLineageState() {
     return ls;
-  }
-
-  public HiveConf getConf() {
-    return conf;
-  }
-
-  public void setConf(HiveConf conf) {
-    this.conf = conf;
   }
 
   public File getTmpOutputFile() {
@@ -236,8 +223,7 @@ public class SessionState {
   }
 
   public SessionState(HiveConf conf, String userName) {
-    this.conf = conf;
-    this.userName = userName;
+    super(conf, userName, null);
     isSilent = conf.getBoolVar(HiveConf.ConfVars.HIVESESSIONSILENT);
     ls = new LineageState();
     overriddenConfigurations = new HashMap<String, String>();
@@ -278,12 +264,6 @@ public class SessionState {
   public String getSessionId() {
     return (conf.getVar(HiveConf.ConfVars.HIVESESSIONID));
   }
-
-  /**
-   * Singleton Session object per thread.
-   *
-   **/
-  private static ThreadLocal<SessionState> tss = new ThreadLocal<SessionState>();
 
   /**
    * start a new session and set it to current session.
@@ -445,7 +425,7 @@ public class SessionState {
    * get the current session.
    */
   public static SessionState get() {
-    return tss.get();
+    return (SessionState) tss.get();
   }
 
   /**

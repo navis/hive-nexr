@@ -21,8 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.common.SessionBase;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
-import org.apache.hadoop.hive.ql.session.SessionState;
 
 public class DummyAuthenticator implements HiveAuthenticationProvider {
 
@@ -63,7 +63,7 @@ public class DummyAuthenticator implements HiveAuthenticationProvider {
   }
 
   @Override
-  public void setSessionState(SessionState ss) {
+  public void setSessionState(SessionBase ss) {
     //no op
   }
 

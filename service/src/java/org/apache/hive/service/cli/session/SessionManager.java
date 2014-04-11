@@ -34,6 +34,7 @@ import org.apache.hadoop.hive.ql.hooks.HookUtils;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import java.util.Set;
 
+import org.apache.hadoop.hive.ql.security.HadoopDefaultAuthenticator;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hive.service.CompositeService;
 import org.apache.hive.service.auth.TSetIpAddressProcessor;
@@ -251,12 +252,13 @@ public class SessionManager extends CompositeService {
     return backgroundOperationPool.submit(r);
   }
 
-  public HiveSession openServerSession(boolean inheritToClient) throws HiveSQLException {
+  public HiveSession getServerSession(boolean inheritToClient) throws HiveSQLException {
     if (serverSession != null) {
       return serverSession;
     }
+    String userName = HadoopDefaultAuthenticator.getUserGroupInformation(hiveConf).getUserName();
     SessionHandle handle = openSession(
-        TProtocolVersion.HIVE_CLI_SERVICE_PROTOCOL_V1, null, null, null);
+        TProtocolVersion.HIVE_CLI_SERVICE_PROTOCOL_V1, userName, null, null);
     this.inheritToClient = inheritToClient;
     return serverSession = handleToSession.get(handle);
   }

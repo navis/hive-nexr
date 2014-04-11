@@ -55,6 +55,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.common.LogUtils;
 import org.apache.hadoop.hive.common.LogUtils.LogInitializationException;
+import org.apache.hadoop.hive.common.SessionBase;
 import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.common.classification.InterfaceStability;
 import org.apache.hadoop.hive.common.cli.CommonCliOptions;
@@ -449,6 +450,10 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     }
 
     public Configuration getConf() {
+      SessionBase session = SessionBase.get();
+      if (session != null) {
+        return session.getConf();
+      }
       Configuration conf = threadLocalConf.get();
       if (conf == null) {
         conf = new Configuration(hiveConf);

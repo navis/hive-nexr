@@ -20,9 +20,9 @@ package org.apache.hadoop.hive.ql.security;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.common.SessionBase;
 import org.apache.hadoop.hive.metastore.HiveMetaStore.HMSHandler;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
-import org.apache.hadoop.hive.ql.session.SessionState;
 
 /**
  *
@@ -104,7 +104,7 @@ public class InjectableDummyAuthenticator implements HiveMetastoreAuthentication
   }
 
   @Override
-  public void setSessionState(SessionState arg0) {
+  public void setSessionState(SessionBase arg0) {
     //no-op
   }
 

@@ -36,7 +36,6 @@ import org.apache.hive.service.cli.thrift.ThriftBinaryCLIService;
 import org.apache.hadoop.hive.service.HiveServer;
 import org.apache.hive.service.cli.OperationHandle;
 import org.apache.hive.service.cli.RowSet;
-import org.apache.hive.service.cli.SessionHandle;
 import org.apache.hive.service.cli.TableSchema;
 import org.apache.hive.service.cli.session.HiveSession;
 import org.apache.hive.service.cli.thrift.ThriftCLIService;
@@ -191,13 +190,13 @@ public class HiveServer2 extends CompositeService {
   }
 
   private void initialize(String[] initFiles, boolean inheritToClient) throws Exception {
-    HiveSession serverSession = cliService.openServerSession(inheritToClient);
-    SessionHandle session = serverSession.getSessionHandle();
+    HiveSession serverSession = cliService.getServerSession(inheritToClient);
     for (String initFile : initFiles) {
       LOG.info("Executing scripts in : " + initFile);
       for (String query : HiveServer.loadScript(getHiveConf(), initFile)) {
         LOG.info("-- Executing : " + query);
-        OperationHandle operation = cliService.executeStatement(session, query, null);
+        OperationHandle operation =
+            cliService.executeStatement(serverSession.getSessionHandle(), query, null);
         if (operation.hasResultSet()) {
           TableSchema schema = cliService.getResultSetMetadata(operation);
           RowSet rowSet = cliService.fetchResults(operation);

@@ -49,10 +49,7 @@ public class $className extends TestCase {
     try {
       qt = new HBaseQTestUtil((HIVE_ROOT + "$resultsDir"), (HIVE_ROOT + "$logDir"), miniMR, setup);
     } catch (Exception e) {
-      System.err.println("Exception: " + e.getMessage());
-      e.printStackTrace();
-      System.err.flush();
-      fail("Unexpected exception in setup");
+      fail("Unexpected exception in setup " + org.apache.hadoop.util.StringUtils.stringifyException(e));
     }
   }
 

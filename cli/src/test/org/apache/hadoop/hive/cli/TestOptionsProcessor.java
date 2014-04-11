@@ -59,7 +59,6 @@ public class TestOptionsProcessor {
     assertEquals(3000, sessionState.port);
     assertEquals(0, sessionState.initFiles.size());
     assertTrue(sessionState.getIsVerbose());
-    sessionState.setConf(null);
     assertTrue(sessionState.getIsSilent());
 
   }

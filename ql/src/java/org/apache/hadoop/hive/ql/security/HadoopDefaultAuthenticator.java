@@ -22,8 +22,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.common.SessionBase;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
-import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.security.UserGroupInformation;
 
@@ -47,22 +47,25 @@ public class HadoopDefaultAuthenticator implements HiveAuthenticationProvider {
   @Override
   public void setConf(Configuration conf) {
     this.conf = conf;
-    UserGroupInformation ugi = null;
+
+    UserGroupInformation ugi = getUserGroupInformation(conf);
+    userName = ShimLoader.getHadoopShims().getShortUserName(ugi);
+    if (ugi.getGroupNames() != null) {
+      groupNames = Arrays.asList(ugi.getGroupNames());
+    }
+  }
+
+  public static UserGroupInformation getUserGroupInformation(Configuration conf) {
+    UserGroupInformation ugi;
     try {
       ugi = ShimLoader.getHadoopShims().getUGIForConf(conf);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-
     if (ugi == null) {
-      throw new RuntimeException(
-          "Can not initialize HadoopDefaultAuthenticator.");
+      throw new RuntimeException("Can not initialize HadoopDefaultAuthenticator.");
     }
-
-    this.userName = ShimLoader.getHadoopShims().getShortUserName(ugi);
-    if (ugi.getGroupNames() != null) {
-      this.groupNames = Arrays.asList(ugi.getGroupNames());
-    }
+    return ugi;
   }
 
   @Override
@@ -76,7 +79,7 @@ public class HadoopDefaultAuthenticator implements HiveAuthenticationProvider {
   }
 
   @Override
-  public void setSessionState(SessionState ss) {
+  public void setSessionState(SessionBase ss) {
     //no op
   }
 

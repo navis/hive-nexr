@@ -150,8 +150,8 @@ public class CLIService extends CompositeService implements ICLIService {
     super.stop();
   }
 
-  public HiveSession openServerSession(boolean inheritToClient) throws HiveSQLException {
-    return sessionManager.openServerSession(inheritToClient);
+  public HiveSession getServerSession(boolean inheritToClient) throws HiveSQLException {
+    return sessionManager.getServerSession(inheritToClient);
   }
 
   public SessionHandle openSession(TProtocolVersion protocol, String username, String password,
