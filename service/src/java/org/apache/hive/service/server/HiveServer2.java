@@ -105,9 +105,7 @@ public class HiveServer2 extends CompositeService {
       HiveServer2 server = new HiveServer2();
       server.init(hiveConf);
 
-      if (cli.initFiles != null && cli.initFiles.length > 0) {
-        server.initialize(cli.initFiles, cli.registerServerResources);
-      }
+      server.initialize(cli.initFiles, cli.registerServerResources);
       server.validateJars(hiveConf);
       server.start();
     } catch (Throwable t) {
@@ -130,10 +128,14 @@ public class HiveServer2 extends CompositeService {
 
   private void initialize(String[] initFiles, boolean inheritToClient) throws Exception {
     HiveSession serverSession = cliService.openServerSession(inheritToClient);
+    if (initFiles == null || initFiles.length == 0) {
+      return;
+    }
     SessionHandle session = serverSession.getSessionHandle();
     for (String initFile : initFiles) {
+      LOG.info("Loading : " + initFile);
       for (String query : HiveServer.loadScript(getHiveConf(), initFile)) {
-        LOG.info("Executing : " + query);
+        LOG.info("-- Executing : " + query);
         OperationHandle operation = cliService.executeStatement(session, query, null);
         if (operation.hasResultSet()) {
           TableSchema schema = cliService.getResultSetMetadata(operation);
@@ -148,7 +150,7 @@ public class HiveServer2 extends CompositeService {
               }
               builder.append(eval);
             }
-            LOG.info("Executing : " + builder.toString());
+            LOG.info("-- Executed : " + builder.toString());
           }
         }
         cliService.closeOperation(operation);

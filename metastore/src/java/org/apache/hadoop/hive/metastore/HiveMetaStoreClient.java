@@ -40,6 +40,7 @@ import javax.security.auth.login.LoginException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.common.SessionBase;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
@@ -293,9 +294,15 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
           }
 
           if (isConnected && !useSasl && conf.getBoolVar(ConfVars.METASTORE_EXECUTE_SET_UGI)){
+            SessionBase session = SessionBase.get();
             // Call set_ugi, only in unsecure mode.
             try {
-              UserGroupInformation ugi = shim.getUGIForConf(conf);
+              UserGroupInformation ugi;
+              if (session != null) {
+                ugi = shim.createRemoteUser(session.getUserName(), session.getGroupNames());
+              } else {
+                ugi = shim.getUGIForConf(conf);
+              }
               client.set_ugi(ugi.getUserName(), Arrays.asList(ugi.getGroupNames()));
             } catch (LoginException e) {
               LOG.warn("Failed to do login. set_ugi() is not successful, " +

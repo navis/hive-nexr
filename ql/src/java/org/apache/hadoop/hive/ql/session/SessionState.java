@@ -40,6 +40,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.common.SessionBase;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.MapRedStats;
 import org.apache.hadoop.hive.ql.exec.Utilities;
@@ -49,6 +50,7 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.HiveUtils;
 import org.apache.hadoop.hive.ql.plan.HiveOperation;
 import org.apache.hadoop.hive.ql.security.HiveAuthenticationProvider;
+import org.apache.hadoop.hive.ql.security.SessionStateUserAuthenticator;
 import org.apache.hadoop.hive.ql.security.authorization.HiveAuthorizationProvider;
 import org.apache.hadoop.hive.ql.util.DosToUnix;
 
@@ -59,18 +61,9 @@ import org.apache.hadoop.hive.ql.util.DosToUnix;
  * from any point in the code to interact with the user and to retrieve
  * configuration information
  */
-public class SessionState {
+public class SessionState extends SessionBase {
+
   private static final Log LOG = LogFactory.getLog(SessionState.class);
-
-  /**
-   * current configuration.
-   */
-  protected final HiveConf conf;
-
-  /**
-   * current configuration.
-   */
-  protected final String userName;
 
   /**
    * silent mode.
@@ -140,8 +133,6 @@ public class SessionState {
    */
   private final LineageState ls;
 
-  private String currentDB;
-
   private boolean initialized;
 
   /**
@@ -153,12 +144,20 @@ public class SessionState {
     return ls;
   }
 
-  public HiveConf getConf() {
-    return conf;
+  @Override
+  public String getUserName() {
+    if (authenticator == null || authenticator instanceof SessionStateUserAuthenticator) {
+      return super.getUserName();
+    }
+    return authenticator.getUserName();
   }
 
-  public String getUserName() {
-    return userName;
+  @Override
+  public List<String> getGroupNames() {
+    if (authenticator == null || authenticator instanceof SessionStateUserAuthenticator) {
+      return super.getGroupNames();
+    }
+    return authenticator.getGroupNames();
   }
 
   public File getTmpOutputFile() {
@@ -197,8 +196,7 @@ public class SessionState {
   }
 
   public SessionState(HiveConf conf, String userName) {
-    this.conf = conf;
-    this.userName = userName;
+    super(conf, userName, null);
     isSilent = conf.getBoolVar(HiveConf.ConfVars.HIVESESSIONSILENT);
     ls = new LineageState();
     overriddenConfigurations = new HashMap<String, String>();
@@ -238,12 +236,6 @@ public class SessionState {
   public String getSessionId() {
     return (conf.getVar(HiveConf.ConfVars.HIVESESSIONID));
   }
-
-  /**
-   * Singleton Session object per thread.
-   *
-   **/
-  private static ThreadLocal<SessionState> tss = new ThreadLocal<SessionState>();
 
   /**
    * start a new session and set it to current session.
@@ -320,7 +312,7 @@ public class SessionState {
    * get the current session.
    */
   public static SessionState get() {
-    return tss.get();
+    return (SessionState) tss.get();
   }
 
   /**
@@ -341,14 +333,6 @@ public class SessionState {
     String userid = System.getProperty("user.name");
     return userid + "_" + ManagementFactory.getRuntimeMXBean().getName() + "_"
         + DATE_FORMAT.format(new Date());
-  }
-
-  public String getCurrentDB() {
-    return currentDB;
-  }
-
-  public void setCurrentDB(String currentDB) {
-    this.currentDB = currentDB;
   }
 
   public void destroy() {

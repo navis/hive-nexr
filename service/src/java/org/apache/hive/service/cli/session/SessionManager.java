@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.ql.security.HadoopDefaultAuthenticator;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hive.service.CompositeService;
 import org.apache.hive.service.cli.HiveSQLException;
@@ -111,7 +112,8 @@ public class SessionManager extends CompositeService {
     if (serverSession != null) {
       return serverSession;
     }
-    SessionHandle handle = openSession(null, null, null);
+    String userName = HadoopDefaultAuthenticator.getUserGroupInformation(hiveConf).getUserName();
+    SessionHandle handle = openSession(userName, null, null);
     this.inheritToClient = inheritToClient;
     return serverSession = handleToSession.get(handle);
   }

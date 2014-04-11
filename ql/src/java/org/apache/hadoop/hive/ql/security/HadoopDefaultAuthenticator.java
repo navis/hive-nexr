@@ -59,7 +59,7 @@ public class HadoopDefaultAuthenticator implements HiveAuthenticationProvider {
     }
   }
 
-  static UserGroupInformation getUserGroupInformation(Configuration conf) {
+  public static UserGroupInformation getUserGroupInformation(Configuration conf) {
     UserGroupInformation ugi;
     try {
       ugi = ShimLoader.getHadoopShims().getUGIForConf(conf);

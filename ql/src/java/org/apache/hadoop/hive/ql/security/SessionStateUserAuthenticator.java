@@ -19,6 +19,7 @@
 package org.apache.hadoop.hive.ql.security;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.metastore.HiveMetaStore;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.session.SessionState;
 
@@ -29,12 +30,11 @@ import java.util.List;
  * Authenticator that returns the userName set in SessionState. For use when authorizing with HS2
  * so that HS2 can set the user for the session through SessionState
  */
-public class SessionStateUserAuthenticator implements HiveAuthenticationProvider {
+public class SessionStateUserAuthenticator implements HiveMetastoreAuthenticationProvider {
 
   private final List<String> groupNames = new ArrayList<String>();
 
   protected Configuration conf;
-  private SessionState sessionState;
 
   @Override
   public List<String> getGroupNames() {
@@ -43,8 +43,10 @@ public class SessionStateUserAuthenticator implements HiveAuthenticationProvider
 
   @Override
   public String getUserName() {
-    String username = SessionState.get().getUserName();
+    SessionState session = SessionState.get();
+    String username = session == null ? null : session.getUserName();
     if (username == null) {
+      Configuration conf = session == null ? this.conf : session.getConf();
       return HadoopDefaultAuthenticator.getUserGroupInformation(conf).getUserName();
     }
     return username;
@@ -57,10 +59,16 @@ public class SessionStateUserAuthenticator implements HiveAuthenticationProvider
 
   @Override
   public Configuration getConf() {
-    return null;
+    return conf;
   }
 
   @Override
-  public void setConf(Configuration arg0) {
+  public void setConf(Configuration conf) {
+    this.conf = conf;
+  }
+
+  @Override
+  public void setMetaStoreHandler(HiveMetaStore.HMSHandler handler) {
+    this.conf = handler.getConf();
   }
 }
