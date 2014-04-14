@@ -619,7 +619,8 @@ public class HiveConf extends Configuration {
     HIVE_ZOOKEEPER_SESSION_TIMEOUT("hive.zookeeper.session.timeout", 600*1000),
     HIVE_ZOOKEEPER_NAMESPACE("hive.zookeeper.namespace", "hive_zookeeper_namespace"),
     HIVE_ZOOKEEPER_CLEAN_EXTRA_NODES("hive.zookeeper.clean.extra.nodes", false),
-    HIVE_EMBEDDED_LOCK_TIMEOUT("hive.embedded.lock.timeout", 2000l),
+    HIVE_LOCK_TIMEOUT_MSEC("hive.lock.timeout.msec", 2000),
+    HIVE_UNLOCK_TIMEOUT_MSEC("hive.unlock.timeout.msec", 2000),
 
     // For HBase storage handler
     HIVE_HBASE_WAL_ENABLED("hive.hbase.wal.enabled", true),

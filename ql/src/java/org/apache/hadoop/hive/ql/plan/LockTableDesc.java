@@ -21,8 +21,6 @@ package org.apache.hadoop.hive.ql.plan;
 import java.io.Serializable;
 import java.util.Map;
 
-import org.apache.hadoop.fs.Path;
-
 /**
  * LockTableDesc.
  *
@@ -34,17 +32,15 @@ public class LockTableDesc extends DDLDesc implements Serializable {
   private String tableName;
   private String mode;
   private Map<String, String> partSpec;
-  private String queryId;
   private String queryStr;
 
   public LockTableDesc() {
   }
 
-  public LockTableDesc(String tableName, String mode, Map<String, String> partSpec, String queryId) {
+  public LockTableDesc(String tableName, String mode, Map<String, String> partSpec) {
     this.tableName = tableName;
     this.mode      = mode;
     this.partSpec  = partSpec;
-    this.queryId   = queryId;
   }
 
   public String getTableName() {
@@ -69,14 +65,6 @@ public class LockTableDesc extends DDLDesc implements Serializable {
 
   public void setPartSpec(Map<String, String> partSpec) {
     this.partSpec = partSpec;
-  }
-
-  public String getQueryId() {
-    return queryId;
-  }
-
-  public void setQueryId(String queryId) {
-    this.queryId = queryId;
   }
 
   public String getQueryStr() {

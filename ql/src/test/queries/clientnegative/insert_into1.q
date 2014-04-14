@@ -1,5 +1,5 @@
-set hive.lock.numretries=5;
-set hive.lock.sleep.between.retries=5;
+set hive.lock.numretries=3;
+set hive.lock.sleep.between.retries=3;
 
 DROP TABLE insert_into1_neg;
 

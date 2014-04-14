@@ -35,14 +35,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.ErrorMsg;
-import org.apache.hadoop.hive.ql.lockmgr.HiveLock;
-import org.apache.hadoop.hive.ql.lockmgr.HiveLockManager;
-import org.apache.hadoop.hive.ql.lockmgr.HiveLockManagerCtx;
-import org.apache.hadoop.hive.ql.lockmgr.HiveLockMode;
-import org.apache.hadoop.hive.ql.lockmgr.HiveLockObj;
-import org.apache.hadoop.hive.ql.lockmgr.HiveLockObject;
+import org.apache.hadoop.hive.ql.lockmgr.*;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockObject.HiveLockObjectData;
-import org.apache.hadoop.hive.ql.lockmgr.LockException;
 import org.apache.hadoop.hive.ql.metadata.DummyPartition;
 import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
@@ -55,7 +49,7 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
 
-public class ZooKeeperHiveLockManager implements HiveLockManager {
+public class ZooKeeperHiveLockManager extends AbstractLockManager {
   HiveLockManagerCtx ctx;
   public static final Log LOG = LogFactory.getLog("ZooKeeperHiveLockManager");
   static final private LogHelper console = new LogHelper(LOG);
@@ -67,10 +61,6 @@ public class ZooKeeperHiveLockManager implements HiveLockManager {
 
   private int sessionTimeout;
   private String quorumServers;
-
-  private int sleepTime;
-  private int numRetriesForLock;
-  private int numRetriesForUnLock;
 
   private static String clientIp;
 
@@ -107,10 +97,6 @@ public class ZooKeeperHiveLockManager implements HiveLockManager {
     sessionTimeout = conf.getIntVar(HiveConf.ConfVars.HIVE_ZOOKEEPER_SESSION_TIMEOUT);
     quorumServers = ZooKeeperHiveLockManager.getQuorumServers(conf);
 
-    sleepTime = conf.getIntVar(HiveConf.ConfVars.HIVE_LOCK_SLEEP_BETWEEN_RETRIES) * 1000;
-    numRetriesForLock = conf.getIntVar(HiveConf.ConfVars.HIVE_LOCK_NUMRETRIES);
-    numRetriesForUnLock = conf.getIntVar(HiveConf.ConfVars.HIVE_UNLOCK_NUMRETRIES);
-
     try {
       renewZookeeperInstance(sessionTimeout, quorumServers);
       parent = conf.getVar(HiveConf.ConfVars.HIVE_ZOOKEEPER_NAMESPACE);
@@ -131,11 +117,8 @@ public class ZooKeeperHiveLockManager implements HiveLockManager {
   }
 
   @Override
-  public void refresh() {
-    HiveConf conf = ctx.getConf();
-    sleepTime = conf.getIntVar(HiveConf.ConfVars.HIVE_LOCK_SLEEP_BETWEEN_RETRIES) * 1000;
-    numRetriesForLock = conf.getIntVar(HiveConf.ConfVars.HIVE_LOCK_NUMRETRIES);
-    numRetriesForUnLock = conf.getIntVar(HiveConf.ConfVars.HIVE_UNLOCK_NUMRETRIES);
+  public HiveLockManagerCtx getContext() {
+    return ctx;
   }
 
   private void renewZookeeperInstance(int sessionTimeout, String quorumServers)
@@ -304,7 +287,7 @@ public class ZooKeeperHiveLockManager implements HiveLockManager {
     do {
       try {
         if (tryNum > 1) {
-          Thread.sleep(sleepTime);
+          Thread.sleep(sleepTime());
           if (zooKeeper.getState() == ZooKeeper.States.CLOSED) {
             // Reconnect if the connection is closed.
             zooKeeper = null;
@@ -330,11 +313,11 @@ public class ZooKeeperHiveLockManager implements HiveLockManager {
             break;
           }
         }
-        if (tryNum >= numRetriesForLock) {
+        if (tryNum >= numRetriesForLock()) {
           throw new LockException(e1);
         }
       }
-    } while (tryNum < numRetriesForLock);
+    } while (tryNum < numRetriesForLock());
 
     return ret;
   }
@@ -412,7 +395,7 @@ public class ZooKeeperHiveLockManager implements HiveLockManager {
 
   /* Remove the lock specified */
   public void unlock(HiveLock hiveLock, boolean recursive) throws LockException {
-    unlockWithRetry(ctx.getConf(), zooKeeper, hiveLock, parent);
+    unlockWithRetry(getConf(), zooKeeper, hiveLock, parent);
   }
 
   private void unlockWithRetry(HiveConf conf, ZooKeeper zkpClient,
@@ -423,17 +406,17 @@ public class ZooKeeperHiveLockManager implements HiveLockManager {
       try {
         tryNum++;
         if (tryNum > 1) {
-          Thread.sleep(sleepTime);
+          Thread.sleep(sleepTime());
           prepareRetry();
         }
         unlockPrimitive(conf, zkpClient, hiveLock, parent);
         break;
       } catch (Exception e) {
-        if (tryNum >= numRetriesForUnLock) {
+        if (tryNum >= numRetriesForUnLock()) {
           throw new LockException(e);
         }
       }
-    } while (tryNum < numRetriesForUnLock);
+    } while (tryNum < numRetriesForUnLock());
 
     return;
   }
@@ -503,13 +486,13 @@ public class ZooKeeperHiveLockManager implements HiveLockManager {
   /* Get all locks */
   public List<HiveLock> getLocks(boolean verifyTablePartition, boolean fetchData)
     throws LockException {
-    return getLocks(ctx.getConf(), zooKeeper, null, parent, verifyTablePartition, fetchData);
+    return getLocks(getConf(), zooKeeper, null, parent, verifyTablePartition, fetchData);
   }
 
   /* Get all locks for a particular object */
   public List<HiveLock> getLocks(HiveLockObject key, boolean verifyTablePartitions,
                                  boolean fetchData) throws LockException {
-    return getLocks(ctx.getConf(), zooKeeper, key, parent, verifyTablePartitions, fetchData);
+    return getLocks(getConf(), zooKeeper, key, parent, verifyTablePartitions, fetchData);
   }
 
   /**
@@ -612,7 +595,7 @@ public class ZooKeeperHiveLockManager implements HiveLockManager {
   private void checkRedundantNode(String node) {
     try {
       // Nothing to do if it is a lock mode
-      if (getLockMode(ctx.getConf(), node) != null) {
+      if (getLockMode(getConf(), node) != null) {
         return;
       }
 
@@ -640,7 +623,7 @@ public class ZooKeeperHiveLockManager implements HiveLockManager {
         zooKeeper = null;
       }
 
-      if (HiveConf.getBoolVar(ctx.getConf(), HiveConf.ConfVars.HIVE_ZOOKEEPER_CLEAN_EXTRA_NODES)) {
+      if (HiveConf.getBoolVar(getConf(), HiveConf.ConfVars.HIVE_ZOOKEEPER_CLEAN_EXTRA_NODES)) {
         removeAllRedundantNodes();
       }
 

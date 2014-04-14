@@ -2175,8 +2175,7 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
       partSpec = partSpecs.get(0);
     }
 
-    LockTableDesc lockTblDesc = new LockTableDesc(tableName, mode, partSpec,
-        HiveConf.getVar(conf, ConfVars.HIVEQUERYID));
+    LockTableDesc lockTblDesc = new LockTableDesc(tableName, mode, partSpec);
     lockTblDesc.setQueryStr(this.ctx.getCmd());
     rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(),
         lockTblDesc), conf));

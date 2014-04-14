@@ -2403,7 +2403,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       LOG.warn("show function: " + stringifyException(e));
       return 1;
     } catch (Exception e) {
-      throw new HiveException(e.toString());
+      throw new HiveException(e.toString(), e);
     } finally {
       IOUtils.closeStream((FSDataOutputStream) outStream);
     }
@@ -2425,6 +2425,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
     if (lockMgr == null) {
       throw new HiveException("lock Table LockManager not specified");
     }
+    String queryID = HiveConf.getVar(conf, ConfVars.HIVEQUERYID);
 
     HiveLockMode mode = HiveLockMode.valueOf(lockTbl.getMode());
     String tabName = lockTbl.getTableName();
@@ -2435,7 +2436,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
 
     Map<String, String> partSpec = lockTbl.getPartSpec();
     HiveLockObjectData lockData =
-      new HiveLockObjectData(lockTbl.getQueryId(),
+      new HiveLockObjectData(queryID,
                              String.valueOf(System.currentTimeMillis()),
                              "EXPLICIT",
                              lockTbl.getQueryStr());

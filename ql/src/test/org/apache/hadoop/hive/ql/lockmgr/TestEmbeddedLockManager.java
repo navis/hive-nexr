@@ -125,20 +125,20 @@ public class TestEmbeddedLockManager extends TestCase {
     Assert.assertNotNull(lock1);
     Assert.assertEquals(HiveLockMode.SHARED, lock1.getHiveLockMode());
 
-    // SHARED to EXCLUSIVE
+    // SHARED + EXCLUSIVE = EXCLUSIVE
     HiveLock lock2 = manager.lock(obj1, HiveLockMode.EXCLUSIVE, false);
     Assert.assertNotNull(lock2);
     Assert.assertEquals(HiveLockMode.EXCLUSIVE, lock2.getHiveLockMode());
 
-    // EXCLUSIVE to EXCLUSIVE
+    // EXCLUSIVE + EXCLUSIVE = EXCLUSIVE
     HiveLock lock3 = manager.lock(obj1, HiveLockMode.EXCLUSIVE, false);
     Assert.assertNotNull(lock3);
     Assert.assertEquals(HiveLockMode.EXCLUSIVE, lock3.getHiveLockMode());
 
-    // EXCLUSIVE to SHARED
+    // EXCLUSIVE + SHARED = EXCLUSIVE
     HiveLock lock4 = manager.lock(obj1, HiveLockMode.SHARED, false);
     Assert.assertNotNull(lock4);
-    Assert.assertEquals(HiveLockMode.SHARED, lock4.getHiveLockMode());
+    Assert.assertEquals(HiveLockMode.EXCLUSIVE, lock4.getHiveLockMode());
   }
 
   public void testLockOnOwnedLock2() throws LockException {
