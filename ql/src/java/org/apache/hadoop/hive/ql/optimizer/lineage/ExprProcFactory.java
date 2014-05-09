@@ -28,6 +28,7 @@ import java.util.Stack;
 
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
 import org.apache.hadoop.hive.ql.exec.Operator;
+import org.apache.hadoop.hive.ql.exec.RowSchema;
 import org.apache.hadoop.hive.ql.hooks.LineageInfo;
 import org.apache.hadoop.hive.ql.hooks.LineageInfo.BaseColumnInfo;
 import org.apache.hadoop.hive.ql.hooks.LineageInfo.Dependency;
@@ -73,7 +74,11 @@ public class ExprProcFactory {
       assert (epc.getInputOperator() != null);
 
       ColumnInfo inp_ci = null;
-      for (ColumnInfo tmp_ci : epc.getInputOperator().getSchema()
+      RowSchema schema = epc.getInputOperator().getSchema();
+      if (schema == null) {
+        throw new SemanticException("F");
+      }
+      for (ColumnInfo tmp_ci : schema
           .getSignature()) {
         if (tmp_ci.getInternalName().equals(cd.getColumn())) {
           inp_ci = tmp_ci;

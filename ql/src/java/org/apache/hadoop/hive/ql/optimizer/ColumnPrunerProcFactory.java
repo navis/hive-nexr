@@ -402,7 +402,10 @@ public final class ColumnPrunerProcFactory {
         boolean[] flags = new boolean[conf.getValueCols().size()];
         Map<String, ExprNodeDesc> exprMap = op.getColumnExprMap();
         for (String childCol : childCols) {
-          ExprNodeDesc desc = exprMap.get(childCol);
+          ExprNodeDesc desc = exprMap.get(unTag(childCol));
+          if (desc == null) {
+            desc = exprMap.get(childCol);
+          }
           int index = conf.getValueCols().indexOf(desc);
           if (index < 0) {
             hasUnresolvedReference = desc == null || ExprNodeDescUtils.indexOf(desc, conf.getKeyCols()) < 0;
@@ -439,6 +442,17 @@ public final class ColumnPrunerProcFactory {
       cppCtx.getPrunedColLists().put(op, colLists);
       return null;
     }
+  }
+
+  // todo
+  // For JOINs and ORDER-BYs, name in colExprMap of RS is not started with field tags(KEY/VALUE)
+  private static String unTag(String column) {
+    for (Utilities.ReduceField field : Utilities.ReduceField.values()) {
+      if (column.startsWith(field.name() + ".")) {
+        return column.substring(field.name().length() + 1);
+      }
+    }
+    return column;
   }
 
   /**
@@ -594,10 +608,6 @@ public final class ColumnPrunerProcFactory {
 
       // do we need to prune the select operator?
       List<ExprNodeDesc> originalColList = op.getConf().getColList();
-      List<String> columns = new ArrayList<String>();
-      for (ExprNodeDesc expr : originalColList) {
-        Utilities.mergeUniqElems(columns, expr.getCols());
-      }
       // by now, 'prunedCols' are columns used by child operators, and 'columns'
       // are columns used by this select operator.
       List<String> originalOutputColumnNames = conf.getOutputColumnNames();

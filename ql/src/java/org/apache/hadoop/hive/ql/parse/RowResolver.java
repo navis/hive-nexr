@@ -101,10 +101,7 @@ public class RowResolver implements Serializable{
       tab_alias = tab_alias.toLowerCase();
     }
     col_alias = col_alias.toLowerCase();
-    if (rowSchema.getSignature() == null) {
-      rowSchema.setSignature(new ArrayList<ColumnInfo>());
-    }
-    
+
     /*
      * allow multiple mappings to the same ColumnInfo.
      * When a ColumnInfo is mapped multiple times, only the 
