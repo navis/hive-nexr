@@ -6449,6 +6449,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         sortCols.add(exprNode);
       }
     }
+    Map<String, ExprNodeDesc> exprMap = input.getColumnExprMap();
 
     // For the generation of the values expression just get the inputs
     // signature and generate field expressions for those
@@ -6459,17 +6460,16 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
     ArrayList<ColumnInfo> columnInfos = inputRR.getColumnInfos();
 
-    boolean valueInKey = false;
     int[] index = new int[columnInfos.size()];
     for (int i = 0; i < index.length; i++) {
       ColumnInfo colInfo = columnInfos.get(i);
+      ExprNodeDesc expr = exprMap.get(colInfo.getInternalName());
       String[] nm = inputRR.reverseLookup(colInfo.getInternalName());
       ExprNodeColumnDesc value = new ExprNodeColumnDesc(colInfo.getType(),
           colInfo.getInternalName(), colInfo.getTabAlias(), colInfo.getIsVirtualCol());
       int kindex = ExprNodeDescUtils.indexOf(value, sortCols);
       if (kindex >= 0) {
         index[i] = kindex;
-        valueInKey = true;
         continue;
       }
       int vindex = ExprNodeDescUtils.indexOf(value, valueCols);
@@ -6496,63 +6496,36 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     }
     interim.setColumnExprMap(colExprMap);
 
-    if (valueInKey) {
-      RowResolver selectRR = new RowResolver();
-      ArrayList<ExprNodeDesc> selCols = new ArrayList<ExprNodeDesc>();
-      ArrayList<String> selOutputCols = new ArrayList<String>();
-      Map<String, ExprNodeDesc> selColExprMap = new HashMap<String, ExprNodeDesc>();
+    RowResolver selectRR = new RowResolver();
+    ArrayList<ExprNodeDesc> selCols = new ArrayList<ExprNodeDesc>();
+    ArrayList<String> selOutputCols = new ArrayList<String>();
+    Map<String, ExprNodeDesc> selColExprMap = new HashMap<String, ExprNodeDesc>();
 
-      for (int i = 0; i < index.length; i++) {
-        ColumnInfo prev = columnInfos.get(i);
-        String[] nm = inputRR.reverseLookup(prev.getInternalName());
-        ColumnInfo info = new ColumnInfo(prev);
+    for (int i = 0; i < index.length; i++) {
+      ColumnInfo prev = columnInfos.get(i);
+      String[] nm = inputRR.reverseLookup(prev.getInternalName());
+      ColumnInfo info = new ColumnInfo(prev);
 
-        String field;
-        if (index[i] >= 0) {
-          field = Utilities.ReduceField.KEY + "." + keyColNames.get(index[i]);
-        } else {
-          field = Utilities.ReduceField.VALUE + "." + valueColNames.get(-index[i] - 1);
-        }
-        String internalName = getColumnInternalName(i);
-        ExprNodeColumnDesc desc = new ExprNodeColumnDesc(info.getType(),
-            field, info.getTabAlias(), info.getIsVirtualCol());
-        selCols.add(desc);
-
-        info.setInternalName(internalName);
-        selectRR.put(nm[0], nm[1], info);
-        selOutputCols.add(internalName);
-        selColExprMap.put(internalName, desc);
+      String field;
+      if (index[i] >= 0) {
+        field = Utilities.ReduceField.KEY + "." + keyColNames.get(index[i]);
+      } else {
+        field = Utilities.ReduceField.VALUE + "." + valueColNames.get(-index[i] - 1);
       }
-      SelectDesc select = new SelectDesc(selCols, selOutputCols);
-      Operator output = putOpInsertMap(OperatorFactory.getAndMakeChild(select,
-          new RowSchema(selectRR.getColumnInfos()), interim), selectRR);
-      output.setColumnExprMap(selColExprMap);
-      return output;
+      String internalName = getColumnInternalName(i);
+      ExprNodeColumnDesc desc = new ExprNodeColumnDesc(info.getType(),
+          field, info.getTabAlias(), info.getIsVirtualCol());
+      selCols.add(desc);
+
+      info.setInternalName(internalName);
+      selectRR.put(nm[0], nm[1], info);
+      selOutputCols.add(internalName);
+      selColExprMap.put(internalName, desc);
     }
-
-    inputRR = rsRR;
-
-    // Add the extract operator to get the value fields
-    RowResolver out_rwsch = new RowResolver();
-    RowResolver interim_rwsch = inputRR;
-    Integer pos = Integer.valueOf(0);
-    for (ColumnInfo colInfo : interim_rwsch.getColumnInfos()) {
-      String[] info = interim_rwsch.reverseLookup(colInfo.getInternalName());
-      out_rwsch.put(info[0], info[1], new ColumnInfo(
-          getColumnInternalName(pos), colInfo.getType(), info[0],
-          colInfo.getIsVirtualCol(), colInfo.isHiddenVirtualCol()));
-      pos = Integer.valueOf(pos.intValue() + 1);
-    }
-
-    Operator output = putOpInsertMap(OperatorFactory.getAndMakeChild(
-        new ExtractDesc(new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo,
-            Utilities.ReduceField.VALUE.toString(), "", false)), new RowSchema(
-            out_rwsch.getColumnInfos()), interim), out_rwsch);
-
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Created ReduceSink Plan for clause: " + dest + " row schema: "
-          + out_rwsch.toString());
-    }
+    SelectDesc select = new SelectDesc(selCols, selOutputCols);
+    Operator output = putOpInsertMap(OperatorFactory.getAndMakeChild(select,
+        new RowSchema(selectRR.getColumnInfos()), interim), selectRR);
+    output.setColumnExprMap(selColExprMap);
     return output;
   }
 
