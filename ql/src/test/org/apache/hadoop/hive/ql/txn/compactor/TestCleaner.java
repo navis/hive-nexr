@@ -22,7 +22,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.metastore.MetaStoreThread;
 import org.apache.hadoop.hive.metastore.api.*;
 import org.apache.hadoop.hive.metastore.txn.CompactionInfo;
 import org.junit.Test;
@@ -286,8 +285,7 @@ public class TestCleaner extends CompactorTest {
     LockRequest req = new LockRequest(components, "me", "localhost");
     LockResponse res = txnHandler.lock(req);
 
-    AtomicBoolean looped = new AtomicBoolean();
-    looped.set(false);
+    AtomicBoolean looped = new AtomicBoolean(false);
     startCleaner(looped);
 
     // Make sure the compactor has a chance to run once
@@ -357,8 +355,7 @@ public class TestCleaner extends CompactorTest {
     LockRequest req = new LockRequest(components, "me", "localhost");
     LockResponse res = txnHandler.lock(req);
 
-    AtomicBoolean looped = new AtomicBoolean();
-    looped.set(false);
+    AtomicBoolean looped = new AtomicBoolean(false);
     startCleaner(looped);
 
     // Make sure the compactor has a chance to run once

@@ -3515,6 +3515,10 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       while (keyItr.hasNext()) {
         tbl.getTTable().getParameters().remove(keyItr.next());
       }
+    } else if (alterTbl.getOp() == AlterTableTypes.SETRETENTION) {
+      tbl.getTTable().setRetention(alterTbl.getRetentionSeconds());
+    } else if (alterTbl.getOp() == AlterTableTypes.UNSETRETENTION) {
+      tbl.getTTable().setRetention(0);
     } else if (alterTbl.getOp() == AlterTableDesc.AlterTableTypes.ADDSERDEPROPS) {
       sd.getSerdeInfo().getParameters().putAll(alterTbl.getProps());
     } else if (alterTbl.getOp() == AlterTableDesc.AlterTableTypes.ADDSERDE) {
@@ -3752,9 +3756,12 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
    *          HiveConf of session
    */
   private boolean updateModifiedParameters(Map<String, String> params, HiveConf conf) throws HiveException {
-    String user = null;
-    user = SessionState.getUserFromAuthenticator();
-    params.put("last_modified_by", user);
+    String user = SessionState.getUserFromAuthenticator();
+    if (user != null) {
+      params.put("last_modified_by", user);
+    } else {
+      params.remove("last_modified_by");
+    }
     params.put("last_modified_time", Long.toString(System.currentTimeMillis() / 1000));
     return true;
   }

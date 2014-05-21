@@ -607,6 +607,13 @@ public class HiveConf extends Configuration {
         "this setting determines if the metadata that is exported will subsequently be moved to the user's trash directory \n" +
         "alongside the dropped table data. This ensures that the metadata will be cleaned up along with the dropped table data."),
 
+    METASTORE_RETENTION_INTERVAL("hive.metastore.retention.interval", "0s",
+        new TimeValidator(TimeUnit.SECONDS),
+        "Check interval for retention. Non-positive value disables it."),
+    METASTORE_RETENTION_DATABASES("hive.metastore.retention.databases", "",
+        "Comma separated list of database names which will apply retention for tables/partitions on it. \n" +
+        "Empty string means all databases."),
+
     // CLI
     CLIIGNOREERRORS("hive.cli.errors.ignore", false, ""),
     CLIPRINTCURRENTDB("hive.cli.print.current.db", false,

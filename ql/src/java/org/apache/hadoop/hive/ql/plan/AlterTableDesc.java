@@ -55,7 +55,8 @@ public class AlterTableDesc extends DDLDesc implements Serializable {
     DROPPARTITION("drop partition"), RENAMEPARTITION("rename partition"), ADDSKEWEDBY("add skew column"),
     ALTERSKEWEDLOCATION("alter skew location"), ALTERBUCKETNUM("alter bucket number"),
     ALTERPARTITION("alter partition"), COMPACT("compact"),
-    TRUNCATE("truncate"), MERGEFILES("merge files");
+    TRUNCATE("truncate"), MERGEFILES("merge files"),
+    SETRETENTION("set retention"), UNSETRETENTION("unset retention")
     ;
 
     private final String name;
@@ -115,6 +116,8 @@ public class AlterTableDesc extends DDLDesc implements Serializable {
   boolean isDropIfExists = false;
   boolean isTurnOffSorting = false;
   boolean isCascade = false;
+
+  int retentionSeconds;
 
   public AlterTableDesc() {
   }
@@ -736,4 +739,11 @@ public class AlterTableDesc extends DDLDesc implements Serializable {
     return alterTableTypesWithPartialSpec.contains(type);
   }
 
+  public int getRetentionSeconds() {
+    return retentionSeconds;
+  }
+
+  public void setRetentionSeconds(int retentionSeconds) {
+    this.retentionSeconds = retentionSeconds;
+  }
 }

@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.Tree;
@@ -271,30 +272,34 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
         analyzeAltertableSkewedby(qualified, ast);
       } else if (ast.getType() == HiveParser.TOK_ALTERTABLE_EXCHANGEPARTITION) {
         analyzeExchangePartition(qualified, ast);
-      } else if (ast.getToken().getType() == HiveParser.TOK_ALTERTABLE_FILEFORMAT) {
+      } else if (ast.getType() == HiveParser.TOK_ALTERTABLE_FILEFORMAT) {
         analyzeAlterTableFileFormat(ast, tableName, partSpec);
-      } else if (ast.getToken().getType() == HiveParser.TOK_ALTERTABLE_PROTECTMODE) {
+      } else if (ast.getType() == HiveParser.TOK_ALTERTABLE_PROTECTMODE) {
         analyzeAlterTableProtectMode(ast, tableName, partSpec);
-      } else if (ast.getToken().getType() == HiveParser.TOK_ALTERTABLE_LOCATION) {
+      } else if (ast.getType() == HiveParser.TOK_ALTERTABLE_LOCATION) {
         analyzeAlterTableLocation(ast, tableName, partSpec);
-      } else if (ast.getToken().getType() == HiveParser.TOK_ALTERTABLE_MERGEFILES) {
+      } else if (ast.getType() == HiveParser.TOK_ALTERTABLE_MERGEFILES) {
         analyzeAlterTablePartMergeFiles(ast, tableName, partSpec);
-      } else if (ast.getToken().getType() == HiveParser.TOK_ALTERTABLE_SERIALIZER) {
+      } else if (ast.getType() == HiveParser.TOK_ALTERTABLE_SERIALIZER) {
         analyzeAlterTableSerde(ast, tableName, partSpec);
-      } else if (ast.getToken().getType() == HiveParser.TOK_ALTERTABLE_SERDEPROPERTIES) {
+      } else if (ast.getType() == HiveParser.TOK_ALTERTABLE_SERDEPROPERTIES) {
         analyzeAlterTableSerdeProps(ast, tableName, partSpec);
-      } else if (ast.getToken().getType() == HiveParser.TOK_ALTERTABLE_RENAMEPART) {
+      } else if (ast.getType() == HiveParser.TOK_ALTERTABLE_RENAMEPART) {
         analyzeAlterTableRenamePart(ast, tableName, partSpec);
-      } else if (ast.getToken().getType() == HiveParser.TOK_ALTERTABLE_SKEWED_LOCATION) {
+      } else if (ast.getType() == HiveParser.TOK_ALTERTABLE_SKEWED_LOCATION) {
         analyzeAlterTableSkewedLocation(ast, tableName, partSpec);
-      } else if (ast.getToken().getType() == HiveParser.TOK_ALTERTABLE_BUCKETS) {
+      } else if (ast.getType() == HiveParser.TOK_ALTERTABLE_BUCKETS) {
         analyzeAlterTableBucketNum(ast, tableName, partSpec);
-      } else if (ast.getToken().getType() == HiveParser.TOK_ALTERTABLE_CLUSTER_SORT) {
+      } else if (ast.getType() == HiveParser.TOK_ALTERTABLE_CLUSTER_SORT) {
         analyzeAlterTableClusterSort(ast, tableName, partSpec);
-      } else if (ast.getToken().getType() == HiveParser.TOK_ALTERTABLE_COMPACT) {
+      } else if (ast.getType() == HiveParser.TOK_ALTERTABLE_COMPACT) {
         analyzeAlterTableCompact(ast, tableName, partSpec);
-      } else if(ast.getToken().getType() == HiveParser.TOK_ALTERTABLE_UPDATECOLSTATS){
+      } else if (ast.getType() == HiveParser.TOK_ALTERTABLE_UPDATECOLSTATS){
         analyzeAlterTableUpdateStats(ast, tableName, partSpec);
+      } else if (ast.getType() == HiveParser.TOK_ALTERTABLE_RETENTION) {
+        analyzeAlterTableRetention(ast, tableName, false);
+      } else if (ast.getType() == HiveParser.TOK_ALTERTABLE_DROPRETENTION) {
+        analyzeAlterTableRetention(ast, tableName, true);
       }
       break;
     }
@@ -1301,6 +1306,30 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
       alterTblDesc = new AlterTableDesc(AlterTableTypes.ADDPROPS, expectView);
     }
     alterTblDesc.setProps(mapProp);
+    alterTblDesc.setOldName(tableName);
+
+    addInputsOutputsAlterTable(tableName, null, alterTblDesc);
+
+    rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(),
+        alterTblDesc), conf));
+  }
+
+  private void analyzeAlterTableRetention(ASTNode ast, String tableName, boolean isUnset)
+      throws SemanticException {
+
+    AlterTableDesc alterTblDesc = null;
+    if (isUnset) {
+      alterTblDesc = new AlterTableDesc(AlterTableTypes.UNSETRETENTION);
+    } else {
+      String time = ast.getChild(0).getText();
+      TimeUnit unit = HiveConf.unitFor(ast.getChild(1).getText(), null);
+      long seconds = HiveConf.toTime(time, unit, TimeUnit.SECONDS);
+      if (seconds > Integer.MAX_VALUE) {
+        throw new SemanticException("Too big: " + seconds + " seconds");
+      }
+      alterTblDesc = new AlterTableDesc(AlterTableTypes.SETRETENTION);
+      alterTblDesc.setRetentionSeconds((int)seconds);
+    }
     alterTblDesc.setOldName(tableName);
 
     addInputsOutputsAlterTable(tableName, null, alterTblDesc);

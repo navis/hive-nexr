@@ -1,0 +1,566 @@
+PREHOOK: query: -- table
+create table test_table (id int, query string, name string)
+PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
+PREHOOK: Output: default@test_table
+POSTHOOK: query: -- table
+create table test_table (id int, query string, name string)
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@test_table
+PREHOOK: query: describe formatted test_table
+PREHOOK: type: DESCTABLE
+PREHOOK: Input: default@test_table
+POSTHOOK: query: describe formatted test_table
+POSTHOOK: type: DESCTABLE
+POSTHOOK: Input: default@test_table
+# col_name            	data_type           	comment             
+	 	 
+id                  	int                 	                    
+query               	string              	                    
+name                	string              	                    
+	 	 
+# Detailed Table Information	 	 
+Database:           	default             	 
+#### A masked pattern was here ####
+Protect Mode:       	None                	 
+Retention:          	0                   	 
+#### A masked pattern was here ####
+Table Type:         	MANAGED_TABLE       	 
+Table Parameters:	 	 
+#### A masked pattern was here ####
+	 	 
+# Storage Information	 	 
+SerDe Library:      	org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe	 
+InputFormat:        	org.apache.hadoop.mapred.TextInputFormat	 
+OutputFormat:       	org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat	 
+Compressed:         	No                  	 
+Num Buckets:        	-1                  	 
+Bucket Columns:     	[]                  	 
+Sort Columns:       	[]                  	 
+Storage Desc Params:	 	 
+	serialization.format	1                   
+PREHOOK: query: alter table test_table set retention 120 sec
+PREHOOK: type: null
+PREHOOK: Input: default@test_table
+PREHOOK: Output: default@test_table
+POSTHOOK: query: alter table test_table set retention 120 sec
+POSTHOOK: type: null
+POSTHOOK: Input: default@test_table
+POSTHOOK: Output: default@test_table
+PREHOOK: query: describe formatted test_table
+PREHOOK: type: DESCTABLE
+PREHOOK: Input: default@test_table
+POSTHOOK: query: describe formatted test_table
+POSTHOOK: type: DESCTABLE
+POSTHOOK: Input: default@test_table
+# col_name            	data_type           	comment             
+	 	 
+id                  	int                 	                    
+query               	string              	                    
+name                	string              	                    
+	 	 
+# Detailed Table Information	 	 
+Database:           	default             	 
+#### A masked pattern was here ####
+Protect Mode:       	None                	 
+Retention:          	120                 	 
+#### A masked pattern was here ####
+Table Type:         	MANAGED_TABLE       	 
+Table Parameters:	 	 
+	COLUMN_STATS_ACCURATE	false               
+#### A masked pattern was here ####
+	numFiles            	0                   
+	numRows             	-1                  
+	rawDataSize         	-1                  
+	totalSize           	0                   
+#### A masked pattern was here ####
+	 	 
+# Storage Information	 	 
+SerDe Library:      	org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe	 
+InputFormat:        	org.apache.hadoop.mapred.TextInputFormat	 
+OutputFormat:       	org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat	 
+Compressed:         	No                  	 
+Num Buckets:        	-1                  	 
+Bucket Columns:     	[]                  	 
+Sort Columns:       	[]                  	 
+Storage Desc Params:	 	 
+	serialization.format	1                   
+PREHOOK: query: alter table test_table set retention 30 min
+PREHOOK: type: null
+PREHOOK: Input: default@test_table
+PREHOOK: Output: default@test_table
+POSTHOOK: query: alter table test_table set retention 30 min
+POSTHOOK: type: null
+POSTHOOK: Input: default@test_table
+POSTHOOK: Output: default@test_table
+PREHOOK: query: describe formatted test_table
+PREHOOK: type: DESCTABLE
+PREHOOK: Input: default@test_table
+POSTHOOK: query: describe formatted test_table
+POSTHOOK: type: DESCTABLE
+POSTHOOK: Input: default@test_table
+# col_name            	data_type           	comment             
+	 	 
+id                  	int                 	                    
+query               	string              	                    
+name                	string              	                    
+	 	 
+# Detailed Table Information	 	 
+Database:           	default             	 
+#### A masked pattern was here ####
+Protect Mode:       	None                	 
+Retention:          	1800                	 
+#### A masked pattern was here ####
+Table Type:         	MANAGED_TABLE       	 
+Table Parameters:	 	 
+	COLUMN_STATS_ACCURATE	false               
+#### A masked pattern was here ####
+	numFiles            	0                   
+	numRows             	-1                  
+	rawDataSize         	-1                  
+	totalSize           	0                   
+#### A masked pattern was here ####
+	 	 
+# Storage Information	 	 
+SerDe Library:      	org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe	 
+InputFormat:        	org.apache.hadoop.mapred.TextInputFormat	 
+OutputFormat:       	org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat	 
+Compressed:         	No                  	 
+Num Buckets:        	-1                  	 
+Bucket Columns:     	[]                  	 
+Sort Columns:       	[]                  	 
+Storage Desc Params:	 	 
+	serialization.format	1                   
+PREHOOK: query: alter table test_table set retention 12 hours
+PREHOOK: type: null
+PREHOOK: Input: default@test_table
+PREHOOK: Output: default@test_table
+POSTHOOK: query: alter table test_table set retention 12 hours
+POSTHOOK: type: null
+POSTHOOK: Input: default@test_table
+POSTHOOK: Output: default@test_table
+PREHOOK: query: describe formatted test_table
+PREHOOK: type: DESCTABLE
+PREHOOK: Input: default@test_table
+POSTHOOK: query: describe formatted test_table
+POSTHOOK: type: DESCTABLE
+POSTHOOK: Input: default@test_table
+# col_name            	data_type           	comment             
+	 	 
+id                  	int                 	                    
+query               	string              	                    
+name                	string              	                    
+	 	 
+# Detailed Table Information	 	 
+Database:           	default             	 
+#### A masked pattern was here ####
+Protect Mode:       	None                	 
+Retention:          	43200               	 
+#### A masked pattern was here ####
+Table Type:         	MANAGED_TABLE       	 
+Table Parameters:	 	 
+	COLUMN_STATS_ACCURATE	false               
+#### A masked pattern was here ####
+	numFiles            	0                   
+	numRows             	-1                  
+	rawDataSize         	-1                  
+	totalSize           	0                   
+#### A masked pattern was here ####
+	 	 
+# Storage Information	 	 
+SerDe Library:      	org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe	 
+InputFormat:        	org.apache.hadoop.mapred.TextInputFormat	 
+OutputFormat:       	org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat	 
+Compressed:         	No                  	 
+Num Buckets:        	-1                  	 
+Bucket Columns:     	[]                  	 
+Sort Columns:       	[]                  	 
+Storage Desc Params:	 	 
+	serialization.format	1                   
+PREHOOK: query: alter table test_table set retention 7 days
+PREHOOK: type: null
+PREHOOK: Input: default@test_table
+PREHOOK: Output: default@test_table
+POSTHOOK: query: alter table test_table set retention 7 days
+POSTHOOK: type: null
+POSTHOOK: Input: default@test_table
+POSTHOOK: Output: default@test_table
+PREHOOK: query: describe formatted test_table
+PREHOOK: type: DESCTABLE
+PREHOOK: Input: default@test_table
+POSTHOOK: query: describe formatted test_table
+POSTHOOK: type: DESCTABLE
+POSTHOOK: Input: default@test_table
+# col_name            	data_type           	comment             
+	 	 
+id                  	int                 	                    
+query               	string              	                    
+name                	string              	                    
+	 	 
+# Detailed Table Information	 	 
+Database:           	default             	 
+#### A masked pattern was here ####
+Protect Mode:       	None                	 
+Retention:          	604800              	 
+#### A masked pattern was here ####
+Table Type:         	MANAGED_TABLE       	 
+Table Parameters:	 	 
+	COLUMN_STATS_ACCURATE	false               
+#### A masked pattern was here ####
+	numFiles            	0                   
+	numRows             	-1                  
+	rawDataSize         	-1                  
+	totalSize           	0                   
+#### A masked pattern was here ####
+	 	 
+# Storage Information	 	 
+SerDe Library:      	org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe	 
+InputFormat:        	org.apache.hadoop.mapred.TextInputFormat	 
+OutputFormat:       	org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat	 
+Compressed:         	No                  	 
+Num Buckets:        	-1                  	 
+Bucket Columns:     	[]                  	 
+Sort Columns:       	[]                  	 
+Storage Desc Params:	 	 
+	serialization.format	1                   
+PREHOOK: query: alter table test_table unset retention
+PREHOOK: type: null
+PREHOOK: Input: default@test_table
+PREHOOK: Output: default@test_table
+POSTHOOK: query: alter table test_table unset retention
+POSTHOOK: type: null
+POSTHOOK: Input: default@test_table
+POSTHOOK: Output: default@test_table
+PREHOOK: query: describe formatted test_table
+PREHOOK: type: DESCTABLE
+PREHOOK: Input: default@test_table
+POSTHOOK: query: describe formatted test_table
+POSTHOOK: type: DESCTABLE
+POSTHOOK: Input: default@test_table
+# col_name            	data_type           	comment             
+	 	 
+id                  	int                 	                    
+query               	string              	                    
+name                	string              	                    
+	 	 
+# Detailed Table Information	 	 
+Database:           	default             	 
+#### A masked pattern was here ####
+Protect Mode:       	None                	 
+Retention:          	0                   	 
+#### A masked pattern was here ####
+Table Type:         	MANAGED_TABLE       	 
+Table Parameters:	 	 
+	COLUMN_STATS_ACCURATE	false               
+#### A masked pattern was here ####
+	numFiles            	0                   
+	numRows             	-1                  
+	rawDataSize         	-1                  
+	totalSize           	0                   
+#### A masked pattern was here ####
+	 	 
+# Storage Information	 	 
+SerDe Library:      	org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe	 
+InputFormat:        	org.apache.hadoop.mapred.TextInputFormat	 
+OutputFormat:       	org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat	 
+Compressed:         	No                  	 
+Num Buckets:        	-1                  	 
+Bucket Columns:     	[]                  	 
+Sort Columns:       	[]                  	 
+Storage Desc Params:	 	 
+	serialization.format	1                   
+PREHOOK: query: drop table test_table
+PREHOOK: type: DROPTABLE
+PREHOOK: Input: default@test_table
+PREHOOK: Output: default@test_table
+POSTHOOK: query: drop table test_table
+POSTHOOK: type: DROPTABLE
+POSTHOOK: Input: default@test_table
+POSTHOOK: Output: default@test_table
+PREHOOK: query: -- partitioned table
+create table test_table (id int, query string, name string) partitioned by (ds string, hr string)
+PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
+PREHOOK: Output: default@test_table
+POSTHOOK: query: -- partitioned table
+create table test_table (id int, query string, name string) partitioned by (ds string, hr string)
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@test_table
+PREHOOK: query: describe formatted test_table
+PREHOOK: type: DESCTABLE
+PREHOOK: Input: default@test_table
+POSTHOOK: query: describe formatted test_table
+POSTHOOK: type: DESCTABLE
+POSTHOOK: Input: default@test_table
+# col_name            	data_type           	comment             
+	 	 
+id                  	int                 	                    
+query               	string              	                    
+name                	string              	                    
+	 	 
+# Partition Information	 	 
+# col_name            	data_type           	comment             
+	 	 
+ds                  	string              	                    
+hr                  	string              	                    
+	 	 
+# Detailed Table Information	 	 
+Database:           	default             	 
+#### A masked pattern was here ####
+Protect Mode:       	None                	 
+Retention:          	0                   	 
+#### A masked pattern was here ####
+Table Type:         	MANAGED_TABLE       	 
+Table Parameters:	 	 
+#### A masked pattern was here ####
+	 	 
+# Storage Information	 	 
+SerDe Library:      	org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe	 
+InputFormat:        	org.apache.hadoop.mapred.TextInputFormat	 
+OutputFormat:       	org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat	 
+Compressed:         	No                  	 
+Num Buckets:        	-1                  	 
+Bucket Columns:     	[]                  	 
+Sort Columns:       	[]                  	 
+Storage Desc Params:	 	 
+	serialization.format	1                   
+PREHOOK: query: alter table test_table set retention 120 sec
+PREHOOK: type: null
+PREHOOK: Input: default@test_table
+PREHOOK: Output: default@test_table
+POSTHOOK: query: alter table test_table set retention 120 sec
+POSTHOOK: type: null
+POSTHOOK: Input: default@test_table
+POSTHOOK: Output: default@test_table
+PREHOOK: query: describe formatted test_table
+PREHOOK: type: DESCTABLE
+PREHOOK: Input: default@test_table
+POSTHOOK: query: describe formatted test_table
+POSTHOOK: type: DESCTABLE
+POSTHOOK: Input: default@test_table
+# col_name            	data_type           	comment             
+	 	 
+id                  	int                 	                    
+query               	string              	                    
+name                	string              	                    
+	 	 
+# Partition Information	 	 
+# col_name            	data_type           	comment             
+	 	 
+ds                  	string              	                    
+hr                  	string              	                    
+	 	 
+# Detailed Table Information	 	 
+Database:           	default             	 
+#### A masked pattern was here ####
+Protect Mode:       	None                	 
+Retention:          	120                 	 
+#### A masked pattern was here ####
+Table Type:         	MANAGED_TABLE       	 
+Table Parameters:	 	 
+#### A masked pattern was here ####
+	 	 
+# Storage Information	 	 
+SerDe Library:      	org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe	 
+InputFormat:        	org.apache.hadoop.mapred.TextInputFormat	 
+OutputFormat:       	org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat	 
+Compressed:         	No                  	 
+Num Buckets:        	-1                  	 
+Bucket Columns:     	[]                  	 
+Sort Columns:       	[]                  	 
+Storage Desc Params:	 	 
+	serialization.format	1                   
+PREHOOK: query: alter table test_table set retention 30 min
+PREHOOK: type: null
+PREHOOK: Input: default@test_table
+PREHOOK: Output: default@test_table
+POSTHOOK: query: alter table test_table set retention 30 min
+POSTHOOK: type: null
+POSTHOOK: Input: default@test_table
+POSTHOOK: Output: default@test_table
+PREHOOK: query: describe formatted test_table
+PREHOOK: type: DESCTABLE
+PREHOOK: Input: default@test_table
+POSTHOOK: query: describe formatted test_table
+POSTHOOK: type: DESCTABLE
+POSTHOOK: Input: default@test_table
+# col_name            	data_type           	comment             
+	 	 
+id                  	int                 	                    
+query               	string              	                    
+name                	string              	                    
+	 	 
+# Partition Information	 	 
+# col_name            	data_type           	comment             
+	 	 
+ds                  	string              	                    
+hr                  	string              	                    
+	 	 
+# Detailed Table Information	 	 
+Database:           	default             	 
+#### A masked pattern was here ####
+Protect Mode:       	None                	 
+Retention:          	1800                	 
+#### A masked pattern was here ####
+Table Type:         	MANAGED_TABLE       	 
+Table Parameters:	 	 
+#### A masked pattern was here ####
+	 	 
+# Storage Information	 	 
+SerDe Library:      	org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe	 
+InputFormat:        	org.apache.hadoop.mapred.TextInputFormat	 
+OutputFormat:       	org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat	 
+Compressed:         	No                  	 
+Num Buckets:        	-1                  	 
+Bucket Columns:     	[]                  	 
+Sort Columns:       	[]                  	 
+Storage Desc Params:	 	 
+	serialization.format	1                   
+PREHOOK: query: alter table test_table set retention 12 hours
+PREHOOK: type: null
+PREHOOK: Input: default@test_table
+PREHOOK: Output: default@test_table
+POSTHOOK: query: alter table test_table set retention 12 hours
+POSTHOOK: type: null
+POSTHOOK: Input: default@test_table
+POSTHOOK: Output: default@test_table
+PREHOOK: query: describe formatted test_table
+PREHOOK: type: DESCTABLE
+PREHOOK: Input: default@test_table
+POSTHOOK: query: describe formatted test_table
+POSTHOOK: type: DESCTABLE
+POSTHOOK: Input: default@test_table
+# col_name            	data_type           	comment             
+	 	 
+id                  	int                 	                    
+query               	string              	                    
+name                	string              	                    
+	 	 
+# Partition Information	 	 
+# col_name            	data_type           	comment             
+	 	 
+ds                  	string              	                    
+hr                  	string              	                    
+	 	 
+# Detailed Table Information	 	 
+Database:           	default             	 
+#### A masked pattern was here ####
+Protect Mode:       	None                	 
+Retention:          	43200               	 
+#### A masked pattern was here ####
+Table Type:         	MANAGED_TABLE       	 
+Table Parameters:	 	 
+#### A masked pattern was here ####
+	 	 
+# Storage Information	 	 
+SerDe Library:      	org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe	 
+InputFormat:        	org.apache.hadoop.mapred.TextInputFormat	 
+OutputFormat:       	org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat	 
+Compressed:         	No                  	 
+Num Buckets:        	-1                  	 
+Bucket Columns:     	[]                  	 
+Sort Columns:       	[]                  	 
+Storage Desc Params:	 	 
+	serialization.format	1                   
+PREHOOK: query: alter table test_table set retention 7 days
+PREHOOK: type: null
+PREHOOK: Input: default@test_table
+PREHOOK: Output: default@test_table
+POSTHOOK: query: alter table test_table set retention 7 days
+POSTHOOK: type: null
+POSTHOOK: Input: default@test_table
+POSTHOOK: Output: default@test_table
+PREHOOK: query: describe formatted test_table
+PREHOOK: type: DESCTABLE
+PREHOOK: Input: default@test_table
+POSTHOOK: query: describe formatted test_table
+POSTHOOK: type: DESCTABLE
+POSTHOOK: Input: default@test_table
+# col_name            	data_type           	comment             
+	 	 
+id                  	int                 	                    
+query               	string              	                    
+name                	string              	                    
+	 	 
+# Partition Information	 	 
+# col_name            	data_type           	comment             
+	 	 
+ds                  	string              	                    
+hr                  	string              	                    
+	 	 
+# Detailed Table Information	 	 
+Database:           	default             	 
+#### A masked pattern was here ####
+Protect Mode:       	None                	 
+Retention:          	604800              	 
+#### A masked pattern was here ####
+Table Type:         	MANAGED_TABLE       	 
+Table Parameters:	 	 
+#### A masked pattern was here ####
+	 	 
+# Storage Information	 	 
+SerDe Library:      	org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe	 
+InputFormat:        	org.apache.hadoop.mapred.TextInputFormat	 
+OutputFormat:       	org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat	 
+Compressed:         	No                  	 
+Num Buckets:        	-1                  	 
+Bucket Columns:     	[]                  	 
+Sort Columns:       	[]                  	 
+Storage Desc Params:	 	 
+	serialization.format	1                   
+PREHOOK: query: alter table test_table unset retention
+PREHOOK: type: null
+PREHOOK: Input: default@test_table
+PREHOOK: Output: default@test_table
+POSTHOOK: query: alter table test_table unset retention
+POSTHOOK: type: null
+POSTHOOK: Input: default@test_table
+POSTHOOK: Output: default@test_table
+PREHOOK: query: describe formatted test_table
+PREHOOK: type: DESCTABLE
+PREHOOK: Input: default@test_table
+POSTHOOK: query: describe formatted test_table
+POSTHOOK: type: DESCTABLE
+POSTHOOK: Input: default@test_table
+# col_name            	data_type           	comment             
+	 	 
+id                  	int                 	                    
+query               	string              	                    
+name                	string              	                    
+	 	 
+# Partition Information	 	 
+# col_name            	data_type           	comment             
+	 	 
+ds                  	string              	                    
+hr                  	string              	                    
+	 	 
+# Detailed Table Information	 	 
+Database:           	default             	 
+#### A masked pattern was here ####
+Protect Mode:       	None                	 
+Retention:          	0                   	 
+#### A masked pattern was here ####
+Table Type:         	MANAGED_TABLE       	 
+Table Parameters:	 	 
+#### A masked pattern was here ####
+	 	 
+# Storage Information	 	 
+SerDe Library:      	org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe	 
+InputFormat:        	org.apache.hadoop.mapred.TextInputFormat	 
+OutputFormat:       	org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat	 
+Compressed:         	No                  	 
+Num Buckets:        	-1                  	 
+Bucket Columns:     	[]                  	 
+Sort Columns:       	[]                  	 
+Storage Desc Params:	 	 
+	serialization.format	1                   
+PREHOOK: query: drop table test_table
+PREHOOK: type: DROPTABLE
+PREHOOK: Input: default@test_table
+PREHOOK: Output: default@test_table
+POSTHOOK: query: drop table test_table
+POSTHOOK: type: DROPTABLE
+POSTHOOK: Input: default@test_table
+POSTHOOK: Output: default@test_table

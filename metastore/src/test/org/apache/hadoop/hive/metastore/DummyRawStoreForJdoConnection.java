@@ -60,6 +60,7 @@ import org.apache.hadoop.hive.metastore.model.MRoleMap;
 import org.apache.hadoop.hive.metastore.model.MTableColumnPrivilege;
 import org.apache.hadoop.hive.metastore.model.MTablePrivilege;
 import org.apache.hadoop.hive.metastore.partition.spec.PartitionSpecProxy;
+import org.apache.hadoop.hive.metastore.retention.RetentionTarget;
 import org.apache.thrift.TException;
 
 /**
@@ -765,7 +766,10 @@ public class DummyRawStoreForJdoConnection implements RawStore {
     return null;
   }
 
-
+  @Override
+  public List<RetentionTarget> getRetentionTargets(String[] databases) throws MetaException {
+    return Collections.emptyList();
+  }
 }
 
 

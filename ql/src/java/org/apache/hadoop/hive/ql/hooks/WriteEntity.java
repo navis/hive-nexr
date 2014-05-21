@@ -190,6 +190,7 @@ public class WriteEntity extends Entity implements Serializable {
       case ADDFILEFORMAT:
       case ADDSERDE:
       case DROPPROPS:
+      case UNSETRETENTION:
       case REPLACECOLS:
       case ARCHIVE:
       case UNARCHIVE:
@@ -209,6 +210,7 @@ public class WriteEntity extends Entity implements Serializable {
 
       case ADDPARTITION:
       case ADDSERDEPROPS:
+      case SETRETENTION:
       case ADDPROPS: return WriteType.DDL_SHARED;
 
       case COMPACT:

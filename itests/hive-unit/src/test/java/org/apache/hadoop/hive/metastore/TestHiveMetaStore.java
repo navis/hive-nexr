@@ -130,7 +130,7 @@ public abstract class TestHiveMetaStore extends TestCase {
 
   /**
    * tests create table and partition and tries to drop the table without
-   * droppping the partition
+   * dropping the partition
    *
    * @throws Exception
    */
@@ -270,7 +270,7 @@ public abstract class TestHiveMetaStore extends TestCase {
         adjust(client, part2, dbName, tblName);
         adjust(client, part3, dbName, tblName);
       }
-      assertTrue("Partitions are not same", part.equals(part_get));
+      assertTrue("Partitions are not same, expected : " + part + ", real : " + part_get, part.equals(part_get));
 
       String partName = "ds=" + FileUtils.escapePathName("2008-07-01 14:13:12") + "/hr=14";
       String part2Name = "ds=" + FileUtils.escapePathName("2008-07-01 14:13:12") + "/hr=15";

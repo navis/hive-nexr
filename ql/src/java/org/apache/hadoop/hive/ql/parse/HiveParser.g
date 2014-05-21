@@ -152,8 +152,10 @@ TOK_TABLE_PARTITION;
 TOK_ALTERTABLE_FILEFORMAT;
 TOK_ALTERTABLE_LOCATION;
 TOK_ALTERTABLE_PROPERTIES;
+TOK_ALTERTABLE_RETENTION;
 TOK_ALTERTABLE_CHANGECOL_AFTER_POSITION;
 TOK_ALTERTABLE_DROPPROPERTIES;
+TOK_ALTERTABLE_DROPRETENTION;
 TOK_ALTERTABLE_SKEWED;
 TOK_ALTERTABLE_EXCHANGEPARTITION;
 TOK_ALTERTABLE_SKEWED_LOCATION;
@@ -398,6 +400,7 @@ import java.util.HashMap;
     xlateMap.put("KW_PARTITIONS", "PARTITIONS");
     xlateMap.put("KW_TABLE", "TABLE");
     xlateMap.put("KW_TABLES", "TABLES");
+    xlateMap.put("KW_RETENTION", "RETENTION");
     xlateMap.put("KW_TBLPROPERTIES", "TBLPROPERTIES");
     xlateMap.put("KW_SHOW", "SHOW");
     xlateMap.put("KW_MSCK", "MSCK");
@@ -963,6 +966,7 @@ alterTableStatementSuffix
     | alterStatementSuffixArchive
     | alterStatementSuffixUnArchive
     | alterStatementSuffixProperties
+    | alterStatementSuffixRetention
     | alterStatementSuffixSkewedby
     | alterStatementSuffixExchangePartition
     | alterStatementPartitionKeyType
@@ -1130,6 +1134,15 @@ alterStatementSuffixProperties
     -> ^(TOK_ALTERTABLE_PROPERTIES tableProperties)
     | KW_UNSET KW_TBLPROPERTIES ifExists? tableProperties
     -> ^(TOK_ALTERTABLE_DROPPROPERTIES tableProperties ifExists?)
+    ;
+
+alterStatementSuffixRetention
+@init { pushMsg("alter retention statement", state); }
+@after { popMsg(state); }
+    : KW_SET KW_RETENTION Number Identifier
+    -> ^(TOK_ALTERTABLE_RETENTION Number Identifier)
+    | KW_UNSET KW_RETENTION
+    -> ^(TOK_ALTERTABLE_DROPRETENTION)
     ;
 
 alterViewSuffixProperties

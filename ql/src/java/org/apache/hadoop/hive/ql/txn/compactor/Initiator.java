@@ -128,8 +128,10 @@ public class Initiator extends CompactorThread {
         }
 
         long elapsedTime = System.currentTimeMillis() - startedAt;
-        if (elapsedTime >= checkInterval || stop.get())  continue;
-        else Thread.sleep(checkInterval - elapsedTime);
+        if (elapsedTime >= checkInterval || stop.get())  {
+          continue;
+        }
+        Thread.sleep(checkInterval - elapsedTime);
 
       } while (!stop.get());
     } catch (Throwable t) {

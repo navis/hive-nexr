@@ -563,7 +563,7 @@ public class FetchOperator implements Serializable {
       tableSerDe = tableDesc.getDeserializer(job, true);
       tableOI = (StructObjectInspector) tableSerDe.getObjectInspector();
       if (!isPartitioned) {
-        return getTableRowOI(tableOI);
+        return getTableRowOI(tableOI);             w
       }
       partKeyOI = getPartitionKeyOI(tableDesc);
 

@@ -54,6 +54,7 @@ import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.hive.metastore.model.MFieldSchema;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.hive.shims.Utils;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -505,6 +506,16 @@ public class Warehouse {
     return makePartName(partCols, vals, null);
   }
 
+  public static String fieldsToPartName(List<MFieldSchema> partCols,
+      List<String> vals) throws MetaException {
+    return fieldsToPartName(partCols, vals, null);
+  }
+
+  public static String stringToPartName(List<String> partCols,
+      List<String> vals) throws MetaException {
+    return stringToPartName(partCols, vals, null);
+  }
+
   /**
    * @param desc
    * @return array of FileStatus objects corresponding to the files
@@ -558,12 +569,27 @@ public class Warehouse {
    * @return An escaped, valid partition name.
    * @throws MetaException
    */
-  public static String makePartName(List<FieldSchema> partCols,
+  public static String makePartName(List<FieldSchema> partSchema,
       List<String> vals, String defaultStr) throws MetaException {
+    return toPartName(partSchema, vals, defaultStr, FIELD);
+  }
+
+  public static String fieldsToPartName(List<MFieldSchema> partSchema,
+      List<String> vals, String defaultStr) throws MetaException {
+    return toPartName(partSchema, vals, defaultStr, MFIELD);
+  }
+
+  public static String stringToPartName(List<String> partSchema,
+      List<String> vals, String defaultStr) throws MetaException {
+    return toPartName(partSchema, vals, defaultStr, STRING);
+  }
+
+  private static <T> String toPartName(List<T> partCols,
+      List<String> vals, String defaultStr, NameAccess<T> access) throws MetaException {
     if ((partCols.size() != vals.size()) || (partCols.size() == 0)) {
       String errorStr = "Invalid partition key & values; keys [";
-      for (FieldSchema fs : partCols) {
-        errorStr += (fs.getName() + ", ");
+      for (T col : partCols) {
+        errorStr += access.getName(col) + ", ";
       }
       errorStr += "], values [";
       for (String val : vals) {
@@ -572,8 +598,8 @@ public class Warehouse {
       throw new MetaException(errorStr + "]");
     }
     List<String> colNames = new ArrayList<String>();
-    for (FieldSchema col: partCols) {
-      colNames.add(col.getName());
+    for (T col : partCols) {
+      colNames.add(access.getName(col));
     }
     return FileUtils.makePartName(colNames, vals, defaultStr);
   }
@@ -594,4 +620,18 @@ public class Warehouse {
     }
     return spec;
   }
+
+  private static interface NameAccess<T> {
+    String getName(T column);
+  }
+
+  private static final NameAccess<String> STRING = new NameAccess<String>() {
+    public String getName(String column) { return column; }
+  };
+  private static final NameAccess<FieldSchema> FIELD = new NameAccess<FieldSchema>() {
+    public String getName(FieldSchema column) { return column.getName(); }
+  };
+  private static final NameAccess<MFieldSchema> MFIELD = new NameAccess<MFieldSchema>() {
+    public String getName(MFieldSchema column) { return column.getName(); }
+  };
 }

@@ -142,6 +142,7 @@ import org.apache.hadoop.hive.serde2.typeinfo.PrimitiveTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.hive.metastore.partition.spec.PartitionSpecProxy;
+import org.apache.hadoop.hive.metastore.retention.RetentionTarget;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hive.common.util.HiveStringUtils;
 import org.apache.thrift.TException;
@@ -982,6 +983,69 @@ public class ObjectStore implements RawStore, Configurable {
       }
     }
     return mtbl;
+  }
+
+  private int nowInSeconds() {
+    return (int) (System.currentTimeMillis() / 1000);
+  }
+
+  public List<RetentionTarget> getRetentionTargets(String[] databases) throws MetaException {
+    boolean committed = false;
+    int current = nowInSeconds();
+    List<RetentionTarget> targets = new ArrayList<RetentionTarget>();
+    try {
+      openTransaction();
+      for (Object t : getTableRetentions(databases, current)) {
+        targets.add(new RetentionTarget((MTable)t));
+      }
+      for (Object p : getPartitionRetentions(databases, current)) {
+        targets.add(new RetentionTarget((MPartition)p));
+      }
+      committed = commitTransaction();
+    } finally {
+      if (!committed) {
+        rollbackTransaction();
+      }
+    }
+    return targets;
+  }
+
+  private Collection getTableRetentions(String[] databases, int current) {
+    Query query = pm.newQuery(MTable.class);
+    StringBuilder builder = new StringBuilder();
+    builder.append("partitionKeys == null && ");
+    builder.append("retention > 0 && createTime + retention < " + current);
+    if (databases != null && databases.length > 0) {
+      builder.append(" && database.name in (");
+      for (int i = 0; i < databases.length; i++) {
+        if (i > 0) {
+          builder.append(", ");
+        }
+        builder.append("\"" + databases[i].trim() + "\"");
+      }
+      builder.append(")");
+    }
+    query.setFilter(builder.toString());
+    return (Collection) query.execute();
+  }
+
+  private Collection getPartitionRetentions(String[] databases, int current) {
+    Query query = pm.newQuery(MPartition.class);
+    StringBuilder builder = new StringBuilder();
+    builder.append("table.partitionKeys != null && ");
+    builder.append("table.retention > 0 && createTime + table.retention < " + current);
+    if (databases != null && databases.length > 0) {
+      builder.append(" && table.database.name in (");
+      for (int i = 0; i < databases.length; i++) {
+        if (i > 0) {
+          builder.append(", ");
+        }
+        builder.append("\"" + databases[i].trim() + "\"");
+      }
+      builder.append(")");
+    }
+    query.setFilter(builder.toString());
+    return (Collection) query.execute();
   }
 
   @Override

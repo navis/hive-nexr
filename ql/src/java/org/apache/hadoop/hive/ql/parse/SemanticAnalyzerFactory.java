@@ -183,7 +183,9 @@ public final class SemanticAnalyzerFactory {
           case HiveParser.TOK_ALTERTABLE_ADDPARTS:
           case HiveParser.TOK_ALTERTABLE_PARTCOLTYPE:
           case HiveParser.TOK_ALTERTABLE_PROPERTIES:
+          case HiveParser.TOK_ALTERTABLE_RETENTION:
           case HiveParser.TOK_ALTERTABLE_DROPPROPERTIES:
+          case HiveParser.TOK_ALTERTABLE_DROPRETENTION:
           case HiveParser.TOK_ALTERTABLE_EXCHANGEPARTITION:
           case HiveParser.TOK_ALTERTABLE_SKEWED:
           setSessionCommandType(commandType.get(child.getType()));
