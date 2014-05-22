@@ -259,6 +259,48 @@ public class PartitionPruner implements Transform {
               ((ExprNodeConstantDesc)expr).getValue().equals(Boolean.FALSE);	  
   }
 
+  private static Set<Partition> getAllPartitions(Table tab) throws Exception {
+    PerfLogger perfLogger = PerfLogger.getPerfLogger();
+    perfLogger.PerfLogBegin(CLASS_NAME, PerfLogger.PARTITION_RETRIEVING);
+    Set<Partition> partitions = _getAllPartitions(tab);
+    perfLogger.PerfLogEnd(CLASS_NAME, PerfLogger.PARTITION_RETRIEVING);
+    return partitions;
+  }
+
+  private static Set<Partition> getAllPartitions(Table tab, List<String> names) throws Exception {
+    PerfLogger perfLogger = PerfLogger.getPerfLogger();
+    perfLogger.PerfLogBegin(CLASS_NAME, PerfLogger.PARTITION_RETRIEVING);
+    Set<Partition> partitions = _getAllPartitions(tab, names);
+    perfLogger.PerfLogEnd(CLASS_NAME, PerfLogger.PARTITION_RETRIEVING);
+    return partitions;
+  }
+
+  private static Set<Partition> _getAllPartitions(Table tab) throws Exception {
+    if (tab.isFullManaged()) {
+      return createPassivePartitions(tab,
+          Hive.get().getPartitionNames(tab.getDbName(), tab.getTableName(), (short) -1));
+    }
+    return Hive.get().getAllPartitionsOf(tab);
+  }
+
+  private static Set<Partition> _getAllPartitions(Table tab, List<String> names) throws Exception {
+    if (tab.isFullManaged()) {
+      return createPassivePartitions(tab, names);
+    }
+    return new LinkedHashSet<Partition>(Hive.get().getPartitionsByNames(tab, names));
+  }
+
+  private static Set<Partition> createPassivePartitions(Table tab, List<String> names)
+      throws HiveException, MetaException {
+    Set<Partition> partitions = new LinkedHashSet<Partition>();
+    for (String partName : names) {
+      Partition partition = new Partition(tab);
+      partition.getTPartition().setValues(Warehouse.makeValuesFromName(partName));
+      partitions.add(partition);
+    }
+    return partitions;
+  }
+
   /**
    * Taking a partition pruning expression, remove the null operands and non-partition columns.
    * The reason why there are null operands is ExprProcFactory classes, for example
@@ -401,14 +443,6 @@ public class PartitionPruner implements Transform {
     }
   }
 
-  private static Set<Partition> getAllPartitions(Table tab) throws HiveException {
-    PerfLogger perfLogger = PerfLogger.getPerfLogger();
-    perfLogger.PerfLogBegin(CLASS_NAME, PerfLogger.PARTITION_RETRIEVING);
-    Set<Partition> result = Hive.get().getAllPartitionsOf(tab);
-    perfLogger.PerfLogEnd(CLASS_NAME, PerfLogger.PARTITION_RETRIEVING);
-    return result;
-  }
-
   /**
    * Pruning partition by getting the partition names first and pruning using Hive expression
    * evaluator on client.
@@ -419,7 +453,7 @@ public class PartitionPruner implements Transform {
    * @return true iff the partition pruning expression contains non-partition columns.
    */
   static private boolean pruneBySequentialScan(Table tab, List<Partition> partitions,
-      ExprNodeGenericFuncDesc prunerExpr, HiveConf conf) throws HiveException, MetaException {
+      ExprNodeGenericFuncDesc prunerExpr, HiveConf conf) throws Exception {
     PerfLogger perfLogger = PerfLogger.getPerfLogger();
     perfLogger.PerfLogBegin(CLASS_NAME, PerfLogger.PRUNE_LISTING);
 
@@ -436,7 +470,7 @@ public class PartitionPruner implements Transform {
 
     perfLogger.PerfLogBegin(CLASS_NAME, PerfLogger.PARTITION_RETRIEVING);
     if (!partNames.isEmpty()) {
-      partitions.addAll(Hive.get().getPartitionsByNames(tab, partNames));
+      partitions.addAll(getAllPartitions(tab, partNames));
     }
     perfLogger.PerfLogEnd(CLASS_NAME, PerfLogger.PARTITION_RETRIEVING);
     return hasUnknownPartitions;

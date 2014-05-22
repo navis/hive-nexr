@@ -575,7 +575,8 @@ public class FetchOperator implements Serializable {
       // Both T1 and T2 and partitioned tables, but T1 does not have any partitions
       // FetchOperator is invoked for T1, and listParts is empty. In that case,
       // use T1's schema to get the ObjectInspector.
-      if (listParts == null || listParts.isEmpty() || !needConversion(tableDesc, listParts)) {
+      if (listParts == null || listParts.isEmpty() || work.isFullManaged() || 
+          !needConversion(tableDesc, listParts)) {
         return getPartitionedRowOI(tableOI);
       }
       convertedOI = (StructObjectInspector) ObjectInspectorConverters.getConvertedOI(

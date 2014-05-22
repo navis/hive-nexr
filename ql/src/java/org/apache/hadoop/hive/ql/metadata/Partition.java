@@ -66,6 +66,7 @@ public class Partition implements Serializable {
 
   private Table table;
   private org.apache.hadoop.hive.metastore.api.Partition tPartition;
+  private boolean fullManaged;
 
   /**
    * These fields are cached. The information comes from tPartition.
@@ -73,6 +74,7 @@ public class Partition implements Serializable {
   private Deserializer deserializer;
   private Class<? extends OutputFormat> outputFormatClass;
   private Class<? extends InputFormat> inputFormatClass;
+  private Path location;
 
   /**
    * @return The values of the partition
@@ -182,32 +184,29 @@ public class Partition implements Serializable {
 
     this.table = table;
     this.tPartition = tPartition;
+    this.fullManaged = table.isFullManaged();
 
-    if (table.isView()) {
+    if (!isActivePartition()) {
       return;
     }
 
-    if (table.isPartitioned()) {
-      try {
-        String partName = Warehouse.makePartName(table.getPartCols(), tPartition.getValues());
-        if (tPartition.getSd().getLocation() == null) {
-          // set default if location is not set and this is a physical
-          // table partition (not a view partition)
-          if (table.getDataLocation() != null) {
-            Path partPath = new Path(table.getDataLocation(), partName);
-            tPartition.getSd().setLocation(partPath.toString());
-          }
+    try {
+      StorageDescriptor partSD = tPartition.getSd();
+      if (partSD.getLocation() == null) {
+        // set default if location is not set and this is a physical
+        // table partition (not a view partition)
+        if (table.getDataLocation() != null) {
+          String partName = Warehouse.makePartName(table.getPartCols(), tPartition.getValues());
+          Path partPath = new Path(table.getDataLocation(), partName);
+          tPartition.getSd().setLocation(partPath.toString());
         }
-        // set default if columns are not set
-        if (tPartition.getSd().getCols() == null) {
-          if (table.getCols() != null) {
-            tPartition.getSd().setCols(table.getCols());
-          }
-        }
-      } catch (MetaException e) {
-        throw new HiveException("Invalid partition for table " + table.getTableName(),
-            e);
       }
+      // set default if columns are not set
+      if (tPartition.getSd().getCols() == null && table.getCols() != null) {
+        tPartition.getSd().setCols(table.getCols());
+      }
+    } catch (MetaException e) {
+      throw new HiveException("Invalid partition for table " + table.getTableName(), e);
     }
 
     // Note that we do not set up fields like inputFormatClass, outputFormatClass
@@ -228,8 +227,8 @@ public class Partition implements Serializable {
   }
 
   public Path[] getPath() {
-    Path[] ret = new Path[]{getDataLocation()};
-    return ret;
+    Path location = getDataLocation();
+    return location == null ? new Path[0] : new Path[] {location};
   }
 
   public Path getPartitionPath() {
@@ -237,43 +236,52 @@ public class Partition implements Serializable {
   }
 
   public Path getDataLocation() {
+    if (location != null || table.isView()) {
+      return location;
+    }
+    if (isActivePartition() &&
+      tPartition.getSd() != null && tPartition.getSd().getLocation() != null) {
+      return location = new Path(tPartition.getSd().getLocation());
+    }
+    String tableLocation = table.getTTable().getSd().getLocation();
     if (table.isPartitioned()) {
-      return new Path(tPartition.getSd().getLocation());
-    } else {
-      return new Path(table.getTTable().getSd().getLocation());
+      return location = new Path(tableLocation, getName());
     }
+    return location = new Path(tableLocation);
   }
 
-  final public Deserializer getDeserializer() {
-    if (deserializer == null) {
-      try {
-        deserializer = MetaStoreUtils.getDeserializer(SessionState.getSessionConf(),
-            tPartition, table.getTTable());
-      } catch (MetaException e) {
-        throw new RuntimeException(e);
-      }
+  private Deserializer getDeserializer() {
+    if (!isActivePartition()) {
+      return table.getDeserializer();
     }
-    return deserializer;
-  }
-
-  public Properties getSchema() {
-    return MetaStoreUtils.getSchema(tPartition, table.getTTable());
+    if (deserializer != null) {
+      return deserializer;
+    }
+    try {
+      Properties properties = getMetadataFromPartitionSchema();
+      String serializationLib = getActiveSd().getSerdeInfo().getSerializationLib();
+      return deserializer = MetaStoreUtils.getDeserializer(serializationLib, properties, 
+          SessionState.getSessionConf());
+    } catch (MetaException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public Properties getMetadataFromPartitionSchema() {
-    return MetaStoreUtils.getPartitionMetadata(tPartition, table.getTTable());
+    return MetaStoreUtils.getPartitionMetadata(tPartition, getLocation(), table.getTTable());
   }
 
   public Properties getSchemaFromTableSchema(Properties tblSchema) {
-    return MetaStoreUtils.getPartSchemaFromTableSchema(tPartition.getSd(), table.getTTable().getSd(),
-        tPartition.getParameters(), table.getDbName(), table.getTableName(), table.getPartitionKeys(),
-        tblSchema);
+    return MetaStoreUtils.getPartSchemaFromTableSchema(tPartition, getLocation(), tblSchema);
   }
 
   /**
    * @param inputFormatClass
    */
   public void setInputFormatClass(Class<? extends InputFormat> inputFormatClass) {
+    if (!isActivePartition()) {
+      throw new IllegalStateException("setInputFormatClass");
+    }
     this.inputFormatClass = inputFormatClass;
     tPartition.getSd().setInputFormat(inputFormatClass.getName());
   }
@@ -282,6 +290,9 @@ public class Partition implements Serializable {
    * @param outputFormatClass
    */
   public void setOutputFormatClass(Class<? extends HiveOutputFormat> outputFormatClass) {
+    if (!isActivePartition()) {
+      throw new IllegalStateException("setOutputFormatClass");
+    }
     this.outputFormatClass = outputFormatClass;
     tPartition.getSd().setOutputFormat(HiveFileFormatUtils
         .getOutputFormatSubstitute(outputFormatClass).toString());
@@ -289,9 +300,11 @@ public class Partition implements Serializable {
 
   final public Class<? extends InputFormat> getInputFormatClass()
       throws HiveException {
+    if (!isActivePartition()) {
+      return table.getInputFormatClass();
+    }
     if (inputFormatClass == null) {
-      // sd can be null for views
-      String clsName = tPartition.getSd() == null ? null : tPartition.getSd().getInputFormat();
+      String clsName = getActiveSd().getInputFormat();
       if (clsName == null) {
         return inputFormatClass = table.getInputFormatClass();
       }
@@ -307,9 +320,11 @@ public class Partition implements Serializable {
 
   final public Class<? extends OutputFormat> getOutputFormatClass()
       throws HiveException {
+    if (!isActivePartition()) {
+      return table.getOutputFormatClass();
+    }
     if (outputFormatClass == null) {
-      // sd can be null for views
-      String clsName = tPartition.getSd() == null ? null : tPartition.getSd().getOutputFormat();
+      String clsName = getActiveSd().getOutputFormat();
       if (clsName == null) {
         return outputFormatClass = table.getOutputFormatClass();
       }
@@ -325,7 +340,7 @@ public class Partition implements Serializable {
   }
 
   public int getBucketCount() {
-    return tPartition.getSd().getNumBuckets();
+    return getActiveSd().getNumBuckets();
     /*
      * TODO: Keeping this code around for later use when we will support
      * sampling on tables which are not created with CLUSTERED INTO clause
@@ -342,16 +357,30 @@ public class Partition implements Serializable {
      */
   }
 
+  private StorageDescriptor getActiveSd() {
+    if (isActivePartition()) {
+      return tPartition.getSd();
+    }
+    return table.getTTable().getSd();
+  }
+
+  private boolean isActivePartition() {
+    return table.isPartitioned() && !table.isView() && !fullManaged;
+  }
+
   public void setBucketCount(int newBucketNum) {
-    tPartition.getSd().setNumBuckets(newBucketNum);
+    if (!isActivePartition()) {
+      throw new IllegalStateException("setBucketCount");
+    }
+    getActiveSd().setNumBuckets(newBucketNum);
   }
 
   public List<String> getBucketCols() {
-    return tPartition.getSd().getBucketCols();
+    return getActiveSd().getBucketCols();
   }
 
   public List<Order> getSortCols() {
-    return tPartition.getSd().getSortCols();
+    return getActiveSd().getSortCols();
   }
 
   public List<String> getSortColNames() {
@@ -363,11 +392,15 @@ public class Partition implements Serializable {
    */
   @SuppressWarnings("nls")
   public FileStatus[] getSortedPaths() {
+    Path location = getDataLocation();
+    if (location == null) {
+      return null;
+    }
     try {
       // Previously, this got the filesystem of the Table, which could be
       // different from the filesystem of the partition.
-      FileSystem fs = getDataLocation().getFileSystem(SessionState.getSessionConf());
-      String pathPattern = getDataLocation().toString();
+      FileSystem fs = location.getFileSystem(SessionState.getSessionConf());
+      String pathPattern = location.toString();
       if (getBucketCount() > 0) {
         pathPattern = pathPattern + "/*";
       }
@@ -397,51 +430,6 @@ public class Partition implements Serializable {
       return null;
     }
     return srcs[bucketNum].getPath();
-  }
-
-  @SuppressWarnings("nls")
-  public Path[] getPath(Sample s) throws HiveException {
-    if (s == null) {
-      return getPath();
-    } else {
-      int bcount = getBucketCount();
-      if (bcount == 0) {
-        return getPath();
-      }
-
-      Dimension d = s.getSampleDimension();
-      if (!d.getDimensionId().equals(table.getBucketingDimensionId())) {
-        // if the bucket dimension is not the same as the sampling dimension
-        // we must scan all the data
-        return getPath();
-      }
-
-      int scount = s.getSampleFraction();
-      ArrayList<Path> ret = new ArrayList<Path>();
-
-      if (bcount == scount) {
-        ret.add(getBucketPath(s.getSampleNum() - 1));
-      } else if (bcount < scount) {
-        if ((scount / bcount) * bcount != scount) {
-          throw new HiveException("Sample Count" + scount
-              + " is not a multiple of bucket count " + bcount + " for table "
-              + table.getTableName());
-        }
-        // undersampling a bucket
-        ret.add(getBucketPath((s.getSampleNum() - 1) % bcount));
-      } else if (bcount > scount) {
-        if ((bcount / scount) * scount != bcount) {
-          throw new HiveException("Sample Count" + scount
-              + " is not a divisor of bucket count " + bcount + " for table "
-              + table.getTableName());
-        }
-        // sampling multiple buckets
-        for (int i = 0; i < bcount / scount; i++) {
-          ret.add(getBucketPath(i * scount + (s.getSampleNum() - 1)));
-        }
-      }
-      return (ret.toArray(new Path[ret.size()]));
-    }
   }
 
   public LinkedHashMap<String, String> getSpec() {
@@ -479,23 +467,15 @@ public class Partition implements Serializable {
     return tPartition;
   }
 
-  /**
-   * Should be only used by serialization.
-   */
-  public void setTPartition(
-      org.apache.hadoop.hive.metastore.api.Partition partition) {
-    tPartition = partition;
-  }
-
   public Map<String, String> getParameters() {
-    return tPartition.getParameters();
+    return isActivePartition() ? tPartition.getParameters() : table.getParameters();
   }
 
   public List<FieldSchema> getCols() {
-
+    StorageDescriptor activeSD = getActiveSd();
     try {
       if (Table.hasMetastoreBasedSchema(SessionState.getSessionConf(), tPartition.getSd())) {
-        return tPartition.getSd().getCols();
+        return activeSD.getCols();
       }
       return MetaStoreUtils.getFieldsFromDeserializer(table.getTableName(), getDeserializer());
     } catch (Exception e) {
@@ -507,14 +487,14 @@ public class Partition implements Serializable {
   }
 
   public String getLocation() {
-    if (tPartition.getSd() == null) {
-      return null;
-    } else {
-      return tPartition.getSd().getLocation();
-    }
+    Path location = getDataLocation();
+    return location == null ? null : location.toString();
   }
 
   public void setLocation(String location) {
+    if (!isActivePartition()) {
+      throw new IllegalStateException("setLocation");
+    }
     tPartition.getSd().setLocation(location);
   }
 
@@ -544,6 +524,9 @@ public class Partition implements Serializable {
    * @param protectMode
    */
   public void setProtectMode(ProtectMode protectMode){
+    if (!isActivePartition()) {
+      throw new IllegalStateException("setProtectMode");
+    }
     Map<String, String> parameters = tPartition.getParameters();
     String pm = protectMode.toString();
     if (pm != null) {
@@ -558,6 +541,9 @@ public class Partition implements Serializable {
    * @return protect mode
    */
   public ProtectMode getProtectMode(){
+    if (!isActivePartition()) {
+      return table.getProtectMode();
+    }
     return MetaStoreUtils.getProtectMode(tPartition);
   }
 
@@ -566,11 +552,7 @@ public class Partition implements Serializable {
    */
   public boolean isOffline(){
     ProtectMode pm = getProtectMode();
-    if (pm == null) {
-      return false;
-    } else {
-      return pm.offline;
-    }
+    return pm != null && pm.offline;
   }
 
   /**
@@ -606,24 +588,27 @@ public class Partition implements Serializable {
   }
 
   public boolean isStoredAsSubDirectories() {
-    return tPartition.getSd().isStoredAsSubDirectories();
+    return getActiveSd().isStoredAsSubDirectories();
   }
 
   public List<List<String>> getSkewedColValues(){
-    return tPartition.getSd().getSkewedInfo().getSkewedColValues();
+    return getActiveSd().getSkewedInfo().getSkewedColValues();
   }
 
   public List<String> getSkewedColNames() {
-    return tPartition.getSd().getSkewedInfo().getSkewedColNames();
+    return getActiveSd().getSkewedInfo().getSkewedColNames();
   }
 
   public void setSkewedValueLocationMap(List<String> valList, String dirName)
       throws HiveException {
-    Map<List<String>, String> mappings = tPartition.getSd().getSkewedInfo()
+    if (!isActivePartition()) {
+      throw new IllegalStateException("setSkewedValueLocationMap");
+    }
+    Map<List<String>, String> mappings = getActiveSd().getSkewedInfo()
         .getSkewedColValueLocationMaps();
     if (null == mappings) {
       mappings = new HashMap<List<String>, String>();
-      tPartition.getSd().getSkewedInfo().setSkewedColValueLocationMaps(mappings);
+      getActiveSd().getSkewedInfo().setSkewedColValueLocationMaps(mappings);
     }
 
     // Add or update new mapping
@@ -631,7 +616,7 @@ public class Partition implements Serializable {
   }
 
   public Map<List<String>, String> getSkewedColValueLocationMaps() {
-    return tPartition.getSd().getSkewedInfo().getSkewedColValueLocationMaps();
+    return getActiveSd().getSkewedInfo().getSkewedColValueLocationMaps();
   }
 
   public void checkValidity() throws HiveException {

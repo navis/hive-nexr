@@ -163,6 +163,16 @@ public class TableDesc implements Serializable, Cloneable {
     return (properties.getProperty(hive_metastoreConstants.META_TABLE_STORAGE) != null);
   }
 
+  public boolean isExternal() {
+    String external = properties.getProperty("EXTERNAL");
+    return external != null && "TRUE".equalsIgnoreCase(external);
+  }
+
+  public boolean isFullManaged() {
+    String fullManaged = properties.getProperty("FULL_MANAGED");
+    return fullManaged != null && "TRUE".equalsIgnoreCase(fullManaged);
+  }
+
   @Override
   public Object clone() {
     TableDesc ret = new TableDesc();

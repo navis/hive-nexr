@@ -1216,6 +1216,9 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
     if (tbl.getTableType() != TableType.MANAGED_TABLE) {
       throw new HiveException("ARCHIVE can only be performed on managed tables");
     }
+    if (tbl.isFullManaged()) {
+      throw new HiveException("ARCHIVE can not be performed on full managed tables");
+    }
 
     Map<String, String> partSpec = simpleDesc.getPartSpec();
     PartSpecInfo partSpecInfo = PartSpecInfo.create(tbl, partSpec);
@@ -3328,6 +3331,9 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
 
     List<Partition> allPartitions = null;
     if (alterTbl.getPartSpec() != null) {
+      if (tbl.isFullManaged()) {
+        throw new HiveException("Alter is not supported for fully manged table");
+      }
       Map<String, String> partSpec = alterTbl.getPartSpec();
       if (DDLSemanticAnalyzer.isFullSpec(tbl, partSpec)) {
         allPartitions = new ArrayList<Partition>();

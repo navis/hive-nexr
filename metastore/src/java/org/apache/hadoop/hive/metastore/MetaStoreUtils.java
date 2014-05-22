@@ -410,15 +410,12 @@ public class MetaStoreUtils {
    *              if any problems instantiating the Deserializer
    *
    */
-  static public Deserializer getDeserializer(Configuration conf,
-      org.apache.hadoop.hive.metastore.api.Partition part,
-      org.apache.hadoop.hive.metastore.api.Table table) throws MetaException {
-    String lib = part.getSd().getSerdeInfo().getSerializationLib();
+  public static Deserializer getDeserializer(String lib, Properties properties,
+      Configuration conf) throws MetaException {
     try {
       Deserializer deserializer = ReflectionUtils.newInstance(conf.getClassByName(lib).
         asSubclass(Deserializer.class), conf);
-      SerDeUtils.initializeSerDe(deserializer, conf, MetaStoreUtils.getTableMetadata(table),
-                                 MetaStoreUtils.getPartitionMetadata(part, table));
+      deserializer.initialize(conf, properties);
       return deserializer;
     } catch (RuntimeException e) {
       throw e;
@@ -807,26 +804,22 @@ public class MetaStoreUtils {
     return ddl.toString();
   }
 
-  public static Properties getTableMetadata(
-      org.apache.hadoop.hive.metastore.api.Table table) {
-    return MetaStoreUtils.getSchema(table.getSd(), table.getSd(), table
-        .getParameters(), table.getDbName(), table.getTableName(), table.getPartitionKeys());
+  public static boolean isFullManaged(Table table) {
+    String fullManaged = table.getParameters().get("FULL_MANAGED");
+    return fullManaged != null && "TRUE".equalsIgnoreCase(fullManaged);
   }
 
-  public static Properties getPartitionMetadata(
-      org.apache.hadoop.hive.metastore.api.Partition partition,
-      org.apache.hadoop.hive.metastore.api.Table table) {
-    return MetaStoreUtils
-        .getSchema(partition.getSd(), partition.getSd(), partition
-            .getParameters(), table.getDbName(), table.getTableName(),
-            table.getPartitionKeys());
+  public static Properties getTableMetadata(Table table) {
+    return MetaStoreUtils.getSchema(table.getSd(), null, table.getParameters(), table);
   }
 
-  public static Properties getSchema(
-      org.apache.hadoop.hive.metastore.api.Partition part,
-      org.apache.hadoop.hive.metastore.api.Table table) {
-    return MetaStoreUtils.getSchema(part.getSd(), table.getSd(), table
-        .getParameters(), table.getDbName(), table.getTableName(), table.getPartitionKeys());
+  public static Properties getPartitionMetadata(Partition partition, String location, Table table) {
+    return MetaStoreUtils.getSchema(partition.getSd(), location, partition.getParameters(), table);
+  }
+
+  public static Properties getPartSchemaFromTableSchema(Partition partition, String location, Properties tblSchema) {
+    return MetaStoreUtils.getPartSchemaFromTableSchema(
+        partition.getSd(), location, partition.getParameters(), tblSchema);
   }
 
   /**
@@ -838,21 +831,13 @@ public class MetaStoreUtils {
    * retrieve the data. If we know the data will be the same as the table level schema
    * and they are immutable, we should just reuse the table level schema objects.
    *
-   * @param sd The Partition level Storage Descriptor.
-   * @param tblsd The Table level Storage Descriptor.
+   * @param sd Storage Descriptor.
    * @param parameters partition level parameters
-   * @param databaseName DB name
-   * @param tableName table name
-   * @param partitionKeys partition columns
    * @param tblSchema The table level schema from which this partition should be copied.
    * @return the properties
    */
-  public static Properties getPartSchemaFromTableSchema(
-      org.apache.hadoop.hive.metastore.api.StorageDescriptor sd,
-      org.apache.hadoop.hive.metastore.api.StorageDescriptor tblsd,
-      Map<String, String> parameters, String databaseName, String tableName,
-      List<FieldSchema> partitionKeys,
-      Properties tblSchema) {
+  private static Properties getPartSchemaFromTableSchema(StorageDescriptor sd, String location,
+      Map<String, String> parameters, Properties tblSchema) {
 
     // Inherent most properties from table level schema and overwrite some properties
     // in the following code.
@@ -889,9 +874,10 @@ public class MetaStoreUtils {
         outputFormat);
 
     // Location
-    if (sd.getLocation() != null) {
+    location = location != null ? location : sd.getLocation();
+    if (location != null) {
       schema.setProperty(org.apache.hadoop.hive.metastore.api.hive_metastoreConstants.META_TABLE_LOCATION,
-          sd.getLocation());
+          location);
     }
 
     // Bucket count
@@ -940,11 +926,8 @@ public class MetaStoreUtils {
     return schema;
   }
 
-  public static Properties getSchema(
-      org.apache.hadoop.hive.metastore.api.StorageDescriptor sd,
-      org.apache.hadoop.hive.metastore.api.StorageDescriptor tblsd,
-      Map<String, String> parameters, String databaseName, String tableName,
-      List<FieldSchema> partitionKeys) {
+  private static Properties getSchema(StorageDescriptor sd, String location,
+      Map<String, String> parameters, Table table) {
     Properties schema = new Properties();
     String inputFormat = sd.getInputFormat();
     if (inputFormat == null || inputFormat.length() == 0) {
@@ -965,12 +948,13 @@ public class MetaStoreUtils {
 
     schema.setProperty(
         org.apache.hadoop.hive.metastore.api.hive_metastoreConstants.META_TABLE_NAME,
-        databaseName + "." + tableName);
+        table.getDbName() + "." + table.getTableName());
 
-    if (sd.getLocation() != null) {
+    location = location != null ? location : sd.getLocation();
+    if (location != null) {
       schema.setProperty(
           org.apache.hadoop.hive.metastore.api.hive_metastoreConstants.META_TABLE_LOCATION,
-          sd.getLocation());
+          location);
     }
     schema.setProperty(
         org.apache.hadoop.hive.metastore.api.hive_metastoreConstants.BUCKET_COUNT, Integer
@@ -995,7 +979,7 @@ public class MetaStoreUtils {
     StringBuilder colTypeBuf = new StringBuilder();
     StringBuilder colComment = new StringBuilder();
     boolean first = true;
-    for (FieldSchema col : tblsd.getCols()) {
+    for (FieldSchema col : sd.getCols()) {
       if (!first) {
         colNameBuf.append(",");
         colTypeBuf.append(":");
@@ -1018,14 +1002,14 @@ public class MetaStoreUtils {
     if (sd.getCols() != null) {
       schema.setProperty(
           org.apache.hadoop.hive.serde.serdeConstants.SERIALIZATION_DDL,
-          getDDLFromFieldSchema(tableName, sd.getCols()));
+          getDDLFromFieldSchema(table.getTableName(), sd.getCols()));
     }
 
     String partString = "";
     String partStringSep = "";
     String partTypesString = "";
     String partTypesStringSep = "";
-    for (FieldSchema partKey : partitionKeys) {
+    for (FieldSchema partKey : table.getPartitionKeys()) {
       partString = partString.concat(partStringSep);
       partString = partString.concat(partKey.getName());
       partTypesString = partTypesString.concat(partTypesStringSep);

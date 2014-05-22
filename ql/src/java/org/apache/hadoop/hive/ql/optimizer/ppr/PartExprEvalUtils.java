@@ -56,7 +56,7 @@ public class PartExprEvalUtils {
       Partition p, List<VirtualColumn> vcs,
       StructObjectInspector rowObjectInspector) throws HiveException {
     LinkedHashMap<String, String> partSpec = p.getSpec();
-    Properties partProps = p.getSchema();
+    Properties partProps = p.getMetadataFromPartitionSchema();
     String pcolTypes = partProps.getProperty(hive_metastoreConstants.META_TABLE_PARTITION_COLUMN_TYPES);
     String[] partKeyTypes = pcolTypes.trim().split(":");
 
