@@ -385,6 +385,7 @@ public final class FunctionRegistry {
     system.registerGenericUDF("when", GenericUDFWhen.class);
     system.registerGenericUDF("hash", GenericUDFHash.class);
     system.registerGenericUDF("coalesce", GenericUDFCoalesce.class);
+    system.registerGenericUDF("nullif", GenericUDFNullIf.class);
     system.registerGenericUDF("index", GenericUDFIndex.class);
     system.registerGenericUDF("in_file", GenericUDFInFile.class);
     system.registerGenericUDF("instr", GenericUDFInstr.class);
