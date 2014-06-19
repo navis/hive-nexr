@@ -1,0 +1,63 @@
+PREHOOK: query: explain
+SELECT TRANSFORM('echo ${X:-x} ${Y:-y} ${Z:-z}') USING 'sh' AS x,y,z WITH ('Z'='someZ', 'Y')
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ' '
+FROM src tablesample (1 rows)
+PREHOOK: type: QUERY
+POSTHOOK: query: explain
+SELECT TRANSFORM('echo ${X:-x} ${Y:-y} ${Z:-z}') USING 'sh' AS x,y,z WITH ('Z'='someZ', 'Y')
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ' '
+FROM src tablesample (1 rows)
+POSTHOOK: type: QUERY
+STAGE DEPENDENCIES:
+  Stage-1 is a root stage
+  Stage-0 depends on stages: Stage-1
+
+STAGE PLANS:
+  Stage: Stage-1
+    Map Reduce
+      Map Operator Tree:
+          TableScan
+            alias: src
+            Row Limit Per Split: 1
+            Statistics: Num rows: 0 Data size: 5812 Basic stats: PARTIAL Column stats: COMPLETE
+            Select Operator
+              expressions: 'echo ${X:-x} ${Y:-y} ${Z:-z}' (type: string)
+              outputColumnNames: _col0
+              Statistics: Num rows: 0 Data size: 5812 Basic stats: PARTIAL Column stats: COMPLETE
+              Transform Operator
+                command: sh
+                output info:
+                    input format: org.apache.hadoop.mapred.TextInputFormat
+                    output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+                    serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+                environments:
+                  Y 
+                  Z someZ
+                Statistics: Num rows: 0 Data size: 5812 Basic stats: PARTIAL Column stats: COMPLETE
+                File Output Operator
+                  compressed: false
+                  Statistics: Num rows: 0 Data size: 5812 Basic stats: PARTIAL Column stats: COMPLETE
+                  table:
+                      input format: org.apache.hadoop.mapred.TextInputFormat
+                      output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+                      serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+
+  Stage: Stage-0
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        ListSink
+
+PREHOOK: query: SELECT TRANSFORM('echo ${X:-x} ${Y:-y} ${Z:-z}') USING 'sh' AS x,y,z WITH ('Z'='someZ', 'Y')
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ' '
+FROM src tablesample (1 rows)
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: SELECT TRANSFORM('echo ${X:-x} ${Y:-y} ${Z:-z}') USING 'sh' AS x,y,z WITH ('Z'='someZ', 'Y')
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ' '
+FROM src tablesample (1 rows)
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+x	someY	someZ

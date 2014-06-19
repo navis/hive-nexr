@@ -21,6 +21,8 @@ package org.apache.hadoop.hive.ql.plan;
 import org.apache.hadoop.hive.ql.exec.RecordReader;
 import org.apache.hadoop.hive.ql.exec.RecordWriter;
 
+import java.util.HashMap;
+
 /**
  * ScriptDesc.
  *
@@ -39,6 +41,7 @@ public class ScriptDesc extends AbstractOperatorDesc {
 
   private TableDesc scriptErrInfo;
   private Class<? extends RecordReader> errRecordReaderClass;
+  private HashMap<String, String> scriptProps;
 
   public ScriptDesc() {
   }
@@ -141,4 +144,12 @@ public class ScriptDesc extends AbstractOperatorDesc {
     this.inRecordWriterClass = inRecordWriterClass;
   }
 
+  public void setScriptProps(HashMap<String, String> scriptProps) {
+    this.scriptProps = scriptProps;
+  }
+
+  @Explain(displayName = "environments")
+  public HashMap<String, String> getScriptProps() {
+    return scriptProps;
+  }
 }

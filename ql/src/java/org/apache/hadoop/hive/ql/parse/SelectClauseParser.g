@@ -72,9 +72,30 @@ selectTrfmClause
     LPAREN selectExpressionList RPAREN
     inSerde=rowFormat inRec=recordWriter
     KW_USING StringLiteral
-    ( KW_AS ((LPAREN (aliasList | columnNameTypeList) RPAREN) | (aliasList | columnNameTypeList)))?
+    ( KW_AS ((LPAREN (aliasList | columnNameTypeList) RPAREN) | (aliasList | columnNameTypeList)))? (KW_WITH scriptProperties)?
     outSerde=rowFormat outRec=recordReader
-    -> ^(TOK_TRANSFORM selectExpressionList $inSerde $inRec StringLiteral $outSerde $outRec aliasList? columnNameTypeList?)
+    -> ^(TOK_TRANSFORM selectExpressionList $inSerde $inRec StringLiteral $outSerde $outRec aliasList? columnNameTypeList? scriptProperties?)
+    ;
+
+scriptProperties
+@init { gParent.pushMsg("script properties", state); }
+@after { gParent.popMsg(state); }
+    :
+      LPAREN scriptPropertiesList RPAREN -> ^(TOK_TABLEPROPERTIES scriptPropertiesList)
+    ;
+
+scriptPropertiesList
+@init { gParent.pushMsg("script properties list", state); }
+@after { gParent.popMsg(state); }
+    :
+      scriptProperty (COMMA scriptProperty)* -> ^(TOK_TABLEPROPLIST scriptProperty+)
+    ;
+
+scriptProperty
+@init { gParent.pushMsg("script property", state); }
+@after { gParent.popMsg(state); }
+    :
+      keyValueProperty | keyProperty
     ;
 
 hintClause

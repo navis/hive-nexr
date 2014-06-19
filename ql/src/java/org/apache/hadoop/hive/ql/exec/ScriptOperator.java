@@ -166,19 +166,29 @@ public class ScriptOperator extends Operator<ScriptDesc> implements
    * check on environment variable length
    */
   void addJobConfToEnvironment(Configuration conf, Map<String, String> env) {
+    boolean truncate = conf.getBoolean(HiveConf.ConfVars.HIVESCRIPTTRUNCATEENV.toString(), false);
+    Map<String, String> props = getConf().getScriptProps(); // null for all
     Iterator<Map.Entry<String, String>> it = conf.iterator();
     while (it.hasNext()) {
       Map.Entry<String, String> en = it.next();
       String name = en.getKey();
-      if (!blackListed(name)) {
+      if (blackListed(name)) {
+        continue;
+      }
+      if (props == null || (props.containsKey(name) && props.get(name) == null)) {
         // String value = (String)en.getValue(); // does not apply variable
         // expansion
         String value = conf.get(name); // does variable expansion
         name = safeEnvVarName(name);
-        boolean truncate = conf
-            .getBoolean(HiveConf.ConfVars.HIVESCRIPTTRUNCATEENV.toString(), false);
         value = safeEnvVarValue(value, name, truncate);
         env.put(name, value);
+      }
+    }
+    if (props != null) {
+      for (Map.Entry<String, String> entry : props.entrySet()) {
+        if (entry.getValue() != null) {
+          env.put(entry.getKey(), entry.getValue());
+        }
       }
     }
   }

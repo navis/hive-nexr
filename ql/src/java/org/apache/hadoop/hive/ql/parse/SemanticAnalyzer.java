@@ -3148,20 +3148,13 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     ArrayList<ColumnInfo> outputCols = new ArrayList<ColumnInfo>();
     int inputSerDeNum = 1, inputRecordWriterNum = 2;
     int outputSerDeNum = 4, outputRecordReaderNum = 5;
-    int outputColsNum = 6;
-    boolean outputColNames = false, outputColSchemas = false;
     int execPos = 3;
     boolean defaultOutputCols = false;
 
-    // Go over all the children
-    if (trfm.getChildCount() > outputColsNum) {
-      ASTNode outCols = (ASTNode) trfm.getChild(outputColsNum);
-      if (outCols.getType() == HiveParser.TOK_ALIASLIST) {
-        outputColNames = true;
-      } else if (outCols.getType() == HiveParser.TOK_TABCOLLIST) {
-        outputColSchemas = true;
-      }
-    }
+    ASTNode aliasList = (ASTNode) trfm.getFirstChildWithType(HiveParser.TOK_ALIASLIST);
+    ASTNode tabColList = (ASTNode) trfm.getFirstChildWithType(HiveParser.TOK_TABCOLLIST);
+    boolean outputColNames = aliasList != null;
+    boolean outputColSchemas = tabColList != null;
 
     // If column type is not specified, use a string
     if (!outputColNames && !outputColSchemas) {
@@ -3177,14 +3170,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       outputCols.add(colInfo);
       defaultOutputCols = true;
     } else {
-      ASTNode collist = (ASTNode) trfm.getChild(outputColsNum);
-      int ccount = collist.getChildCount();
 
       Set<String> colAliasNamesDuplicateCheck = new HashSet<String>();
-      if (outputColNames) {
-        for (int i = 0; i < ccount; ++i) {
-          String colAlias = unescapeIdentifier(((ASTNode) collist.getChild(i))
-              .getText());
+      if (aliasList != null) {
+        for (int i = 0; i < aliasList.getChildCount(); ++i) {
+          String colAlias = unescapeIdentifier(aliasList.getChild(i).getText());
           failIfColAliasExists(colAliasNamesDuplicateCheck, colAlias);
           String intName = getColumnInternalName(i);
           ColumnInfo colInfo = new ColumnInfo(intName,
@@ -3193,11 +3183,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           outputCols.add(colInfo);
         }
       } else {
-        for (int i = 0; i < ccount; ++i) {
-          ASTNode child = (ASTNode) collist.getChild(i);
+        for (int i = 0; i < tabColList.getChildCount(); ++i) {
+          ASTNode child = (ASTNode) tabColList.getChild(i);
           assert child.getType() == HiveParser.TOK_TABCOL;
-          String colAlias = unescapeIdentifier(((ASTNode) child.getChild(0))
-              .getText());
+          String colAlias = unescapeIdentifier(child.getChild(0).getText());
           failIfColAliasExists(colAliasNamesDuplicateCheck, colAlias);
           String intName = getColumnInternalName(i);
           ColumnInfo colInfo = new ColumnInfo(intName, TypeInfoUtils
@@ -3293,10 +3282,17 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         .getChild(inputRecordWriterNum));
     Class<? extends RecordReader> errRecordReader = getDefaultRecordReader();
 
+    ScriptDesc scriptDesc = new ScriptDesc(
+        fetchFilesNotInLocalFilesystem(stripQuotes(trfm.getChild(execPos).getText())),
+        inInfo, inRecordWriter, outInfo, outRecordReader, errRecordReader, errInfo);
+
+    ASTNode propsAST = (ASTNode) trfm.getFirstChildWithType(HiveParser.TOK_TABLEPROPERTIES);
+    if (propsAST != null) {
+      scriptDesc.setScriptProps(DDLSemanticAnalyzer.getProps((ASTNode) propsAST.getChild(0)));
+    }
+
     Operator output = putOpInsertMap(OperatorFactory.getAndMakeChild(
-        new ScriptDesc(
-            fetchFilesNotInLocalFilesystem(stripQuotes(trfm.getChild(execPos).getText())),
-            inInfo, inRecordWriter, outInfo, outRecordReader, errRecordReader, errInfo),
+        scriptDesc,
         new RowSchema(out_rwsch.getColumnInfos()), input), out_rwsch);
     output.setColumnExprMap(new HashMap<String, ExprNodeDesc>());  // disable backtracking
 

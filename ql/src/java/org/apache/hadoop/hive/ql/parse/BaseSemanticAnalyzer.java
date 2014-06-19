@@ -396,7 +396,7 @@ public abstract class BaseSemanticAnalyzer {
       String key = unescapeSQLString(prop.getChild(propChild).getChild(0)
           .getText());
       String value = null;
-      if (prop.getChild(propChild).getChild(1) != null) {
+      if (prop.getChild(propChild).getChild(1).getType() != HiveParser.TOK_NULL) {
         value = unescapeSQLString(prop.getChild(propChild).getChild(1).getText());
       }
       mapProp.put(key, value);
