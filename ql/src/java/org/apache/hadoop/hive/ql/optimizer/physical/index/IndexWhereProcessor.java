@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hive.ql.optimizer.physical.index;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -33,7 +32,6 @@ import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.hive.metastore.api.Index;
 import org.apache.hadoop.hive.ql.exec.TableScanOperator;
 import org.apache.hadoop.hive.ql.exec.Task;
-import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.exec.mr.MapRedTask;
 import org.apache.hadoop.hive.ql.hooks.ReadEntity;
 import org.apache.hadoop.hive.ql.index.HiveIndexHandler;
@@ -200,14 +198,15 @@ public class IndexWhereProcessor implements NodeProcessor {
     }
 
     // check the size
+    MapredWork work = task.getWork();
     try {
-      ContentSummary inputSummary = Utilities.getInputSummary(pctx.getContext(), task.getWork().getMapWork(), null);
+      ContentSummary inputSummary = work.getTotalSummary(pctx.getContext());
       long inputSize = inputSummary.getLength();
       if (!indexHandler.checkQuerySize(inputSize, pctx.getConf())) {
         queryContext.setQueryTasks(null);
         return;
       }
-    } catch (IOException e) {
+    } catch (Exception e) {
       throw new SemanticException("Failed to get task size", e);
     }
 

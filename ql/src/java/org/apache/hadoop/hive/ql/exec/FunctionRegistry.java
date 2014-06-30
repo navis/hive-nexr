@@ -1224,11 +1224,7 @@ public final class FunctionRegistry {
    * @throws SemanticException
    */
   public static GenericUDF getGenericUDFForIndex() {
-    try {
-      return FunctionRegistry.getFunctionInfo("index").getGenericUDF();
-    } catch (SemanticException e) {
-      throw new RuntimeException("hive operator -- never be thrown", e);
-    }
+    return getGenericOperator("index");
   }
 
   /**
@@ -1236,8 +1232,19 @@ public final class FunctionRegistry {
    * @throws SemanticException
    */
   public static GenericUDF getGenericUDFForAnd() {
+    return getGenericOperator("and");
+  }
+
+  /**
+   * A shortcut to get the "or" GenericUDF.
+   */
+  public static GenericUDF getGenericUDFForOr() {
+    return getGenericOperator("or");
+  }
+
+  private static GenericUDF getGenericOperator(String name) {
     try {
-      return FunctionRegistry.getFunctionInfo("and").getGenericUDF();
+      return system.getFunctionInfo(name).getGenericUDF();
     } catch (SemanticException e) {
       throw new RuntimeException("hive operator -- never be thrown", e);
     }

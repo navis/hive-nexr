@@ -18,10 +18,14 @@
 
 package org.apache.hadoop.hive.ql.plan;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.fs.ContentSummary;
+import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.exec.Operator;
+import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.mapred.JobConf;
 
 
@@ -79,5 +83,9 @@ public class MapredWork extends AbstractOperatorDesc {
     }
 
     return ops;
+  }
+
+  public ContentSummary getTotalSummary(Context ctx) throws IOException, HiveException {
+    return mapWork.getTotalSummary(ctx);
   }
 }

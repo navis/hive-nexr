@@ -388,6 +388,13 @@ public class Context {
         nextPathId());
   }
 
+  public Path createMRTmpPath() throws IOException {
+    Path path = getMRTmpPath();
+    FileSystem fs = path.getFileSystem(conf);
+    fs.mkdirs(path);
+    return path;
+  }
+
   /**
    * Get a tmp path on local host to store intermediate data.
    *

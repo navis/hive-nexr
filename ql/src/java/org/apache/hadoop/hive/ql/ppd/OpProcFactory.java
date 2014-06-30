@@ -44,6 +44,7 @@ import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.lib.Node;
 import org.apache.hadoop.hive.ql.lib.NodeProcessor;
 import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
+import org.apache.hadoop.hive.ql.metadata.FilePruningPredicateHandler;
 import org.apache.hadoop.hive.ql.metadata.HiveStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.HiveStoragePredicateHandler;
 import org.apache.hadoop.hive.ql.metadata.Table;
@@ -886,7 +887,7 @@ public final class OpProcFactory {
    * by Hive as a post-filter, or null if it was possible
    * to push down the entire predicate
    */
-  private static ExprNodeGenericFuncDesc pushFilterToStorageHandler(
+  private static ExprNodeDesc pushFilterToStorageHandler(
     TableScanOperator tableScanOp,
     ExprNodeGenericFuncDesc originalPredicate,
     OpWalkerInfo owi,
@@ -900,11 +901,19 @@ public final class OpProcFactory {
       // optimizations are applied
       tableScanDesc.setFilterExpr(originalPredicate);
     }
-    if (!tbl.isNonNative()) {
+
+    HiveStoragePredicateHandler predicateHandler = null;
+    if (tbl.isNonNative()) {
+      HiveStorageHandler storageHandler = tbl.getStorageHandler();
+      if (storageHandler instanceof HiveStoragePredicateHandler) {
+        predicateHandler = (HiveStoragePredicateHandler) storageHandler;
+      }
+    } else if (HiveConf.getBoolVar(hiveConf, HiveConf.ConfVars.HIVEPPDFILES)) {
+      predicateHandler = new FilePruningPredicateHandler();
+    } else {
       return originalPredicate;
     }
-    HiveStorageHandler storageHandler = tbl.getStorageHandler();
-    if (!(storageHandler instanceof HiveStoragePredicateHandler)) {
+    if (predicateHandler == null) {
       // The storage handler does not provide predicate decomposition
       // support, so we'll implement the entire filter in Hive.  However,
       // we still provide the full predicate to the storage handler in
@@ -912,8 +921,7 @@ public final class OpProcFactory {
       tableScanDesc.setFilterExpr(originalPredicate);
       return originalPredicate;
     }
-    HiveStoragePredicateHandler predicateHandler =
-      (HiveStoragePredicateHandler) storageHandler;
+
     JobConf jobConf = new JobConf(owi.getParseContext().getConf());
     Utilities.setColumnNameList(jobConf, tableScanOp);
     Utilities.setColumnTypeList(jobConf, tableScanOp);
@@ -948,9 +956,16 @@ public final class OpProcFactory {
                 + decomposed.residualPredicate.getExprString());
       }
     }
-    tableScanDesc.setFilterExpr(decomposed.pushedPredicate);
-    tableScanDesc.setFilterObject(decomposed.pushedPredicateObject);
 
+    if (decomposed.pushedPredicate != null) {
+      ExprNodeGenericFuncDesc predicate =
+          ExprNodeDescUtils.toPredicate(decomposed.pushedPredicate);
+      if (predicateHandler instanceof FilePruningPredicateHandler) {
+        tableScanDesc.setFileFilterExpr(predicate);
+      } else {
+        tableScanDesc.setFilterExpr(predicate);
+      }
+    }
     return decomposed.residualPredicate;
   }
 

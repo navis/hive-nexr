@@ -68,6 +68,7 @@ public class TableScanDesc extends AbstractOperatorDesc {
   private int maxStatsKeyPrefixLength = -1;
 
   private ExprNodeGenericFuncDesc filterExpr;
+  private ExprNodeGenericFuncDesc fileFilterExpr;
   private transient Serializable filterObject;
 
   // Both neededColumnIDs and neededColumns should never be null.
@@ -172,6 +173,15 @@ public class TableScanDesc extends AbstractOperatorDesc {
 
   public List<String> getReferencedColumns() {
     return referencedColumns;
+  }
+
+  @Explain(displayName = "fileFilterExpr")
+  public ExprNodeGenericFuncDesc getFileFilterExpr() {
+    return fileFilterExpr;
+  }
+
+  public void setFileFilterExpr(ExprNodeGenericFuncDesc fileFilterExpr) {
+    this.fileFilterExpr = fileFilterExpr;
   }
 
   public void setAlias(String alias) {

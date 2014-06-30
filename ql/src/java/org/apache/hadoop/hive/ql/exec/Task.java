@@ -367,7 +367,7 @@ public abstract class Task<T extends Serializable> implements Serializable, Node
   }
 
   public Collection<MapWork> getMapWork() {
-    return Collections.<MapWork>emptyList();
+    return Collections.emptyList();
   }
 
   public void setId(String id) {
@@ -517,11 +517,11 @@ public abstract class Task<T extends Serializable> implements Serializable, Node
   public void shutdown() {
   }
 
-  Throwable getException() {
+  protected Throwable getException() {
     return exception;
   }
 
-  void setException(Throwable ex) {
+  protected void setException(Throwable ex) {
     exception = ex;
   }
 

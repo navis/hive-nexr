@@ -39,8 +39,9 @@ import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.DriverContext;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.Utilities;
-import org.apache.hadoop.hive.ql.plan.MapWork;
+import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.MapredWork;
+import org.apache.hadoop.hive.ql.plan.MapWork;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.ReduceWork;
 import org.apache.hadoop.hive.ql.session.SessionState;
@@ -65,7 +66,6 @@ public class MapRedTask extends ExecDriver implements Serializable {
   static final String HIVE_CHILD_CLIENT_DEBUG_OPTS = "HIVE_CHILD_CLIENT_DEBUG_OPTS";
   static final String[] HIVE_SYS_PROP = {"build.dir", "build.dir.hive", "hive.query.id"};
 
-  private transient ContentSummary inputSummary = null;
   private transient boolean runningViaChild = false;
 
   private transient long totalInputFileSize;
@@ -90,15 +90,13 @@ public class MapRedTask extends ExecDriver implements Serializable {
       }
 
       // estimate number of reducers
-      setNumberOfReducers();
+      setNumberOfReducers(ctx);
 
       // auto-determine local mode if allowed
       if (!ctx.isLocalOnlyExecutionMode() &&
           conf.getBoolVar(HiveConf.ConfVars.LOCALMODEAUTO)) {
 
-        if (inputSummary == null) {
-          inputSummary = Utilities.getInputSummary(driverContext.getCtx(), work.getMapWork(), null);
-        }
+        ContentSummary inputSummary = getInputSummary(ctx);
 
         // set the values of totalInputFileSize and totalInputNumFiles, estimating them
         // if percentage block sampling is being used
@@ -386,7 +384,7 @@ public class MapRedTask extends ExecDriver implements Serializable {
   /**
    * Set the number of reducers for the mapred work.
    */
-  private void setNumberOfReducers() throws IOException {
+  private void setNumberOfReducers(Context ctx) throws IOException, HiveException {
     ReduceWork rWork = work.getReduceWork();
     // this is a temporary hack to fix things that are not fixed in the compiler
     Integer numReducersFromWork = rWork == null ? 0 : rWork.getNumReduceTasks();
@@ -405,9 +403,7 @@ public class MapRedTask extends ExecDriver implements Serializable {
             .printInfo("Number of reduce tasks not specified. Defaulting to jobconf value of: "
             + reducers);
       } else {
-        if (inputSummary == null) {
-          inputSummary =  Utilities.getInputSummary(driverContext.getCtx(), work.getMapWork(), null);
-        }
+        ContentSummary inputSummary = getInputSummary(ctx);
         int reducers = Utilities.estimateNumberOfReducers(conf, inputSummary, work.getMapWork(),
                                                           work.isFinalMapRed());
         rWork.setNumReduceTasks(reducers);

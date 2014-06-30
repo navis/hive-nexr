@@ -2851,8 +2851,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       args.add(joinKeys[i]);
       ExprNodeDesc nextExpr = ExprNodeGenericFuncDesc.newInstance(
           FunctionRegistry.getFunctionInfo("isnotnull").getGenericUDF(), args);
-      filterPred = filterPred == null ? nextExpr : ExprNodeDescUtils
-          .mergePredicates(filterPred, nextExpr);
+      filterPred = filterPred == null ? nextExpr :
+          ExprNodeDescUtils.andPredicates(filterPred, nextExpr);
     }
 
     if (filterPred == null) {

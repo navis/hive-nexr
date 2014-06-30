@@ -181,6 +181,7 @@ public class TezTask extends Task<TezWork> {
         }
       }
     } catch (Exception e) {
+      setException(e);
       LOG.error("Failed to execute tez graph.", e);
       // rc will be 1 at this point indicating failure.
     } finally {

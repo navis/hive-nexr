@@ -165,7 +165,7 @@ public final class HiveFileFormatUtils {
    * get an InputFormatChecker for a file format.
    */
   public static synchronized Class<? extends InputFormatChecker> getInputFormatChecker(
-      Class<?> inputFormat) {
+      Class<? extends InputFormat> inputFormat) {
     Class<? extends InputFormatChecker> result = inputFormatCheckerMap
         .get(inputFormat);
     return result;
@@ -452,7 +452,6 @@ public final class HiveFileFormatUtils {
     if (foundAlias(pathToAliases, dirPath)) {
       return dirPath;
     }
-    path = dirPath;
 
     String dirStr = dir.toString();
     int dirPathIndex = dirPath.lastIndexOf(Path.SEPARATOR);

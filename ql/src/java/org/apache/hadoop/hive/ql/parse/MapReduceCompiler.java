@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hive.ql.parse;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -205,9 +204,9 @@ public class MapReduceCompiler extends TaskCompiler {
     boolean hasNonLocalJob = false;
     for (ExecDriver mrtask : mrtasks) {
       try {
-        ContentSummary inputSummary = Utilities.getInputSummary
-            (ctx, mrtask.getWork().getMapWork(), p);
-        int numReducers = getNumberOfReducers(mrtask.getWork(), conf);
+        MapredWork work = mrtask.getWork();
+        ContentSummary inputSummary = work.getTotalSummary(lCtx);
+        int numReducers = getNumberOfReducers(work, conf);
 
         long estimatedInput;
 
@@ -240,7 +239,7 @@ public class MapReduceCompiler extends TaskCompiler {
         } else {
           mrtask.setLocalMode(true);
         }
-      } catch (IOException e) {
+      } catch (Exception e) {
         throw new SemanticException(e);
       }
     }

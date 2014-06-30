@@ -37,7 +37,6 @@ import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.Driver;
 import org.apache.hadoop.hive.ql.QueryPlan;
 import org.apache.hadoop.hive.ql.exec.Utilities;
-import org.apache.hadoop.hive.ql.exec.mr.ExecDriver;
 import org.apache.hadoop.hive.ql.exec.mr.MapRedTask;
 import org.apache.hadoop.hive.ql.plan.MapredWork;
 import org.apache.hadoop.hive.ql.plan.PartitionDesc;
@@ -174,9 +173,7 @@ public class TestSymlinkTextInputFormat extends TestCase {
 
       //create scratch dir
       Context ctx = new Context(newJob);
-      Path emptyScratchDir = ctx.getMRTmpPath();
-      FileSystem fileSys = emptyScratchDir.getFileSystem(newJob);
-      fileSys.mkdirs(emptyScratchDir);
+      Path emptyScratchDir = ctx.createMRTmpPath();
 
       QueryPlan plan = drv.getPlan();
       MapRedTask selectTask = (MapRedTask)plan.getRootTasks().get(0);

@@ -121,10 +121,6 @@ public abstract class AbstractJoinTaskDispatcher implements Dispatcher {
       Map<String, ArrayList<String>> pathToAliases,
       HashMap<String, Long> aliasToSize) throws SemanticException {
     try {
-      // go over all the input paths, and calculate a known total size, known
-      // size for each input alias.
-      Utilities.getInputSummary(context, currWork, null).getLength();
-
       // set alias to size mapping, this can be used to determine if one table
       // is chosen as big table, what's the total size of left tables, which
       // are going to be small tables.
@@ -132,7 +128,7 @@ public abstract class AbstractJoinTaskDispatcher implements Dispatcher {
       for (Map.Entry<String, ArrayList<String>> entry : pathToAliases.entrySet()) {
         String path = entry.getKey();
         List<String> aliasList = entry.getValue();
-        ContentSummary cs = context.getCS(path);
+        ContentSummary cs = currWork.getSummaryFor(path, context.getConf());
         if (cs != null) {
           long size = cs.getLength();
           for (String alias : aliasList) {

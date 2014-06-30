@@ -1098,6 +1098,10 @@ public class HiveConf extends Configuration {
     // Constant propagation optimizer
     HIVEOPTCONSTANTPROPAGATION("hive.optimize.constant.propagation", true, "Whether to enable constant propagation optimizer"),
     HIVEIDENTITYPROJECTREMOVER("hive.optimize.remove.identity.project", true, "Removes identity project from operator tree"),
+
+    HIVEPPDFILES("hive.optimize.ppd.vc.filename", false,
+        "Apply file prunning optimization with filter on file virtual column(INPUT__FILE__NAME)"),
+
     HIVEMETADATAONLYQUERIES("hive.optimize.metadataonly", true, ""),
     HIVENULLSCANOPTIMIZE("hive.optimize.null.scan", true, "Dont scan relations which are guaranteed to not generate any rows"),
     HIVEOPTPPD_STORAGE("hive.optimize.ppd.storage", true,

@@ -70,6 +70,9 @@ public class IndexPredicateAnalyzer {
 
   private boolean acceptsFields;
 
+  private boolean allowAllColumns;
+  private boolean allowAllFunctions;
+
   public IndexPredicateAnalyzer() {
     udfNames = new HashSet<String>();
     columnToUDFs = new HashMap<String, Set<String>>();
@@ -77,6 +80,14 @@ public class IndexPredicateAnalyzer {
 
   public void setFieldValidator(FieldValidator fieldValidator) {
     this.fieldValidator = fieldValidator;
+  }
+
+  public void setAllowAllColumns(boolean allowAllColumns) {
+    this.allowAllColumns = allowAllColumns;
+  }
+
+  public void setAllowAllFunctions(boolean allowAllFunctions) {
+    this.allowAllFunctions = allowAllFunctions;
   }
 
   /**
@@ -253,13 +264,16 @@ public class IndexPredicateAnalyzer {
       constantDesc = (ExprNodeConstantDesc) extracted[1];
     }
 
-    Set<String> allowed = columnToUDFs.get(columnDesc.getColumn());
-    if (allowed == null) {
-      return expr;
+    String udfName = genericUDF.getUdfName();
+
+    if (!allowAllFunctions) {
+      Set<String> allowed = columnToUDFs.get(columnDesc.getColumn());
+      if (allowed == null || !allowed.contains(udfName)) {
+        return expr;
+      }
     }
 
-    String udfName = genericUDF.getUdfName();
-    if (!allowed.contains(genericUDF.getUdfName())) {
+    if (!allowAllColumns && !columnToUDFs.containsKey(columnDesc.getColumn())) {
       return expr;
     }
 

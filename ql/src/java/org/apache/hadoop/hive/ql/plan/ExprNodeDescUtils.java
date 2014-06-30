@@ -19,6 +19,7 @@
 package org.apache.hadoop.hive.ql.plan;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -32,6 +33,7 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFBridge;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
+import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.util.ReflectionUtils;
 
@@ -99,10 +101,30 @@ public class ExprNodeDescUtils {
     return false;
   }
 
+  public static ExprNodeGenericFuncDesc toPredicate(ExprNodeDesc predicate) {
+    if (predicate instanceof ExprNodeGenericFuncDesc) {
+      return (ExprNodeGenericFuncDesc) predicate;
+    }
+    return new ExprNodeGenericFuncDesc(TypeInfoFactory.booleanTypeInfo,
+        FunctionRegistry.getGenericUDF(serdeConstants.BOOLEAN_TYPE_NAME),
+        new ArrayList<ExprNodeDesc>(Arrays.asList(predicate)));
+  }
+
+  /**
+   * bind two predicates by OR op
+   */
+  public static ExprNodeDesc orPredicates(ExprNodeDesc prev, ExprNodeDesc next) {
+    List<ExprNodeDesc> children = new ArrayList<ExprNodeDesc>(2);
+    children.add(prev);
+    children.add(next);
+    return new ExprNodeGenericFuncDesc(TypeInfoFactory.booleanTypeInfo,
+        FunctionRegistry.getGenericUDFForOr(), children);
+  }
+
   /**
    * bind two predicates by AND op
    */
-  public static ExprNodeGenericFuncDesc mergePredicates(ExprNodeDesc prev, ExprNodeDesc next) {
+  public static ExprNodeDesc andPredicates(ExprNodeDesc prev, ExprNodeDesc next) {
     List<ExprNodeDesc> children = new ArrayList<ExprNodeDesc>(2);
     children.add(prev);
     children.add(next);
@@ -120,7 +142,7 @@ public class ExprNodeDescUtils {
         prev = expr;
         continue;
       }
-      prev = mergePredicates(prev, expr);
+      prev = andPredicates(prev, expr);
     }
     return prev;
   }
@@ -133,7 +155,7 @@ public class ExprNodeDescUtils {
   }
 
   /**
-   * split predicates by AND op
+   * split 'current' by AND op and append to 'splitted'
    */
   public static List<ExprNodeDesc> split(ExprNodeDesc current, List<ExprNodeDesc> splitted) {
     if (FunctionRegistry.isOpAnd(current)) {

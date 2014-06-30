@@ -2446,8 +2446,9 @@ public final class Utilities {
    * @return the summary of all the input paths.
    * @throws IOException
    */
+  @Deprecated
   public static ContentSummary getInputSummary(final Context ctx, MapWork work, PathFilter filter)
-      throws IOException {
+      throws IOException, HiveException {
     PerfLogger perfLogger = PerfLogger.getPerfLogger();
     perfLogger.PerfLogBegin(CLASS_NAME, PerfLogger.INPUT_SUMMARY);
 
@@ -2641,33 +2642,6 @@ public final class Utilities {
       total += size;
     }
     return total;
-  }
-
-  public static boolean isEmptyPath(JobConf job, Path dirPath, Context ctx)
-      throws Exception {
-    if (ctx != null) {
-      ContentSummary cs = ctx.getCS(dirPath);
-      if (cs != null) {
-        LOG.info("Content Summary " + dirPath + "length: " + cs.getLength() + " num files: "
-            + cs.getFileCount() + " num directories: " + cs.getDirectoryCount());
-        return (cs.getLength() == 0 && cs.getFileCount() == 0 && cs.getDirectoryCount() <= 1);
-      } else {
-        LOG.info("Content Summary not cached for " + dirPath);
-      }
-    }
-    return isEmptyPath(job, dirPath);
-  }
-
-  public static boolean isEmptyPath(JobConf job, Path dirPath) throws Exception {
-    FileSystem inpFs = dirPath.getFileSystem(job);
-
-    if (inpFs.exists(dirPath)) {
-      FileStatus[] fStats = inpFs.listStatus(dirPath, FileUtils.HIDDEN_FILES_PATH_FILTER);
-      if (fStats.length > 0) {
-        return false;
-      }
-    }
-    return true;
   }
 
   public static List<TezTask> getTezTasks(List<Task<? extends Serializable>> tasks) {
@@ -3329,35 +3303,45 @@ public final class Utilities {
       Context ctx, boolean skipDummy) throws Exception {
     int sequenceNumber = 0;
 
-    Set<Path> pathsProcessed = new HashSet<Path>();
+    Set<String> pathsProcessed = new HashSet<String>();
     List<Path> pathsToAdd = new LinkedList<Path>();
     // AliasToWork contains all the aliases
-    for (String alias : work.getAliasToWork().keySet()) {
+    Map<String, Operator<?>> aliasToWork = work.getAliasToWork();
+    Map<String, ArrayList<String>> pathToAliases =
+        new LinkedHashMap<String, ArrayList<String>>(work.getPathToAliases());
+
+    if (ctx != null) {
+      work.resetIntermediary(ctx);
+    }
+
+    for (String alias : aliasToWork.keySet()) {
       LOG.info("Processing alias " + alias);
 
       // The alias may not have any path
-      Path path = null;
-      for (String file : new LinkedList<String>(work.getPathToAliases().keySet())) {
-        List<String> aliases = work.getPathToAliases().get(file);
+      boolean empty = true;
+      for (Map.Entry<String, ArrayList<String>> entry : pathToAliases.entrySet()) {
+        String path = entry.getKey();
+        List<String> aliases = entry.getValue();
         if (aliases.contains(alias)) {
-          path = new Path(file);
-
+          empty = false;
           // Multiple aliases can point to the same path - it should be
           // processed only once
-          if (pathsProcessed.contains(path)) {
+          if (!pathsProcessed.add(path)) {
             continue;
           }
 
           pathsProcessed.add(path);
 
           LOG.info("Adding input file " + path);
-          if (!skipDummy
-              && isEmptyPath(job, path, ctx)) {
-            path = createDummyFileForEmptyPartition(path, job, work,
-                 hiveScratchDir, alias, sequenceNumber++);
 
+          if (!skipDummy && !work.pathExists(path, job)) {
+            Path dummyPath = createDummyFileForEmptyPartition(path, job, work,
+                hiveScratchDir, alias, sequenceNumber++);
+            work.replaceToDummy(path, dummyPath, job);
+            pathsToAdd.add(dummyPath);
+          } else {
+            pathsToAdd.addAll(work.getPrunedPaths(path, job));
           }
-          pathsToAdd.add(path);
         }
       }
 
@@ -3369,8 +3353,8 @@ public final class Utilities {
       // T2) x;
       // If T is empty and T2 contains 100 rows, the user expects: 0, 100 (2
       // rows)
-      if (path == null && !skipDummy) {
-        path = createDummyFileForEmptyTable(job, work, hiveScratchDir,
+      if (!skipDummy && empty) {
+        Path path = createDummyFileForEmptyTable(job, work, hiveScratchDir,
             alias, sequenceNumber++);
         pathsToAdd.add(path);
       }
@@ -3410,17 +3394,15 @@ public final class Utilities {
   }
 
   @SuppressWarnings("rawtypes")
-  private static Path createDummyFileForEmptyPartition(Path path, JobConf job, MapWork work,
+  private static Path createDummyFileForEmptyPartition(String strPath, JobConf job, MapWork work,
       Path hiveScratchDir, String alias, int sequenceNumber)
           throws Exception {
-
-    String strPath = path.toString();
 
     // The input file does not exist, replace it by a empty file
     PartitionDesc partDesc = work.getPathToPartitionInfo().get(strPath);
     if (partDesc.getTableDesc().isNonNative()) {
       // if this isn't a hive table we can't create an empty file for it.
-      return path;
+      return new Path(strPath);
     }
 
     Properties props = SerDeUtils.createOverlayedProperties(

@@ -348,7 +348,8 @@ public class HiveInputFormat<K extends WritableComparable, V extends Writable>
       get(ColumnProjectionUtils.READ_COLUMN_NAMES_CONF_STR, ""));
     // for each dir, get the InputFormat, and do getSplits.
     for (Path dir : dirs) {
-      PartitionDesc part = getPartitionDescFromPath(pathToPartitionInfo, dir);
+      PartitionDesc part = HiveFileFormatUtils.
+          getPartitionDescFromPathRecursively(pathToPartitionInfo, dir, null);
       Class<? extends InputFormat> inputFormatClass = part.getInputFileFormatClass();
       TableDesc table = part.getTableDesc();
       TableScanOperator tableScan = null;

@@ -36,6 +36,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
+import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -107,11 +108,13 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
   private static final long serialVersionUID = 1L;
   private static final String JOBCONF_FILENAME = "jobconf.xml";
 
-  protected transient JobConf job;
-  public static MemoryMXBean memoryMXBean;
+  protected static transient final Log LOG = LogFactory.getLog(ExecDriver.class);
+  protected static MemoryMXBean memoryMXBean;
+
   protected HadoopJobExecHelper jobExecHelper;
 
-  protected static transient final Log LOG = LogFactory.getLog(ExecDriver.class);
+  protected transient JobConf job;
+  protected transient ContentSummary inputSummary;
 
   private RunningJob rj;
 
@@ -122,6 +125,13 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
     super();
     console = new LogHelper(LOG);
     this.jobExecHelper = new HadoopJobExecHelper(job, console, this, this);
+  }
+
+  public ContentSummary getInputSummary(Context ctx) throws IOException, HiveException {
+    if (inputSummary == null) {
+      inputSummary = getWork().getTotalSummary(ctx);
+    }
+    return inputSummary;
   }
 
   @Override
@@ -218,12 +228,9 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
         ctx = new Context(job);
         ctxCreated = true;
       }
-
-      emptyScratchDir = ctx.getMRTmpPath();
-      FileSystem fs = emptyScratchDir.getFileSystem(job);
-      fs.mkdirs(emptyScratchDir);
+      emptyScratchDir = mWork.getEmptyScratchDir(ctx);
     } catch (IOException e) {
-      e.printStackTrace();
+      setException(e);
       console.printError("Error launching map-reduce job", "\n"
           + org.apache.hadoop.util.StringUtils.stringifyException(e));
       return 5;
@@ -435,7 +442,7 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
       returnVal = jobExecHelper.progress(rj, jc, ctx.getHiveTxnManager());
       success = (returnVal == 0);
     } catch (Exception e) {
-      e.printStackTrace();
+      setException(e);
       String mesg = " with exception '" + Utilities.getNameMessage(e) + "'";
       if (rj != null) {
         mesg = "Ended Job = " + rj.getJobID() + mesg;
@@ -480,6 +487,7 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
         }
       }
     } catch (Exception e) {
+      setException(e);
       // jobClose needs to execute successfully otherwise fail task
       if (success) {
         success = false;

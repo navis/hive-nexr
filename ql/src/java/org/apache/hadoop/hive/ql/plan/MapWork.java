@@ -18,9 +18,13 @@
 
 package org.apache.hadoop.hive.ql.plan;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -32,14 +36,38 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.ContentSummary;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants;
+import org.apache.hadoop.hive.ql.Context;
+import org.apache.hadoop.hive.ql.exec.ExprNodeEvaluator;
+import org.apache.hadoop.hive.ql.exec.ExprNodeEvaluatorFactory;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.OperatorUtils;
+import org.apache.hadoop.hive.ql.exec.TableScanOperator;
+import org.apache.hadoop.hive.ql.exec.Utilities;
+import org.apache.hadoop.hive.ql.io.ContentSummaryInputFormat;
+import org.apache.hadoop.hive.ql.io.HiveFileFormatUtils;
+import org.apache.hadoop.hive.ql.io.HiveInputFormat;
+import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.ql.metadata.HiveStorageHandler;
+import org.apache.hadoop.hive.ql.metadata.HiveUtils;
+import org.apache.hadoop.hive.ql.metadata.InputEstimator;
+import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
 import org.apache.hadoop.hive.ql.optimizer.physical.BucketingSortingCtx.BucketCol;
 import org.apache.hadoop.hive.ql.optimizer.physical.BucketingSortingCtx.SortCol;
 import org.apache.hadoop.hive.ql.parse.SplitSample;
+import org.apache.hadoop.hive.serde2.SerDeUtils;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.BooleanObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
+import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.JobConf;
 
 import com.google.common.collect.Interner;
@@ -127,6 +155,7 @@ public class MapWork extends BaseWork {
       new LinkedHashMap<String, List<ExprNodeDesc>>();
 
   private boolean doSplitsGrouping = true;
+  private transient Path emptyScratchDir; // created if needed
 
   public MapWork() {}
 
@@ -319,7 +348,8 @@ public class MapWork extends BaseWork {
 
   @Override
   public void replaceRoots(Map<Operator<?>, Operator<?>> replacementMap) {
-    LinkedHashMap<String, Operator<?>> newAliasToWork = new LinkedHashMap<String, Operator<?>>();
+    LinkedHashMap<String, Operator<? extends OperatorDesc>> newAliasToWork =
+        new LinkedHashMap<String, Operator<?  extends OperatorDesc>>();
 
     for (Map.Entry<String, Operator<?>> entry: aliasToWork.entrySet()) {
       newAliasToWork.put(entry.getKey(), replacementMap.get(entry.getValue()));
@@ -521,6 +551,7 @@ public class MapWork extends BaseWork {
     }
   }
 
+
   public void setDummyTableScan(boolean dummyTableScan) {
     this.dummyTableScan = dummyTableScan;
   }
@@ -583,5 +614,264 @@ public class MapWork extends BaseWork {
 
   public void setMapAliases(List<String> mapAliases) {
     this.mapAliases = mapAliases;
+  }
+
+  public Path getEmptyScratchDir(Context ctx) throws IOException {
+    if (emptyScratchDir == null) {
+      emptyScratchDir = ctx.createMRTmpPath();
+    }
+    return emptyScratchDir;
+  }
+
+  private static final ObjectInspector VC_FILE_OI =
+      ObjectInspectorFactory.getStandardStructObjectInspector(
+        Arrays.asList(VirtualColumn.FILENAME.getName()),
+        Arrays.asList((ObjectInspector) PrimitiveObjectInspectorFactory.javaStringObjectInspector));
+
+  private static final BooleanObjectInspector EVAL_OI =
+      PrimitiveObjectInspectorFactory.writableBooleanObjectInspector;
+
+  private transient Map<String, ExprNodeEvaluator> pathToEvals;
+  private transient Map<String, InputSummary> summaries;
+
+  public ContentSummary getSummaryFor(String inputPath, Configuration conf)
+      throws IOException, HiveException {
+    return getInputSummaryFor(inputPath, conf).toContentSummary();
+  }
+
+  public void resetIntermediary(Context ctx) {
+    if (summaries == null) {
+      return;
+    }
+    List<String> invalidates = new ArrayList<String>();
+    for (String path : summaries.keySet()) {
+      if (ctx.isMRTmpFileURI(path)) {
+        invalidates.add(path);
+      }
+    }
+    for (String invalidate : invalidates) {
+      summaries.remove(invalidate);
+    }
+  }
+
+  public boolean pathExists(String inputPath, Configuration conf)
+      throws IOException, HiveException {
+    InputSummary summary = getInputSummaryFor(inputPath, conf);
+    if (summary.exists && (
+        summary.fileCount > 0 || summary.length > 0 || summary.directoryCount > 1)) {
+      return true;  // for MR, some valid file should exit in it
+    }
+    return false;
+  }
+
+  public void replaceToDummy(String inputPath, Path dummyPath, Configuration conf)
+      throws IOException, HiveException {
+    summaries.remove(inputPath);
+    pathToEvals.remove(inputPath);  // no need to evaluation for dummy path
+    summaries.put(dummyPath.toString(), new InputSummary(dummyPath));
+  }
+
+  // if file pruning is applied, return paths passed the filter. if not, return input path
+  public List<Path> getPrunedPaths(String inputPath, Configuration conf)
+      throws IOException, HiveException {
+    return getInputSummaryFor(inputPath, conf).paths;
+  }
+
+  private InputSummary getInputSummaryFor(String inputPath, Configuration conf)
+      throws IOException, HiveException {
+    InputSummary summary = summaries == null ? null : summaries.get(inputPath);
+    if (summary == null) {
+      ExprNodeEvaluator evaluator = getPathToEvals().get(inputPath);
+      if (summaries == null) {
+        summaries = new HashMap<String, InputSummary>();
+      }
+      summaries.put(inputPath, summary = summarize(inputPath, conf, evaluator));
+    }
+    return summary;
+  }
+
+  // get summaries for all input paths and return total of them
+  public ContentSummary getTotalSummary(Context ctx) throws IOException, HiveException {
+    long length = 0;
+    long fileCount = 0;
+    long directoryCount = 0;
+    for (String path : pathToAliases.keySet()) {
+      ContentSummary pathSummary = getSummaryFor(path, ctx.getConf());
+      if (pathSummary != null) {
+        if (pathSummary.getLength() > 0) {
+          length += pathSummary.getLength();
+        }
+        if (pathSummary.getFileCount() > 0) {
+          fileCount += pathSummary.getFileCount();
+        }
+        if (pathSummary.getDirectoryCount() > 0) {
+          directoryCount += pathSummary.getDirectoryCount();
+        }
+        ctx.addCS(path, pathSummary);
+      }
+    }
+    return new ContentSummary(length, fileCount, directoryCount);
+  }
+
+  // return or-conjuncted file pruning filter
+  private ExprNodeEvaluator toFilter(List<Operator<?>> operators) throws HiveException {
+    ExprNodeDesc prev = null;
+    for (Operator<?> operator : operators) {
+      if (operator instanceof TableScanOperator && operator.getConf() != null) {
+        ExprNodeDesc filterExpr = ((TableScanOperator) operator).getConf().getFileFilterExpr();
+        if (filterExpr == null) {
+          continue;
+        }
+        if (prev == null) {
+          prev = filterExpr;
+        } else {
+          prev = ExprNodeDescUtils.orPredicates(prev, filterExpr);
+        }
+      }
+    }
+    if (prev == null) {
+      return null;
+    }
+    ExprNodeEvaluator evaluator = ExprNodeEvaluatorFactory.get(prev);
+    evaluator.initialize(VC_FILE_OI);
+    return evaluator;
+  }
+
+  // evaluate input path with file pruning filter
+  private InputSummary summarize(String pathStr, Configuration conf, ExprNodeEvaluator evaluator)
+      throws IOException, HiveException {
+    Path path = new Path(pathStr);
+    PartitionDesc partDesc = pathToPartitionInfo.get(pathStr);
+    Class<? extends InputFormat> format = partDesc.getInputFileFormatClass();
+    if (ContentSummaryInputFormat.class.isAssignableFrom(format)) {
+      JobConf jobConf = new JobConf(conf);
+      ContentSummaryInputFormat summaryInput = (ContentSummaryInputFormat)
+          HiveInputFormat.getInputFormatFromCache(format, jobConf);
+      ContentSummary content = summaryInput.getContentSummary(path, jobConf);
+      return new InputSummary(path, content);
+    }
+    HiveStorageHandler handler = HiveUtils.getStorageHandler(conf,
+        SerDeUtils.createOverlayedProperties(
+            partDesc.getTableDesc().getProperties(),
+            partDesc.getProperties()).getProperty(hive_metastoreConstants.META_TABLE_STORAGE));
+    if (handler instanceof InputEstimator) {
+      long total = 0;
+      TableDesc tableDesc = partDesc.getTableDesc();
+      InputEstimator estimator = (InputEstimator) handler;
+      for (String alias : HiveFileFormatUtils.doGetAliasesFromPath(pathToAliases, path)) {
+        JobConf jobConf = new JobConf(conf);
+        TableScanOperator scanOp = (TableScanOperator) aliasToWork.get(alias);
+        Utilities.setColumnNameList(jobConf, scanOp, true);
+        Utilities.setColumnTypeList(jobConf, scanOp, true);
+        PlanUtils.configureInputJobPropertiesForStorageHandler(tableDesc);
+        Utilities.copyTableJobPropertiesToConf(tableDesc, jobConf);
+        total += estimator.estimate(jobConf, scanOp, -1).getTotalLength();
+      }
+      return new InputSummary(path, new ContentSummary(total, -1, -1));
+    }
+    FileSystem fs = path.getFileSystem(conf);
+    if (!fs.exists(path)) {
+      return new InputSummary(false);
+    }
+    if (evaluator == null) {
+      ContentSummary summary = fs.getContentSummary(path);
+      return new InputSummary(path, summary);
+    }
+    InputSummary summary = new InputSummary(true);
+    for (FileStatus inputStatus : getInputStatus(path, conf)) {
+      String relative = relativize(path, inputStatus.getPath());
+      Object evaluated = evaluator.evaluate(new String[]{relative});
+      if (EVAL_OI.get(evaluated)) {
+        summary.add(new Path(path, relative), inputStatus);
+      }
+    }
+    return summary;
+  }
+
+  private String relativize(Path inputPath, Path childPath) {
+    URI relativized = inputPath.toUri().relativize(childPath.toUri());
+    if (relativized == childPath.toUri()) {
+      throw new IllegalStateException("Invalid child path " + childPath + " for input " + inputPath);
+    }
+    return relativized.getPath();
+  }
+
+  // todo exploit path filter
+  private FileStatus[] getInputStatus(Path path, Configuration conf) throws IOException {
+    FileSystem fs = path.getFileSystem(conf);
+    FileStatus status;
+    try {
+      status = fs.getFileStatus(path);
+    } catch (FileNotFoundException e) {
+      return new FileStatus[0];
+    }
+    if (status.isDir()) {
+      return fs.globStatus(new Path(path, "/*"));
+    }
+    return new FileStatus[]{status};
+  }
+
+  private Map<String, ExprNodeEvaluator> getPathToEvals() throws HiveException {
+    if (pathToEvals == null) {
+      pathToEvals = new HashMap<String, ExprNodeEvaluator>();
+    }
+    for (Map.Entry<String, ArrayList<String>> entry : pathToAliases.entrySet()) {
+      pathToEvals.put(entry.getKey(), toFilter(getWorkForAliases(entry.getValue())));
+    }
+    return pathToEvals;
+  }
+
+  private List<Operator<?>> getWorkForAliases(List<String> aliases) {
+    List<Operator<?>> operators = new ArrayList<Operator<?>>();
+    for (String alias : aliases) {
+      Operator<? extends OperatorDesc> work = aliasToWork.get(alias);
+      if (work == null) {
+        throw new IllegalStateException("Invalid alias " + alias);
+      }
+      operators.add(work);
+    }
+    return operators;
+  }
+
+  private static class InputSummary {
+
+    private boolean exists;
+
+    private long length;
+    private long fileCount;
+    private long directoryCount;
+    private List<Path> paths;
+
+    public InputSummary(boolean exists) {
+      paths = exists ? new ArrayList<Path>() : Collections.<Path>emptyList();
+    }
+
+    public InputSummary(Path path) {
+      paths = Arrays.asList(path);
+      exists = true;
+    }
+
+    public InputSummary(Path path, ContentSummary content) {
+      this.paths = Arrays.asList(path);
+      this.length = content.getLength();
+      this.fileCount = content.getFileCount();
+      this.directoryCount = content.getDirectoryCount();
+      this.exists = true;
+    }
+
+    public void add(Path path, FileStatus status) {
+      paths.add(path);
+      length += status.getLen();
+      if (!status.isDir()) {
+        fileCount++;
+      } else {
+        directoryCount++;
+      }
+      exists = true;
+    }
+
+    public ContentSummary toContentSummary() {
+      return exists ? new ContentSummary(length, fileCount, directoryCount) : null;
+    }
   }
 }
