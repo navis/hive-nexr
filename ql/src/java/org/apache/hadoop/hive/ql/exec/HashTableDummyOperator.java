@@ -45,6 +45,16 @@ public class HashTableDummyOperator extends Operator<HashTableDummyDesc> impleme
   }
 
   @Override
+  protected boolean isGroupStarted() {
+    return true;
+  }
+
+  @Override
+  protected boolean isGroupEnded() {
+    return true;
+  }
+
+  @Override
   public void processOp(Object row, int tag) throws HiveException {
     throw new HiveException();
   }

@@ -1011,10 +1011,10 @@ public class GroupByOperator extends Operator<GroupByDesc> {
    * Forward all aggregations to children. It is only used by DemuxOperator.
    * @throws HiveException
    */
-  @Override
-  public void flush() throws HiveException{
+  protected void flushOp() throws HiveException {
+    System.err.println("-- [GroupByOperator/flushOp] " + this);
     try {
-      if (hashAggregations != null) {
+      if (hashAggregations != null && !hashAggregations.isEmpty()) {
         LOG.info("Begin Hash Table flush: size = "
             + hashAggregations.size());
         Iterator iter = hashAggregations.entrySet().iterator();
@@ -1026,17 +1026,11 @@ public class GroupByOperator extends Operator<GroupByDesc> {
           iter.remove();
         }
         hashAggregations.clear();
-      } else if (aggregations != null) {
+      }
+      if (aggregations != null && currentKeys != null) {
         // sort-based aggregations
-        if (currentKeys != null) {
-          forward(currentKeys.getKeyArray(), aggregations);
-        }
+        forward(currentKeys.getKeyArray(), aggregations);
         currentKeys = null;
-      } else {
-        // The GroupByOperator is not initialized, which means there is no
-        // data
-        // (since we initialize the operators when we see the first record).
-        // Just do nothing here.
       }
     } catch (Exception e) {
       throw new HiveException(e);
@@ -1078,7 +1072,7 @@ public class GroupByOperator extends Operator<GroupByDesc> {
           // create dummy keys - size 0
           forward(new Object[0], aggregations);
         } else {
-          flush();
+          flushOp();
         }
       } catch (Exception e) {
         throw new HiveException(e);

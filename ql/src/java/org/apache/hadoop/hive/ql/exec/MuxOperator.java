@@ -36,8 +36,8 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 
 /**
  * MuxOperator is used in the Reduce side of MapReduce jobs optimized by Correlation Optimizer.
- * Correlation Optimizer will remove unnecessary ReduceSinkOperaotrs,
- * and MuxOperators are used to replace those ReduceSinkOperaotrs.
+ * Correlation Optimizer will remove unnecessary ReduceSinkOperators,
+ * and MuxOperators are used to replace those ReduceSinkOperators.
  * Example: The original operator tree is ...
  *      JOIN2
  *      /    \
@@ -160,7 +160,6 @@ public class MuxOperator extends Operator<MuxDesc> implements Serializable{
   private transient ObjectInspector[] outputObjectInspectors;
   private transient int numParents;
   private transient boolean[] forward;
-  private transient boolean[] processGroupCalled;
   private Handler[] handlers;
 
   // Counters for debugging, we cannot use existing counters (cntr and nextCntr)
@@ -177,13 +176,11 @@ public class MuxOperator extends Operator<MuxDesc> implements Serializable{
     }
     numParents = getNumParent();
     forward = new boolean[numParents];
-    processGroupCalled = new boolean[numParents];
     outputObjectInspectors = new ObjectInspector[numParents];
     handlers = new Handler[numParents];
     cntrs = new long[numParents];
     nextCntrs = new long[numParents];
     for (int i = 0; i < numParents; i++) {
-      processGroupCalled[i] = false;
       if (conf.getParentToKeyCols().get(i) == null) {
         // We do not need to evaluate the input row for this parent.
         // So, we can just forward it to the child of this MuxOperator.
@@ -266,38 +263,6 @@ public class MuxOperator extends Operator<MuxDesc> implements Serializable{
     // the old tag from the mapping of newTagToOldTag, we bypass
     // this method in MuxOperator and directly call process on children
     // in processOp() method..
-  }
-
-  @Override
-  public void startGroup() throws HiveException{
-    for (int i = 0; i < numParents; i++) {
-      processGroupCalled[i] = false;
-    }
-    super.startGroup();
-  }
-
-  @Override
-  public void endGroup() throws HiveException {
-    // do nothing
-  }
-
-  @Override
-  public void processGroup(int tag) throws HiveException {
-    processGroupCalled[tag] = true;
-    boolean shouldProceed = true;
-    for (int i = 0; i < numParents; i++) {
-      if (!processGroupCalled[i]) {
-        shouldProceed = false;
-        break;
-      }
-    }
-    if (shouldProceed) {
-      Operator<? extends OperatorDesc> child = childOperatorsArray[0];
-      int childTag = childOperatorsTag[0];
-      child.flush();
-      child.endGroup();
-      child.processGroup(childTag);
-    }
   }
 
   @Override

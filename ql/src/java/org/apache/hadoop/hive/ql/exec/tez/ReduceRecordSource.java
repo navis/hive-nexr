@@ -242,7 +242,7 @@ public class ReduceRecordSource implements RecordSource {
           this.groupKey = new BytesWritable();
         } else {
           // If a operator wants to do some work at the end of a group
-          reducer.endGroup();
+          reducer.endGroup(false);
         }
 
         groupKey.set(keyWritable.getBytes(), 0, keyWritable.getLength());
@@ -402,7 +402,7 @@ public class ReduceRecordSource implements RecordSource {
     try {
       if (handleGroupKey && groupKey != null) {
         // If a operator wants to do some work at the end of a group
-        reducer.endGroup();
+        reducer.endGroup(false);
       }
     } catch (Exception e) {
       if (!abort) {

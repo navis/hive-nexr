@@ -85,9 +85,6 @@ public class DemuxOperator extends Operator<DemuxDesc>
 
   private int childrenDone;
 
-  // The index of the child which the last row was forwarded to in a key group.
-  private int lastChildIndex;
-
   // Since DemuxOperator may appear multiple times in MuxOperator's parents list.
   // We use newChildIndexTag instead of childOperatorsTag.
   // Example:
@@ -247,13 +244,6 @@ public class DemuxOperator extends Operator<DemuxDesc>
   public void processOp(Object row, int tag) throws HiveException {
     int currentChildIndex = newTagToChildIndex[tag];
 
-    // Check if we start to forward rows to a new child.
-    // If so, in the current key group, rows will not be forwarded
-    // to those children which have an index less than the currentChildIndex.
-    // We can call flush the buffer of children from lastChildIndex (inclusive)
-    // to currentChildIndex (exclusive) and propagate processGroup to those children.
-    endGroupIfNecessary(currentChildIndex);
-
     int oldTag = newTagToOldTag[tag];
     if (isLogInfoEnabled) {
       cntrs[tag]++;
@@ -286,6 +276,11 @@ public class DemuxOperator extends Operator<DemuxDesc>
   }
 
   @Override
+  public void endGroup(boolean flush) throws HiveException {
+    super.endGroup(true);
+  }
+
+  @Override
   protected void closeOp(boolean abort) throws HiveException {
     for (int i = 0 ; i < newTagToOldTag.length; i++) {
       int newTag = i;
@@ -293,55 +288,6 @@ public class DemuxOperator extends Operator<DemuxDesc>
       int childIndex = newTagToChildIndex[newTag];
       LOG.info(id + " (newTag, childIndex, oldTag)=(" + newTag + ", " + childIndex + ", "
           + oldTag + "),  forwarded " + cntrs[newTag] + " rows");
-    }
-  }
-
-  /**
-   * We assume that the input rows associated with the same key are ordered by
-   * the tag. Because a tag maps to a childindex, when we see a new childIndex,
-   * we will not see the last childIndex (lastChildIndex) again before we start
-   * a new key group. So, we can call flush the buffer of children
-   * from lastChildIndex (inclusive) to currentChildIndex (exclusive) and
-   * propagate processGroup to those children.
-   * @param currentChildIndex the childIndex we have right now.
-   * @throws HiveException
-   */
-  private void endGroupIfNecessary(int currentChildIndex) throws HiveException {
-    if (lastChildIndex != currentChildIndex) {
-      for (int i = lastChildIndex; i < currentChildIndex; i++) {
-        Operator<? extends OperatorDesc> child = childOperatorsArray[i];
-        child.flush();
-        child.endGroup();
-        for (int childTag: newChildOperatorsTag[i]) {
-          child.processGroup(childTag);
-        }
-      }
-      lastChildIndex = currentChildIndex;
-    }
-  }
-
-  @Override
-  public void startGroup() throws HiveException {
-    lastChildIndex = 0;
-    super.startGroup();
-  }
-
-  @Override
-  public void endGroup() throws HiveException {
-    if (childOperators == null) {
-      return;
-    }
-
-    // We will start a new key group. We can call flush the buffer
-    // of children from lastChildIndex (inclusive) to the last child and
-    // propagate processGroup to those children.
-    for (int i = lastChildIndex; i < childOperatorsArray.length; i++) {
-      Operator<? extends OperatorDesc> child = childOperatorsArray[i];
-      child.flush();
-      child.endGroup();
-      for (int childTag: newChildOperatorsTag[i]) {
-        child.processGroup(childTag);
-      }
     }
   }
 

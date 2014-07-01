@@ -81,13 +81,11 @@ public class MapJoinOperator extends AbstractMapJoinOperator<MapJoinDesc> implem
    * Note: The mapjoin can be run in the reducer only on Tez.
    */
   @Override
-  public void endGroup() throws HiveException {
-    defaultEndGroup();
+  public void endGroupOp(boolean flush) throws HiveException {
   }
 
   @Override
-  public void startGroup() throws HiveException {
-    defaultStartGroup();
+  public void startGroupOp() throws HiveException {
   }
 
   @Override

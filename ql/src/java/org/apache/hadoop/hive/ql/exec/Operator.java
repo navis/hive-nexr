@@ -69,6 +69,8 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
   protected String operatorId;
   private transient ExecMapperContext execContext;
 
+  private transient boolean groupStarted; // always false in map side
+
   private static AtomicInteger seqId;
 
   // It can be optimized later so that an operator operator (init/close) is performed
@@ -455,7 +457,9 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
    */
   protected void initialize(Configuration hconf, ObjectInspector inputOI,
       int parentId) throws HiveException {
-    LOG.info("Initializing child " + id + " " + getName());
+    if (isLogInfoEnabled) {
+      LOG.info("Initializing child " + id + " " + getName());
+    }
     // Double the size of the array if needed
     if (parentId >= inputObjInspectors.length) {
       int newLength = inputObjInspectors.length * 2;
@@ -493,70 +497,117 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
    */
   public abstract void processOp(Object row, int tag) throws HiveException;
 
-  protected final void defaultStartGroup() throws HiveException {
-    if (isLogDebugEnabled) {
-      LOG.debug("Starting group");
-    }
+  protected boolean isGroupStarted() {
+    return groupStarted;
+  }
 
-    if (childOperators == null) {
+  protected boolean areAllParentsGroupStarted() {
+    if (parentOperators != null) {
+      for (Operator<? extends OperatorDesc> parent : parentOperators) {
+        if (parent != null && !parent.isGroupStarted()) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  public void startGroup() throws HiveException {
+    if (!areAllParentsGroupStarted() || isGroupStarted()) {
       return;
     }
+    if (isLogDebugEnabled) {
+      LOG.debug("Starting group " + this);
+    }
+    groupStarted = true;
+
+    startGroupOp();
 
     if (isLogDebugEnabled) {
       LOG.debug("Starting group for children:");
     }
-    for (Operator<? extends OperatorDesc> op : childOperators) {
-      op.startGroup();
+    if (childOperators != null) {
+      for (Operator<? extends OperatorDesc> op : childOperators) {
+        op.setGroupKeyObject(groupKeyObject);
+        op.startGroup();
+      }
     }
-
     if (isLogDebugEnabled) {
-      LOG.debug("Start group Done");
-    }
-  }
-
-  protected final void defaultEndGroup() throws HiveException {
-    if (isLogDebugEnabled) {
-      LOG.debug("Ending group");
-    }
-
-    if (childOperators == null) {
-      return;
-    }
-
-    if (isLogDebugEnabled) {
-      LOG.debug("Ending group for children:");
-    }
-    for (Operator<? extends OperatorDesc> op : childOperators) {
-      op.endGroup();
-    }
-
-    if (isLogDebugEnabled) {
-      LOG.debug("End group Done");
+      LOG.debug("Start group Done " + this);
     }
   }
 
   // If a operator wants to do some work at the beginning of a group
-  public void startGroup() throws HiveException {
-    defaultStartGroup();
+  protected void startGroupOp() throws HiveException {
+  }
+
+  protected boolean isGroupEnded() {
+    return !groupStarted;
+  }
+
+  protected boolean areAllParentsGroupEnded() {
+    if (parentOperators != null) {
+      for (Operator<? extends OperatorDesc> parent : parentOperators) {
+        if (parent != null && !parent.isGroupEnded()) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  public void endGroup(boolean flush) throws HiveException {
+    if (!areAllParentsGroupEnded() || isGroupEnded()) {
+      return;
+    }
+    if (isLogDebugEnabled) {
+      LOG.debug("Ending group " + this);
+    }
+    groupStarted = false;
+
+    endGroupOp(flush);
+    if (isLogDebugEnabled) {
+      LOG.debug("Ending group for children:");
+    }
+    if (childOperators != null) {
+      for (Operator<? extends OperatorDesc> op : childOperators) {
+        op.endGroup(flush);
+      }
+    }
+    if (isLogDebugEnabled) {
+      LOG.debug("End group Done " + this);
+    }
   }
 
   // If an operator wants to do some work at the end of a group
-  public void endGroup() throws HiveException {
-    defaultEndGroup();
+  protected void endGroupOp(boolean flush) throws HiveException {
+    if (flush) {
+      flushOp();
+    }
   }
 
-  // an blocking operator (e.g. GroupByOperator and JoinOperator) can
-  // override this method to forward its outputs
-  public void flush() throws HiveException {
-  }
-
-  public void processGroup(int tag) throws HiveException {
-    if (childOperators == null || childOperators.isEmpty()) {
+  public final void flush() throws HiveException {
+    if (!areAllParentsGroupEnded()) {
       return;
     }
-    for (int i = 0; i < childOperatorsArray.length; i++) {
-      childOperatorsArray[i].processGroup(childOperatorsTag[i]);
+    if (isLogDebugEnabled) {
+      LOG.debug("Flushing " + this);
     }
+    flushOp();
+    if (isLogDebugEnabled) {
+      LOG.debug("Flushing for children:");
+    }
+    if (childOperators != null) {
+      for (Operator<? extends OperatorDesc> op : childOperators) {
+        op.flush();
+      }
+    }
+    if (isLogDebugEnabled) {
+      LOG.debug("Flush Done " + this);
+    }
+  }
+
+  protected void flushOp() throws HiveException {
   }
 
   protected boolean allInitializedParentsAreClosed() {
@@ -565,7 +616,9 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
         if(parent==null){
           continue;
         }
-        LOG.debug("allInitializedParentsAreClosed? parent.state = " + parent.state);
+        if (isLogDebugEnabled) {
+          LOG.debug("allInitializedParentsAreClosed? parent.state = " + parent.state);
+        }
         if (!(parent.state == State.CLOSE || parent.state == State.UNINIT)) {
           return false;
         }
@@ -585,14 +638,18 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
 
     // check if all parents are finished
     if (!allInitializedParentsAreClosed()) {
-      LOG.debug("Not all parent operators are closed. Not closing.");
+      if (isLogDebugEnabled) {
+        LOG.debug("Not all parent operators are closed. Not closing.");
+      }
       return;
     }
 
     // set state as CLOSE as long as all parents are closed
     // state == CLOSE doesn't mean all children are also in state CLOSE
     state = State.CLOSE;
-    LOG.info(id + " finished. closing... ");
+    if (isLogInfoEnabled) {
+      LOG.info(id + " finished. closing... ");
+    }
 
     // call the operator specific close routine
     closeOp(abort);
@@ -606,11 +663,15 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
       }
 
       for (Operator<? extends OperatorDesc> op : childOperators) {
-        LOG.debug("Closing child = " + op);
+        if (isLogDebugEnabled) {
+          LOG.debug("Closing child = " + op);
+        }
         op.close(abort);
       }
 
-      LOG.info(id + " Close done");
+      if (isLogInfoEnabled) {
+        LOG.info(id + " Close done");
+      }
     } catch (HiveException e) {
       e.printStackTrace();
       throw e;
@@ -619,7 +680,7 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
 
   /**
    * Operator specific close routine. Operators which inherents this class
-   * should overwrite this funtion for their specific cleanup routine.
+   * should overwrite this function for their specific cleanup routine.
    */
   protected void closeOp(boolean abort) throws HiveException {
   }
@@ -773,7 +834,7 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
   }
 
   /**
-   * Replace one parent with another at the same position. Chilren of the new
+   * Replace one parent with another at the same position. Children of the new
    * parent are not updated
    *
    * @param parent
@@ -856,8 +917,10 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
   }
 
   public void logStats() {
-    for (String e : statsMap.keySet()) {
-      LOG.info(e.toString() + ":" + statsMap.get(e).toString());
+    if (isLogInfoEnabled) {
+      for (String e : statsMap.keySet()) {
+        LOG.info(e.toString() + ":" + statsMap.get(e).toString());
+      }
     }
   }
 
@@ -1087,7 +1150,7 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
 
     if (parents != null) {
       for (Operator<? extends OperatorDesc> parent : parents) {
-        parentClones.add((parent.clone()));
+        parentClones.add(parent.clone());
       }
     }
 

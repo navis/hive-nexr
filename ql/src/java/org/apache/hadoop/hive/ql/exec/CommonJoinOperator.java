@@ -115,8 +115,6 @@ public abstract class CommonJoinOperator<T extends JoinDesc> extends
   long nextSz = 0;
   transient Byte lastAlias = null;
 
-  transient boolean handleSkewJoin = false;
-
   transient boolean hasLeftSemiJoin = false;
 
   protected transient int countAfterReport;
@@ -146,7 +144,6 @@ public abstract class CommonJoinOperator<T extends JoinDesc> extends
     this.dummyObjVectors = clone.dummyObjVectors;
     this.forwardCache = clone.forwardCache;
     this.groupKeyObject = clone.groupKeyObject;
-    this.handleSkewJoin = clone.handleSkewJoin;
     this.hconf = clone.hconf;
     this.id = clone.id;
     this.inputObjInspectors = clone.inputObjInspectors;
@@ -186,7 +183,6 @@ public abstract class CommonJoinOperator<T extends JoinDesc> extends
   @Override
   @SuppressWarnings("unchecked")
   protected void initializeOp(Configuration hconf) throws HiveException {
-    this.handleSkewJoin = conf.getHandleSkewJoin();
     this.hconf = hconf;
 
     heartbeatInterval = HiveConf.getIntVar(hconf,
@@ -319,15 +315,12 @@ public abstract class CommonJoinOperator<T extends JoinDesc> extends
     LOG.info("JOIN " + outputObjInspector.getTypeName() + " totalsz = " + totalSz);
   }
 
-  transient boolean newGroupStarted = false;
-
   @Override
-  public void startGroup() throws HiveException {
-    newGroupStarted = true;
+  public void startGroupOp() throws HiveException {
+    LOG.trace("Join: Starting new group");
     for (AbstractRowContainer<List<Object>> alw : storage) {
       alw.clearRows();
     }
-    super.startGroup();
   }
 
   protected long getNextSize(long sz) {
@@ -628,9 +621,16 @@ public abstract class CommonJoinOperator<T extends JoinDesc> extends
    * Forward a record of join results.
    *
    * @throws HiveException
+   * @param flush
    */
   @Override
-  public void endGroup() throws HiveException {
+  public void endGroupOp(boolean flush) throws HiveException {
+    LOG.trace("Join Op: endGroup called: numValues=" + numAliases);
+    checkAndGenObject();
+  }
+
+  @Override
+  protected void flushOp() throws HiveException {
     checkAndGenObject();
   }
 

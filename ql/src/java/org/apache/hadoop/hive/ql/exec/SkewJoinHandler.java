@@ -34,7 +34,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.ql.exec.persistence.RowContainer;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.JoinDesc;
-import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
@@ -95,18 +94,18 @@ public class SkewJoinHandler {
   List<Object> dummyKey = null;
   String taskId;
 
-  private final CommonJoinOperator<? extends OperatorDesc> joinOp;
+  private final JoinOperator joinOp;
   private final int numAliases;
   private final JoinDesc conf;
 
-  public SkewJoinHandler(CommonJoinOperator<? extends OperatorDesc> joinOp) {
+  public SkewJoinHandler(JoinOperator joinOp) {
     this.joinOp = joinOp;
     numAliases = joinOp.numAliases;
     conf = joinOp.getConf();
     noOuterJoin = joinOp.noOuterJoin;
   }
 
-  public void initiliaze(Configuration hconf) {
+  public void initialize(Configuration hconf) throws SerDeException {
     this.hconf = hconf;
     JoinDesc desc = joinOp.getConf();
     skewKeyDefinition = desc.getSkewKeyDefinition();
@@ -136,16 +135,10 @@ public class SkewJoinHandler {
       StructObjectInspector structTblKeyInpector = ObjectInspectorFactory
           .getStandardStructObjectInspector(keyColNames, skewTableKeyInspectors);
 
-      try {
-        SerDe serializer = (SerDe) ReflectionUtils.newInstance(tblDesc.get(
-            alias).getDeserializerClass(), null);
-        SerDeUtils.initializeSerDe(serializer, null, tblDesc.get(alias).getProperties(), null);
-        tblSerializers.put((byte) i, serializer);
-      } catch (SerDeException e) {
-        LOG.error("Skewjoin will be disabled due to " + e.getMessage(), e);
-        joinOp.handleSkewJoin = false;
-        break;
-      }
+      SerDe serializer = (SerDe) ReflectionUtils.newInstance(tblDesc.get(
+          alias).getDeserializerClass(), null);
+      SerDeUtils.initializeSerDe(serializer, null, tblDesc.get(alias).getProperties(), null);
+      tblSerializers.put((byte) i, serializer);
 
       boolean hasFilter = filterMap != null && filterMap[i] != null;
       TableDesc valTblDesc = JoinUtil.getSpillTableDesc(alias,
@@ -199,18 +192,22 @@ public class SkewJoinHandler {
     skewKeyInCurrentGroup = false;
   }
 
+  boolean newGroupStarted = false;
   boolean skewKeyInCurrentGroup = false;
+
+  public void newGroupStarted() {
+    newGroupStarted = true;
+  }
 
   public void handleSkew(int tag) throws HiveException {
 
-    if (joinOp.newGroupStarted || tag != currTag) {
+    if (newGroupStarted || tag != currTag) {
       rowNumber = 0;
       currTag = tag;
     }
 
-    if (joinOp.newGroupStarted) {
+    if (newGroupStarted) {
       currBigKeyTag = -1;
-      joinOp.newGroupStarted = false;
       dummyKey = (List<Object>) joinOp.getGroupKeyObject();
       skewKeyInCurrentGroup = false;
 
@@ -220,11 +217,11 @@ public class SkewJoinHandler {
           rc.setKeyObject(dummyKey);
         }
       }
+      newGroupStarted = false;
     }
 
     rowNumber++;
-    if (currBigKeyTag == -1 && (tag < numAliases - 1)
-        && rowNumber >= skewKeyDefinition) {
+    if (currBigKeyTag == -1 && rowNumber >= skewKeyDefinition && !joinOp.isLastInput(tag)) {
       // the first time we see a big key. If this key is not in the last
       // table (the last table can always be streamed), we define that we get
       // a skew key now.
@@ -343,5 +340,4 @@ public class SkewJoinHandler {
   public void updateSkewJoinJobCounter(int tag) {
     this.skewjoinFollowupJobs.set(this.skewjoinFollowupJobs.get() + 1);
   }
-
 }

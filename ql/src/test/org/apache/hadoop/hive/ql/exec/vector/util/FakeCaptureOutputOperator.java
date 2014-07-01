@@ -20,7 +20,6 @@ package org.apache.hadoop.hive.ql.exec.vector.util;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;

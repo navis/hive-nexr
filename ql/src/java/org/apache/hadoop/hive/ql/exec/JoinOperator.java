@@ -30,6 +30,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.JoinDesc;
 import org.apache.hadoop.hive.ql.plan.api.OperatorType;
+import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
@@ -58,12 +59,22 @@ public class JoinOperator extends CommonJoinOperator<JoinDesc> implements
   protected void initializeOp(Configuration hconf) throws HiveException {
     super.initializeOp(hconf);
     initializeChildren(hconf);
-    if (handleSkewJoin) {
-      skewJoinKeyContext = new SkewJoinHandler(this);
-      skewJoinKeyContext.initiliaze(hconf);
-      skewJoinKeyContext.setSkewJoinJobCounter(skewjoin_followup_jobs);
+    if (conf.getHandleSkewJoin()) {
+      skewJoinKeyContext = createSkewContext(hconf);
     }
     statsMap.put(SkewkeyTableCounter.SKEWJOINFOLLOWUPJOBS.toString(), skewjoin_followup_jobs);
+  }
+
+  private SkewJoinHandler createSkewContext(Configuration hconf) {
+    SkewJoinHandler skewJoinKeyContext = new SkewJoinHandler(this);
+    try {
+      skewJoinKeyContext.setSkewJoinJobCounter(skewjoin_followup_jobs);
+      skewJoinKeyContext.initialize(hconf);
+    } catch (SerDeException e) {
+      LOG.error("Skewjoin will be disabled due to " + e.getMessage(), e);
+      return null;
+    }
+    return skewJoinKeyContext;
   }
 
   @Override
@@ -80,7 +91,7 @@ public class JoinOperator extends CommonJoinOperator<JoinDesc> implements
 
       List<Object> nr = getFilteredValue(alias, row);
 
-      if (handleSkewJoin) {
+      if (skewJoinKeyContext != null) {
         skewJoinKeyContext.handleSkew(tag);
       }
 
@@ -91,27 +102,23 @@ public class JoinOperator extends CommonJoinOperator<JoinDesc> implements
           .toString());
       List keyObject = (List) soi.getStructFieldData(row, sf);
       // Are we consuming too much memory
-      if (alias == numAliases - 1 && !(handleSkewJoin && skewJoinKeyContext.currBigKeyTag >= 0) &&
-          !hasLeftSemiJoin) {
-        if (sz == joinEmitInterval && !hasFilter(alias)) {
-          // The input is sorted by alias, so if we are already in the last join
-          // operand,
-          // we can emit some results now.
-          // Note this has to be done before adding the current row to the
-          // storage,
-          // to preserve the correctness for outer joins.
-          checkAndGenObject();
-          storage[alias].clearRows();
-        }
-      } else {
-        if (sz == nextSz) {
-          // Print a message if we reached at least 1000 rows for a join operand
-          // We won't print a message for the last join operand since the size
-          // will never goes to joinEmitInterval.
-          LOG.info("table " + alias + " has " + sz + " rows for join key "
-              + keyObject);
-          nextSz = getNextSize(nextSz);
-        }
+      if (sz == joinEmitInterval && !hasLeftSemiJoin && isLastInput(tag) && !hasFilter(tag) &&
+          !(skewJoinKeyContext != null && skewJoinKeyContext.currBigKeyTag >= 0)) {
+        // The input is sorted by alias, so if we are already in the last join
+        // operand,
+        // we can emit some results now.
+        // Note this has to be done before adding the current row to the
+        // storage,
+        // to preserve the correctness for outer joins.
+        checkAndGenObject();
+        storage[alias].clearRows();
+      } else if (sz == nextSz) {
+        // Print a message if we reached at least 1000 rows for a join operand
+        // We won't print a message for the last join operand since the size
+        // will never goes to joinEmitInterval.
+        LOG.info("table " + alias + " has " + sz + " rows for join key "
+            + keyObject);
+        nextSz = getNextSize(nextSz);
       }
 
       // Add the value to the vector
@@ -119,14 +126,37 @@ public class JoinOperator extends CommonJoinOperator<JoinDesc> implements
       StructObjectInspector inspector =
           (StructObjectInspector) sf.getFieldObjectInspector();
       if (SerDeUtils.hasAnyNullObject(keyObject, inspector, nullsafes)) {
-        endGroup();
-        startGroup();
+        // internal flushing
+        endGroupOp(true);
+        startGroupOp();
       }
       storage[alias].addRow(nr);
     } catch (Exception e) {
       e.printStackTrace();
       throw new HiveException(e);
     }
+  }
+
+  @Override
+  public void startGroupOp() throws HiveException {
+    super.startGroupOp();
+    if (skewJoinKeyContext != null) {
+      skewJoinKeyContext.newGroupStarted();
+    }
+  }
+
+  protected boolean isLastInput(int input) {
+    if (parentOperators == null || parentOperators.isEmpty()) {
+      return input == numAliases - 1;
+    }
+    // with MUX operator
+    for (int i = 0; i < parentOperators.size(); i++) {
+      Operator<?> parent = parentOperators.get(i);
+      if (input != i && parent != null && !parent.isGroupEnded()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override
@@ -140,7 +170,7 @@ public class JoinOperator extends CommonJoinOperator<JoinDesc> implements
    */
   @Override
   public void closeOp(boolean abort) throws HiveException {
-    if (handleSkewJoin) {
+    if (skewJoinKeyContext != null) {
       skewJoinKeyContext.close(abort);
     }
     super.closeOp(abort);
@@ -240,20 +270,20 @@ public class JoinOperator extends CommonJoinOperator<JoinDesc> implements
    * Forward a record of join results.
    *
    * @throws HiveException
+   * @param flush
    */
   @Override
-  public void endGroup() throws HiveException {
+  public void endGroupOp(boolean flush) throws HiveException {
     // if this is a skew key, we need to handle it in a separate map reduce job.
-    if (handleSkewJoin && skewJoinKeyContext.currBigKeyTag >= 0) {
+    if (skewJoinKeyContext != null && skewJoinKeyContext.currBigKeyTag >= 0) {
       try {
         skewJoinKeyContext.endGroup();
       } catch (IOException e) {
         LOG.error(e.getMessage(), e);
         throw new HiveException(e);
       }
-      return;
     } else {
-      checkAndGenObject();
+      super.endGroupOp(flush);
     }
   }
 

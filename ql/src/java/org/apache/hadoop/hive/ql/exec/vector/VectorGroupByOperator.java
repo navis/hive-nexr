@@ -841,7 +841,7 @@ public class VectorGroupByOperator extends GroupByOperator implements Vectorizat
   }
 
   @Override
-  public void startGroup() throws HiveException {
+  public void startGroupOp() throws HiveException {
     processingMode.startGroup();
 
     // We do not call startGroup on operators below because we are batching rows in
@@ -850,7 +850,7 @@ public class VectorGroupByOperator extends GroupByOperator implements Vectorizat
   }
 
   @Override
-  public void endGroup() throws HiveException {
+  public void endGroupOp(boolean flush) throws HiveException {
     processingMode.endGroup();
 
     // We do not call endGroup on operators below because we are batching rows in

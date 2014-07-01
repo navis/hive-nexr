@@ -19,8 +19,6 @@
 package org.apache.hadoop.hive.ql.exec.mr;
 
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryMXBean;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -201,7 +199,7 @@ public class ExecReducer extends MapReduceBase implements Reducer {
           if (isTraceEnabled) {
             LOG.trace("End Group");
           }
-          reducer.endGroup();
+          reducer.endGroup(false);
         }
 
         try {
@@ -281,7 +279,7 @@ public class ExecReducer extends MapReduceBase implements Reducer {
         if (isTraceEnabled) {
           LOG.trace("End Group");
         }
-        reducer.endGroup();
+        reducer.endGroup(false);
       }
 
       reducer.close(abort);

@@ -457,7 +457,8 @@ public class CorrelationOptimizer implements Transform {
             CorrelationUtilities.getSingleChild(rsop, GroupByOperator.class);
         if (cGBY != null) {
           if (CorrelationUtilities.hasGroupingSet(rsop) ||
-              cGBY.getConf().isGroupingSetsPresent()) {
+              cGBY.getConf().isGroupingSetsPresent() ||
+              cGBY.getConf().getGroupKeyNotReductionKey()) {
             // Do not support grouping set right now
             isCorrelated = false;
           }
@@ -534,7 +535,8 @@ public class CorrelationOptimizer implements Transform {
           CorrelationUtilities.getSingleChild(op, GroupByOperator.class);
       if (cGBY != null) {
         if (CorrelationUtilities.hasGroupingSet(op) ||
-            cGBY.getConf().isGroupingSetsPresent()) {
+            cGBY.getConf().isGroupingSetsPresent() ||
+            cGBY.getConf().getGroupKeyNotReductionKey()) {
           // Do not support grouping set right now
           shouldDetect = false;
         }
