@@ -39,6 +39,8 @@ import org.apache.hadoop.hive.ql.plan.LoadTableDesc;
 import org.apache.hadoop.hive.ql.plan.MoveWork;
 import org.apache.hadoop.hive.ql.plan.StatsWork;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
@@ -167,28 +169,33 @@ public class LoadSemanticAnalyzer extends BaseSemanticAnalyzer {
 
   @Override
   public void analyzeInternal(ASTNode ast) throws SemanticException {
+    // ^(TOK_LOAD $path $tab $islocal? $isoverwrite? $isStream?)
     boolean isLocal = false;
     boolean isOverWrite = false;
+    boolean isStream = false;
+
     Tree fromTree = ast.getChild(0);
     Tree tableTree = ast.getChild(1);
 
-    if (ast.getChildCount() == 4) {
-      isLocal = true;
-      isOverWrite = true;
-    }
-
-    if (ast.getChildCount() == 3) {
-      if (ast.getChild(2).getText().toLowerCase().equals("local")) {
+    for (int i = 2; i < ast.getChildCount(); i++) {
+      String text = ast.getChild(i).getText();
+      if (text.equalsIgnoreCase("LOCAL")) {
         isLocal = true;
-      } else {
+      } else if (text.equalsIgnoreCase("INSTREAM")) {
+        isStream = true;
+      } else if (text.equalsIgnoreCase("OVERWRITE")) {
         isOverWrite = true;
       }
     }
+    if (isStream && !conf.getBoolVar(HiveConf.ConfVars.HIVE_IN_TEST)) {
+      throw new SemanticException("'INSTREAM' is allowed only for test mode");
+    }
+    isLocal |= isStream;
 
     // initialize load path
     URI fromURI;
     try {
-      String fromPath = stripQuotes(fromTree.getText());
+      String fromPath = getFromPath(fromTree.getText(), isStream);
       fromURI = initializeFromURI(fromPath, isLocal);
     } catch (IOException e) {
       throw new SemanticException(ErrorMsg.INVALID_PATH.getMsg(fromTree, e
@@ -322,5 +329,21 @@ public class LoadSemanticAnalyzer extends BaseSemanticAnalyzer {
     else if (statTask != null) {
       childTask.addDependentTask(statTask);
     }
+  }
+
+  private String getFromPath(String value, boolean instream) throws IOException {
+    String path = stripQuotes(value);
+    if (instream) {
+      path = path.replaceAll("\\\\n", "\n");
+      File temp = File.createTempFile("instream", null);
+      FileOutputStream fout = new FileOutputStream(temp);
+      try {
+        fout.write(path.getBytes());
+      } finally {
+        fout.close();
+      }
+      path = temp.getAbsolutePath();
+    }
+    return path;
   }
 }

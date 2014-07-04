@@ -1,0 +1,25 @@
+PREHOOK: query: create table kv_temp (key string, value string) ROW FORMAT delimited fields terminated by ' ' STORED AS TEXTFILE
+PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
+POSTHOOK: query: create table kv_temp (key string, value string) ROW FORMAT delimited fields terminated by ' ' STORED AS TEXTFILE
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@kv_temp
+PREHOOK: query: load data local instream 'key value\nkey2 value2' into table kv_temp
+PREHOOK: type: LOAD
+#### A masked pattern was here ####
+PREHOOK: Output: default@kv_temp
+POSTHOOK: query: load data local instream 'key value\nkey2 value2' into table kv_temp
+POSTHOOK: type: LOAD
+#### A masked pattern was here ####
+POSTHOOK: Output: default@kv_temp
+PREHOOK: query: select * from kv_temp
+PREHOOK: type: QUERY
+PREHOOK: Input: default@kv_temp
+#### A masked pattern was here ####
+POSTHOOK: query: select * from kv_temp
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@kv_temp
+#### A masked pattern was here ####
+key	value
+key2	value2

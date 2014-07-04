@@ -412,6 +412,7 @@ import java.util.HashMap;
     xlateMap.put("KW_LOAD", "LOAD");
     xlateMap.put("KW_DATA", "DATA");
     xlateMap.put("KW_INPATH", "INPATH");
+    xlateMap.put("KW_INSTREAM", "INSTREAM");
     xlateMap.put("KW_IS", "IS");
     xlateMap.put("KW_NULL", "NULL");
     xlateMap.put("KW_CREATE", "CREATE");
@@ -665,8 +666,8 @@ execStatement
 loadStatement
 @init { pushMsg("load statement", state); }
 @after { popMsg(state); }
-    : KW_LOAD KW_DATA (islocal=KW_LOCAL)? KW_INPATH (path=StringLiteral) (isoverwrite=KW_OVERWRITE)? KW_INTO KW_TABLE (tab=tableOrPartition)
-    -> ^(TOK_LOAD $path $tab $islocal? $isoverwrite?)
+    : KW_LOAD KW_DATA (islocal=KW_LOCAL)? (KW_INPATH|isstream=KW_INSTREAM) (path=StringLiteral) (isoverwrite=KW_OVERWRITE)? KW_INTO KW_TABLE (tab=tableOrPartition)
+    -> ^(TOK_LOAD $path $tab $islocal? $isoverwrite? $isstream?)
     ;
 
 exportStatement
