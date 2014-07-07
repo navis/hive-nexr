@@ -31,11 +31,11 @@ import org.apache.hadoop.hive.ql.exec.vector.expressions.StringScalarConcatStrin
 import org.apache.hadoop.hive.ql.exec.vector.expressions.CharScalarConcatStringGroupCol;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.VarCharScalarConcatStringGroupCol;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.serde2.objectinspector.ConstantObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.PrimitiveCategory;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.BinaryObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorConverter.StringConverter;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.BaseCharTypeInfo;
@@ -53,17 +53,20 @@ extended = "Returns NULL if any argument is NULL.\n"
 + "Example:\n"
 + "  > SELECT _FUNC_('abc', 'def') FROM src LIMIT 1;\n"
 + "  'abcdef'")
-@VectorizedExpressions({StringGroupConcatColCol.class,
+@VectorizedExpressions(preferredType="STRING...",
+    value={StringGroupConcatColCol.class,
     StringGroupColConcatStringScalar.class,
     StringGroupColConcatCharScalar.class, StringGroupColConcatVarCharScalar.class,
     StringScalarConcatStringGroupCol.class,
     CharScalarConcatStringGroupCol.class, VarCharScalarConcatStringGroupCol.class})
 public class GenericUDFConcat extends GenericUDF {
-  private transient ObjectInspector[] argumentOIs;
+  private transient PrimitiveObjectInspector[] argumentOIs;
   private transient StringConverter[] stringConverters;
   private transient PrimitiveCategory returnType = PrimitiveCategory.STRING;
   private transient BytesWritable[] bw;
   private transient GenericUDFUtils.StringHelper returnHelper;
+
+  private transient Object[] constants;
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
@@ -75,16 +78,17 @@ public class GenericUDFConcat extends GenericUDF {
     //  All CHAR/VARCHAR inputs: return VARCHAR
     //  All BINARY inputs: return BINARY
     //  Otherwise return STRING
-    argumentOIs = arguments;
-
     PrimitiveCategory currentCategory;
     PrimitiveObjectInspector poi;
     boolean fixedLengthReturnValue = true;
     int returnLength = 0;  // Only for char/varchar return types
+
+    argumentOIs = new PrimitiveObjectInspector[arguments.length];
     for (int idx = 0; idx < arguments.length; ++idx) {
       if (arguments[idx].getCategory() != Category.PRIMITIVE) {
         throw new UDFArgumentException("CONCAT only takes primitive arguments");
       }
+      argumentOIs[idx] = (PrimitiveObjectInspector) arguments[idx];
       poi = (PrimitiveObjectInspector)arguments[idx];
       currentCategory = poi.getPrimitiveCategory();
       if (idx == 0) {
@@ -128,34 +132,59 @@ public class GenericUDFConcat extends GenericUDF {
       }
     }
 
+    constants = new Object[arguments.length];
+
+    boolean hasConstant = hasAnyConstants(arguments);
+    if (hasConstant) {
+      for (int i = 0; i < arguments.length; i++) {
+        if (arguments[i] instanceof ConstantObjectInspector) {
+          constants[i] = ((ConstantObjectInspector)arguments[i]).getWritableConstantValue();
+        }
+      }
+    }
+
     if (returnType == PrimitiveCategory.BINARY) {
       bw = new BytesWritable[arguments.length];
       return PrimitiveObjectInspectorFactory.writableBinaryObjectInspector;
-    } else {
-      // treat all inputs as string, the return value will be converted to the appropriate type.
-      createStringConverters();
-      returnHelper = new GenericUDFUtils.StringHelper(returnType);
-      BaseCharTypeInfo typeInfo;
-      switch (returnType) {
-        case STRING:
-          return PrimitiveObjectInspectorFactory.writableStringObjectInspector;
-        case CHAR:
-          typeInfo = TypeInfoFactory.getCharTypeInfo(returnLength);
-          return PrimitiveObjectInspectorFactory.getPrimitiveWritableObjectInspector(typeInfo);
-        case VARCHAR:
-          typeInfo = TypeInfoFactory.getVarcharTypeInfo(returnLength);
-          return PrimitiveObjectInspectorFactory.getPrimitiveWritableObjectInspector(typeInfo);
-        default:
-          throw new UDFArgumentException("Unexpected CONCAT return type of " + returnType);
+    }
+    // treat all inputs as string, the return value will be converted to the appropriate type.
+    stringConverters = createStringConverters(argumentOIs);
+    if (hasConstant) {
+      for (int i = 0; i < constants.length; i++) {
+        constants[i] = constants[i] == null ? null : stringConverters[i].convert(constants[i]);
       }
+    }
+    returnHelper = new GenericUDFUtils.StringHelper(returnType);
+    BaseCharTypeInfo typeInfo;
+    switch (returnType) {
+      case STRING:
+        return PrimitiveObjectInspectorFactory.writableStringObjectInspector;
+      case CHAR:
+        typeInfo = TypeInfoFactory.getCharTypeInfo(returnLength);
+        return PrimitiveObjectInspectorFactory.getPrimitiveWritableObjectInspector(typeInfo);
+      case VARCHAR:
+        typeInfo = TypeInfoFactory.getVarcharTypeInfo(returnLength);
+        return PrimitiveObjectInspectorFactory.getPrimitiveWritableObjectInspector(typeInfo);
+      default:
+        throw new UDFArgumentException("Unexpected CONCAT return type of " + returnType);
     }
   }
 
-  private void createStringConverters() {
-    stringConverters = new StringConverter[argumentOIs.length];
+  private boolean hasAnyConstants(ObjectInspector[] argumentOIs) {
+    for (ObjectInspector argumentOI : argumentOIs) {
+      if (argumentOI instanceof ConstantObjectInspector) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private StringConverter[] createStringConverters(ObjectInspector[] argumentOIs) {
+    StringConverter[] stringConverters = new StringConverter[argumentOIs.length];
     for (int idx = 0; idx < argumentOIs.length; ++idx) {
       stringConverters[idx] = new StringConverter((PrimitiveObjectInspector) argumentOIs[idx]);
     }
+    return stringConverters;
   }
 
   @Override
@@ -167,11 +196,11 @@ public class GenericUDFConcat extends GenericUDF {
     }
   }
 
-  public Object binaryEvaluate(DeferredObject[] arguments) throws HiveException {
+  private Object binaryEvaluate(DeferredObject[] arguments) throws HiveException {
     int len = 0;
     for (int idx = 0; idx < arguments.length; ++idx) {
-      bw[idx] = ((BinaryObjectInspector)argumentOIs[idx])
-          .getPrimitiveWritableObject(arguments[idx].get());
+      bw[idx] = (BytesWritable) (constants[idx] != null ? constants[idx] :
+          (argumentOIs[idx]).getPrimitiveWritableObject(arguments[idx].get()));
       if (bw[idx] == null){
         return null;
       }
@@ -188,19 +217,19 @@ public class GenericUDFConcat extends GenericUDF {
     return new BytesWritable(out);
   }
 
-  public String stringEvaluate(DeferredObject[] arguments) throws HiveException {
-    StringBuilder sb = new StringBuilder();
+  private transient StringBuilder builder = new StringBuilder();
+
+  private String stringEvaluate(DeferredObject[] arguments) throws HiveException {
+    builder.setLength(0);
     for (int idx = 0; idx < arguments.length; ++idx) {
-      String val = null;
-      if (arguments[idx] != null) {
-        val = (String) stringConverters[idx].convert(arguments[idx].get());
-      }
+      String val = (String)(constants[idx] != null ? constants[idx] :
+          stringConverters[idx].convert(arguments[idx].get()));
       if (val == null) {
         return null;
       }
-      sb.append(val);
+      builder.append(val);
     }
-    return sb.toString();
+    return builder.toString();
   }
 
   @Override

@@ -252,6 +252,10 @@ public class VectorExpressionDescriptor {
       return this;
     }
 
+    public ArgumentType getArgumentType(int index) {
+        return argTypes[index];
+    }
+
     public Descriptor build() {
       return new Descriptor(mode, argCount, argTypes, exprTypes);
     }

@@ -44,10 +44,10 @@ import org.apache.hadoop.hive.ql.exec.ExprNodeEvaluatorFactory;
 import org.apache.hadoop.hive.ql.exec.FunctionInfo;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.exec.UDF;
+import org.apache.hadoop.hive.ql.exec.vector.VectorExpressionDescriptor.ArgumentType;
 import org.apache.hadoop.hive.ql.exec.vector.VectorExpressionDescriptor.InputExpressionType;
 import org.apache.hadoop.hive.ql.exec.vector.VectorExpressionDescriptor.Mode;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.*;
-import org.apache.hadoop.hive.ql.exec.vector.AggregateDefinition;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.aggregates.VectorAggregateExpression;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.aggregates.VectorUDAFAvgDecimal;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.aggregates.VectorUDAFCount;
@@ -948,20 +948,105 @@ public class VectorizationContext {
         throw new HiveException("Cannot handle expression type: " + child.getClass().getSimpleName());
       }
     }
+    TypeInfo[] casters = null;
     VectorExpressionDescriptor.Descriptor descriptor = builder.build();
     Class<?> vclass = this.vMap.getVectorExpressionClass(udf, descriptor);
     if (vclass == null) {
       if (LOG.isDebugEnabled()) {
-        LOG.debug("No vector udf found for "+udf.getSimpleName() + ", descriptor: "+descriptor);
+        LOG.debug("Failed to vectorizing " + udf.getSimpleName() + " with " + descriptor);
       }
-      return null;
+      if (numChildren > 0) {
+        casters = getCaster(udf, childExpr, builder);
+        if (casters != null) {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Retry vectorizing " + udf.getSimpleName() + " with " + builder.build());
+          }
+          vclass = this.vMap.getVectorExpressionClass(udf, builder.build());
+        }
+      }
+      if (vclass == null) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("No vector udf found for " + udf.getSimpleName() + ", descriptor: " + descriptor);
+        }
+        return null;
+      }
     }
     Mode childrenMode = getChildrenMode(mode, udf);
-    return createVectorExpression(vclass, childExpr, childrenMode, returnType);
+    return createVectorExpression(vclass, childExpr, childrenMode, casters, returnType);
+  }
+
+  private TypeInfo[] getCaster(Class<?> udf, List<ExprNodeDesc> childExpr,
+      VectorExpressionDescriptor.Builder builder) {
+    String[] preferred = getPreferredTypes(udf, childExpr.size());
+    if (preferred == null) {
+      return null;
+    }
+    TypeInfo[] casters = new TypeInfo[preferred.length];
+    for (int i = 0; i < preferred.length; i++) {
+      ExprNodeDesc child = childExpr.get(i);
+      ArgumentType sourceType = builder.getArgumentType(i);
+      ArgumentType targetType = ArgumentType.getType(preferred[i]);
+      if (sourceType != targetType) {
+        try {
+          casters[i] = TypeInfoFactory.getPrimitiveTypeInfo(targetType.name().toLowerCase());
+          builder.setArgumentType(i, targetType);
+        } catch (Exception e) {
+          LOG.info("Invalid type " + targetType.name(), e);
+          return null;
+        }
+      }
+    }
+    return casters;
+  }
+
+  private String[] getPreferredTypes(Class<?> udf, int numChildren) {
+    VectorizedExpressions annotation = udf.getAnnotation(VectorizedExpressions.class);
+    String[] preferred = toPreferredTypes(numChildren, annotation.preferredType());
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Preferred arguments " + udf.getSimpleName() + Arrays.toString(preferred));
+    }
+    return preferred;
+  }
+
+  static String[] toPreferredTypes(int numChildren, String description) {
+    String[] spec = splitAndTrim(description);
+    if (spec.length - 1 > numChildren) {
+      return null;
+    }
+    int i = 0;
+    for (; i < spec.length; i++) {
+      if (spec[i].endsWith("...")) {
+        break;
+      }
+    }
+    if (i == spec.length && numChildren != spec.length) {
+      return null;
+    }
+    String[] types = new String[numChildren];
+    System.arraycopy(spec, 0, types, 0, i);
+    System.arraycopy(spec, i + 1, types, types.length - i, spec.length - i - 1);
+    if (i != spec.length) {
+      Arrays.fill(types, i, types.length - (spec.length - i - 1), spec[i].substring(0, spec[i].length() - 3));
+    }
+    return types;
+  }
+
+  private static String[] splitAndTrim(String description) {
+    String[] split = description.split(",");
+    for (int i = 0; i < split.length; i++) {
+      split[i] = split[i].trim();
+    }
+    return split;
   }
 
   private VectorExpression createVectorExpression(Class<?> vectorClass,
       List<ExprNodeDesc> childExpr, Mode childrenMode, TypeInfo returnType) throws HiveException {
+    return createVectorExpression(vectorClass, childExpr, childrenMode, null, returnType);
+  }
+
+  private VectorExpression createVectorExpression(Class<?> vectorClass,
+      List<ExprNodeDesc> childExpr, Mode childrenMode, TypeInfo[] casters, TypeInfo returnType)
+      throws HiveException {
     int numChildren = childExpr == null ? 0: childExpr.size();
     VectorExpression.Type [] inputTypes = new VectorExpression.Type[numChildren];
     List<VectorExpression> children = new ArrayList<VectorExpression>();
@@ -974,23 +1059,27 @@ public class VectorizationContext {
         if (inputTypes[i] == VectorExpression.Type.OTHER){
           throw new HiveException("No vector type for " + vectorClass.getSimpleName() + " argument #" + i + " type name " + undecoratedName);
         }
+        if (casters != null && casters[i] != null) {
+          child = getImplicitCastExpression(null, child, casters[i]);
+        }
         if (child instanceof ExprNodeGenericFuncDesc) {
           VectorExpression vChild = getVectorExpression(child, childrenMode);
-            children.add(vChild);
-            arguments[i] = vChild.getOutputColumn();
+          children.add(vChild);
+          arguments[i] = vChild.getOutputColumn();
         } else if (child instanceof ExprNodeColumnDesc) {
           int colIndex = getInputColumnIndex((ExprNodeColumnDesc) child);
-            if (childrenMode == Mode.FILTER) {
-              // In filter mode, the column must be a boolean
-              children.add(new SelectColumnIsTrue(colIndex));
-            }
-            arguments[i] = colIndex;
+          if (childrenMode == Mode.FILTER) {
+            // In filter mode, the column must be a boolean
+            children.add(new SelectColumnIsTrue(colIndex));
+          }
+          arguments[i] = colIndex;
         } else if (child instanceof ExprNodeConstantDesc) {
           Object scalarValue = getVectorTypeScalarValue((ExprNodeConstantDesc) child);
           arguments[i] = scalarValue;
         } else {
-          throw new HiveException("Cannot handle expression type: " + child.getClass().getSimpleName());
+          throw new HiveException("Cannot handle expression: " + child);
         }
+        inputTypes[i] = VectorExpression.Type.getValue(child.getTypeInfo().getTypeName());
       }
       VectorExpression  vectorExpression = instantiateExpression(vectorClass, returnType, arguments);
       vectorExpression.setInputTypes(inputTypes);

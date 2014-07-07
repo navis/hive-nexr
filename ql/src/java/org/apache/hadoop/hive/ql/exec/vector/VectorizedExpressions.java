@@ -26,6 +26,8 @@ import org.apache.hadoop.hive.ql.exec.vector.expressions.VectorExpression;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface VectorizedExpressions {
 
+  String preferredType() default "";
+
   Class<? extends VectorExpression>[] value();
 
 }

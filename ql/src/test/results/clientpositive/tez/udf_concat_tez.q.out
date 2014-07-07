@@ -1,0 +1,74 @@
+PREHOOK: query: create table lineitem (l_orderkey bigint, l_linestatus string) STORED AS ORC
+PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
+POSTHOOK: query: create table lineitem (l_orderkey bigint, l_linestatus string) STORED AS ORC
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@lineitem
+PREHOOK: query: insert overwrite table lineitem select * from src tablesample (10 rows)
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: default@lineitem
+POSTHOOK: query: insert overwrite table lineitem select * from src tablesample (10 rows)
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: default@lineitem
+POSTHOOK: Lineage: lineitem.l_linestatus SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: lineitem.l_orderkey EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+PREHOOK: query: explain
+SELECT concat(l_orderkey, l_linestatus) FROM lineitem
+PREHOOK: type: QUERY
+POSTHOOK: query: explain
+SELECT concat(l_orderkey, l_linestatus) FROM lineitem
+POSTHOOK: type: QUERY
+STAGE DEPENDENCIES:
+  Stage-1 is a root stage
+  Stage-0 is a root stage
+
+STAGE PLANS:
+  Stage: Stage-1
+    Tez
+#### A masked pattern was here ####
+      Vertices:
+        Map 1 
+            Map Operator Tree:
+                TableScan
+                  alias: lineitem
+                  Statistics: Num rows: 10 Data size: 980 Basic stats: COMPLETE Column stats: NONE
+                  Select Operator
+                    expressions: concat(l_orderkey, l_linestatus) (type: string)
+                    outputColumnNames: _col0
+                    Statistics: Num rows: 10 Data size: 980 Basic stats: COMPLETE Column stats: NONE
+                    File Output Operator
+                      compressed: false
+                      Statistics: Num rows: 10 Data size: 980 Basic stats: COMPLETE Column stats: NONE
+                      table:
+                          input format: org.apache.hadoop.mapred.TextInputFormat
+                          output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+                          serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+            Execution mode: vectorized
+
+  Stage: Stage-0
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        ListSink
+
+PREHOOK: query: SELECT concat(l_orderkey, l_linestatus) FROM lineitem
+PREHOOK: type: QUERY
+PREHOOK: Input: default@lineitem
+#### A masked pattern was here ####
+POSTHOOK: query: SELECT concat(l_orderkey, l_linestatus) FROM lineitem
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@lineitem
+#### A masked pattern was here ####
+238val_238
+86val_86
+311val_311
+27val_27
+165val_165
+409val_409
+255val_255
+278val_278
+98val_98
+484val_484
