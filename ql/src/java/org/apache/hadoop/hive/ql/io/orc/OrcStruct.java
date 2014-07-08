@@ -213,17 +213,6 @@ final public class OrcStruct implements Writable {
       return fields;
     }
 
-    @Override
-    public StructField getStructFieldRef(String s) {
-      for(StructField field: fields) {
-        if (field.getFieldName().equalsIgnoreCase(s)) {
-          return field;
-        }
-      }
-      return null;
-    }
-
-    @Override
     public Object getStructFieldData(Object object, StructField field) {
       if (object == null) {
         return null;

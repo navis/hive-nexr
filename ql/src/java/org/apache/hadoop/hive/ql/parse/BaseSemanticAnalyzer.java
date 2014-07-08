@@ -307,11 +307,11 @@ public abstract class BaseSemanticAnalyzer {
     if (tokenType == HiveParser.TOK_TABNAME) {
       // table node
       if (tableOrColumnNode.getChildCount() == 2) {
-        String dbName = unescapeIdentifier(tableOrColumnNode.getChild(0).getText());
-        String tableName = unescapeIdentifier(tableOrColumnNode.getChild(1).getText());
+        String dbName = toLowerString(tableOrColumnNode.getChild(0));
+        String tableName = toLowerString(tableOrColumnNode.getChild(1));
         return dbName + "." + tableName;
       }
-      String tableName = unescapeIdentifier(tableOrColumnNode.getChild(0).getText());
+      String tableName = toLowerString(tableOrColumnNode.getChild(0));
       if (currentDatabase != null) {
         return currentDatabase + "." + tableName;
       }
@@ -320,7 +320,7 @@ public abstract class BaseSemanticAnalyzer {
       return unescapeSQLString(tableOrColumnNode.getText());
     }
     // column node
-    return unescapeIdentifier(tableOrColumnNode.getText());
+    return toLowerString(tableOrColumnNode);
   }
 
   public static String[] getQualifiedTableName(ASTNode tabNameNode) throws SemanticException {
@@ -329,11 +329,11 @@ public abstract class BaseSemanticAnalyzer {
       throw new SemanticException(ErrorMsg.INVALID_TABLE_NAME.getMsg(tabNameNode));
     }
     if (tabNameNode.getChildCount() == 2) {
-      String dbName = unescapeIdentifier(tabNameNode.getChild(0).getText());
-      String tableName = unescapeIdentifier(tabNameNode.getChild(1).getText());
+      String dbName = toLowerString(tabNameNode.getChild(0));
+      String tableName = toLowerString(tabNameNode.getChild(1));
       return new String[] {dbName, tableName};
     }
-    String tableName = unescapeIdentifier(tabNameNode.getChild(0).getText());
+    String tableName = toLowerString(tabNameNode.getChild(0));
     return Utilities.getDbTableName(tableName);
   }
 
@@ -613,7 +613,7 @@ public abstract class BaseSemanticAnalyzer {
     int numCh = ast.getChildCount();
     for (int i = 0; i < numCh; i++) {
       ASTNode child = (ASTNode) ast.getChild(i);
-      colList.add(unescapeIdentifier(child.getText()).toLowerCase());
+      colList.add(toLowerString(child));
     }
     return colList;
   }
@@ -624,10 +624,10 @@ public abstract class BaseSemanticAnalyzer {
     for (int i = 0; i < numCh; i++) {
       ASTNode child = (ASTNode) ast.getChild(i);
       if (child.getToken().getType() == HiveParser.TOK_TABSORTCOLNAMEASC) {
-        colList.add(new Order(unescapeIdentifier(child.getChild(0).getText()).toLowerCase(),
+        colList.add(new Order(toLowerString(child.getChild(0)),
             HIVE_COLUMN_ORDER_ASC));
       } else {
-        colList.add(new Order(unescapeIdentifier(child.getChild(0).getText()).toLowerCase(),
+        colList.add(new Order(toLowerString(child.getChild(0)),
             HIVE_COLUMN_ORDER_DESC));
       }
     }
@@ -664,7 +664,8 @@ public abstract class BaseSemanticAnalyzer {
     StringBuilder buffer = new StringBuilder(typeStr);
     for (int i = 0; i < children; i++) {
       ASTNode child = (ASTNode) typeNode.getChild(i);
-      buffer.append(unescapeIdentifier(child.getChild(0).getText())).append(":");
+      Tree x = child.getChild(0);
+      buffer.append(toLowerString(x)).append(":");
       buffer.append(getTypeStringFromAST((ASTNode) child.getChild(1)));
       if (i < children - 1) {
         buffer.append(",");
@@ -673,6 +674,10 @@ public abstract class BaseSemanticAnalyzer {
 
     buffer.append(">");
     return buffer.toString();
+  }
+
+  private static String toLowerString(Tree x) {
+    return unescapeIdentifier(x.getText()).toLowerCase();
   }
 
   private static String getUnionTypeStringFromAST(ASTNode typeNode)
@@ -766,7 +771,7 @@ public abstract class BaseSemanticAnalyzer {
         for (int i = 0; i < partspec.getChildCount(); ++i) {
           ASTNode partspec_val = (ASTNode) partspec.getChild(i);
           String val = null;
-          String colName = unescapeIdentifier(partspec_val.getChild(0).getText().toLowerCase());
+          String colName = toLowerString(partspec_val.getChild(0));
           if (partspec_val.getChildCount() < 2) { // DP in the form of T partition (ds, hr)
             if (allowDynamicPartitionsSpec) {
               ++numDynParts;
@@ -936,7 +941,7 @@ public abstract class BaseSemanticAnalyzer {
     for (int i = 0; i < partspec.getChildCount(); ++i) {
       CommonTree partspec_val = (CommonTree) partspec.getChild(i);
       String val = stripQuotes(partspec_val.getChild(1).getText());
-      partSpec.put(partspec_val.getChild(0).getText().toLowerCase(), val);
+      partSpec.put(toLowerString(partspec_val), val);
     }
     return partSpec;
   }

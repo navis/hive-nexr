@@ -1,0 +1,234 @@
+PREHOOK: query: drop table tabletxt
+PREHOOK: type: DROPTABLE
+POSTHOOK: query: drop table tabletxt
+POSTHOOK: type: DROPTABLE
+PREHOOK: query: drop table tableorc
+PREHOOK: type: DROPTABLE
+POSTHOOK: query: drop table tableorc
+POSTHOOK: type: DROPTABLE
+PREHOOK: query: drop table tablerc
+PREHOOK: type: DROPTABLE
+POSTHOOK: query: drop table tablerc
+POSTHOOK: type: DROPTABLE
+PREHOOK: query: CREATE TABLE tabletxt (
+  str STRING,
+  mp  MAP<STRING,STRING>,
+  lst ARRAY<STRING>,
+  strct STRUCT<A:STRING,B:STRING>
+) ROW FORMAT DELIMITED
+    FIELDS TERMINATED BY '|'
+    COLLECTION ITEMS TERMINATED BY ','
+    MAP KEYS TERMINATED BY ':'
+PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
+PREHOOK: Output: default@tabletxt
+POSTHOOK: query: CREATE TABLE tabletxt (
+  str STRING,
+  mp  MAP<STRING,STRING>,
+  lst ARRAY<STRING>,
+  strct STRUCT<A:STRING,B:STRING>
+) ROW FORMAT DELIMITED
+    FIELDS TERMINATED BY '|'
+    COLLECTION ITEMS TERMINATED BY ','
+    MAP KEYS TERMINATED BY ':'
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@tabletxt
+PREHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/struct.txt' INTO TABLE tabletxt
+PREHOOK: type: LOAD
+#### A masked pattern was here ####
+PREHOOK: Output: default@tabletxt
+POSTHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/struct.txt' INTO TABLE tabletxt
+POSTHOOK: type: LOAD
+#### A masked pattern was here ####
+POSTHOOK: Output: default@tabletxt
+PREHOOK: query: CREATE TABLE tablerc (
+  str STRING,
+  mp  MAP<STRING,STRING>,
+  lst ARRAY<STRING>,
+  strct STRUCT<A:STRING,B:STRING>
+) STORED AS RCFILE
+PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
+PREHOOK: Output: default@tablerc
+POSTHOOK: query: CREATE TABLE tablerc (
+  str STRING,
+  mp  MAP<STRING,STRING>,
+  lst ARRAY<STRING>,
+  strct STRUCT<A:STRING,B:STRING>
+) STORED AS RCFILE
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@tablerc
+PREHOOK: query: CREATE TABLE tableorc (
+  str STRING,
+  mp  MAP<STRING,STRING>,
+  lst ARRAY<STRING>,
+  strct STRUCT<A:STRING,B:STRING>
+) STORED AS ORC
+PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
+PREHOOK: Output: default@tableorc
+POSTHOOK: query: CREATE TABLE tableorc (
+  str STRING,
+  mp  MAP<STRING,STRING>,
+  lst ARRAY<STRING>,
+  strct STRUCT<A:STRING,B:STRING>
+) STORED AS ORC
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@tableorc
+PREHOOK: query: FROM tabletxt
+INSERT OVERWRITE TABLE tablerc SELECT *
+INSERT OVERWRITE TABLE tableorc SELECT *
+PREHOOK: type: QUERY
+PREHOOK: Input: default@tabletxt
+PREHOOK: Output: default@tableorc
+PREHOOK: Output: default@tablerc
+POSTHOOK: query: FROM tabletxt
+INSERT OVERWRITE TABLE tablerc SELECT *
+INSERT OVERWRITE TABLE tableorc SELECT *
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@tabletxt
+POSTHOOK: Output: default@tableorc
+POSTHOOK: Output: default@tablerc
+POSTHOOK: Lineage: tableorc.lst SIMPLE [(tabletxt)tabletxt.FieldSchema(name:lst, type:array<string>, comment:null), ]
+POSTHOOK: Lineage: tableorc.mp SIMPLE [(tabletxt)tabletxt.FieldSchema(name:mp, type:map<string,string>, comment:null), ]
+POSTHOOK: Lineage: tableorc.str SIMPLE [(tabletxt)tabletxt.FieldSchema(name:str, type:string, comment:null), ]
+POSTHOOK: Lineage: tableorc.strct SIMPLE [(tabletxt)tabletxt.FieldSchema(name:strct, type:struct<a:string,b:string>, comment:null), ]
+POSTHOOK: Lineage: tablerc.lst SIMPLE [(tabletxt)tabletxt.FieldSchema(name:lst, type:array<string>, comment:null), ]
+POSTHOOK: Lineage: tablerc.mp SIMPLE [(tabletxt)tabletxt.FieldSchema(name:mp, type:map<string,string>, comment:null), ]
+POSTHOOK: Lineage: tablerc.str SIMPLE [(tabletxt)tabletxt.FieldSchema(name:str, type:string, comment:null), ]
+POSTHOOK: Lineage: tablerc.strct SIMPLE [(tabletxt)tabletxt.FieldSchema(name:strct, type:struct<a:string,b:string>, comment:null), ]
+PREHOOK: query: select * from tabletxt
+PREHOOK: type: QUERY
+PREHOOK: Input: default@tabletxt
+#### A masked pattern was here ####
+POSTHOOK: query: select * from tabletxt
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@tabletxt
+#### A masked pattern was here ####
+line1	{"key11":"value11","key12":"value12","key13":"value13"}	["a","b","c"]	{"a":"one","b":"two"}
+line2	{"key21":"value21","key22":"value22","key23":"value23"}	["d","e","f"]	{"a":"three","b":"four"}
+line3	{"key31":"value31","key32":"value32","key33":"value33"}	["g","h","i"]	{"a":"five","b":"six"}
+PREHOOK: query: select strct from tabletxt
+PREHOOK: type: QUERY
+PREHOOK: Input: default@tabletxt
+#### A masked pattern was here ####
+POSTHOOK: query: select strct from tabletxt
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@tabletxt
+#### A masked pattern was here ####
+{"a":"one","b":"two"}
+{"a":"three","b":"four"}
+{"a":"five","b":"six"}
+PREHOOK: query: select strct.a from tabletxt
+PREHOOK: type: QUERY
+PREHOOK: Input: default@tabletxt
+#### A masked pattern was here ####
+POSTHOOK: query: select strct.a from tabletxt
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@tabletxt
+#### A masked pattern was here ####
+one
+three
+five
+PREHOOK: query: select strct.A from tabletxt
+PREHOOK: type: QUERY
+PREHOOK: Input: default@tabletxt
+#### A masked pattern was here ####
+POSTHOOK: query: select strct.A from tabletxt
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@tabletxt
+#### A masked pattern was here ####
+one
+three
+five
+PREHOOK: query: select * from tablerc
+PREHOOK: type: QUERY
+PREHOOK: Input: default@tablerc
+#### A masked pattern was here ####
+POSTHOOK: query: select * from tablerc
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@tablerc
+#### A masked pattern was here ####
+line1	{"key11":"value11","key12":"value12","key13":"value13"}	["a","b","c"]	{"a":"one","b":"two"}
+line2	{"key21":"value21","key22":"value22","key23":"value23"}	["d","e","f"]	{"a":"three","b":"four"}
+line3	{"key31":"value31","key32":"value32","key33":"value33"}	["g","h","i"]	{"a":"five","b":"six"}
+PREHOOK: query: select strct from tablerc
+PREHOOK: type: QUERY
+PREHOOK: Input: default@tablerc
+#### A masked pattern was here ####
+POSTHOOK: query: select strct from tablerc
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@tablerc
+#### A masked pattern was here ####
+{"a":"one","b":"two"}
+{"a":"three","b":"four"}
+{"a":"five","b":"six"}
+PREHOOK: query: select strct.a from tablerc
+PREHOOK: type: QUERY
+PREHOOK: Input: default@tablerc
+#### A masked pattern was here ####
+POSTHOOK: query: select strct.a from tablerc
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@tablerc
+#### A masked pattern was here ####
+one
+three
+five
+PREHOOK: query: select strct.A from tablerc
+PREHOOK: type: QUERY
+PREHOOK: Input: default@tablerc
+#### A masked pattern was here ####
+POSTHOOK: query: select strct.A from tablerc
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@tablerc
+#### A masked pattern was here ####
+one
+three
+five
+PREHOOK: query: select * from tableorc
+PREHOOK: type: QUERY
+PREHOOK: Input: default@tableorc
+#### A masked pattern was here ####
+POSTHOOK: query: select * from tableorc
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@tableorc
+#### A masked pattern was here ####
+line1	{"key12":"value12","key11":"value11","key13":"value13"}	["a","b","c"]	{"a":"one","b":"two"}
+line2	{"key21":"value21","key23":"value23","key22":"value22"}	["d","e","f"]	{"a":"three","b":"four"}
+line3	{"key33":"value33","key31":"value31","key32":"value32"}	["g","h","i"]	{"a":"five","b":"six"}
+PREHOOK: query: select strct from tableorc
+PREHOOK: type: QUERY
+PREHOOK: Input: default@tableorc
+#### A masked pattern was here ####
+POSTHOOK: query: select strct from tableorc
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@tableorc
+#### A masked pattern was here ####
+{"a":"one","b":"two"}
+{"a":"three","b":"four"}
+{"a":"five","b":"six"}
+PREHOOK: query: select strct.a from tableorc
+PREHOOK: type: QUERY
+PREHOOK: Input: default@tableorc
+#### A masked pattern was here ####
+POSTHOOK: query: select strct.a from tableorc
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@tableorc
+#### A masked pattern was here ####
+one
+three
+five
+PREHOOK: query: select strct.A from tableorc
+PREHOOK: type: QUERY
+PREHOOK: Input: default@tableorc
+#### A masked pattern was here ####
+POSTHOOK: query: select strct.A from tableorc
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@tableorc
+#### A masked pattern was here ####
+one
+three
+five

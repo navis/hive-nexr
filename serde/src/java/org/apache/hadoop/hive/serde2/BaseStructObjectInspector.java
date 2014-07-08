@@ -129,11 +129,6 @@ public abstract class BaseStructObjectInspector extends StructObjectInspector {
   }
 
   @Override
-  public StructField getStructFieldRef(String fieldName) {
-    return ObjectInspectorUtils.getStandardStructFieldRef(fieldName, fields);
-  }
-
-  @Override
   public List<? extends StructField> getAllStructFieldRefs() {
     return fields;
   }

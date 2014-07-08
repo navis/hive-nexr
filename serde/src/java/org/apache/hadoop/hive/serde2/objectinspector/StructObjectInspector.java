@@ -34,7 +34,9 @@ public abstract class StructObjectInspector implements ObjectInspector {
   /**
    * Look up a field.
    */
-  public abstract StructField getStructFieldRef(String fieldName);
+  public StructField getStructFieldRef(String fieldName) {
+    return ObjectInspectorUtils.getStandardStructFieldRef(fieldName, getAllStructFieldRefs());
+  }
 
   // ** Methods that need a data object **
   /**

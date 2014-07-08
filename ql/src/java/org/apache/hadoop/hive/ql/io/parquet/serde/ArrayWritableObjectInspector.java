@@ -154,7 +154,7 @@ public class ArrayWritableObjectInspector extends SettableStructObjectInspector 
 
   @Override
   public StructField getStructFieldRef(final String name) {
-    return fieldsByName.get(name);
+    return fieldsByName.get(name.toLowerCase());
   }
 
   @Override

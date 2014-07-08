@@ -68,11 +68,6 @@ public class SubStructObjectInspector extends StructObjectInspector {
   }
 
   @Override
-  public StructField getStructFieldRef(String fieldName) {
-    return ObjectInspectorUtils.getStandardStructFieldRef(fieldName, fields);
-  }
-
-  @Override
   public Object getStructFieldData(Object data, StructField fieldRef) {
     return baseOI.getStructFieldData(data, fieldRef);
   }

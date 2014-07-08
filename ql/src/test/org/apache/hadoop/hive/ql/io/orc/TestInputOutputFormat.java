@@ -261,12 +261,11 @@ public class TestInputOutputFormat {
 
     @Override
     public StructField getStructFieldRef(String fieldName) {
-      for(StructField field: FIELDS) {
-        if (field.getFieldName().equals(fieldName)) {
-          return field;
-        }
+      StructField field = super.getStructFieldRef(fieldName);
+      if (field == null) {
+        throw new IllegalArgumentException("Can't find field " + fieldName);
       }
-      throw new IllegalArgumentException("Can't find field " + fieldName);
+      return field;
     }
 
     @Override
