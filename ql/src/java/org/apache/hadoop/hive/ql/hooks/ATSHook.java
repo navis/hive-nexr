@@ -19,7 +19,10 @@ package org.apache.hadoop.hive.ql.hooks;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
@@ -53,14 +56,36 @@ public class ATSHook implements ExecuteWithHookContext {
   private enum EventTypes { QUERY_SUBMITTED, QUERY_COMPLETED };
   private enum OtherInfoTypes { QUERY, STATUS, TEZ, MAPRED };
   private enum PrimaryFilterTypes { user, operationid };
-  private static final int WAIT_TIME = 3;
 
-  public ATSHook() {
+  private static final String ATS_QUEUE_SIZE = "hive.ats.queue.size";
+  private static final String ATS_SHUTDOWN_WAIT = "hive.ats.shutdown.wait";
+
+  private static final int QUEUE_SIZE = -1;
+  private static final int WAIT_TIME = 3;
+  private static final int SUBMIT_DELAY_LOG_THRESHOLD = 20;
+
+  private ExecutorService getExecutors(HiveConf conf) {
     synchronized(LOCK) {
       if (executor == null) {
 
-        executor = Executors.newSingleThreadExecutor(
-           new ThreadFactoryBuilder().setDaemon(true).setNameFormat("ATS Logger %d").build());
+        final int queue = conf.getInt(ATS_QUEUE_SIZE, QUEUE_SIZE);
+        final int wait = conf.getInt(ATS_SHUTDOWN_WAIT, WAIT_TIME);
+
+        BlockingQueue<Runnable> workQueue =
+            new LinkedBlockingQueue<Runnable>(queue < 0 ? Integer.MAX_VALUE : queue);
+
+        executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, workQueue,
+            new ThreadFactoryBuilder().setDaemon(true).setNameFormat("ATS Logger %d").build(),
+            new RejectedExecutionHandler() {
+              @Override
+              public void rejectedExecution(Runnable r, ThreadPoolExecutor e) {
+                if (!e.isShutdown()) {
+                  Runnable oldest = e.getQueue().poll();
+                  LOG.warn("Discarded " + oldest + " by queue full");
+                  e.execute(r);
+                }
+              }
+            });
 
         YarnConfiguration yarnConf = new YarnConfiguration();
         timelineClient = TimelineClient.createTimelineClient();
@@ -72,68 +97,24 @@ public class ATSHook implements ExecuteWithHookContext {
           public void run() {
             try {
               executor.shutdown();
-              executor.awaitTermination(WAIT_TIME, TimeUnit.SECONDS);
+              executor.awaitTermination(wait, TimeUnit.SECONDS);
               executor = null;
-            } catch(InterruptedException ie) { /* ignore */ }
-            timelineClient.stop();
+            } catch(InterruptedException ie) {
+              /* ignore */
+            } finally {
+              timelineClient.stop();
+            }
           }
         });
       }
     }
-
-    LOG.info("Created ATS Hook");
+    return executor;
   }
 
   @Override
-  public void run(final HookContext hookContext) throws Exception {
-    final long currentTime = System.currentTimeMillis();
-    final HiveConf conf = new HiveConf(hookContext.getConf());
-
-    executor.submit(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            QueryPlan plan = hookContext.getQueryPlan();
-            if (plan == null) {
-              return;
-            }
-            String queryId = plan.getQueryId();
-            String opId = hookContext.getOperationId();
-            long queryStartTime = plan.getQueryStartTime();
-            String user = hookContext.getUgi().getUserName();
-            int numMrJobs = Utilities.getMRTasks(plan.getRootTasks()).size();
-            int numTezJobs = Utilities.getTezTasks(plan.getRootTasks()).size();
-
-            if (numMrJobs + numTezJobs <= 0) {
-              return; // ignore client only queries
-            }
-
-            switch(hookContext.getHookType()) {
-            case PRE_EXEC_HOOK:
-              ExplainTask explain = new ExplainTask();
-              explain.initialize(conf, plan, null);
-              String query = plan.getQueryStr();
-              List<Task<?>> rootTasks = plan.getRootTasks();
-              JSONObject explainPlan = explain.getJSONPlan(null, null, rootTasks,
-                   plan.getFetchTask(), true, false, false);
-              fireAndForget(conf, createPreHookEvent(queryId, query,
-                   explainPlan, queryStartTime, user, numMrJobs, numTezJobs, opId));
-              break;
-            case POST_EXEC_HOOK:
-              fireAndForget(conf, createPostHookEvent(queryId, currentTime, user, true, opId));
-              break;
-            case ON_FAILURE_HOOK:
-              fireAndForget(conf, createPostHookEvent(queryId, currentTime, user, false, opId));
-              break;
-            default:
-              //ignore
-              break;
-            }
-          } catch (Exception e) {
-            LOG.info("Failed to submit plan to ATS: " + StringUtils.stringifyException(e));
-          }
-        }
-      });
+  public void run(HookContext hookContext) throws Exception {
+    long currentTime = System.currentTimeMillis();
+    getExecutors(hookContext.getConf()).submit(new ATSWork(hookContext, currentTime));
   }
 
   TimelineEntity createPreHookEvent(String queryId, String query, JSONObject explainPlan,
@@ -190,7 +171,73 @@ public class ATSHook implements ExecuteWithHookContext {
     return atsEntity;
   }
 
+  // synchronous call
   synchronized void fireAndForget(Configuration conf, TimelineEntity entity) throws Exception {
     timelineClient.putEntities(entity);
+  }
+
+  private class ATSWork implements Runnable {
+
+    private final HookContext hookContext;
+    private final long currentTime;
+
+    public ATSWork(HookContext hookContext, long currentTime) {
+      this.hookContext = hookContext;
+      this.currentTime = currentTime;
+    }
+
+    @Override
+    public void run() {
+      long delay = System.currentTimeMillis() - currentTime;
+      if (delay > SUBMIT_DELAY_LOG_THRESHOLD * 1000) {
+        LOG.info("Submission " + this + " delayed " + delay + " msec");
+      }
+      try {
+        QueryPlan plan = hookContext.getQueryPlan();
+        if (plan == null) {
+          return;
+        }
+        String queryId = plan.getQueryId();
+        String opId = hookContext.getOperationId();
+        long queryStartTime = plan.getQueryStartTime();
+        String user = hookContext.getUgi().getUserName();
+        int numMrJobs = Utilities.getMRTasks(plan.getRootTasks()).size();
+        int numTezJobs = Utilities.getTezTasks(plan.getRootTasks()).size();
+
+        if (numMrJobs + numTezJobs <= 0) {
+          return; // ignore client only queries
+        }
+
+        HiveConf conf = new HiveConf(hookContext.getConf());
+        switch (hookContext.getHookType()) {
+          case PRE_EXEC_HOOK:
+            ExplainTask explain = new ExplainTask();
+            explain.initialize(conf, plan, null);
+            String query = plan.getQueryStr();
+            List<Task<?>> rootTasks = plan.getRootTasks();
+            JSONObject explainPlan = explain.getJSONPlan(null, null, rootTasks,
+                plan.getFetchTask(), true, false, false);
+            fireAndForget(conf, createPreHookEvent(queryId, query,
+                explainPlan, queryStartTime, user, numMrJobs, numTezJobs, opId));
+            break;
+          case POST_EXEC_HOOK:
+            fireAndForget(conf, createPostHookEvent(queryId, currentTime, user, true, opId));
+            break;
+          case ON_FAILURE_HOOK:
+            fireAndForget(conf, createPostHookEvent(queryId, currentTime, user, false, opId));
+            break;
+          default:
+            //ignore
+            break;
+        }
+      } catch (Exception e) {
+        LOG.info("Failed to submit plan to ATS: " + StringUtils.stringifyException(e));
+      }
+    }
+
+    @Override
+    public String toString() {
+      return hookContext.getHookType() + ":" + hookContext.getQueryPlan().getQueryId();
+    }
   }
 }
