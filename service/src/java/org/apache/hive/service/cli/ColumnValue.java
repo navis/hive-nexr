@@ -30,6 +30,7 @@ import com.google.common.primitives.Doubles;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.Shorts;
+import org.apache.hadoop.hive.serde2.io.TimestampWritable;
 import org.apache.hive.service.cli.thrift.TBinaryValue;
 import org.apache.hive.service.cli.thrift.TBoolValue;
 import org.apache.hive.service.cli.thrift.TByteValue;
@@ -61,37 +62,7 @@ public class ColumnValue extends AbstractList {
   private String[] stringVars;
   private ByteBuffer[] binaryVars;
 
-  public ColumnValue(Type type, BitSet nulls, Object values) {
-    this.type = type;
-    this.nulls = nulls;
-    if (type == Type.BOOLEAN_TYPE) {
-      boolVars = (boolean[]) values;
-      size = boolVars.length;
-    } else if (type == Type.TINYINT_TYPE) {
-      byteVars = (byte[]) values;
-      size = byteVars.length;
-    } else if (type == Type.SMALLINT_TYPE) {
-      shortVars = (short[]) values;
-      size = shortVars.length;
-    } else if (type == Type.INT_TYPE) {
-      intVars = (int[]) values;
-      size = intVars.length;
-    } else if (type == Type.BIGINT_TYPE) {
-      longVars = (long[]) values;
-      size = longVars.length;
-    } else if (type == Type.DOUBLE_TYPE) {
-      doubleVars = (double[]) values;
-      size = doubleVars.length;
-    } else if (type == Type.BINARY_TYPE) {
-      binaryVars = (ByteBuffer[]) values;
-      size = binaryVars.length;
-    } else if (type == Type.STRING_TYPE) {
-      stringVars = (String[]) values;
-      size = stringVars.length;
-    } else {
-      throw new IllegalStateException("invalid union object");
-    }
-  }
+  private transient byte[] tsConvey = new byte[TimestampWritable.MAX_BYTES];
 
   public ColumnValue(Type type) {
     nulls = new BitSet();
@@ -119,9 +90,13 @@ public class ColumnValue extends AbstractList {
       case BINARY_TYPE:
         binaryVars = new ByteBuffer[DEFAULT_SIZE];
         break;
+      case STRING_TYPE:
+      case TIMESTAMP_TYPE:
+      case DECIMAL_TYPE:
       default:
         type = Type.STRING_TYPE;
         stringVars = new String[DEFAULT_SIZE];
+        break;
     }
     this.type = type;
   }
@@ -168,6 +143,38 @@ public class ColumnValue extends AbstractList {
       nulls = toBitset(colValues.getStringVal().getNulls());
       List<String> var = colValues.getStringVal().getValues();
       stringVars = var.toArray(new String[var.size()]);
+      size = stringVars.length;
+    } else {
+      throw new IllegalStateException("invalid union object");
+    }
+  }
+
+  private ColumnValue(Type type, BitSet nulls, Object values) {
+    this.type = type;
+    this.nulls = nulls;
+    if (type == Type.BOOLEAN_TYPE) {
+      boolVars = (boolean[]) values;
+      size = boolVars.length;
+    } else if (type == Type.TINYINT_TYPE) {
+      byteVars = (byte[]) values;
+      size = byteVars.length;
+    } else if (type == Type.SMALLINT_TYPE) {
+      shortVars = (short[]) values;
+      size = shortVars.length;
+    } else if (type == Type.INT_TYPE) {
+      intVars = (int[]) values;
+      size = intVars.length;
+    } else if (type == Type.BIGINT_TYPE) {
+      longVars = (long[]) values;
+      size = longVars.length;
+    } else if (type == Type.DOUBLE_TYPE) {
+      doubleVars = (double[]) values;
+      size = doubleVars.length;
+    } else if (type == Type.BINARY_TYPE) {
+      binaryVars = (ByteBuffer[]) values;
+      size = binaryVars.length;
+    } else if (type == Type.STRING_TYPE) {
+      stringVars = (String[]) values;
       size = stringVars.length;
     } else {
       throw new IllegalStateException("invalid union object");
@@ -332,7 +339,7 @@ public class ColumnValue extends AbstractList {
   private static final ByteBuffer EMPTY_BINARY = ByteBuffer.allocate(0);
   private static final String EMPTY_STRING = "";
 
-  public void addValue(Type type, Object field) {
+  public void addValue(Object field) {
     nulls.set(size, field == null);
     switch (type) {
       case BOOLEAN_TYPE:
@@ -350,18 +357,15 @@ public class ColumnValue extends AbstractList {
       case BIGINT_TYPE:
         longVars()[size] = field == null ? 0 : (Long)field;
         break;
-      case FLOAT_TYPE:
-        doubleVars()[size] = field == null ? 0 : ((Float)field).doubleValue();
-        break;
       case DOUBLE_TYPE:
         doubleVars()[size] = field == null ? 0 : (Double)field;
         break;
       case BINARY_TYPE:
         binaryVars()[size] = field == null ? EMPTY_BINARY : ByteBuffer.wrap((byte[])field);
         break;
-      default:
+      case STRING_TYPE:
         stringVars()[size] = field == null ? EMPTY_STRING : String.valueOf(field);
-      break;
+        break;
     }
     size++;
   }

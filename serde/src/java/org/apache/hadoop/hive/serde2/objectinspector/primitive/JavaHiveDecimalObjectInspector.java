@@ -52,6 +52,11 @@ public class JavaHiveDecimalObjectInspector
   }
 
   @Override
+  public Object copyObject(Object o) {
+    return o == null ? null : new HiveDecimal(((HiveDecimal) o).bigDecimalValue());
+  }
+
+  @Override
   public Object set(Object o, byte[] bytes, int scale) {
     return new HiveDecimal(new BigInteger(bytes), scale);
   }

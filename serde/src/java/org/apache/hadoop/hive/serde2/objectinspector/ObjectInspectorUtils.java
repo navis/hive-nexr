@@ -249,11 +249,15 @@ public final class ObjectInspectorUtils {
           result = loi.getPrimitiveWritableObject(loi.copyObject(o));
         } else {
           result = loi.getPrimitiveJavaObject(o);
+          result = PrimitiveObjectInspectorFactory.getPrimitiveJavaObjectInspector(
+            loi.getPrimitiveCategory()).copyObject(result);
         }
         break;
       }
       case JAVA: {
         result = loi.getPrimitiveJavaObject(o);
+        result = PrimitiveObjectInspectorFactory.getPrimitiveJavaObjectInspector(
+          loi.getPrimitiveCategory()).copyObject(result);
         break;
       }
       case WRITABLE: {

@@ -35,45 +35,33 @@ import org.apache.hive.service.cli.thrift.TRowSet;
 public class RowSet implements Iterable<Object[]> {
 
   private long startOffset;
-
-  private final List<Type> types;
   private final List<ColumnValue> values;
 
   public RowSet(TableSchema schema) {
-    types = new ArrayList<Type>();
-    values = new ArrayList<ColumnValue>();
-    for (ColumnDescriptor colDesc : schema.getColumnDescriptors()) {
-      types.add(colDesc.getType());
+    values = new ArrayList<ColumnValue>(schema.getSize());
+    for (ColumnDescriptor colDesc : schema.getColumnDescs()) {
       values.add(new ColumnValue(colDesc.getType()));
     }
   }
 
-  public RowSet(List<Type> types, List<ColumnValue> values, long startOffset) {
-    this.types = types;
+  private RowSet(List<ColumnValue> values, long startOffset) {
     this.values = values;
     this.startOffset = startOffset;
   }
 
   public RowSet(TRowSet tRowSet) {
     startOffset = tRowSet.getStartRowOffset();
-    types = new ArrayList<Type>();
     values = new ArrayList<ColumnValue>();
     for (TColumnValue tvalue : tRowSet.getColVals()) {
-      ColumnValue value = new ColumnValue(tvalue);
-      values.add(value);
-      types.add(value.getType());
+      values.add(new ColumnValue(tvalue));
     }
   }
 
   public RowSet addRow(Object[] fields) {
     for (int i = 0; i < fields.length; i++) {
-      values.get(i).addValue(types.get(i), fields[i]);
+      values.get(i).addValue(fields[i]);
     }
     return this;
-  }
-
-  public List<ColumnValue> getValues() {
-    return values;
   }
 
   public int numColumns() {
@@ -89,31 +77,35 @@ public class RowSet implements Iterable<Object[]> {
   }
 
   public static Object evaluate(Type type, Object value) {
-    switch (type) {
-      case BOOLEAN_TYPE:
-      case TINYINT_TYPE:
-      case SMALLINT_TYPE:
-      case INT_TYPE:
-      case BIGINT_TYPE:
-      case FLOAT_TYPE:
-      case DOUBLE_TYPE:
-      case STRING_TYPE:
-        return value;
-      case BINARY_TYPE:
-        return value == null ? null : ((ByteBuffer) value).array();
-      case TIMESTAMP_TYPE:
-        return value == null ? null : Timestamp.valueOf((String) value);
-      case DECIMAL_TYPE:
-        return value == null ? null : new BigDecimal((String)value);
-      case VOID_TYPE:
-        return null;
-      case ARRAY_TYPE:
-      case MAP_TYPE:
-      case STRUCT_TYPE:
-        // todo: returns json string. should recreate object from it?
-        return value;
-      default:
-        throw new IllegalArgumentException("Unrecognized column type:" + type);
+    try {
+      switch (type) {
+        case BOOLEAN_TYPE:
+        case TINYINT_TYPE:
+        case SMALLINT_TYPE:
+        case INT_TYPE:
+        case BIGINT_TYPE:
+        case FLOAT_TYPE:
+        case DOUBLE_TYPE:
+        case STRING_TYPE:
+          return value;
+        case BINARY_TYPE:
+          return value == null ? null : ((ByteBuffer) value).array();
+        case TIMESTAMP_TYPE:
+          return value == null ? null : Timestamp.valueOf((String) value);
+        case DECIMAL_TYPE:
+          return value == null ? null : new BigDecimal((String)value);
+        case VOID_TYPE:
+          return null;
+        case ARRAY_TYPE:
+        case MAP_TYPE:
+        case STRUCT_TYPE:
+          // todo: returns json string. should recreate object from it?
+          return value;
+        default:
+          throw new IllegalArgumentException("Unrecognized column type:" + type);
+      }
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Faild to evaluate " + value + " to " + type, e);
     }
   }
 
@@ -124,26 +116,17 @@ public class RowSet implements Iterable<Object[]> {
     for (int i = 0; i < values.size(); i++) {
       subset.add(values.get(i).extractSubset(0, numRows));
     }
-    RowSet result = new RowSet(types, subset, startOffset);
+    RowSet result = new RowSet(subset, startOffset);
     startOffset += numRows;
     return result;
   }
 
-  public long getStartOffset() {
-    return startOffset;
-  }
-
-  public RowSet setStartOffset(long startOffset) {
-    this.startOffset = startOffset;
-    return this;
-  }
-
   public TRowSet toTRowSet() {
-    TRowSet tRowSet = new TRowSet(startOffset, new ArrayList<TColumnValue>());
+    List<TColumnValue> colVals = new ArrayList<TColumnValue>(numColumns());
     for (int i = 0; i < values.size(); i++) {
-      tRowSet.addToColVals(values.get(i).toTColumnValue());
+      colVals.add(values.get(i).toTColumnValue());
     }
-    return tRowSet;
+    return new TRowSet(startOffset, colVals);
   }
 
   @Override
@@ -172,12 +155,5 @@ public class RowSet implements Iterable<Object[]> {
         throw new UnsupportedOperationException("remove");
       }
     };
-  }
-
-  public Object[] fill(int index, Object[] convey) {
-    for (int i = 0; i < values.size(); i++) {
-      convey[i] = values.get(i).get(index);
-    }
-    return convey;
   }
 }
