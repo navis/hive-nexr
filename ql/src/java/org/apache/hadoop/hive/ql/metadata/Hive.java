@@ -990,7 +990,7 @@ public class Hive {
 
     Table table = new Table(tTable);
 
-    table.checkValidity();
+//    table.checkValidity();
     return table;
   }
 

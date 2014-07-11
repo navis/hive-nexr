@@ -209,19 +209,19 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
       byte[] binary = bytes;
       int fieldByteBegin = startPosition[fieldID];
       int fieldLength = startPosition[fieldID + 1] - startPosition[fieldID] - 1;
+      if (serdeParams != null && serdeParams.isEncoded(fieldID)) {
+        try {
+          serdeParams.decode(fieldID, binary, fieldByteBegin, fieldLength);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+        binary = serdeParams.output.getData();
+        fieldLength = serdeParams.output.getCount();
+        fieldByteBegin = 0;
+      }
       if (isNull(binary, fieldByteBegin, fieldLength)) {
         fields[fieldID].clear();
       } else {
-        if (serdeParams != null && serdeParams.isEncoded(fieldID)) {
-          try {
-            serdeParams.decode(fieldID, binary, fieldByteBegin, fieldLength);
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
-          binary = serdeParams.output.getData();
-          fieldLength = serdeParams.output.getCount();
-          fieldByteBegin = 0;
-        }
         fields[fieldID].init(binary, fieldByteBegin, fieldLength);
       }
     }

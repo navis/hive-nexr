@@ -94,12 +94,6 @@ public class Table implements Serializable {
 
   public Table(org.apache.hadoop.hive.metastore.api.Table table) {
     tTable = table;
-    if (!isView()) {
-      // This will set up field: inputFormatClass
-      getInputFormatClass();
-      // This will set up field: outputFormatClass
-      getOutputFormatClass();
-    }
   }
 
   public Table(String databaseName, String tableName) {

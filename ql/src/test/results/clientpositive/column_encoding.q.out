@@ -24,14 +24,14 @@ STORED AS TEXTFILE
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: database:default
 POSTHOOK: Output: default@encode_test2
-PREHOOK: query: from src tablesample (2 rows)
+PREHOOK: query: from src tablesample (1 rows)
 insert into table encode_test1 select key,'navis',concat('010-0000-', key), concat('Seoul.', value)
 insert into table encode_test2 select key,'navis',concat('010-0000-', key), concat('Seoul.', value)
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
 PREHOOK: Output: default@encode_test1
 PREHOOK: Output: default@encode_test2
-POSTHOOK: query: from src tablesample (2 rows)
+POSTHOOK: query: from src tablesample (1 rows)
 insert into table encode_test1 select key,'navis',concat('010-0000-', key), concat('Seoul.', value)
 insert into table encode_test2 select key,'navis',concat('010-0000-', key), concat('Seoul.', value)
 POSTHOOK: type: QUERY
@@ -46,6 +46,36 @@ POSTHOOK: Lineage: encode_test2.address EXPRESSION [(src)src.FieldSchema(name:va
 POSTHOOK: Lineage: encode_test2.id EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: encode_test2.name SIMPLE []
 POSTHOOK: Lineage: encode_test2.phone EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+PREHOOK: query: from src tablesample (1 rows)
+insert into table encode_test1 select key,'navis',concat('011-0000-', key), NULL
+insert into table encode_test2 select key,'navis',concat('011-0000-', key), NULL
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: default@encode_test1
+PREHOOK: Output: default@encode_test2
+POSTHOOK: query: from src tablesample (1 rows)
+insert into table encode_test1 select key,'navis',concat('011-0000-', key), NULL
+insert into table encode_test2 select key,'navis',concat('011-0000-', key), NULL
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: default@encode_test1
+POSTHOOK: Output: default@encode_test2
+POSTHOOK: Lineage: encode_test1.address EXPRESSION [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: encode_test1.address SIMPLE []
+POSTHOOK: Lineage: encode_test1.id EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: encode_test1.id EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: encode_test1.name SIMPLE []
+POSTHOOK: Lineage: encode_test1.name SIMPLE []
+POSTHOOK: Lineage: encode_test1.phone EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: encode_test1.phone EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: encode_test2.address EXPRESSION [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: encode_test2.address SIMPLE []
+POSTHOOK: Lineage: encode_test2.id EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: encode_test2.id EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: encode_test2.name SIMPLE []
+POSTHOOK: Lineage: encode_test2.name SIMPLE []
+POSTHOOK: Lineage: encode_test2.phone EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: encode_test2.phone EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 PREHOOK: query: select * from encode_test1
 PREHOOK: type: QUERY
 PREHOOK: Input: default@encode_test1
@@ -55,15 +85,23 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: default@encode_test1
 #### A masked pattern was here ####
 POSTHOOK: Lineage: encode_test1.address EXPRESSION [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: encode_test1.address SIMPLE []
+POSTHOOK: Lineage: encode_test1.id EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: encode_test1.id EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: encode_test1.name SIMPLE []
+POSTHOOK: Lineage: encode_test1.name SIMPLE []
+POSTHOOK: Lineage: encode_test1.phone EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: encode_test1.phone EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: encode_test2.address EXPRESSION [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: encode_test2.address SIMPLE []
+POSTHOOK: Lineage: encode_test2.id EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: encode_test2.id EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: encode_test2.name SIMPLE []
+POSTHOOK: Lineage: encode_test2.name SIMPLE []
+POSTHOOK: Lineage: encode_test2.phone EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: encode_test2.phone EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 238	navis	MDEwLTAwMDAtMjM4	U2VvdWwudmFsXzIzOA==
-86	navis	MDEwLTAwMDAtODY=	U2VvdWwudmFsXzg2
+238	navis	MDExLTAwMDAtMjM4	XE4=
 PREHOOK: query: select * from encode_test2
 PREHOOK: type: QUERY
 PREHOOK: Input: default@encode_test2
@@ -73,12 +111,20 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: default@encode_test2
 #### A masked pattern was here ####
 POSTHOOK: Lineage: encode_test1.address EXPRESSION [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: encode_test1.address SIMPLE []
+POSTHOOK: Lineage: encode_test1.id EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: encode_test1.id EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: encode_test1.name SIMPLE []
+POSTHOOK: Lineage: encode_test1.name SIMPLE []
+POSTHOOK: Lineage: encode_test1.phone EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: encode_test1.phone EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: encode_test2.address EXPRESSION [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: encode_test2.address SIMPLE []
+POSTHOOK: Lineage: encode_test2.id EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: encode_test2.id EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: encode_test2.name SIMPLE []
+POSTHOOK: Lineage: encode_test2.name SIMPLE []
+POSTHOOK: Lineage: encode_test2.phone EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: encode_test2.phone EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 238	navis	010-0000-238	Seoul.val_238
-86	navis	010-0000-86	Seoul.val_86
+238	navis	011-0000-238	NULL
