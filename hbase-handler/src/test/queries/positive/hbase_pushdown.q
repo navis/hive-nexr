@@ -17,6 +17,21 @@ explain select * from hbase_pushdown where key=90 and value like '%90%';
 
 select * from hbase_pushdown where key=90 and value like '%90%';
 
+-- with union
+
+explain
+select * from (
+select * from hbase_pushdown where key<10 and key is not null
+union all
+select * from hbase_pushdown where key>999 and key is not null
+) u;
+
+select * from (
+select * from hbase_pushdown where key<10 and key is not null
+union all
+select * from hbase_pushdown where key>999 and key is not null
+) u;
+
 set hive.optimize.index.filter=true;
 -- with partial pushdown with optimization (HIVE-6650)
 explain select * from hbase_pushdown where key=90 and value like '%90%';

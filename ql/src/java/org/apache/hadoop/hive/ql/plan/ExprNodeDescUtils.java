@@ -100,6 +100,17 @@ public class ExprNodeDescUtils {
   }
 
   /**
+   * 'and' all predicates with deduplication. (Do not use on non-deterministic exprs)
+   */
+  public static ExprNodeDesc mergePredicatesWithDedup(ExprNodeDesc... predicates) {
+    List<ExprNodeDesc> split = new ArrayList<ExprNodeDesc>();
+    for (ExprNodeDesc expr : predicates) {
+      split(expr, split);
+    }
+    return mergePredicates(split);
+  }
+
+  /**
    * bind two predicates by AND op
    */
   public static ExprNodeGenericFuncDesc mergePredicates(ExprNodeDesc prev, ExprNodeDesc next) {
@@ -135,17 +146,17 @@ public class ExprNodeDescUtils {
   /**
    * split predicates by AND op
    */
-  public static List<ExprNodeDesc> split(ExprNodeDesc current, List<ExprNodeDesc> splitted) {
+  public static List<ExprNodeDesc> split(ExprNodeDesc current, List<ExprNodeDesc> split) {
     if (FunctionRegistry.isOpAnd(current)) {
       for (ExprNodeDesc child : current.getChildren()) {
-        split(child, splitted);
+        split(child, split);
       }
-      return splitted;
+      return split;
     }
-    if (indexOf(current, splitted) < 0) {
-      splitted.add(current);
+    if (indexOf(current, split) < 0) {
+      split.add(current);
     }
-    return splitted;
+    return split;
   }
 
   /**

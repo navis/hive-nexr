@@ -275,6 +275,15 @@ public class MapReduceCompiler extends TaskCompiler {
   }
 
   @Override
+  protected List<MapWork> extractMapWorks(List<Task<? extends Serializable>> rootTasks) {
+    List<MapWork> mapWorks = new ArrayList<MapWork>();
+    for (ExecDriver task : Utilities.getMRTasks(rootTasks)) {
+      mapWorks.add(task.getWork().getMapWork());
+    }
+    return mapWorks;
+  }
+
+  @Override
   protected void generateTaskTree(List<Task<? extends Serializable>> rootTasks, ParseContext pCtx,
       List<Task<MoveWork>> mvTask, Set<ReadEntity> inputs, Set<WriteEntity> outputs) throws SemanticException {
 

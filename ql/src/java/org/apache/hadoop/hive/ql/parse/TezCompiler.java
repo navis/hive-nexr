@@ -48,6 +48,7 @@ import org.apache.hadoop.hive.ql.exec.ReduceSinkOperator;
 import org.apache.hadoop.hive.ql.exec.TableScanOperator;
 import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.exec.UnionOperator;
+import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.exec.tez.TezTask;
 import org.apache.hadoop.hive.ql.hooks.ReadEntity;
 import org.apache.hadoop.hive.ql.hooks.WriteEntity;
@@ -476,5 +477,18 @@ public class TezCompiler extends TaskCompiler {
       LOG.debug("Skipping stage id rearranger");
     }
     return;
+  }
+
+  @Override
+  protected List<MapWork> extractMapWorks(List<Task<? extends Serializable>> rootTasks) {
+    List<MapWork> mapWorks = new ArrayList<MapWork>();
+    for (TezTask task : Utilities.getTezTasks(rootTasks)) {
+      for (BaseWork work : task.getWork().getRoots()) {
+        if (work instanceof MapWork) {
+          mapWorks.add((MapWork)work);
+        }
+      }
+    }
+    return mapWorks;
   }
 }

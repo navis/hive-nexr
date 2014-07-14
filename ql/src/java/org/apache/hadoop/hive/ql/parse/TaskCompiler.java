@@ -20,10 +20,12 @@ package org.apache.hadoop.hive.ql.parse;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
@@ -36,7 +38,12 @@ import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.exec.ColumnStatsTask;
 import org.apache.hadoop.hive.ql.exec.FetchTask;
+import org.apache.hadoop.hive.ql.exec.FilterOperator;
+import org.apache.hadoop.hive.ql.exec.Operator;
+import org.apache.hadoop.hive.ql.exec.OperatorFactory;
+import org.apache.hadoop.hive.ql.exec.OperatorUtils;
 import org.apache.hadoop.hive.ql.exec.StatsTask;
+import org.apache.hadoop.hive.ql.exec.TableScanOperator;
 import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.exec.TaskFactory;
 import org.apache.hadoop.hive.ql.exec.Utilities;
@@ -51,10 +58,15 @@ import org.apache.hadoop.hive.ql.plan.ColumnStatsDesc;
 import org.apache.hadoop.hive.ql.plan.ColumnStatsWork;
 import org.apache.hadoop.hive.ql.plan.CreateTableDesc;
 import org.apache.hadoop.hive.ql.plan.DDLWork;
+import org.apache.hadoop.hive.ql.plan.ExprNodeDescUtils;
+import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
+import org.apache.hadoop.hive.ql.plan.FilterDesc;
 import org.apache.hadoop.hive.ql.plan.LoadFileDesc;
 import org.apache.hadoop.hive.ql.plan.LoadTableDesc;
+import org.apache.hadoop.hive.ql.plan.MapWork;
 import org.apache.hadoop.hive.ql.plan.MoveWork;
+import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.PlanUtils;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.session.SessionState.LogHelper;
@@ -224,6 +236,8 @@ public abstract class TaskCompiler {
 
     optimizeTaskPlan(rootTasks, pCtx, ctx);
 
+    finalizeTaskPlan(rootTasks, pCtx, ctx);
+
     decideExecMode(rootTasks, ctx, globalLimitCtx);
 
     if (qb.isCTAS()) {
@@ -374,13 +388,65 @@ public abstract class TaskCompiler {
   protected abstract void optimizeTaskPlan(List<Task<? extends Serializable>> rootTasks,
       ParseContext pCtx, Context ctx) throws SemanticException;
 
+  protected abstract List<MapWork> extractMapWorks(List<Task<? extends Serializable>> rootTasks);
+
+  protected void finalizeTaskPlan(List<Task<? extends Serializable>> rootTasks,
+      ParseContext pCtx, Context ctx) throws SemanticException {
+    for (MapWork mapWork : extractMapWorks(rootTasks)) {
+
+      // for single sourced multiple aliases, multiple filter expr in TS
+      // cannot be evaluated (see HiveInputFormat#getSplits)
+      // todo : 'or'ed predicate can be useful for some storage handlers (not for hbase, currently)
+      Map<String, Operator<? extends OperatorDesc>> aliasToWork = mapWork.getAliasToWork();
+      for (ArrayList<String> aliases : mapWork.getPathToAliases().values()) {
+        if (aliases.size() <= 1) {
+          continue;
+        }
+        List<TableScanOperator> tss = new ArrayList<TableScanOperator>();
+        for (String alias : aliases) {
+          Operator<?> operator = aliasToWork.get(alias);
+          if (operator instanceof TableScanOperator) {
+            TableScanOperator ts = (TableScanOperator) operator;
+            if (ts.getConf().getFilterExpr() != null) {
+              tss.add(ts);
+            }
+          }
+        }
+        // recreate filter for each TS
+        for (TableScanOperator ts : tss) {
+          ExprNodeGenericFuncDesc predicate = ts.getConf().getFilterExpr();
+          FilterOperator child = OperatorUtils.findSingleOperator(ts, FilterOperator.class);
+          if (child != null) {
+            FilterDesc filterDesc = child.getConf();
+            filterDesc.setPredicate(
+                ExprNodeDescUtils.mergePredicatesWithDedup(filterDesc.getPredicate(), predicate));
+          } else {
+            FilterDesc filterDesc = new FilterDesc(predicate, false);
+            Operator<?>[] children = new Operator[ts.getNumChild()];
+            for (int i = 0; i < children.length; i++) {
+              children[i] = ts.getChildOperators().get(i);
+              children[i].getParentOperators().clear();
+            }
+            Operator<?> newFilter = OperatorFactory.get(filterDesc, children);
+            List<Operator<? extends OperatorDesc>> parents =
+                new ArrayList<Operator<? extends OperatorDesc>>(Arrays.asList(ts));
+            newFilter.setParentOperators(parents);
+            ts.getChildOperators().clear();
+            ts.getChildOperators().add(newFilter);
+          }
+          ts.getConf().setFilterExpr(null);
+        }
+      }
+    }
+  }
+
   /*
    * Called to set the appropriate input format for tasks
    */
   protected abstract void setInputFormat(Task<? extends Serializable> rootTask);
 
   /*
-   * Called to generate the taks tree from the parse context/operator tree
+   * Called to generate the task tree from the parse context/operator tree
    */
   protected abstract void generateTaskTree(List<Task<? extends Serializable>> rootTasks, ParseContext pCtx,
       List<Task<MoveWork>> mvTask, Set<ReadEntity> inputs, Set<WriteEntity> outputs) throws SemanticException;
