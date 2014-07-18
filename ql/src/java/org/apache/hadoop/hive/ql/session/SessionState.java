@@ -40,6 +40,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.common.JavaUtils;
 import org.apache.hadoop.hive.common.SessionBase;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.MapRedStats;
@@ -64,6 +65,8 @@ import org.apache.hadoop.hive.ql.util.DosToUnix;
 public class SessionState extends SessionBase {
 
   private static final Log LOG = LogFactory.getLog(SessionState.class);
+
+  protected ClassLoader parentLoader;
 
   /**
    * silent mode.
@@ -205,6 +208,7 @@ public class SessionState extends SessionBase {
     if (StringUtils.isEmpty(conf.getVar(HiveConf.ConfVars.HIVESESSIONID))) {
       conf.setVar(HiveConf.ConfVars.HIVESESSIONID, makeSessionId());
     }
+    parentLoader = JavaUtils.getClassLoader();
   }
 
   private static final SimpleDateFormat DATE_FORMAT =
@@ -801,6 +805,7 @@ public class SessionState extends SessionBase {
   }
 
   public void close() throws IOException {
+    JavaUtils.closeClassLoadersTo(conf.getClassLoader(), parentLoader);
     File resourceDir =
       new File(getConf().getVar(HiveConf.ConfVars.DOWNLOADED_RESOURCES_DIR));
     LOG.debug("Removing resource dir " + resourceDir);
