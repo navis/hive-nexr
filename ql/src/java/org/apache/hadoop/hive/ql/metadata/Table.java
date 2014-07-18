@@ -50,6 +50,7 @@ import org.apache.hadoop.hive.ql.io.HiveFileFormatUtils;
 import org.apache.hadoop.hive.ql.io.HiveOutputFormat;
 import org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat;
 import org.apache.hadoop.hive.ql.parse.SemanticAnalyzer;
+import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.Deserializer;
 import org.apache.hadoop.hive.serde2.MetadataTypedColumnsetSerDe;
@@ -155,6 +156,8 @@ public class Table implements Serializable {
       t.setTableType(TableType.MANAGED_TABLE.toString());
       t.setDbName(databaseName);
       t.setTableName(tableName);
+      t.setOwner(SessionState.getUserFromAuthenticator());
+      t.setCreateTime((int) (System.currentTimeMillis() / 1000));
     }
     return t;
   }

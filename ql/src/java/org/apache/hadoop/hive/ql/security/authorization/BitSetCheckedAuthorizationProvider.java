@@ -382,6 +382,13 @@ public abstract class BitSetCheckedAuthorizationProvider extends
       boolean[] inputCheck, boolean[] outputCheck,String dbName,
       String tableName, String partitionName, String columnName) {
 
+    if (((inputCheck == null || firstFalseIndex(inputCheck) < 0)) &&
+      (outputCheck == null || firstFalseIndex(outputCheck) < 0)) {
+      return;
+    }
+
+    String userName = getAuthenticator().getUserName();
+
     String hiveObject = "{ ";
     if (dbName != null) {
       hiveObject = hiveObject + "database:" + dbName;
@@ -403,25 +410,32 @@ public abstract class BitSetCheckedAuthorizationProvider extends
     if (inputCheck != null) {
       int input = this.firstFalseIndex(inputCheck);
       if (input >= 0) {
-        throw new AuthorizationException("No privilege '"
-            + inputRequiredPriv[input].toString() + "' found for inputs "
-            + hiveObject);
+        throw new AuthorizationException(
+          getMessage(inputRequiredPriv[input], hiveObject, userName));
       }
     }
 
     if (outputCheck != null) {
       int output = this.firstFalseIndex(outputCheck);
       if (output >= 0) {
-        throw new AuthorizationException("No privilege '"
-            + outputRequiredPriv[output].toString() + "' found for outputs "
-            + hiveObject);
+        throw new AuthorizationException(
+          getMessage(outputRequiredPriv[output], hiveObject, userName));
       }
     }
   }
 
+  private String getMessage(Privilege priv, String object, String user) {
+    return "No privilege '" + priv + "' found for outputs " + object +
+      (user == null ? null : " from user " + user);
+  }
+
   private int firstFalseIndex(boolean[] inputCheck) {
+    return firstFalseIndex(inputCheck, 0);
+  }
+
+  private int firstFalseIndex(boolean[] inputCheck, int start) {
     if (inputCheck != null) {
-      for (int i = 0; i < inputCheck.length; i++) {
+      for (int i = start; i < inputCheck.length; i++) {
         if (!inputCheck[i]) {
           return i;
         }

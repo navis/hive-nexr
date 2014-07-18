@@ -668,16 +668,18 @@ public class Driver implements CommandProcessor {
 
       // cache the results for table authorization
       Set<String> tableAuthChecked = new HashSet<String>();
-      for (ReadEntity read : inputs) {
-        if (read.isDummy()) {
-          continue;
-        }
+      Map<ReadEntity, String> authMapping = getAuthMapping(inputs);
+      if (LOG.isInfoEnabled()) {
+        LOG.info(authMapping);
+      }
+      for (Map.Entry<ReadEntity, String> entry : authMapping.entrySet()) {
+        ReadEntity read = entry.getKey();
         Privilege[] inputPrivs = read.getInputRequiredPrivileges();
         if (inputPrivs == null) {
           inputPrivs = opInputPrivs;
         }
-        HiveAuthorizationProvider delegator = authorizer.authorizeFor(read);
 
+        HiveAuthorizationProvider delegator = authorizer.authorizeWith(entry.getValue());
         if (read.getType() == Entity.Type.DATABASE) {
           delegator.authorize(read.getDatabase(), inputPrivs, null, grantedOnly);
           continue;
@@ -722,6 +724,35 @@ public class Driver implements CommandProcessor {
       }
 
     }
+  }
+
+  private static Map<ReadEntity, String> getAuthMapping(Set<ReadEntity> reads) {
+    Map<ReadEntity, String> mapping = new HashMap<ReadEntity, String>();
+    for (ReadEntity read : reads) {
+      if (read.isDummy()) {
+        continue;
+      }
+      if (read.getType() == Entity.Type.TABLE && read.getTable().isView()) {
+        String owner = read.getTable().getOwner();
+        for (ReadEntity child : findChildren(reads, read)) {
+          mapping.put(child, owner);
+        }
+      }
+      if (!mapping.containsKey(read)) {
+        mapping.put(read, null);
+      }
+    }
+    return mapping;
+  }
+
+  private static List<ReadEntity> findChildren(Set<ReadEntity> reads, ReadEntity view) {
+    List<ReadEntity> children = new ArrayList<ReadEntity>();
+    for (ReadEntity read : reads) {
+      if (read.getParents() != null && read.getParents().contains(view)) {
+        children.add(read);
+      }
+    }
+    return children;
   }
 
   /**

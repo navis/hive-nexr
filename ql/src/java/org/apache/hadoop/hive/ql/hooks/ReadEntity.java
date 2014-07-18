@@ -134,6 +134,10 @@ public class ReadEntity extends Entity implements Serializable {
     return parents;
   }
 
+  public boolean hasParents() {
+    return parents != null && !parents.isEmpty();
+  }
+
   public List<FieldSchema> getColumnRefs() {
     if (getTable() == null || getTable().isView()) {
       return null;
