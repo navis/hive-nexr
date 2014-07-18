@@ -65,6 +65,7 @@ public class ColumnValue extends AbstractList {
   private transient byte[] tsConvey = new byte[TimestampWritable.MAX_BYTES];
 
   public ColumnValue(Type type) {
+    this.type = type;
     nulls = new BitSet();
     switch (type) {
       case BOOLEAN_TYPE:
@@ -84,21 +85,15 @@ public class ColumnValue extends AbstractList {
         break;
       case FLOAT_TYPE:
       case DOUBLE_TYPE:
-        type = Type.DOUBLE_TYPE;
         doubleVars = new double[DEFAULT_SIZE];
         break;
       case BINARY_TYPE:
         binaryVars = new ByteBuffer[DEFAULT_SIZE];
         break;
-      case STRING_TYPE:
-      case TIMESTAMP_TYPE:
-      case DECIMAL_TYPE:
       default:
-        type = Type.STRING_TYPE;
         stringVars = new String[DEFAULT_SIZE];
         break;
     }
-    this.type = type;
   }
 
   public ColumnValue(TColumnValue colValues) {
@@ -167,17 +162,15 @@ public class ColumnValue extends AbstractList {
     } else if (type == Type.BIGINT_TYPE) {
       longVars = (long[]) values;
       size = longVars.length;
-    } else if (type == Type.DOUBLE_TYPE) {
+    } else if (type == Type.FLOAT_TYPE || type == Type.DOUBLE_TYPE) {
       doubleVars = (double[]) values;
       size = doubleVars.length;
     } else if (type == Type.BINARY_TYPE) {
       binaryVars = (ByteBuffer[]) values;
       size = binaryVars.length;
-    } else if (type == Type.STRING_TYPE) {
+    } else {
       stringVars = (String[]) values;
       size = stringVars.length;
-    } else {
-      throw new IllegalStateException("invalid union object");
     }
   }
 
@@ -218,7 +211,7 @@ public class ColumnValue extends AbstractList {
       size = longVars.length;
       return subset;
     }
-    if (type == Type.DOUBLE_TYPE) {
+    if (type == Type.FLOAT_TYPE || type == Type.DOUBLE_TYPE) {
       ColumnValue subset = new ColumnValue(type, subNulls, Arrays.copyOfRange(doubleVars, start, end));
       doubleVars = Arrays.copyOfRange(doubleVars, end, size);
       nulls = nulls.get(start, size);
@@ -232,14 +225,11 @@ public class ColumnValue extends AbstractList {
       size = binaryVars.length;
       return subset;
     }
-    if (type == Type.STRING_TYPE) {
-      ColumnValue subset = new ColumnValue(type, subNulls, Arrays.copyOfRange(stringVars, start, end));
-      stringVars = Arrays.copyOfRange(stringVars, end, size);
-      nulls = nulls.get(start, size);
-      size = stringVars.length;
-      return subset;
-    }
-    throw new IllegalStateException("invalid union object");
+    ColumnValue subset = new ColumnValue(type, subNulls, Arrays.copyOfRange(stringVars, start, end));
+    stringVars = Arrays.copyOfRange(stringVars, end, size);
+    nulls = nulls.get(start, size);
+    size = stringVars.length;
+    return subset;
   }
 
   private static final byte[] MASKS = new byte[] {
@@ -289,14 +279,14 @@ public class ColumnValue extends AbstractList {
         return intVars[index];
       case BIGINT_TYPE:
         return longVars[index];
+      case FLOAT_TYPE:
       case DOUBLE_TYPE:
         return doubleVars[index];
-      case STRING_TYPE:
-        return stringVars[index];
       case BINARY_TYPE:
         return binaryVars[index];
+      default:
+        return stringVars[index];
     }
-    return null;
   }
 
   @Override
@@ -323,14 +313,15 @@ public class ColumnValue extends AbstractList {
       case BIGINT_TYPE:
         value.setI64Val(new TI64Value(Longs.asList(Arrays.copyOfRange(longVars, 0, size)), nullMasks));
         break;
+      case FLOAT_TYPE:
       case DOUBLE_TYPE:
         value.setDoubleVal(new TDoubleValue(Doubles.asList(Arrays.copyOfRange(doubleVars, 0, size)), nullMasks));
         break;
-      case STRING_TYPE:
-        value.setStringVal(new TStringValue(Arrays.asList(Arrays.copyOfRange(stringVars, 0, size)), nullMasks));
-        break;
       case BINARY_TYPE:
         value.setBinaryVal(new TBinaryValue(Arrays.asList(Arrays.copyOfRange(binaryVars, 0, size)), nullMasks));
+        break;
+      default:
+        value.setStringVal(new TStringValue(Arrays.asList(Arrays.copyOfRange(stringVars, 0, size)), nullMasks));
         break;
     }
     return value;
@@ -357,13 +348,16 @@ public class ColumnValue extends AbstractList {
       case BIGINT_TYPE:
         longVars()[size] = field == null ? 0 : (Long)field;
         break;
+      case FLOAT_TYPE:
+        doubleVars()[size] = field == null ? 0 : (Float)field;
+        break;
       case DOUBLE_TYPE:
         doubleVars()[size] = field == null ? 0 : (Double)field;
         break;
       case BINARY_TYPE:
         binaryVars()[size] = field == null ? EMPTY_BINARY : ByteBuffer.wrap((byte[])field);
         break;
-      case STRING_TYPE:
+      default:
         stringVars()[size] = field == null ? EMPTY_STRING : String.valueOf(field);
         break;
     }

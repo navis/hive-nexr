@@ -84,10 +84,11 @@ public class RowSet implements Iterable<Object[]> {
         case SMALLINT_TYPE:
         case INT_TYPE:
         case BIGINT_TYPE:
-        case FLOAT_TYPE:
         case DOUBLE_TYPE:
         case STRING_TYPE:
           return value;
+        case FLOAT_TYPE:
+          return value == null ? null : ((Double) value).floatValue();
         case BINARY_TYPE:
           return value == null ? null : ((ByteBuffer) value).array();
         case TIMESTAMP_TYPE:
