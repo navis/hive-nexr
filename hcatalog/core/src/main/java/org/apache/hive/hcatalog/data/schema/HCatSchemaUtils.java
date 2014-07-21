@@ -102,6 +102,13 @@ public class HCatSchemaUtils {
 
   }
 
+  public static List<HCatFieldSchema> getHCatFields(List<FieldSchema> fs) throws HCatException {
+    List<HCatFieldSchema> schema = new ArrayList<HCatFieldSchema>();
+    for (FieldSchema field : fs) {
+      schema.add(getHCatFieldSchema(field));
+    }
+    return schema;
+  }
 
   /**
    * Convert a HCatFieldSchema to a FieldSchema
