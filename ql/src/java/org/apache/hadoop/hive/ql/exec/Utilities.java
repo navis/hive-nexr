@@ -95,6 +95,7 @@ import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.common.HiveInterruptCallback;
 import org.apache.hadoop.hive.common.HiveInterruptUtils;
+import org.apache.hadoop.hive.common.JavaUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.Warehouse;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -1697,10 +1698,12 @@ public final class Utilities {
       URL oneurl = (new File(onestr)).toURL();
       newPath.remove(oneurl);
     }
+    SessionState sessionState = SessionState.get();
+    JavaUtils.closeClassLoadersTo(loader, sessionState.getParentLoader());
 
     loader = new URLClassLoader(newPath.toArray(new URL[0]));
     curThread.setContextClassLoader(loader);
-    SessionState.get().getConf().setClassLoader(loader);
+    sessionState.getConf().setClassLoader(loader);
   }
 
   public static String formatBinaryString(byte[] array, int start, int length) {

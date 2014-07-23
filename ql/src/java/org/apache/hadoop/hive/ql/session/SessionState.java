@@ -211,6 +211,10 @@ public class SessionState extends SessionBase {
     parentLoader = JavaUtils.getClassLoader();
   }
 
+  public ClassLoader getParentLoader() {
+    return parentLoader;
+  }
+
   private static final SimpleDateFormat DATE_FORMAT =
     new SimpleDateFormat("yyyyMMddHHmm");
 
@@ -818,7 +822,7 @@ public class SessionState extends SessionBase {
   }
 
   public void close() throws IOException {
-    JavaUtils.closeClassLoadersTo(conf.getClassLoader(), parentLoader);
+    JavaUtils.closeClassLoadersTo(conf.getClassLoader(), getParentLoader());
     File resourceDir =
       new File(getConf().getVar(HiveConf.ConfVars.DOWNLOADED_RESOURCES_DIR));
     LOG.debug("Removing resource dir " + resourceDir);
