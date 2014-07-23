@@ -1,0 +1,36 @@
+PREHOOK: query: create table src_rc (key string, value string) stored as rcfile
+PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
+PREHOOK: Output: default@src_rc
+POSTHOOK: query: create table src_rc (key string, value string) stored as rcfile
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@src_rc
+PREHOOK: query: insert into table src_rc select * from src
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: default@src_rc
+POSTHOOK: query: insert into table src_rc select * from src
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: default@src_rc
+POSTHOOK: Lineage: src_rc.key SIMPLE [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: src_rc.value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+PREHOOK: query: select * from src_rc tablesample (10 rows)
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src_rc
+#### A masked pattern was here ####
+POSTHOOK: query: select * from src_rc tablesample (10 rows)
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src_rc
+#### A masked pattern was here ####
+238	val_238
+86	val_86
+311	val_311
+27	val_27
+165	val_165
+409	val_409
+255	val_255
+278	val_278
+98	val_98
+484	val_484

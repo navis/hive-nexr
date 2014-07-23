@@ -1682,7 +1682,7 @@ public class RCFile {
         CompressionInputStream deflatFilter = codec.createInputStream(
             keyDecompressBuffer, keyDecompressor);
         DataInputStream compressedIn = new DataInputStream(deflatFilter);
-        deflatFilter.resetState();
+
         keyDecompressedData.reset();
         keyDecompressedData.write(compressedIn, currentKeyLength);
         keyDataIn.reset(keyDecompressedData.getData(), currentKeyLength);
