@@ -28,6 +28,7 @@ import org.apache.hadoop.hive.serde2.io.TimestampWritable;
 import org.apache.hadoop.hive.serde2.lazybinary.objectinspector.LazyBinaryObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.PrimitiveCategory;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
@@ -457,7 +458,10 @@ public final class LazyBinaryUtils {
    */
   public static ObjectInspector getLazyBinaryObjectInspectorFromTypeInfo(
       TypeInfo typeInfo) {
-    ObjectInspector result = cachedLazyBinaryObjectInspector.get(typeInfo);
+    ObjectInspector result = null;
+    if (!ObjectInspectorFactory.disableCache) {
+      result = cachedLazyBinaryObjectInspector.get(typeInfo);
+    }
     if (result == null) {
       switch (typeInfo.getCategory()) {
       case PRIMITIVE: {
@@ -505,7 +509,9 @@ public final class LazyBinaryUtils {
         result = null;
       }
       }
-      cachedLazyBinaryObjectInspector.put(typeInfo, result);
+      if (!ObjectInspectorFactory.disableCache) {
+        cachedLazyBinaryObjectInspector.put(typeInfo, result);
+      }
     }
     return result;
   }

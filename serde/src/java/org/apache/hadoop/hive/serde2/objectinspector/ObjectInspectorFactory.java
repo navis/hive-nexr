@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorUtils;
 
@@ -44,6 +45,15 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectIn
  * ObjectInspector.
  */
 public final class ObjectInspectorFactory {
+
+  public static final boolean disableCache;
+
+  static {
+    disableCache = Boolean.valueOf(
+      System.getProperty("hive.disable.oi.cache", System.getProperty("hive.disable.object.cache")));
+    LogFactory.getLog(ObjectInspectorFactory.class).warn("Object Inspector Cache is " +
+      (disableCache ? "disabled" : "enabled"));
+  }
 
   /**
    * ObjectInspectorOptions describes what ObjectInspector to use. JAVA is to
@@ -64,10 +74,15 @@ public final class ObjectInspectorFactory {
 
   public static ObjectInspector getReflectionObjectInspector(Type t,
       ObjectInspectorOptions options) {
-    ObjectInspector oi = objectInspectorCache.get(t);
-    if (oi == null) {
+    ObjectInspector oi;
+    if (disableCache) {
       oi = getReflectionObjectInspectorNoCache(t, options);
-      objectInspectorCache.put(t, oi);
+    } else {
+      oi = objectInspectorCache.get(t);
+      if (oi == null) {
+        oi = getReflectionObjectInspectorNoCache(t, options);
+        objectInspectorCache.put(t, oi);
+      }
     }
     verifyObjectInspector(options, oi, ObjectInspectorOptions.JAVA, new Class[]{ThriftStructObjectInspector.class,
       ProtocolBuffersStructObjectInspector.class});
@@ -202,6 +217,9 @@ public final class ObjectInspectorFactory {
 
   public static StandardListObjectInspector getStandardListObjectInspector(
       ObjectInspector listElementObjectInspector) {
+    if (disableCache) {
+      return new StandardListObjectInspector(listElementObjectInspector);
+    }
     StandardListObjectInspector result = cachedStandardListObjectInspector
         .get(listElementObjectInspector);
     if (result == null) {
@@ -223,6 +241,9 @@ public final class ObjectInspectorFactory {
   public static StandardMapObjectInspector getStandardMapObjectInspector(
       ObjectInspector mapKeyObjectInspector,
       ObjectInspector mapValueObjectInspector) {
+    if (disableCache) {
+      return new StandardMapObjectInspector(mapKeyObjectInspector, mapValueObjectInspector);
+    }
     ArrayList<ObjectInspector> signature = new ArrayList<ObjectInspector>(2);
     signature.add(mapKeyObjectInspector);
     signature.add(mapValueObjectInspector);
@@ -250,6 +271,9 @@ public final class ObjectInspectorFactory {
 
   public static StandardUnionObjectInspector getStandardUnionObjectInspector(
       List<ObjectInspector> unionObjectInspectors) {
+    if (disableCache) {
+      return new StandardUnionObjectInspector(unionObjectInspectors);
+    }
     StandardUnionObjectInspector result = cachedStandardUnionObjectInspector
         .get(unionObjectInspectors);
     if (result == null) {
@@ -272,6 +296,9 @@ public final class ObjectInspectorFactory {
       List<String> structFieldNames,
       List<ObjectInspector> structFieldObjectInspectors,
       List<String> structComments) {
+    if (disableCache) {
+      return new StandardStructObjectInspector(structFieldNames, structFieldObjectInspectors, structComments);
+    }
     ArrayList<List<?>> signature = new ArrayList<List<?>>(3);
     signature.add(structFieldNames);
     signature.add(structFieldObjectInspectors);
@@ -291,6 +318,9 @@ public final class ObjectInspectorFactory {
 
   public static UnionStructObjectInspector getUnionStructObjectInspector(
       List<StructObjectInspector> structObjectInspectors) {
+    if (disableCache) {
+      return new UnionStructObjectInspector(structObjectInspectors);
+    }
     UnionStructObjectInspector result = cachedUnionStructObjectInspector
         .get(structObjectInspectors);
     if (result == null) {
@@ -312,6 +342,10 @@ public final class ObjectInspectorFactory {
   public static ColumnarStructObjectInspector getColumnarStructObjectInspector(
       List<String> structFieldNames,
       List<ObjectInspector> structFieldObjectInspectors, List<String> structFieldComments) {
+    if (disableCache) {
+      return new ColumnarStructObjectInspector(structFieldNames,
+        structFieldObjectInspectors, structFieldComments);
+    }
     ArrayList<Object> signature = new ArrayList<Object>(3);
     signature.add(structFieldNames);
     signature.add(structFieldObjectInspectors);

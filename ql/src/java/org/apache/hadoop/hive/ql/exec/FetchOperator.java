@@ -213,6 +213,9 @@ public class FetchOperator implements Serializable {
   @SuppressWarnings("unchecked")
   static InputFormat<WritableComparable, Writable> getInputFormatFromCache(Class inputFormatClass,
       Configuration conf) throws IOException {
+    if (HiveInputFormat.disableCache) {
+      return (InputFormat<WritableComparable, Writable>) ReflectionUtils.newInstance(inputFormatClass, conf);
+    }
     if (!inputFormats.containsKey(inputFormatClass)) {
       try {
         InputFormat<WritableComparable, Writable> newInstance = (InputFormat<WritableComparable, Writable>) ReflectionUtils

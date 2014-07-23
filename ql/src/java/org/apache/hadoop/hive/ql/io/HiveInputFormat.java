@@ -64,6 +64,15 @@ import org.apache.hadoop.util.ReflectionUtils;
 public class HiveInputFormat<K extends WritableComparable, V extends Writable>
     implements InputFormat<K, V>, JobConfigurable {
 
+  public static final boolean disableCache;
+
+  static {
+    disableCache = Boolean.valueOf(
+      System.getProperty("hive.disable.ff.cache", System.getProperty("hive.disable.object.cache")));
+    LogFactory.getLog(HiveFileFormatUtils.class).warn("File Format Cache is " +
+      (disableCache ? "disabled" : "enabled"));
+  }
+
   public static final Log LOG = LogFactory
       .getLog("org.apache.hadoop.hive.ql.io.HiveInputFormat");
 
@@ -184,7 +193,10 @@ public class HiveInputFormat<K extends WritableComparable, V extends Writable>
 
   public static InputFormat<WritableComparable, Writable> getInputFormatFromCache(
     Class inputFormatClass, JobConf job) throws IOException {
-
+    if (disableCache) {
+      return (InputFormat<WritableComparable, Writable>) ReflectionUtils
+        .newInstance(inputFormatClass, job);
+    }
     if (inputFormats == null) {
       inputFormats = new HashMap<Class, InputFormat<WritableComparable, Writable>>();
     }

@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -56,6 +57,11 @@ public final class LazyObjectInspectorFactory {
       List<ObjectInspector> structFieldObjectInspectors, List<String> structFieldComments,
       byte separator, Text nullSequence, boolean lastColumnTakesRest,
       boolean escaped,byte escapeChar) {
+    if (ObjectInspectorFactory.disableCache) {
+      return new LazySimpleStructObjectInspector(structFieldNames,
+        structFieldObjectInspectors, structFieldComments, separator,
+        nullSequence, lastColumnTakesRest, escaped, escapeChar);
+    }
     ArrayList<Object> signature = new ArrayList<Object>();
     signature.add(structFieldNames);
     signature.add(structFieldObjectInspectors);
@@ -84,6 +90,10 @@ public final class LazyObjectInspectorFactory {
   public static LazyListObjectInspector getLazySimpleListObjectInspector(
       ObjectInspector listElementObjectInspector, byte separator,
       Text nullSequence, boolean escaped, byte escapeChar) {
+    if (ObjectInspectorFactory.disableCache) {
+      return new LazyListObjectInspector(listElementObjectInspector,
+        separator, nullSequence, escaped, escapeChar);
+    }
     ArrayList<Object> signature = new ArrayList<Object>();
     signature.add(listElementObjectInspector);
     signature.add(Byte.valueOf(separator));
@@ -108,6 +118,11 @@ public final class LazyObjectInspectorFactory {
       ObjectInspector mapValueObjectInspector, byte itemSeparator,
       byte keyValueSeparator, Text nullSequence, boolean escaped,
       byte escapeChar) {
+    if (ObjectInspectorFactory.disableCache) {
+      return new LazyMapObjectInspector(mapKeyObjectInspector,
+        mapValueObjectInspector, itemSeparator, keyValueSeparator,
+        nullSequence, escaped, escapeChar);
+    }
     ArrayList<Object> signature = new ArrayList<Object>();
     signature.add(mapKeyObjectInspector);
     signature.add(mapValueObjectInspector);
@@ -134,6 +149,10 @@ public final class LazyObjectInspectorFactory {
   public static LazyUnionObjectInspector getLazyUnionObjectInspector(
       List<ObjectInspector> ois, byte separator, Text nullSequence,
       boolean escaped, byte escapeChar) {
+    if (ObjectInspectorFactory.disableCache) {
+      return new LazyUnionObjectInspector(ois, separator,
+        nullSequence, escaped, escapeChar);
+    }
     List<Object> signature = new ArrayList<Object>();
     signature.add(ois);
     signature.add(Byte.valueOf(separator));

@@ -410,7 +410,10 @@ public final class TypeInfoUtils {
    */
   public static ObjectInspector getStandardWritableObjectInspectorFromTypeInfo(
       TypeInfo typeInfo) {
-    ObjectInspector result = cachedStandardObjectInspector.get(typeInfo);
+    ObjectInspector result = null;
+    if (!ObjectInspectorFactory.disableCache) {
+      result = cachedStandardObjectInspector.get(typeInfo);
+    }
     if (result == null) {
       switch (typeInfo.getCategory()) {
       case PRIMITIVE: {
@@ -473,7 +476,9 @@ public final class TypeInfoUtils {
         result = null;
       }
       }
-      cachedStandardObjectInspector.put(typeInfo, result);
+      if (!ObjectInspectorFactory.disableCache) {
+        cachedStandardObjectInspector.put(typeInfo, result);
+      }
     }
     return result;
   }
@@ -487,7 +492,10 @@ public final class TypeInfoUtils {
    */
   public static ObjectInspector getStandardJavaObjectInspectorFromTypeInfo(
       TypeInfo typeInfo) {
-    ObjectInspector result = cachedStandardJavaObjectInspector.get(typeInfo);
+    ObjectInspector result = null;
+    if (!ObjectInspectorFactory.disableCache) {
+      result = cachedStandardJavaObjectInspector.get(typeInfo);
+    }
     if (result == null) {
       switch (typeInfo.getCategory()) {
       case PRIMITIVE: {
@@ -551,7 +559,9 @@ public final class TypeInfoUtils {
         result = null;
       }
       }
-      cachedStandardJavaObjectInspector.put(typeInfo, result);
+      if (!ObjectInspectorFactory.disableCache) {
+        cachedStandardJavaObjectInspector.put(typeInfo, result);
+      }
     }
     return result;
   }

@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 
 /**
  * ObjectInspectorFactory is the primary way to create new ObjectInspector
@@ -50,6 +51,10 @@ public final class LazyBinaryObjectInspectorFactory {
   public static LazyBinaryStructObjectInspector getLazyBinaryStructObjectInspector(
       List<String> structFieldNames,
       List<ObjectInspector> structFieldObjectInspectors, List<String> structFieldComments) {
+    if (ObjectInspectorFactory.disableCache) {
+      return new LazyBinaryStructObjectInspector(structFieldNames,
+        structFieldObjectInspectors, structFieldComments);
+    }
     ArrayList<Object> signature = new ArrayList<Object>(3);
     signature.add(structFieldNames);
     signature.add(structFieldObjectInspectors);
@@ -71,6 +76,9 @@ public final class LazyBinaryObjectInspectorFactory {
 
   public static LazyBinaryListObjectInspector getLazyBinaryListObjectInspector(
       ObjectInspector listElementObjectInspector) {
+    if (ObjectInspectorFactory.disableCache) {
+      return new LazyBinaryListObjectInspector(listElementObjectInspector);
+    }
     ArrayList<Object> signature = new ArrayList<Object>();
     signature.add(listElementObjectInspector);
     LazyBinaryListObjectInspector result = cachedLazyBinaryListObjectInspector
@@ -88,6 +96,10 @@ public final class LazyBinaryObjectInspectorFactory {
   public static LazyBinaryMapObjectInspector getLazyBinaryMapObjectInspector(
       ObjectInspector mapKeyObjectInspector,
       ObjectInspector mapValueObjectInspector) {
+    if (ObjectInspectorFactory.disableCache) {
+      return new LazyBinaryMapObjectInspector(mapKeyObjectInspector,
+        mapValueObjectInspector);
+    }
     ArrayList<Object> signature = new ArrayList<Object>();
     signature.add(mapKeyObjectInspector);
     signature.add(mapValueObjectInspector);
