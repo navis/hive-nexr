@@ -17,14 +17,14 @@
  */
 package org.apache.hadoop.hive.serde2.objectinspector.primitive;
 
+import org.apache.hadoop.hive.serde2.objectinspector.ConstantObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
-import org.apache.hadoop.io.NullWritable;
 
 /**
  * A JavaVoidObjectInspector inspects a Java Void Object.
  */
 public class JavaVoidObjectInspector extends
-    AbstractPrimitiveJavaObjectInspector implements VoidObjectInspector {
+    AbstractPrimitiveJavaObjectInspector implements VoidObjectInspector, ConstantObjectInspector {
 
   JavaVoidObjectInspector() {
     super(TypeInfoFactory.voidTypeInfo);
@@ -32,7 +32,11 @@ public class JavaVoidObjectInspector extends
 
   @Override
   public Object getPrimitiveWritableObject(Object o) {
-    return NullWritable.get();
+    return null;
   }
 
+  @Override
+  public Object getWritableConstantValue() {
+    return null;
+  }
 }

@@ -80,3 +80,5 @@ SELECT CASE 1
         ELSE cast('ijkl' as char(4))
        END
 FROM src tablesample (1 rows);
+
+select case 1 when 1 then null when 2 then null end from src tablesample (1 rows);

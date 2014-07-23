@@ -24,6 +24,7 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.BooleanObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
 /**
  * GenericUDF Class for SQL construct
@@ -84,11 +85,15 @@ public class GenericUDFWhen extends GenericUDF {
       }
     }
 
-    return returnOIResolver.get();
+    ObjectInspector resolved = returnOIResolver.get();
+    return resolved == null ? PrimitiveObjectInspectorFactory.javaVoidObjectInspector : resolved;
   }
 
   @Override
   public Object evaluate(DeferredObject[] arguments) throws HiveException {
+    if (returnOIResolver.get() == null) {
+      return null;
+    }
     for (int i = 0; i + 1 < arguments.length; i += 2) {
       Object caseKey = arguments[i].get();
       if (caseKey != null

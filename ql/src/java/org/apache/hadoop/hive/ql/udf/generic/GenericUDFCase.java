@@ -23,6 +23,7 @@ import org.apache.hadoop.hive.ql.exec.UDFArgumentTypeException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorUtils;
 
 /**
@@ -89,11 +90,15 @@ public class GenericUDFCase extends GenericUDF {
       }
     }
 
-    return returnOIResolver.get();
+    ObjectInspector resolved = returnOIResolver.get();
+    return resolved == null ? PrimitiveObjectInspectorFactory.javaVoidObjectInspector : resolved;
   }
 
   @Override
   public Object evaluate(DeferredObject[] arguments) throws HiveException {
+    if (returnOIResolver.get() == null) {
+      return null;
+    }
     Object exprValue = arguments[0].get();
     for (int i = 1; i + 1 < arguments.length; i += 2) {
       Object caseKey = arguments[i].get();
