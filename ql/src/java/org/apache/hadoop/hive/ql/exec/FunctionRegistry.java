@@ -747,6 +747,16 @@ public final class FunctionRegistry {
     PrimitiveCategory pcA = ((PrimitiveTypeInfo)a).getPrimitiveCategory();
     PrimitiveCategory pcB = ((PrimitiveTypeInfo)b).getPrimitiveCategory();
 
+    if (pcA == PrimitiveCategory.UNKNOWN && pcB == PrimitiveCategory.UNKNOWN) {
+      return null;
+    }
+    if (pcA == PrimitiveCategory.UNKNOWN) {
+      return pcB;
+    }
+    if (pcB == PrimitiveCategory.UNKNOWN) {
+      return pcA;
+    }
+
     PrimitiveGrouping pgA = PrimitiveObjectInspectorUtils.getPrimitiveGrouping(pcA);
     PrimitiveGrouping pgB = PrimitiveObjectInspectorUtils.getPrimitiveGrouping(pcB);
     // handle string types properly
@@ -977,6 +987,9 @@ public final class FunctionRegistry {
    */
   public static int matchCost(TypeInfo argumentPassed,
       TypeInfo argumentAccepted, boolean exact) {
+    if (argumentAccepted == TypeInfoFactory.unknownTypeInfo) {
+      return 0;
+    }
     if (argumentAccepted.equals(argumentPassed)
         || TypeInfoUtils.doPrimitiveCategoriesMatch(argumentPassed, argumentAccepted)) {
       // matches
@@ -1047,6 +1060,9 @@ public final class FunctionRegistry {
             TypeInfoUtils.getParameterTypeInfos(m, argumentsPassed.size());
         Iterator<TypeInfo> argsPassedIter = argumentsPassed.iterator();
         for (TypeInfo acceptedType : argumentsAccepted) {
+          if (acceptedType == TypeInfoFactory.unknownTypeInfo) {
+            continue;
+          }
           // Check the affinity of the argument passed in with the accepted argument,
           // based on the PrimitiveGrouping
           TypeInfo passedType = argsPassedIter.next();
@@ -1102,46 +1118,36 @@ public final class FunctionRegistry {
     for (Method m : mlist) {
       List<TypeInfo> argumentsAccepted = TypeInfoUtils.getParameterTypeInfos(m,
           argumentsPassed.size());
-      if (argumentsAccepted == null) {
+      if (argumentsAccepted == null || argumentsAccepted.size() != argumentsPassed.size()) {
         // null means the method does not accept number of arguments passed.
         continue;
       }
 
-      boolean match = (argumentsAccepted.size() == argumentsPassed.size());
-      int conversionCost = 0;
-
-      for (int i = 0; i < argumentsPassed.size() && match; i++) {
-        int cost = matchCost(argumentsPassed.get(i), argumentsAccepted.get(i),
-            exact);
-        if (cost == -1) {
-          match = false;
-        } else {
-          conversionCost += cost;
-        }
-      }
+      int conversionCost = calculateCost(argumentsPassed, argumentsAccepted, exact);
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Method " + (match ? "did" : "didn't") + " match: passed = "
+        LOG.debug("Method " + (conversionCost >= 0 ? "did" : "didn't") + " match: passed = "
                   + argumentsPassed + " accepted = " + argumentsAccepted +
                   " method = " + m);
       }
-      if (match) {
-        // Always choose the function with least implicit conversions.
-        if (conversionCost < leastConversionCost) {
-          udfMethods.clear();
-          udfMethods.add(m);
-          leastConversionCost = conversionCost;
-          // Found an exact match
-          if (leastConversionCost == 0) {
-            break;
-          }
-        } else if (conversionCost == leastConversionCost) {
-          // Ambiguous call: two methods with the same number of implicit
-          // conversions
-          udfMethods.add(m);
-          // Don't break! We might find a better match later.
-        } else {
-          // do nothing if implicitConversions > leastImplicitConversions
+      if (conversionCost < 0) {
+        continue;
+      }
+      // Always choose the function with least implicit conversions.
+      if (conversionCost < leastConversionCost) {
+        udfMethods.clear();
+        udfMethods.add(m);
+        leastConversionCost = conversionCost;
+        // Found an exact match
+        if (leastConversionCost == 0) {
+          break;
         }
+      } else if (conversionCost == leastConversionCost) {
+        // Ambiguous call: two methods with the same number of implicit
+        // conversions
+        udfMethods.add(m);
+        // Don't break! We might find a better match later.
+      } else {
+        // do nothing if implicitConversions > leastImplicitConversions
       }
     }
 
@@ -1179,6 +1185,9 @@ public final class FunctionRegistry {
         Iterator<TypeInfo> referenceIterator = referenceArguments.iterator();
 
         for (TypeInfo accepted: argumentsAccepted) {
+          if (accepted == TypeInfoFactory.unknownTypeInfo) {
+            continue;
+          }
           TypeInfo reference = referenceIterator.next();
 
           boolean acceptedIsPrimitive = false;
@@ -1216,6 +1225,71 @@ public final class FunctionRegistry {
       }
     }
     return udfMethods.get(0);
+  }
+
+  private static int calculateCost(
+      List<TypeInfo> argumentsPassed, List<TypeInfo> argumentsAccepted, boolean exact) {
+    int conversionCost = 0;
+    for (int i = 0; i < argumentsPassed.size(); i++) {
+      int cost = matchCost(argumentsPassed.get(i), argumentsAccepted.get(i), exact);
+      if (cost == -1) {
+        return -1;
+      }
+      conversionCost += cost;
+    }
+    return conversionCost;
+  }
+
+  private static Method[] findMethod(Class clazz, String methodName) {
+    List<Method> methods = new ArrayList<Method>();
+    for (Method method : clazz.getMethods()) {
+      if (method.getName().equals(methodName)) {
+        methods.add(method);
+      }
+    }
+    return methods.toArray(new Method[methods.size()]);
+  }
+
+  public static Method matchMethod(List<TypeInfo> argTypeInfos, List<TypeInfo> pTypeInfos,
+      Class clazz, String methodName) throws AmbiguousMethodException, NoMatchingMethodException {
+    return matchMethod(argTypeInfos, pTypeInfos, clazz, findMethod(clazz, methodName));
+  }
+
+  public static Method matchMethod(List<TypeInfo> argTypeInfos, List<TypeInfo> pTypeInfos,
+      Class clazz, Method... methods) throws AmbiguousMethodException, NoMatchingMethodException {
+    Method found = null;
+
+    for (Method m : methods) {
+      List<TypeInfo> argumentTypeInfos = TypeInfoUtils.getParameterTypeInfos(
+          m, pTypeInfos.size());
+      if (argumentTypeInfos == null) {
+        // null means the method does not accept number of arguments passed.
+        continue;
+      }
+
+      boolean match = (argumentTypeInfos.size() == pTypeInfos.size());
+
+      for (int i = 0; i < pTypeInfos.size() && match; i++) {
+        TypeInfo accepted = argumentTypeInfos.get(i);
+        if (accepted != TypeInfoFactory.unknownTypeInfo && !accepted.accept(pTypeInfos.get(i))) {
+          match = false;
+        }
+      }
+
+      if (match) {
+        if (found != null) {
+          throw new AmbiguousMethodException(clazz, argTypeInfos,
+              Arrays.asList(found, m));
+        }
+        found = m;
+      }
+    }
+
+    if (found == null) {
+      throw new NoMatchingMethodException(clazz, argTypeInfos, Arrays.asList(methods));
+    }
+
+    return found;
   }
 
   /**

@@ -22,8 +22,9 @@ import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
+import java.lang.reflect.WildcardType;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -72,17 +73,18 @@ public final class TypeInfoUtils {
       return TypeInfoFactory.unknownTypeInfo;
     }
 
-    if (t instanceof ParameterizedType) {
+    if (t instanceof GenericArrayType) {
+      GenericArrayType ga = (GenericArrayType)t;
+      return TypeInfoFactory.getListTypeInfo(getExtendedTypeInfoFromJavaType(
+          ga.getGenericComponentType(), m));
+    } else if (t instanceof ParameterizedType) {
       ParameterizedType pt = (ParameterizedType) t;
-      // List?
-      if (List.class == (Class<?>) pt.getRawType()
-          || ArrayList.class == (Class<?>) pt.getRawType()) {
+      Class<?> rawType = TypeInfoUtils.getClassFromType(pt.getRawType());
+      if (List.class.isAssignableFrom(rawType)) {
         return TypeInfoFactory.getListTypeInfo(getExtendedTypeInfoFromJavaType(
             pt.getActualTypeArguments()[0], m));
       }
-      // Map?
-      if (Map.class == (Class<?>) pt.getRawType()
-          || HashMap.class == (Class<?>) pt.getRawType()) {
+      if (Map.class.isAssignableFrom(rawType)) {
         return TypeInfoFactory.getMapTypeInfo(getExtendedTypeInfoFromJavaType(
             pt.getActualTypeArguments()[0], m),
             getExtendedTypeInfoFromJavaType(pt.getActualTypeArguments()[1], m));
@@ -90,6 +92,11 @@ public final class TypeInfoUtils {
       // Otherwise convert t to RawType so we will fall into the following if
       // block.
       t = pt.getRawType();
+    } else if (t instanceof TypeVariable) {
+      TypeVariable tv = (TypeVariable) t;
+      if (tv.getBounds().length == 1) {
+        return getExtendedTypeInfoFromJavaType(tv.getBounds()[0], m);
+      }
     }
 
     // Must be a class.
@@ -133,6 +140,86 @@ public final class TypeInfoUtils {
           field.getGenericType(), m));
     }
     return TypeInfoFactory.getStructTypeInfo(fieldNames, fieldTypeInfos);
+  }
+
+  public static boolean containsTypeVariable(Type t) {
+    if (t instanceof ParameterizedType) {
+      ParameterizedType pt = (ParameterizedType) t;
+      for (Type child : pt.getActualTypeArguments()) {
+        if (containsTypeVariable(child)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    if (t instanceof GenericArrayType) {
+      GenericArrayType ga = (GenericArrayType)t;
+      return containsTypeVariable(ga.getGenericComponentType());
+    }
+    if (t instanceof WildcardType) {
+      WildcardType wt = (WildcardType) t;
+      for (Type child : wt.getUpperBounds()) {
+        if (containsTypeVariable(child)) {
+          return true;
+        }
+      }
+      for (Type child : wt.getLowerBounds()) {
+        if (containsTypeVariable(child)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    return t instanceof TypeVariable;
+  }
+
+  public static Class<?> getClassFromType(Type t) {
+    if (t instanceof Class<?>) {
+      return (Class<?>) t;
+    }
+    if (t instanceof ParameterizedType) {
+      ParameterizedType pt = (ParameterizedType) t;
+      return getClassFromType(pt.getRawType());
+    }
+    if (t instanceof TypeVariable) {
+      TypeVariable tv = (TypeVariable) t;
+      if (tv.getBounds().length == 1) {
+        return getClassFromType(tv.getBounds()[0]);
+      }
+    }
+    return null;
+  }
+
+  public static ObjectInspector extractOI(TypeVariable tv, Type t, ObjectInspector oi) {
+    if (t instanceof TypeVariable) {
+      return tv == t ? oi : null;
+    }
+    if (t instanceof ParameterizedType) {
+      ParameterizedType pt = (ParameterizedType) t;
+      Class rawType = getClassFromType(pt.getRawType());
+      if (rawType == null) {
+        return null;
+      }
+      if (List.class.isAssignableFrom(rawType)) {
+        ObjectInspector eoi = ((ListObjectInspector) oi).getListElementObjectInspector();
+        return extractOI(tv, pt.getActualTypeArguments()[0], eoi);
+      }
+      if (Map.class.isAssignableFrom(rawType)) {
+        ObjectInspector koi = ((MapObjectInspector) oi).getMapKeyObjectInspector();
+        ObjectInspector voi = ((MapObjectInspector) oi).getMapValueObjectInspector();
+        ObjectInspector found = extractOI(tv, pt.getActualTypeArguments()[0], koi);
+        if (found == null) {
+          found = extractOI(tv, pt.getActualTypeArguments()[1], voi);
+        }
+        return found;
+      }
+    }
+    if (t instanceof GenericArrayType && oi instanceof ListObjectInspector) {
+      GenericArrayType ga = (GenericArrayType)t;
+      ObjectInspector eoi = ((ListObjectInspector) oi).getListElementObjectInspector();
+      return extractOI(tv, ga.getGenericComponentType(), eoi);
+    }
+    return null;
   }
 
   /**

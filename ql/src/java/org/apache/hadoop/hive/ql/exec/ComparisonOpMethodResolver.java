@@ -20,12 +20,10 @@ package org.apache.hadoop.hive.ql.exec;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 
 /**
  * The class implements the method resolution for operators like (> < <= >= =
@@ -42,7 +40,7 @@ public class ComparisonOpMethodResolver implements UDFMethodResolver {
   private final Class<? extends UDF> udfClass;
 
   /**
-   * Constuctor.
+   * Constructor.
    */
   public ComparisonOpMethodResolver(Class<? extends UDF> udfClass) {
     this.udfClass = udfClass;
@@ -78,46 +76,7 @@ public class ComparisonOpMethodResolver implements UDFMethodResolver {
       pTypeInfos.add(TypeInfoFactory.doubleTypeInfo);
     }
 
-    Method udfMethod = null;
-
-    List<Method> evaluateMethods = new ArrayList<Method>();
-
-    for (Method m : Arrays.asList(udfClass.getMethods())) {
-      if (m.getName().equals("evaluate")) {
-
-        evaluateMethods.add(m);
-        List<TypeInfo> acceptedTypeInfos = TypeInfoUtils.getParameterTypeInfos(
-            m, pTypeInfos.size());
-        if (acceptedTypeInfos == null) {
-          // null means the method does not accept number of arguments passed.
-          continue;
-        }
-
-        boolean match = (acceptedTypeInfos.size() == pTypeInfos.size());
-
-        for (int i = 0; i < pTypeInfos.size() && match; i++) {
-          TypeInfo accepted = acceptedTypeInfos.get(i);
-          if (accepted != pTypeInfos.get(i)) {
-            match = false;
-          }
-        }
-
-        if (match) {
-          if (udfMethod != null) {
-            throw new AmbiguousMethodException(udfClass, argTypeInfos,
-                Arrays.asList(new Method[]{udfMethod, m}));
-          } else {
-            udfMethod = m;
-          }
-        }
-      }
-    }
-
-    if (udfMethod == null) {
-      throw new NoMatchingMethodException(udfClass, argTypeInfos, evaluateMethods);
-    }
-
-    return udfMethod;
+    return FunctionRegistry.matchMethod(argTypeInfos, pTypeInfos, udfClass, "evaluate");
   }
 
 }

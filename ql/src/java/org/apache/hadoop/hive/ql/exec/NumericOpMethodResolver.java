@@ -20,12 +20,10 @@ package org.apache.hadoop.hive.ql.exec;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 
 /**
  * The class implements the method resolution for operators like (+, -, *, %).
@@ -46,7 +44,7 @@ public class NumericOpMethodResolver implements UDFMethodResolver {
   Class<? extends UDF> udfClass;
 
   /**
-   * Constuctor.
+   * Constructor.
    */
   public NumericOpMethodResolver(Class<? extends UDF> udfClass) {
     this.udfClass = udfClass;
@@ -107,42 +105,6 @@ public class NumericOpMethodResolver implements UDFMethodResolver {
     pTypeInfos.add(commonType);
     pTypeInfos.add(commonType);
 
-    Method udfMethod = null;
-
-    for (Method m : Arrays.asList(udfClass.getMethods())) {
-      if (m.getName().equals("evaluate")) {
-
-        List<TypeInfo> argumentTypeInfos = TypeInfoUtils.getParameterTypeInfos(
-            m, pTypeInfos.size());
-        if (argumentTypeInfos == null) {
-          // null means the method does not accept number of arguments passed.
-          continue;
-        }
-
-        boolean match = (argumentTypeInfos.size() == pTypeInfos.size());
-
-        for (int i = 0; i < pTypeInfos.size() && match; i++) {
-          TypeInfo accepted = argumentTypeInfos.get(i);
-          if (!accepted.accept(pTypeInfos.get(i))) {
-            match = false;
-          }
-        }
-
-        if (match) {
-          if (udfMethod != null) {
-            throw new AmbiguousMethodException(udfClass, argTypeInfos,
-                Arrays.asList(new Method[]{udfMethod, m}));
-          } else {
-            udfMethod = m;
-          }
-        }
-      }
-    }
-
-    if (udfMethod == null) {
-      throw new NoMatchingMethodException(udfClass, argTypeInfos, null);
-    }
-
-    return udfMethod;
+    return FunctionRegistry.matchMethod(argTypeInfos, pTypeInfos, udfClass, "evaluate");
   }
 }

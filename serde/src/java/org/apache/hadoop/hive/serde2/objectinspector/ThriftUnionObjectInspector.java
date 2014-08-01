@@ -72,7 +72,7 @@ public class ThriftUnionObjectInspector extends ReflectionStructObjectInspector 
    * to allow recursive types.
    */
   @Override
-  protected void init(Class<?> objectClass,
+  protected void init(Class<?> objectClass, ObjectInspector oi,
                       ObjectInspectorFactory.ObjectInspectorOptions options) {
     verifyObjectClassType(objectClass);
     this.objectClass = objectClass;

@@ -20,7 +20,6 @@ package org.apache.hadoop.hive.ql.udf.generic;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.HashMap;
 
@@ -244,16 +243,6 @@ public final class GenericUDFUtils {
     Object[] convertedParameters;
     Object[] convertedParametersInArray;
 
-    private static Class<?> getClassFromType(Type t) {
-      if (t instanceof Class<?>) {
-        return (Class<?>) t;
-      } else if (t instanceof ParameterizedType) {
-        ParameterizedType pt = (ParameterizedType) t;
-        return (Class<?>) pt.getRawType();
-      }
-      return null;
-    }
-
     /**
      * Create a PrimitiveConversionHelper for Method m. The ObjectInspector's
      * input parameters are specified in parameters.
@@ -285,39 +274,21 @@ public final class GenericUDFUtils {
               + " arguments but only " + parameterOIs.length
               + " are passed in.");
         }
+
         // Copy the first methodParameterTypes.length - 1 entries
         for (int i = 0; i < methodParameterTypes.length - 1; i++) {
           // This method takes Object, so it accepts whatever types that are
           // passed in.
-          if (methodParameterTypes[i] == Object.class) {
-            methodParameterOIs[i] = ObjectInspectorUtils
-                .getStandardObjectInspector(parameterOIs[i],
-                ObjectInspectorCopyOption.JAVA);
-          } else {
-            methodParameterOIs[i] = ObjectInspectorFactory
-                .getReflectionObjectInspector(methodParameterTypes[i],
-                ObjectInspectorOptions.JAVA);
-          }
+          methodParameterOIs[i] = ObjectInspectorFactory
+              .getReflectionObjectInspector(methodParameterTypes[i], parameterOIs[i],
+                  ObjectInspectorOptions.JAVA);
         }
 
         // Deal with the last entry
-        if (lastParaElementType == Object.class) {
-          // This method takes Object[], so it accepts whatever types that are
-          // passed in.
-          for (int i = methodParameterTypes.length - 1; i < parameterOIs.length; i++) {
-            methodParameterOIs[i] = ObjectInspectorUtils
-                .getStandardObjectInspector(parameterOIs[i],
-                ObjectInspectorCopyOption.JAVA);
-          }
-        } else {
-          // This method takes something like String[], so it only accepts
-          // something like String
-          ObjectInspector oi = ObjectInspectorFactory
-              .getReflectionObjectInspector(lastParaElementType,
-              ObjectInspectorOptions.JAVA);
-          for (int i = methodParameterTypes.length - 1; i < parameterOIs.length; i++) {
-            methodParameterOIs[i] = oi;
-          }
+        for (int i = methodParameterTypes.length - 1; i < parameterOIs.length; i++) {
+          methodParameterOIs[i] = ObjectInspectorFactory
+              .getReflectionObjectInspector(lastParaElementType, parameterOIs[i],
+                  ObjectInspectorOptions.JAVA);
         }
 
       } else {
@@ -332,17 +303,9 @@ public final class GenericUDFUtils {
               + parameterOIs.length + " are passed in.");
         }
         for (int i = 0; i < methodParameterTypes.length; i++) {
-          // This method takes Object, so it accepts whatever types that are
-          // passed in.
-          if (methodParameterTypes[i] == Object.class) {
-            methodParameterOIs[i] = ObjectInspectorUtils
-                .getStandardObjectInspector(parameterOIs[i],
-                ObjectInspectorCopyOption.JAVA);
-          } else {
             methodParameterOIs[i] = ObjectInspectorFactory
-                .getReflectionObjectInspector(methodParameterTypes[i],
+                .getReflectionObjectInspector(methodParameterTypes[i], parameterOIs[i],
                 ObjectInspectorOptions.JAVA);
-          }
         }
       }
 
@@ -361,7 +324,7 @@ public final class GenericUDFUtils {
       if (isVariableLengthArgument) {
         convertedParameters = new Object[methodParameterTypes.length];
         convertedParametersInArray = (Object[]) Array.newInstance(
-            getClassFromType(lastParaElementType), parameterOIs.length
+            TypeInfoUtils.getClassFromType(lastParaElementType), parameterOIs.length
             - methodParameterTypes.length + 1);
         convertedParameters[convertedParameters.length - 1] = convertedParametersInArray;
       } else {

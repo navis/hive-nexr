@@ -20,6 +20,8 @@ package org.apache.hadoop.hive.ql.udf.generic;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
 import java.util.ArrayList;
 
 import org.apache.hadoop.hive.common.JavaUtils;
@@ -162,8 +164,22 @@ public class GenericUDFBridge extends GenericUDF implements Serializable {
     realArguments = new Object[arguments.length];
 
     // Get the return ObjectInspector.
+    Type returnType = udfMethod.getGenericReturnType();
+    if (returnType instanceof TypeVariable) {
+      // should be referenced from parameters at least once
+      TypeVariable tv = (TypeVariable)returnType;
+      Type[] parameterTypes = udfMethod.getGenericParameterTypes();
+      for (int i = 0; i < parameterTypes.length; i++) {
+        ObjectInspector oi = TypeInfoUtils.extractOI(tv, parameterTypes[i], arguments[i]);
+        if (oi != null) {
+          return ObjectInspectorFactory
+              .getReflectionObjectInspector(returnType, oi, ObjectInspectorOptions.JAVA);
+        }
+      }
+      throw new UDFArgumentException("Return type " + returnType + " cannot be resolved");
+    }
     ObjectInspector returnOI = ObjectInspectorFactory
-        .getReflectionObjectInspector(udfMethod.getGenericReturnType(),
+        .getReflectionObjectInspector(returnType,
         ObjectInspectorOptions.JAVA);
 
     return returnOI;

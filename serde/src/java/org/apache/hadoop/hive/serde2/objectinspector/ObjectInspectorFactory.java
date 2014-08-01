@@ -21,6 +21,7 @@ package org.apache.hadoop.hive.serde2.objectinspector;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -31,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorUtils;
 import org.apache.thrift.TUnion;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 
 /**
  * ObjectInspectorFactory is the primary way to create new ObjectInspector
@@ -65,9 +67,17 @@ public final class ObjectInspectorFactory {
 
   public static ObjectInspector getReflectionObjectInspector(Type t,
       ObjectInspectorOptions options) {
+    return getReflectionObjectInspector(t, null, options);
+  }
+
+  public static ObjectInspector getReflectionObjectInspector(Type t, ObjectInspector toi,
+      ObjectInspectorOptions options) {
+    if (t == Object.class || TypeInfoUtils.containsTypeVariable(t)) {
+      return getReflectionObjectInspectorNoCache(t, toi, options);
+    }
     ObjectInspector oi = objectInspectorCache.get(t);
     if (oi == null) {
-      oi = getReflectionObjectInspectorNoCache(t, options);
+      oi = getReflectionObjectInspectorNoCache(t, toi, options);
       objectInspectorCache.put(t, oi);
     }
     verifyObjectInspector(options, oi, ObjectInspectorOptions.JAVA, new Class[]{ThriftStructObjectInspector.class,
@@ -101,32 +111,52 @@ public final class ObjectInspectorFactory {
     }
   }
 
-  private static ObjectInspector getReflectionObjectInspectorNoCache(Type t,
+  private static ObjectInspector getReflectionObjectInspectorNoCache(Type t, ObjectInspector oi,
       ObjectInspectorOptions options) {
+    if (t == Object.class) {
+      return ObjectInspectorUtils.getStandardObjectInspector(
+          oi, ObjectInspectorUtils.ObjectInspectorCopyOption.JAVA);
+    }
     if (t instanceof GenericArrayType) {
       GenericArrayType at = (GenericArrayType) t;
+      if (oi instanceof ListObjectInspector) {
+        oi = ((ListObjectInspector)oi).getListElementObjectInspector();
+      }
       return getStandardListObjectInspector(getReflectionObjectInspector(at
-          .getGenericComponentType(), options));
+          .getGenericComponentType(), oi, options));
     }
 
     if (t instanceof ParameterizedType) {
       ParameterizedType pt = (ParameterizedType) t;
+      Class<?> rawType = TypeInfoUtils.getClassFromType(pt.getRawType());
       // List?
-      if (List.class.isAssignableFrom((Class<?>) pt.getRawType()) ||
-          Set.class.isAssignableFrom((Class<?>) pt.getRawType())) {
+      if (List.class.isAssignableFrom(rawType) || Set.class.isAssignableFrom(rawType)) {
+        if (oi instanceof ListObjectInspector) {
+          oi = ((ListObjectInspector)oi).getListElementObjectInspector();
+        }
         return getStandardListObjectInspector(getReflectionObjectInspector(pt
-            .getActualTypeArguments()[0], options));
+            .getActualTypeArguments()[0], oi, options));
       }
       // Map?
       if (Map.class.isAssignableFrom((Class<?>) pt.getRawType())) {
-        return getStandardMapObjectInspector(getReflectionObjectInspector(pt
-            .getActualTypeArguments()[0], options),
-            getReflectionObjectInspector(pt.getActualTypeArguments()[1],
-            options));
+        ObjectInspector koi = null;
+        ObjectInspector voi = null;
+        if (oi instanceof MapObjectInspector) {
+          koi = ((MapObjectInspector)oi).getMapKeyObjectInspector();
+          voi = ((MapObjectInspector)oi).getMapValueObjectInspector();
+        }
+        koi = getReflectionObjectInspector(pt.getActualTypeArguments()[0], koi, options);
+        voi = getReflectionObjectInspector(pt.getActualTypeArguments()[1], voi, options);
+        return getStandardMapObjectInspector(koi, voi);
       }
       // Otherwise convert t to RawType so we will fall into the following if
       // block.
       t = pt.getRawType();
+    } else if (t instanceof TypeVariable) {
+      TypeVariable tv = (TypeVariable) t;
+      if (tv.getBounds().length == 1) {
+        return getReflectionObjectInspectorNoCache(tv.getBounds()[0], oi, options);
+      }
     }
 
     // Must be a class.
@@ -168,16 +198,16 @@ public final class ObjectInspectorFactory {
     assert (!Map.class.isAssignableFrom(c));
 
     // Create StructObjectInspector
-    ReflectionStructObjectInspector oi;
+    ReflectionStructObjectInspector soi;
     switch (options) {
     case JAVA:
-      oi = new ReflectionStructObjectInspector();
+      soi = new ReflectionStructObjectInspector();
       break;
     case THRIFT:
-      oi = TUnion.class.isAssignableFrom(c) ? new ThriftUnionObjectInspector() : new ThriftStructObjectInspector();
+      soi = TUnion.class.isAssignableFrom(c) ? new ThriftUnionObjectInspector() : new ThriftStructObjectInspector();
       break;
     case PROTOCOL_BUFFERS:
-      oi = new ProtocolBuffersStructObjectInspector();
+      soi = new ProtocolBuffersStructObjectInspector();
       break;
     default:
       throw new RuntimeException(ObjectInspectorFactory.class.getName()
@@ -186,10 +216,11 @@ public final class ObjectInspectorFactory {
 
     // put it into the cache BEFORE it is initialized to make sure we can catch
     // recursive types.
-    objectInspectorCache.put(t, oi);
-    oi.init(c, options);
-    return oi;
-
+    if (t != Object.class && !TypeInfoUtils.containsTypeVariable(t)) {
+      objectInspectorCache.put(t, soi);
+    }
+    soi.init(c, oi, options);
+    return soi;
   }
 
   static ConcurrentHashMap<ObjectInspector, StandardListObjectInspector> cachedStandardListObjectInspector =

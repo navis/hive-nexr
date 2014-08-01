@@ -51,7 +51,7 @@ import org.mockito.Mockito;
 public class TestRecordReaderImpl {
 
   // can add .verboseLogging() to cause Mockito to log invocations
-  private final MockSettings settings = Mockito.withSettings().verboseLogging();
+  private final MockSettings settings = Mockito.withSettings();
 
   static class BufferInStream
       extends InputStream implements PositionedReadable, Seekable {

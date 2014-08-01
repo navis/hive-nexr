@@ -20,6 +20,8 @@ package org.apache.hadoop.hive.serde2.objectinspector;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -117,25 +119,25 @@ public class ReflectionStructObjectInspector extends
    * The reason that this method is not recursive by itself is because we want
    * to allow recursive types.
    */
-  protected void init(Class<?> objectClass,
+  protected void init(Class<?> objectClass, ObjectInspector oi,
       ObjectInspectorFactory.ObjectInspectorOptions options) {
 
     verifyObjectClassType(objectClass);
     this.objectClass = objectClass;
-    final List<? extends ObjectInspector> structFieldObjectInspectors = extractFieldObjectInspectors(objectClass, options);
+    List<ObjectInspector> fieldOIs = extractFieldObjectInspectors(objectClass, oi, options);
 
     Field[] reflectionFields = ObjectInspectorUtils
         .getDeclaredNonStaticFields(objectClass);
-    fields = new ArrayList<MyField>(structFieldObjectInspectors.size());
+    fields = new ArrayList<MyField>(fieldOIs.size());
     int used = 0;
     for (int i = 0; i < reflectionFields.length; i++) {
       if (!shouldIgnoreField(reflectionFields[i].getName())) {
         reflectionFields[i].setAccessible(true);
-        fields.add(new MyField(i, reflectionFields[i], structFieldObjectInspectors
+        fields.add(new MyField(i, reflectionFields[i], fieldOIs
             .get(used++)));
       }
     }
-    assert (fields.size() == structFieldObjectInspectors.size());
+    assert (fields.size() == fieldOIs.size());
   }
 
   // ThriftStructObjectInspector will override and ignore __isset fields.
@@ -207,20 +209,33 @@ public class ReflectionStructObjectInspector extends
     return struct;
   }
 
-  protected List<? extends ObjectInspector> extractFieldObjectInspectors(Class<?> clazz,
-    ObjectInspectorFactory.ObjectInspectorOptions options) {
+  protected List<ObjectInspector> extractFieldObjectInspectors(
+      Class<?> clazz, ObjectInspector oi, ObjectInspectorFactory.ObjectInspectorOptions options) {
+    Map<String, ObjectInspector> mapping = toFieldMap(oi);
     Field[] fields = ObjectInspectorUtils.getDeclaredNonStaticFields(clazz);
-    ArrayList<ObjectInspector> structFieldObjectInspectors = new ArrayList<ObjectInspector>(
-      fields.length);
+    List<ObjectInspector> fieldOIs = new ArrayList<ObjectInspector>(fields.length);
     for (int i = 0; i < fields.length; i++) {
       if (!shouldIgnoreField(fields[i].getName())) {
-        structFieldObjectInspectors.add(ObjectInspectorFactory.getReflectionObjectInspector(fields[i]
-          .getGenericType(), options));
+        fieldOIs.add(
+            ObjectInspectorFactory.getReflectionObjectInspector(
+                fields[i].getGenericType(), mapping.get(fields[i].getName()), options));
       }
     }
-    return structFieldObjectInspectors;
+    return fieldOIs;
   }
 
+  private static Map<String, ObjectInspector> toFieldMap(ObjectInspector oi) {
+    if (!(oi instanceof StructObjectInspector)) {
+      return Collections.emptyMap();
+    }
+    StructObjectInspector soi = (StructObjectInspector) oi;
+    List<? extends StructField> fields = soi.getAllStructFieldRefs();
+    Map<String, ObjectInspector> mapping = new HashMap<String, ObjectInspector>(fields.size());
+    for (StructField field : fields) {
+      mapping.put(field.getFieldName(), field.getFieldObjectInspector());
+    }
+    return mapping;
+  }
 
   protected void verifyObjectClassType(Class<?> objectClass) {
     assert (!List.class.isAssignableFrom(objectClass));
