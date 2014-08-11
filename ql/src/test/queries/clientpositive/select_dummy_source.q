@@ -31,3 +31,11 @@ explain
 select 2 + 3,x from (select 1 + 2 x) X;
 select 2 + 3,x from (select 1 + 2 x) X;
 
+-- insert
+create table dummy_tbl (key int);
+
+explain
+insert into table dummy_tbl select 1;
+insert into table dummy_tbl select 1;
+
+select * from dummy_tbl;

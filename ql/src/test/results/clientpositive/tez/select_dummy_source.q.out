@@ -227,3 +227,83 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: _dummy_database@_dummy_table
 #### A masked pattern was here ####
 5	3
+PREHOOK: query: -- insert
+create table dummy_tbl (key int)
+PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
+PREHOOK: Output: default@dummy_tbl
+POSTHOOK: query: -- insert
+create table dummy_tbl (key int)
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@dummy_tbl
+PREHOOK: query: explain
+insert into table dummy_tbl select 1
+PREHOOK: type: QUERY
+POSTHOOK: query: explain
+insert into table dummy_tbl select 1
+POSTHOOK: type: QUERY
+STAGE DEPENDENCIES:
+  Stage-1 is a root stage
+  Stage-2 depends on stages: Stage-1
+  Stage-0 depends on stages: Stage-2
+  Stage-3 depends on stages: Stage-0
+
+STAGE PLANS:
+  Stage: Stage-1
+    Tez
+#### A masked pattern was here ####
+      Vertices:
+        Map 1 
+            Map Operator Tree:
+                TableScan
+                  alias: _dummy_table
+                  Row Limit Per Split: 1
+                  Statistics: Num rows: 0 Data size: 1 Basic stats: PARTIAL Column stats: COMPLETE
+                  Select Operator
+                    expressions: 1 (type: int)
+                    outputColumnNames: _col0
+                    Statistics: Num rows: 0 Data size: 1 Basic stats: PARTIAL Column stats: COMPLETE
+                    File Output Operator
+                      compressed: false
+                      Statistics: Num rows: 0 Data size: 1 Basic stats: PARTIAL Column stats: COMPLETE
+                      table:
+                          input format: org.apache.hadoop.mapred.TextInputFormat
+                          output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+                          serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+                          name: default.dummy_tbl
+
+  Stage: Stage-2
+    Dependency Collection
+
+  Stage: Stage-0
+    Move Operator
+      tables:
+          replace: false
+          table:
+              input format: org.apache.hadoop.mapred.TextInputFormat
+              output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+              serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+              name: default.dummy_tbl
+
+  Stage: Stage-3
+    Stats-Aggr Operator
+
+PREHOOK: query: insert into table dummy_tbl select 1
+PREHOOK: type: QUERY
+PREHOOK: Input: _dummy_database@_dummy_table
+PREHOOK: Output: default@dummy_tbl
+POSTHOOK: query: insert into table dummy_tbl select 1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: _dummy_database@_dummy_table
+POSTHOOK: Output: default@dummy_tbl
+POSTHOOK: Lineage: dummy_tbl.key SIMPLE []
+PREHOOK: query: select * from dummy_tbl
+PREHOOK: type: QUERY
+PREHOOK: Input: default@dummy_tbl
+#### A masked pattern was here ####
+POSTHOOK: query: select * from dummy_tbl
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@dummy_tbl
+#### A masked pattern was here ####
+1

@@ -2128,8 +2128,12 @@ regularBody[boolean topLevel]
    i=insertClause
    (
    s=selectStatement[topLevel]
-     {$s.tree.getChild(1).replaceChildren(0, 0, $i.tree);} -> {$s.tree}
-     |
+   {
+     int insert = $s.tree.getChildCount() == 1 ? 0 : 1;
+     $s.tree.getChild(insert).replaceChildren(0, 0, $i.tree);
+   }
+   -> {$s.tree}
+   |
      valuesClause
       -> ^(TOK_QUERY
             ^(TOK_FROM
