@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hive.ql.lib;
 
+import java.util.List;
 import java.util.Stack;
 
 /**
@@ -63,5 +64,17 @@ public class Utils {
       }
     }
     return null;
+  }
+
+  public static <T extends Node> void traverse(List<T> nodes, Function<T, Boolean> function) {
+    for (T node : nodes) {
+      if (function.apply(node) && node.getChildren() != null) {
+        traverse((List<T>) node.getChildren(), function);
+      }
+    }
+  }
+
+  public interface Function<F, T> {
+    T apply(F input);
   }
 }

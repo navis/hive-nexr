@@ -68,6 +68,8 @@ public class TableScanOperator extends Operator<TableScanDesc> implements
 
   private String defaultPartitionName;
 
+  private transient Map<String, String> scanPlan;
+
   public TableDesc getTableDesc() {
     return tableDesc;
   }
@@ -265,6 +267,14 @@ public class TableScanOperator extends Operator<TableScanDesc> implements
 
   public List<String> getReferencedColumns() {
     return conf.getReferencedColumns();
+  }
+
+  public void setScanPlan(Map<String, String> scanPlan) {
+    this.scanPlan = scanPlan;
+  }
+
+  public Map<String, String> getScanPlan() {
+    return scanPlan;
   }
 
   @Override

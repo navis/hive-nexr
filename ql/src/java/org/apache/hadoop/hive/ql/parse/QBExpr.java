@@ -38,6 +38,8 @@ public class QBExpr {
     NULLOP, UNION, INTERSECT, DIFF
   };
 
+  private ASTNode source;
+
   private Opcode opcode;
   private QBExpr qbexpr1;
   private QBExpr qbexpr2;
@@ -50,6 +52,14 @@ public class QBExpr {
 
   public void setAlias(String alias) {
     this.alias = alias;
+  }
+
+  public ASTNode getSource() {
+    return source;
+  }
+
+  public void setSource(ASTNode source) {
+    this.source = source;
   }
 
   public QBExpr(String alias) {

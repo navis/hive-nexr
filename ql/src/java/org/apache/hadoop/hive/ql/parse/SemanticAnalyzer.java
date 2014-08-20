@@ -41,6 +41,7 @@ import java.util.regex.PatternSyntaxException;
 import org.antlr.runtime.ClassicToken;
 import org.antlr.runtime.CommonToken;
 import org.antlr.runtime.Token;
+import org.antlr.runtime.TokenRewriteStream;
 import org.antlr.runtime.tree.Tree;
 import org.antlr.runtime.tree.TreeWizard;
 import org.antlr.runtime.tree.TreeWizard.ContextVisitor;
@@ -108,6 +109,7 @@ import org.apache.hadoop.hive.ql.lib.Node;
 import org.apache.hadoop.hive.ql.metadata.DummyPartition;
 import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.ql.metadata.HiveStorageSubQueryHandler;
 import org.apache.hadoop.hive.ql.metadata.HiveUtils;
 import org.apache.hadoop.hive.ql.metadata.InvalidTableException;
 import org.apache.hadoop.hive.ql.metadata.Partition;
@@ -408,6 +410,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
   @SuppressWarnings("nls")
   public void doPhase1QBExpr(ASTNode ast, QBExpr qbexpr, String id, String alias)
       throws SemanticException {
+
+    qbexpr.setSource(ast);
 
     assert (ast.getToken() != null);
     switch (ast.getToken().getType()) {
@@ -2633,7 +2637,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     Phase1Ctx ctx_1 = initPhase1Ctx();
     doPhase1(subQueryPredicate.getSubQueryAST(), qbSQ, ctx_1, null);
     getMetaData(qbSQ);
-    Operator op = genPlan(qbSQ);
+    Operator op = genPlan(null, qbSQ);
     return op;
   }
 
@@ -9520,7 +9524,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
   private Operator genPlan(QB parent, QBExpr qbexpr) throws SemanticException {
     if (qbexpr.getOpcode() == QBExpr.Opcode.NULLOP) {
       boolean skipAmbiguityCheck = viewSelect == null && parent.isTopLevelSelectStarQuery();
-      return genPlan(qbexpr.getQB(), skipAmbiguityCheck);
+      return genPlan(qbexpr.getSource(), qbexpr.getQB(), skipAmbiguityCheck);
     }
     if (qbexpr.getOpcode() == QBExpr.Opcode.UNION) {
       Operator qbexpr1Ops = genPlan(parent, qbexpr.getQBExpr1());
@@ -9532,17 +9536,51 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     return null;
   }
 
-  public Operator genPlan(QB qb) throws SemanticException {
-    return genPlan(qb, false);
+  public Operator genPlan(ASTNode source, QB qb) throws SemanticException {
+    return genPlan(source, qb, false);
   }
 
   @SuppressWarnings("nls")
-  public Operator genPlan(QB qb, boolean skipAmbiguityCheck)
+  public Operator genPlan(ASTNode source, QB qb, boolean skipAmbiguityCheck)
       throws SemanticException {
 
     // First generate all the opInfos for the elements in the from clause
     // Must be deterministic order map - see HIVE-8707
     Map<String, Operator> aliasToOpInfo = new LinkedHashMap<String, Operator>();
+
+    if (qb.getSubqAliases().isEmpty() && qb.getTabAliases().size() == 1 && source != null) {
+      String tabAlias = qb.getTabAliases().iterator().next();
+      Table table = qb.getMetaData().getSrcForAlias(tabAlias);
+      if (table.getStorageHandler() instanceof HiveStorageSubQueryHandler) {
+        HiveStorageSubQueryHandler handler = (HiveStorageSubQueryHandler) table.getStorageHandler();
+        TokenRewriteStream rewriter = ctx.getTokenRewriteStream();
+
+        QBParseInfo parseInfo = qb.getParseInfo();
+        TableScanOperator operator = handler.handleSubQuery(parseInfo, table, rewriter, source);
+        if (operator != null && operator.getSchema() != null) {
+          List<FieldSchema> cols = new ArrayList<FieldSchema>();
+          for (ColumnInfo column : operator.getSchema().getSignature()) {
+            cols.add(new FieldSchema(column.getAlias(), column.getType().getTypeName(), null));
+          }
+          table.getTTable().getSd().setCols(cols);
+          topToTable.put(operator, table);
+          topOps.put(getAliasId(tabAlias, qb), operator);
+
+          Operator curr = operator;
+          if (parseInfo.getIsSubQ()) {
+            tabAlias = parseInfo.getAlias();
+          }
+          RowResolver rr = new RowResolver(tabAlias, operator.getSchema());
+          putOpInsertMap(operator, rr);
+          if (!parseInfo.getIsSubQ()) {
+            for (String dest : new TreeSet<String>(parseInfo.getClauseNames())) {
+              curr = genFileSinkPlan(dest, qb, operator);
+            }
+          }
+          return curr;
+        }
+      }
+    }
 
     // Recurse over the subqueries to fill the subquery part of the plan
     for (String alias : qb.getSubqAliases()) {
@@ -9969,7 +10007,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
   }
 
   Operator genOPTree(ASTNode ast, PlannerContext plannerCtx) throws SemanticException {
-    return genPlan(qb);
+    return genPlan(ast, qb);
   }
 
   void analyzeInternal(ASTNode ast, PlannerContext plannerCtx) throws SemanticException {

@@ -102,9 +102,9 @@ public final class RewriteParseContextGenerator {
       ASTNode ast, Context ctx) throws SemanticException {
     QB qb = new QB(null, null, false);
     ASTNode child = ast;
-    ParseContext subPCtx = ((SemanticAnalyzer) sem).getParseContext();
+    ParseContext subPCtx = sem.getParseContext();
     subPCtx.setContext(ctx);
-    ((SemanticAnalyzer) sem).initParseCtx(subPCtx);
+    sem.initParseCtx(subPCtx);
 
     LOG.info("Starting Sub-query Semantic Analysis");
     sem.doPhase1(child, qb, sem.initPhase1Ctx(), null);
@@ -114,7 +114,7 @@ public final class RewriteParseContextGenerator {
     LOG.info("Completed getting MetaData in Sub-query Semantic Analysis");
 
     LOG.info("Sub-query Abstract syntax tree: " + ast.toStringTree());
-    Operator<?> operator = sem.genPlan(qb);
+    Operator<?> operator = sem.genPlan(ast, qb);
 
     LOG.info("Sub-query Completed plan generation");
     return operator;

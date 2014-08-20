@@ -437,6 +437,14 @@ public class HiveInputFormat<K extends WritableComparable, V extends Writable>
     // ensure filters are not set from previous pushFilters
     jobConf.unset(TableScanDesc.FILTER_TEXT_CONF_STR);
     jobConf.unset(TableScanDesc.FILTER_EXPR_CONF_STR);
+
+    Map<String, String> scanPlan = tableScan.getScanPlan();
+    if (scanPlan != null && !scanPlan.isEmpty()) {
+      for (Map.Entry<String, String> entry : scanPlan.entrySet()) {
+        jobConf.set(entry.getKey(), entry.getValue());
+      }
+    }
+
     TableScanDesc scanDesc = tableScan.getConf();
     if (scanDesc == null) {
       return;
