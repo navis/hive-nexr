@@ -22,11 +22,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.ql.log.PerfLogger;
 import org.apache.hadoop.hive.shims.ShimLoader;
-import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -36,12 +35,13 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
 /** An InputFormat for ORC files. Keys are meaningless,
  * value is the OrcStruct object */
-public class OrcNewInputFormat extends InputFormat<NullWritable, OrcStruct>{
+public class OrcNewInputFormat extends InputFormat<LongWritable, OrcStruct> {
+
   private static final PerfLogger perfLogger = PerfLogger.getPerfLogger();
   private static final String CLASS_NAME = ReaderImpl.class.getName();
 
   @Override
-  public RecordReader<NullWritable, OrcStruct> createRecordReader(
+  public RecordReader<LongWritable, OrcStruct> createRecordReader(
       InputSplit inputSplit, TaskAttemptContext context)
       throws IOException, InterruptedException {
     FileSplit fileSplit = (FileSplit) inputSplit;
@@ -55,16 +55,18 @@ public class OrcNewInputFormat extends InputFormat<NullWritable, OrcStruct>{
   }
 
   private static class OrcRecordReader
-    extends RecordReader<NullWritable, OrcStruct> {
+    extends RecordReader<LongWritable, OrcStruct> {
     private final org.apache.hadoop.hive.ql.io.orc.RecordReader reader;
     private final int numColumns;
-    OrcStruct value;
+    private final LongWritable key;
+    private final OrcStruct value;
     private float progress = 0.0f;
 
     OrcRecordReader(Reader file, Configuration conf,
                     long offset, long length) throws IOException {
       List<OrcProto.Type> types = file.getTypes();
       numColumns = (types.size() == 0) ? 0 : types.get(0).getSubtypesCount();
+      key = new LongWritable();
       value = new OrcStruct(numColumns);
       this.reader = OrcInputFormat.createReaderFromFile(file, conf, offset,
           length);
@@ -77,9 +79,10 @@ public class OrcNewInputFormat extends InputFormat<NullWritable, OrcStruct>{
 
 
     @Override
-    public NullWritable getCurrentKey() throws IOException,
+    public LongWritable getCurrentKey() throws IOException,
         InterruptedException {
-      return NullWritable.get();
+      key.set(reader.getRowNumber());
+      return key;
     }
 
 
