@@ -47,11 +47,11 @@ import org.apache.hadoop.hive.conf.Validator.RangeValidator;
 import org.apache.hadoop.hive.conf.Validator.RatioValidator;
 import org.apache.hadoop.hive.conf.Validator.StringSet;
 import org.apache.hadoop.hive.conf.Validator.TimeValidator;
+import org.apache.hadoop.hive.shims.Environments;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.hive.shims.Utils;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.util.Shell;
 import org.apache.hive.common.HiveCompat;
 
 import com.google.common.base.Joiner;
@@ -2169,7 +2169,7 @@ public class HiveConf extends Configuration {
       val = (val == null ? File.separator + "usr" : val)
         + File.separator + "bin" + File.separator + "hadoop";
       // Launch hadoop command file on windows.
-      return val + (Shell.WINDOWS ? ".cmd" : "");
+      return val + (Environments.WINDOWS ? ".cmd" : "");
     }
 
     public String getDefaultValue() {

@@ -24,7 +24,7 @@ import java.util.NoSuchElementException;
 
 import junit.framework.TestCase;
 
-import org.apache.hadoop.util.Shell;
+import org.apache.hadoop.hive.shims.Environments;
 
 /**
  * TestGenericMR.
@@ -138,6 +138,6 @@ public final class TestGenericMR extends TestCase {
 
   private static String getOsSpecificOutput(String outStr){
     assert outStr != null;
-    return Shell.WINDOWS ? outStr.replaceAll("\\r", "") : outStr;
+    return Environments.WINDOWS ? outStr.replaceAll("\\r", "") : outStr;
   }
 }

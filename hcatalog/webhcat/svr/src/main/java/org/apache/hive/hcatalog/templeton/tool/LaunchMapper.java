@@ -24,6 +24,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.classification.InterfaceAudience;
+import org.apache.hadoop.hive.shims.Environments;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.hive.shims.HadoopShims.WebHCatJTShim;
 import org.apache.hadoop.io.NullWritable;
@@ -31,7 +32,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hive.hcatalog.templeton.AppConfig;
 import org.apache.hive.hcatalog.templeton.BadParam;
@@ -193,7 +193,7 @@ public class LaunchMapper extends Mapper<NullWritable, NullWritable, Text, Text>
       //Token is available, so replace the placeholder
       tokenFile = tokenFile.replaceAll("\"", "");
       String tokenArg = tokenProperty + "=" + tokenFile;
-      if (Shell.WINDOWS) {
+      if (Environments.WINDOWS) {
         try {
           tokenArg = TempletonUtils.quoteForWindows(tokenArg);
         } catch (BadParam e) {

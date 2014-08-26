@@ -26,9 +26,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
+import org.apache.hadoop.hive.shims.Environments;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.util.Shell;
 import org.apache.hive.service.auth.HiveAuthFactory;
 import org.apache.hive.service.cli.CLIService;
 import org.apache.hive.service.cli.thrift.TCLIService.Iface;
@@ -96,9 +96,9 @@ public class ThriftHttpCLIService extends ThriftCLIService {
       }
       connector.setPort(portNum);
       // Linux:yes, Windows:no
-      connector.setReuseAddress(!Shell.WINDOWS);
-      int maxIdleTime = (int) hiveConf.getTimeVar(ConfVars.HIVE_SERVER2_THRIFT_HTTP_MAX_IDLE_TIME,
-          TimeUnit.MILLISECONDS);
+      connector.setReuseAddress(!Environments.WINDOWS);
+      int maxIdleTime = (int) hiveConf.getTimeVar(
+          ConfVars.HIVE_SERVER2_THRIFT_HTTP_MAX_IDLE_TIME, TimeUnit.MILLISECONDS);
       connector.setMaxIdleTime(maxIdleTime);
 
       httpServer.addConnector(connector);

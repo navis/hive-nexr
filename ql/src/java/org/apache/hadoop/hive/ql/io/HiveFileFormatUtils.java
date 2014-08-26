@@ -43,6 +43,7 @@ import org.apache.hadoop.hive.ql.plan.PartitionDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.shims.ShimLoader;
+import org.apache.hadoop.hive.shims.Environments;
 import org.apache.hadoop.io.SequenceFile.CompressionType;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -57,7 +58,6 @@ import org.apache.hadoop.mapred.SequenceFileInputFormat;
 import org.apache.hadoop.mapred.SequenceFileOutputFormat;
 import org.apache.hadoop.mapred.TaskAttemptContext;
 import org.apache.hadoop.mapred.TextInputFormat;
-import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.util.ReflectionUtils;
 
 /**
@@ -444,7 +444,7 @@ public final class HiveFileFormatUtils {
     }
 
     String dirPath = dir.toUri().getPath();
-    if(Shell.WINDOWS){
+    if (Environments.WINDOWS) {
       //temp hack
       //do this to get rid of "/" before the drive letter in windows
       dirPath = new Path(dirPath).toString();

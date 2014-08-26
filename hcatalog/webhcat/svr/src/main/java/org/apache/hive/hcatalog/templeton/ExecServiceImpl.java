@@ -39,7 +39,7 @@ import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.util.Shell;
+import org.apache.hadoop.hive.shims.Environments;
 
 class StreamOutputWriter extends Thread
 {
@@ -175,7 +175,7 @@ public class ExecServiceImpl implements ExecService {
     LOG.info("Running: " + cmd);
     ExecBean res = new ExecBean();
 
-    if(Shell.WINDOWS){
+    if (Environments.WINDOWS) {
       //The default executor is sometimes causing failure on windows. hcat
       // command sometimes returns non zero exit status with it. It seems
       // to hit some race conditions on windows.

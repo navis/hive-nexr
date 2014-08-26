@@ -49,8 +49,8 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.shims.ShimLoader;
+import org.apache.hadoop.hive.shims.Environments;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hive.hcatalog.templeton.UgiFactory;
 import org.apache.hive.hcatalog.templeton.BadParam;
@@ -390,7 +390,7 @@ public class TempletonUtils {
   // equal sign might be lost as part of the cmd script processing if not
   // under quotes).
   public static String quoteForWindows(String param) throws BadParam {
-    if (Shell.WINDOWS) {
+    if (Environments.WINDOWS) {
       if (param != null && param.length() > 0) {
         String nonQuotedPart = param;
         boolean addQuotes = true;
@@ -416,7 +416,7 @@ public class TempletonUtils {
   }
 
   public static void addCmdForWindows(ArrayList<String> args) {
-    if(Shell.WINDOWS){
+    if (Environments.WINDOWS) {
       args.add("cmd");
       args.add("/c");
       args.add("call");

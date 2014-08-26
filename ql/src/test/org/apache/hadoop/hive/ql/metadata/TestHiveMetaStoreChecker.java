@@ -36,8 +36,8 @@ import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat;
 import org.apache.hadoop.hive.ql.WindowsPathUtil;
 import org.apache.hadoop.hive.serde.serdeConstants;
+import org.apache.hadoop.hive.shims.Environments;
 import org.apache.hadoop.mapred.TextInputFormat;
-import org.apache.hadoop.util.Shell;
 import org.apache.thrift.TException;
 
 /**
@@ -63,7 +63,7 @@ public class TestHiveMetaStoreChecker extends TestCase {
   protected void setUp() throws Exception {
     super.setUp();
     hive = Hive.get();
-    if (Shell.WINDOWS) {
+    if (Environments.WINDOWS) {
       WindowsPathUtil.convertPathsFromWindowsToHdfs(hive.getConf());
     }
     checker = new HiveMetaStoreChecker(hive);

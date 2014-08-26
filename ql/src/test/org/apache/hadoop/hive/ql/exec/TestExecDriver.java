@@ -59,8 +59,8 @@ import org.apache.hadoop.hive.ql.plan.SelectDesc;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
+import org.apache.hadoop.hive.shims.Environments;
 import org.apache.hadoop.mapred.TextInputFormat;
-import org.apache.hadoop.util.Shell;
 
 /**
  * Mimics the actual query compiler in generating end to end plans and testing
@@ -86,7 +86,7 @@ public class TestExecDriver extends TestCase {
       SessionState.start(conf);
 
       //convert possible incompatible Windows path in config
-      if (Shell.WINDOWS) {
+      if (Environments.WINDOWS) {
         WindowsPathUtil.convertPathsFromWindowsToHdfs(conf);
       }
       tmpdir = System.getProperty("test.tmp.dir");
@@ -171,7 +171,7 @@ public class TestExecDriver extends TestCase {
     }
     FSDataInputStream fi_test = fs.open((fs.listStatus(di_test))[0].getPath());
 
-    boolean ignoreWhitespace = Shell.WINDOWS;
+    boolean ignoreWhitespace = Environments.WINDOWS;
     FileInputStream fi_gold = new FileInputStream(new File(testFileDir,datafile));
     if (!Utilities.contentsEqual(fi_gold, fi_test, ignoreWhitespace)) {
       LOG.error(di_test.toString() + " does not match " + datafile);

@@ -162,6 +162,7 @@ import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeUtils;
 import org.apache.hadoop.hive.serde2.Serializer;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
+import org.apache.hadoop.hive.shims.Environments;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.SequenceFile;
@@ -181,7 +182,6 @@ import org.apache.hadoop.mapred.SequenceFileInputFormat;
 import org.apache.hadoop.mapred.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.hadoop.util.Shell;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
@@ -1308,7 +1308,7 @@ public final class Utilities {
 
       // Default new line characters on windows are "CRLF" so detect if there are any windows
       // native newline characters and handle them.
-      if (Shell.WINDOWS) {
+      if (Environments.WINDOWS) {
         // if the CR is not followed by the LF on windows then add it back to the stream and
         // proceed with next characters in the input stream.
         if (foundCrChar && b != Utilities.newLineCode) {

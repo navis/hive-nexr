@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.net.URI;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.shims.Environments;
 import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.hive.shims.HadoopShims;
@@ -52,7 +53,7 @@ public class ProxyLocalFileSystem extends FilterFileSystem {
     // from the supplied URI
     String scheme = name.getScheme();
     String nameUriString = name.toString();
-    if (Shell.WINDOWS) {
+    if (Environments.WINDOWS) {
       // Replace the encoded backward slash with forward slash
       // Remove the windows drive letter
       nameUriString = nameUriString.replaceAll("%5C", "/")

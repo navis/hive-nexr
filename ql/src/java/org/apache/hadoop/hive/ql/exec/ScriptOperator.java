@@ -46,12 +46,12 @@ import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeUtils;
 import org.apache.hadoop.hive.serde2.Serializer;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.shims.Environments;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.Reporter;
-import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.spark.SparkFiles;
 
@@ -241,7 +241,7 @@ public class ScriptOperator extends Operator<ScriptDesc> implements
           if (f.isFile() && f.canRead()) {
             return f;
           }
-          if (Shell.WINDOWS) {
+          if (Environments.WINDOWS) {
             // Try filename with executable extentions
             String[] exts = new String[] {".exe", ".bat"};
             for (String ext : exts) {
@@ -289,7 +289,7 @@ public class ScriptOperator extends Operator<ScriptDesc> implements
   }
 
   boolean isBrokenPipeException(IOException e) {
-  if (Shell.WINDOWS) {
+  if (Environments.WINDOWS) {
       String errMsg = e.getMessage();
       return errMsg.equalsIgnoreCase(IO_EXCEPTION_PIPE_CLOSED_WIN) ||
           errMsg.equalsIgnoreCase(IO_EXCEPTION_PIPE_ENDED_WIN);

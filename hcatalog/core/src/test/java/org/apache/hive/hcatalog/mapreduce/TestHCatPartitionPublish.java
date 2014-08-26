@@ -45,6 +45,7 @@ import org.apache.hadoop.hive.ql.io.RCFileInputFormat;
 import org.apache.hadoop.hive.ql.io.RCFileOutputFormat;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.columnar.ColumnarSerDe;
+import org.apache.hadoop.hive.shims.Environments;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -54,7 +55,6 @@ import org.apache.hadoop.mapred.MiniMRCluster;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-import org.apache.hadoop.util.Shell;
 import org.apache.hive.hcatalog.NoExitSecurityManager;
 import org.apache.hive.hcatalog.cli.SemanticAnalysis.HCatSemanticAnalyzer;
 import org.apache.hive.hcatalog.data.DefaultHCatRecord;
@@ -162,7 +162,7 @@ public class TestHCatPartitionPublish {
     Assert.assertTrue(table != null);
     // In Windows, we cannot remove the output directory when job fail. See
     // FileOutputCommitterContainer.abortJob
-    if (!Shell.WINDOWS) {
+    if (!Environments.WINDOWS) {
       Path path = new Path(table.getSd().getLocation()
           + "/part1=p1value1/part0=p0value1");
       Assert.assertFalse(path.getFileSystem(conf).exists(path));

@@ -41,6 +41,7 @@ import org.apache.hadoop.hive.ql.io.orc.OrcSerde;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.columnar.LazyBinaryColumnarSerDe;
+import org.apache.hadoop.hive.shims.Environments;
 import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.hive.hcatalog.cli.SemanticAnalysis.HCatSemanticAnalyzer;
 import org.apache.hive.hcatalog.common.HCatConstants;
@@ -60,8 +61,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertArrayEquals;
-
-import org.apache.hadoop.util.Shell;
 
 public class TestHCatClient {
   private static final Logger LOG = LoggerFactory.getLogger(TestHCatClient.class);
@@ -132,7 +131,7 @@ public class TestHCatClient {
     System.setProperty(HiveConf.ConfVars.POSTEXECHOOKS.varname, " ");
   }
   public static String fixPath(String path) {
-    if(!Shell.WINDOWS) {
+    if (!Environments.WINDOWS) {
       return path;
     }
     String expectedDir = path.replaceAll("\\\\", "/");

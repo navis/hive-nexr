@@ -39,13 +39,12 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.shims.Environments;
 import org.apache.hadoop.hive.shims.HadoopShims;
 import org.apache.hadoop.hive.shims.HadoopShims.HdfsFileStatus;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.hive.shims.Utils;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.util.Shell;
-
 
 /**
  * Collection of file manipulation utilities common across Hive.
@@ -230,7 +229,7 @@ public final class FileUtils {
       charToEscape.set(c);
     }
 
-    if(Shell.WINDOWS){
+    if (Environments.WINDOWS) {
       //On windows, following chars need to be escaped as well
       char [] winClist = {' ', '<','>','|'};
       for (char c : winClist) {

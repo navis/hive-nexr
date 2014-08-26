@@ -19,7 +19,7 @@
 package org.apache.hadoop.hive.ql;
 
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.util.Shell;
+import org.apache.hadoop.hive.shims.Environments;
 
 public class WindowsPathUtil {
 
@@ -45,7 +45,7 @@ public class WindowsPathUtil {
 
   public static String getHdfsUriString(String uriStr) {
     assert uriStr != null;
-    if(Shell.WINDOWS) {
+    if (Environments.WINDOWS) {
       // If the URI conversion is from Windows to HDFS then replace the '\' with '/'
       // and remove the windows single drive letter & colon from absolute path.
       return uriStr.replace('\\', '/')

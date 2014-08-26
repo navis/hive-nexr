@@ -95,9 +95,9 @@ import org.apache.hadoop.hive.ql.processors.CommandProcessorFactory;
 import org.apache.hadoop.hive.ql.processors.CommandProcessorResponse;
 import org.apache.hadoop.hive.ql.processors.HiveCommand;
 import org.apache.hadoop.hive.ql.session.SessionState;
+import org.apache.hadoop.hive.shims.Environments;
 import org.apache.hadoop.hive.shims.HadoopShims;
 import org.apache.hadoop.hive.shims.ShimLoader;
-import org.apache.hadoop.util.Shell;
 import org.apache.hive.common.util.StreamPrinter;
 import org.apache.tools.ant.BuildException;
 import org.apache.zookeeper.WatchedEvent;
@@ -292,7 +292,7 @@ public class QTestUtil {
 
     // Windows paths should be converted after MiniMrShim.setupConfiguration()
     // since setupConfiguration may overwrite configuration values.
-    if (Shell.WINDOWS) {
+    if (Environments.WINDOWS) {
       WindowsPathUtil.convertPathsFromWindowsToHdfs(conf);
     }
   }
@@ -580,14 +580,13 @@ public class QTestUtil {
       String prefix = matcher.group(1);
       if ("EX".equals(prefix)) {
         //windows is to be exluded
-        if(Shell.WINDOWS){
+        if (Environments.WINDOWS) {
           System.out.println("Due to the OS being windows " +
                              "adding the  query " + fileName +
                              " to the set of tests to skip");
           return true;
         }
-      }
-      else  if(!Shell.WINDOWS){
+      } else if (!Environments.WINDOWS) {
         //non windows to be exluded
         System.out.println("Due to the OS not being windows " +
                            "adding the  query " + fileName +
@@ -1577,7 +1576,7 @@ public class QTestUtil {
     diffCommandArgs.add("-a");
 
     // Ignore changes in the amount of white space
-    if (ignoreWhiteSpace || Shell.WINDOWS) {
+    if (ignoreWhiteSpace || Environments.WINDOWS) {
       diffCommandArgs.add("-b");
     }
 
@@ -1586,7 +1585,7 @@ public class QTestUtil {
     // ("\r\n") as a line ending, whereas Unix uses just line feed ("\n").
     // Also StringBuilder.toString(), Stream to String conversions adds extra
     // spaces at the end of the line.
-    if (Shell.WINDOWS) {
+    if (Environments.WINDOWS) {
       diffCommandArgs.add("--strip-trailing-cr"); // Strip trailing carriage return on input
       diffCommandArgs.add("-B"); // Ignore changes whose lines are all blank
     }
@@ -1659,7 +1658,7 @@ public class QTestUtil {
   }
 
   private static String getQuotedString(String str){
-    return Shell.WINDOWS ? String.format("\"%s\"", str) : str;
+    return Environments.WINDOWS ? String.format("\"%s\"", str) : str;
   }
 
   public ASTNode parseQuery(String tname) throws Exception {
