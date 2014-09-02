@@ -1085,7 +1085,6 @@ public class HiveConnection implements java.sql.Connection {
     if (isClosed) {
       throw new SQLException("Connection is closed");
     }
-    return;
   }
 
   /*
@@ -1176,8 +1175,11 @@ public class HiveConnection implements java.sql.Connection {
       throw new SQLException("Schema name is null or empty");
     }
     Statement stmt = createStatement();
-    stmt.execute("use " + schema);
-    stmt.close();
+    try {
+      stmt.execute("use " + schema);
+    } finally {
+      stmt.close();
+    }
   }
 
   /*
