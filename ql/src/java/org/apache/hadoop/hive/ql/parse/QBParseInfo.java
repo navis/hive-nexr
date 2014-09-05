@@ -19,6 +19,7 @@
 package org.apache.hadoop.hive.ql.parse;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -53,7 +54,7 @@ public class QBParseInfo {
    */
   private final Map<String, List<String>> nameToDestSchema;
   private final HashMap<String, TableSample> nameToSample;
-  private final Map<ASTNode, String> exprToColumnAlias;
+  private final Map<String, Map<String, ASTNode>> destToAliases;
   private final Map<String, ASTNode> destToSelExpr;
   private final HashMap<String, ASTNode> destToWhereExpr;
   private final HashMap<String, ASTNode> destToGroupby;
@@ -121,7 +122,7 @@ public class QBParseInfo {
     nameToDest = new HashMap<String, ASTNode>();
     nameToDestSchema = new HashMap<String, List<String>>();
     nameToSample = new HashMap<String, TableSample>();
-    exprToColumnAlias = new HashMap<ASTNode, String>();
+    destToAliases = new HashMap<String, Map<String, ASTNode>>();
     destToLateralView = new HashMap<String, ASTNode>();
     destToSelExpr = new LinkedHashMap<String, ASTNode>();
     destToWhereExpr = new HashMap<String, ASTNode>();
@@ -151,25 +152,13 @@ public class QBParseInfo {
 
   }
 
-  /*
-   * If a QB is such that the aggregation expressions need to be handled by
-   * the Windowing PTF; we invoke this function to clear the AggExprs on the dest.
-   */
-  public void clearAggregationExprsForClause(String clause) {
-    destToAggregationExprs.get(clause).clear();
-  }
-
-  public void setAggregationExprsForClause(String clause,
-      LinkedHashMap<String, ASTNode> aggregationTrees) {
-    destToAggregationExprs.put(clause, aggregationTrees);
-  }
-
   public void addAggregationExprsForClause(String clause,
       LinkedHashMap<String, ASTNode> aggregationTrees) {
-    if (destToAggregationExprs.containsKey(clause)) {
-      destToAggregationExprs.get(clause).putAll(aggregationTrees);
-    } else {
+    LinkedHashMap<String, ASTNode> map = destToAggregationExprs.get(clause);
+    if (map == null) {
       destToAggregationExprs.put(clause, aggregationTrees);
+    } else {
+      map.putAll(aggregationTrees);
     }
   }
 
@@ -215,8 +204,12 @@ public class QBParseInfo {
     }
   }
 
-  public void setDistinctFuncExprsForClause(String clause, List<ASTNode> ast) {
-    destToDistinctFuncExprs.put(clause, ast);
+  public void addDistinctFuncExprsForClause(String clause, List<ASTNode> ast) {
+    List<ASTNode> distincts = destToDistinctFuncExprs.get(clause);
+    if (distincts == null) {
+      destToDistinctFuncExprs.put(clause, distincts = new ArrayList<ASTNode>());
+    }
+    distincts.addAll(ast);
   }
 
   public List<ASTNode> getDistinctFuncExprsForClause(String clause) {
@@ -427,20 +420,17 @@ public class QBParseInfo {
     nameToSample.put(alias.toLowerCase(), tableSample);
   }
 
-  public String getExprToColumnAlias(ASTNode expr) {
-    return exprToColumnAlias.get(expr);
+  public Map<String, ASTNode> getAllAliasedColumnExprs(String dest) {
+    Map<String, ASTNode> aliasedColumns = destToAliases.get(dest);
+    return aliasedColumns == null ? Collections.<String, ASTNode>emptyMap() : aliasedColumns;
   }
 
-  public Map<ASTNode, String> getAllExprToColumnAlias() {
-    return exprToColumnAlias;
-  }
-
-  public boolean hasExprToColumnAlias(ASTNode expr) {
-    return exprToColumnAlias.containsKey(expr);
-  }
-
-  public void setExprToColumnAlias(ASTNode expr, String alias) {
-    exprToColumnAlias.put(expr,  alias);
+  public void addAliasedColumnExpr(String dest, String alias, ASTNode expr) {
+    Map<String, ASTNode> map = destToAliases.get(dest);
+    if (map == null) {
+      destToAliases.put(dest, map = new HashMap<String, ASTNode>());
+    }
+    map.put(alias, expr);
   }
 
   public void setDestLimit(String dest, Integer limit) {

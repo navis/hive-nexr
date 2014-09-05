@@ -2658,19 +2658,20 @@ public class CalcitePlanner extends SemanticAnalyzer {
         throws CalciteSemanticException {
 
       QBParseInfo qbPI = qb.getParseInfo();
-      Map<ASTNode, String> exprToAlias = qbPI.getAllExprToColumnAlias();
+      String destName = qbPI.getClauseNames().iterator().next();
+      Map<String, ASTNode> aliasToExprs = qbPI.getAllAliasedColumnExprs(destName);
       /*
        * a mouthful, but safe: - a QB is guaranteed to have atleast 1
        * destination - we don't support multi insert, so picking the first dest.
        */
       Set<String> aggExprs = qbPI.getDestToAggregationExprs().values().iterator().next().keySet();
 
-      for (Map.Entry<ASTNode, String> selExpr : exprToAlias.entrySet()) {
-        ASTNode selAST = selExpr.getKey();
+      for (Map.Entry<String, ASTNode> selExpr : aliasToExprs.entrySet()) {
+        final ASTNode selAST = selExpr.getValue();
         if (!aggExprs.contains(selAST.toStringTree().toLowerCase())) {
           continue;
         }
-        final String aliasToCheck = selExpr.getValue();
+        final String aliasToCheck = selExpr.getKey();
         final Set<Object> aliasReferences = new HashSet<Object>();
         TreeVisitorAction action = new TreeVisitorAction() {
 

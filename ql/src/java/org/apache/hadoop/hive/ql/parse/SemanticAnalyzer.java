@@ -440,26 +440,40 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     }
   }
 
-  private LinkedHashMap<String, ASTNode> doPhase1GetAggregationsFromSelect(
-      ASTNode selExpr, QB qb, String dest) throws SemanticException {
+  private void doPhase1GetAggregations(ASTNode exprs, QB qb, String dest)
+      throws SemanticException {
 
+    QBParseInfo qbp = qb.getParseInfo();
     // Iterate over the selects search for aggregation Trees.
     // Use String as keys to eliminate duplicate trees.
-    LinkedHashMap<String, ASTNode> aggregationTrees = new LinkedHashMap<String, ASTNode>();
+    LinkedHashMap<String, ASTNode> aggregationsTrees = new LinkedHashMap<String, ASTNode>();
     List<ASTNode> wdwFns = new ArrayList<ASTNode>();
-    for (int i = 0; i < selExpr.getChildCount(); ++i) {
-      ASTNode function = (ASTNode) selExpr.getChild(i);
+    for (int i = 0; i < exprs.getChildCount(); ++i) {
+      ASTNode function = (ASTNode) exprs.getChild(i);
+      String alias = null;
       if (function.getType() == HiveParser.TOK_SELEXPR ||
           function.getType() == HiveParser.TOK_SUBQUERY_EXPR) {
+        if (function.getType() == HiveParser.TOK_SELEXPR && function.getChildCount() == 2) {
+          alias = function.getChild(1).getText();
+        }
         function = (ASTNode)function.getChild(0);
       }
-      doPhase1GetAllAggregations(function, aggregationTrees, wdwFns);
+      if (doPhase1GetAllAggregations(function, aggregationsTrees, wdwFns)) {
+        continue; // contains windowing spec
+      }
+      // (hack) to resolve having clause referencing aliases in select clause
+      if (function.getType() == HiveParser.TOK_SELEXPR && function.getChildCount() == 2) {
+        alias = function.getChild(1).getText();
+      }
+      if (alias != null) {
+        qbp.addAliasedColumnExpr(dest, unescapeIdentifier(alias), function);
+      }
     }
 
     // window based aggregations are handled differently
     for (ASTNode wdwFn : wdwFns) {
       WindowingSpec spec = qb.getWindowingSpec(dest);
-      if(spec == null) {
+      if (spec == null) {
         queryProperties.setHasWindowing(true);
         spec = new WindowingSpec();
         qb.addDestToWindowingSpec(dest, spec);
@@ -477,20 +491,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       spec.addWindowFunction(wFnSpec);
       qb.getParseInfo().addWindowingExprToClause(dest, wFnSpec.getExpression());
     }
-
-    return aggregationTrees;
-  }
-
-  private void doPhase1GetColumnAliasesFromSelect(
-      ASTNode selectExpr, QBParseInfo qbp) {
-    for (int i = 0; i < selectExpr.getChildCount(); ++i) {
-      ASTNode selExpr = (ASTNode) selectExpr.getChild(i);
-      if ((selExpr.getToken().getType() == HiveParser.TOK_SELEXPR)
-          && (selExpr.getChildCount() == 2)) {
-        String columnAlias = unescapeIdentifier(selExpr.getChild(1).getText());
-        qbp.setExprToColumnAlias((ASTNode) selExpr.getChild(0), columnAlias);
-      }
-    }
+    qbp.addAggregationExprsForClause(dest, aggregationsTrees);
+    qbp.addDistinctFuncExprsForClause(dest, doPhase1GetDistinctFuncExprs(aggregationsTrees));
   }
 
   /**
@@ -501,10 +503,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
    * @param aggregations
    *          the key to the HashTable is the toStringTree() representation of
    *          the aggregation subtree.
+   * @return whether contains window spec
    * @throws SemanticException
    */
-  private void doPhase1GetAllAggregations(ASTNode expressionTree,
-      HashMap<String, ASTNode> aggregations, List<ASTNode> wdwFns) throws SemanticException {
+  private boolean doPhase1GetAllAggregations(ASTNode expressionTree,
+      Map<String, ASTNode> aggregations, List<ASTNode> wdwFns) throws SemanticException {
     int exprTokenType = expressionTree.getToken().getType();
     if (exprTokenType == HiveParser.TOK_FUNCTION
         || exprTokenType == HiveParser.TOK_FUNCTIONDI
@@ -513,12 +516,12 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       if (expressionTree.getChild(expressionTree.getChildCount()-1).getType()
           == HiveParser.TOK_WINDOWSPEC) {
         wdwFns.add(expressionTree);
-        return;
+        return true;
       }
-      if (expressionTree.getChild(0).getType() == HiveParser.Identifier) {
-        String functionName = unescapeIdentifier(expressionTree.getChild(0)
-            .getText());
-        if(FunctionRegistry.impliesOrder(functionName)) {
+      ASTNode child = (ASTNode) expressionTree.getChild(0);
+      if (child.getType() == HiveParser.Identifier) {
+        String functionName = unescapeIdentifier(child.getText());
+        if (FunctionRegistry.impliesOrder(functionName)) {
           throw new SemanticException(ErrorMsg.MISSING_OVER_CLAUSE.getMsg(functionName));
         }
         if (FunctionRegistry.getGenericUDAFResolver(functionName) != null) {
@@ -528,17 +531,18 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           aggregations.put(expressionTree.toStringTree().toLowerCase(), expressionTree);
           FunctionInfo fi = FunctionRegistry.getFunctionInfo(functionName);
           if (!fi.isNative()) {
-            unparseTranslator.addIdentifierTranslation((ASTNode) expressionTree
-                .getChild(0));
+            unparseTranslator.addIdentifierTranslation(child);
           }
-          return;
+          return false;
         }
       }
     }
+    boolean containsWindow = false;
     for (int i = 0; i < expressionTree.getChildCount(); i++) {
-      doPhase1GetAllAggregations((ASTNode) expressionTree.getChild(i),
+      containsWindow |= doPhase1GetAllAggregations((ASTNode) expressionTree.getChild(i),
           aggregations, wdwFns);
     }
+    return containsWindow;
   }
 
   private List<ASTNode> doPhase1GetDistinctFuncExprs(
@@ -1131,15 +1135,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           posn++;
         }
 
-        if ((ast.getChild(posn).getChild(0).getType() == HiveParser.TOK_TRANSFORM))
+        if ((ast.getChild(posn).getChild(0).getType() == HiveParser.TOK_TRANSFORM)) {
           queryProperties.setUsesScript(true);
+        }
 
-        LinkedHashMap<String, ASTNode> aggregations = doPhase1GetAggregationsFromSelect(ast,
-            qb, ctx_1.dest);
-        doPhase1GetColumnAliasesFromSelect(ast, qbp);
-        qbp.setAggregationExprsForClause(ctx_1.dest, aggregations);
-        qbp.setDistinctFuncExprsForClause(ctx_1.dest,
-        doPhase1GetDistinctFuncExprs(aggregations));
+        doPhase1GetAggregations(ast, qb, ctx_1.dest);
         break;
 
       case HiveParser.TOK_WHERE:
@@ -1291,8 +1291,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
       case HiveParser.TOK_HAVING:
         qbp.setHavingExprForClause(ctx_1.dest, ast);
-        qbp.addAggregationExprsForClause(ctx_1.dest,
-            doPhase1GetAggregationsFromSelect(ast, qb, ctx_1.dest));
+        doPhase1GetAggregations(ast, qb, ctx_1.dest);
         break;
 
       case HiveParser.KW_WINDOW:
@@ -2608,10 +2607,14 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
     OpParseContext inputCtx = opParseCtx.get(input);
     RowResolver inputRR = inputCtx.getRowResolver();
-    Map<ASTNode, String> exprToColumnAlias = qb.getParseInfo().getAllExprToColumnAlias();
-    for (ASTNode astNode : exprToColumnAlias.keySet()) {
-      if (inputRR.getExpression(astNode) != null) {
-        inputRR.put("", exprToColumnAlias.get(astNode), inputRR.getExpression(astNode));
+    Map<String, ASTNode> aliasToColumnExpr = qb.getParseInfo().getAllAliasedColumnExprs(dest);
+
+    // (hack) to resolve having clause referencing aliases in select clause
+    Map<String, ExprNodeDesc> resolved = new HashMap<String, ExprNodeDesc>();
+    for (Map.Entry<String, ASTNode> entry : aliasToColumnExpr.entrySet()) {
+      ExprNodeDesc exprNodeDesc = genExprNodeDesc(entry.getValue(), inputRR);
+      if (exprNodeDesc != null) {
+        resolved.put(entry.getKey(), exprNodeDesc);
       }
     }
     ASTNode condn = (ASTNode) havingExpr.getChild(0);
@@ -2621,7 +2624,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
      * so we invoke genFilterPlan to handle SubQuery algebraic transformation,
      * just as is done for SubQuery predicates appearing in the Where Clause.
      */
-    Operator output = genFilterPlan(condn, qb, input, aliasToOpInfo, true);
+    Operator output = genFilterPlan(condn, qb, input, aliasToOpInfo, resolved);
     output = putOpInsertMap(output, inputRR);
     return output;
   }
@@ -2640,11 +2643,13 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
   @SuppressWarnings("nls")
   private Operator genFilterPlan(ASTNode searchCond, QB qb, Operator input,
       Map<String, Operator> aliasToOpInfo,
-      boolean forHavingClause)
+      Map<String, ExprNodeDesc> resolved)
       throws SemanticException {
 
     OpParseContext inputCtx = opParseCtx.get(input);
     RowResolver inputRR = inputCtx.getRowResolver();
+
+    boolean forHavingClause = resolved != null;
 
     /*
      * Handling of SubQuery Expressions:
@@ -2782,7 +2787,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       }
     }
 
-    return genFilterPlan(qb, searchCond, input);
+    return genFilterPlan(qb, searchCond, input, resolved);
   }
 
   /**
@@ -2796,13 +2801,13 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
    *          the input operator
    */
   @SuppressWarnings("nls")
-  private Operator genFilterPlan(QB qb, ASTNode condn, Operator input)
-      throws SemanticException {
+  private Operator genFilterPlan(QB qb, ASTNode condn, Operator input,
+      Map<String, ExprNodeDesc> resolved) throws SemanticException {
 
     OpParseContext inputCtx = opParseCtx.get(input);
     RowResolver inputRR = inputCtx.getRowResolver();
     Operator output = putOpInsertMap(OperatorFactory.getAndMakeChild(
-        new FilterDesc(genExprNodeDesc(condn, inputRR), false), new RowSchema(
+        new FilterDesc(genExprNodeDesc(condn, inputRR, resolved), false), new RowSchema(
             inputRR.getColumnInfos()), input), inputRR);
 
     if (LOG.isDebugEnabled()) {
@@ -5406,7 +5411,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
       if (parseInfo.getWhrForClause(dest) != null) {
         ASTNode whereExpr = qb.getParseInfo().getWhrForClause(dest);
-        curr = genFilterPlan((ASTNode) whereExpr.getChild(0), qb, forwardOp, aliasToOpInfo, false);
+        curr = genFilterPlan((ASTNode) whereExpr.getChild(0), qb, forwardOp, aliasToOpInfo, null);
       }
 
       // Generate GroupbyOperator
@@ -7515,7 +7520,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     if ( joinSrcOp != null ) {
       ArrayList<ASTNode> filter = joinTree.getFiltersForPushing().get(0);
       for (ASTNode cond : filter) {
-        joinSrcOp = genFilterPlan(qb, cond, joinSrcOp);
+        joinSrcOp = genFilterPlan(qb, cond, joinSrcOp, null);
       }
     }
 
@@ -7571,7 +7576,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
     Operator op = joinOp;
     for(ASTNode condn : joinTree.getPostJoinFilters() ) {
-      op = genFilterPlan(qb, condn, op);
+      op = genFilterPlan(qb, condn, op, null);
     }
     return op;
   }
@@ -7740,7 +7745,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         Operator srcOp = map.get(src);
         ArrayList<ASTNode> filter = filters.get(pos);
         for (ASTNode cond : filter) {
-          srcOp = genFilterPlan(qb, cond, srcOp);
+          srcOp = genFilterPlan(qb, cond, srcOp, null);
         }
         map.put(src, srcOp);
       }
@@ -8758,7 +8763,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
             if (qbp.getWhrForClause(dest) != null) {
               ASTNode whereExpr = qb.getParseInfo().getWhrForClause(dest);
-              curr = genFilterPlan((ASTNode) whereExpr.getChild(0), qb, curr, aliasToOpInfo, false);
+              curr = genFilterPlan((ASTNode) whereExpr.getChild(0), qb, curr, aliasToOpInfo, null);
             }
             // Preserve operator before the GBY - we'll use it to resolve '*'
             Operator<?> gbySource = curr;
@@ -10280,11 +10285,16 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
   /**
    * Generates an expression node descriptor for the expression with TypeCheckCtx.
    */
-  public ExprNodeDesc genExprNodeDesc(ASTNode expr, RowResolver input)
+  public ExprNodeDesc genExprNodeDesc(ASTNode expr, RowResolver input) throws SemanticException {
+    return genExprNodeDesc(expr, input, (Map<String, ExprNodeDesc>)null);
+  }
+
+  public ExprNodeDesc genExprNodeDesc(ASTNode expr, RowResolver input, Map<String, ExprNodeDesc> resolved)
       throws SemanticException {
     // Since the user didn't supply a customized type-checking context,
     // use default settings.
     TypeCheckCtx tcCtx = new TypeCheckCtx(input);
+    tcCtx.setColMapping(resolved);
     return genExprNodeDesc(expr, input, tcCtx);
   }
 

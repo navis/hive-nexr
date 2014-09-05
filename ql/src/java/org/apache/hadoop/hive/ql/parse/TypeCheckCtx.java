@@ -21,6 +21,9 @@ package org.apache.hadoop.hive.ql.parse;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
+import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
+
+import java.util.Map;
 
 /**
  * This class implements the context information that is used for typechecking
@@ -49,6 +52,11 @@ public class TypeCheckCtx implements NodeProcessorCtx {
    * The node that generated the potential typecheck error
    */
   private ASTNode errorSrcNode;
+
+  /**
+   * column alias to ExprNodeDesc, which is resolved already
+   */
+  private Map<String, ExprNodeDesc> colMapping;
 
   /**
    * Whether to allow stateful UDF invocations.
@@ -197,5 +205,13 @@ public class TypeCheckCtx implements NodeProcessorCtx {
 
   public boolean getallowSubQueryExpr() {
     return allowSubQueryExpr;
+  }
+
+  public ExprNodeDesc getColMapping(String alias) {
+    return colMapping == null ? null : colMapping.get(alias);
+  }
+
+  public void setColMapping(Map<String, ExprNodeDesc> colMapping) {
+    this.colMapping = colMapping;
   }
 }

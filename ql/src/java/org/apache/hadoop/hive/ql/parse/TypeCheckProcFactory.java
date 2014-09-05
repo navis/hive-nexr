@@ -521,6 +521,10 @@ public class TypeCheckProcFactory {
         }
       } else {
         if (colInfo == null) {
+          ExprNodeDesc resolved = ctx.getColMapping(tableOrCol);
+          if (resolved != null) {
+            return resolved;
+          }
           // It's not a column or a table alias.
           if (input.getIsExprResolver()) {
             ASTNode exprNode = expr;
