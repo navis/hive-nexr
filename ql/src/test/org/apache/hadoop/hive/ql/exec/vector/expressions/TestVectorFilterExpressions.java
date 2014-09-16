@@ -31,25 +31,24 @@ import org.apache.hadoop.hive.ql.exec.vector.DoubleColumnVector;
 import org.apache.hadoop.hive.ql.exec.vector.LongColumnVector;
 import org.apache.hadoop.hive.ql.exec.vector.TimestampUtils;
 import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
+import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.DoubleColumnBetween;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterDecimalColGreaterEqualDecimalColumn;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterDecimalColLessDecimalScalar;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterDecimalScalarGreaterDecimalColumn;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterDoubleColumnBetween;
-import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterDoubleColumnNotBetween;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterLongColEqualLongScalar;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterLongColGreaterLongColumn;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterLongColGreaterLongScalar;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterLongColLessLongColumn;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterLongColumnBetween;
-import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterLongColumnNotBetween;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterLongScalarGreaterLongColumn;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterLongScalarLessLongColumn;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterStringColumnBetween;
-import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterStringColumnNotBetween;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterDecimalColEqualDecimalScalar;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterDecimalColEqualDecimalColumn;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterDecimalScalarEqualDecimalColumn;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.LongColAddLongScalar;
+import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.LongColumnBetween;
 import org.apache.hadoop.hive.ql.exec.vector.util.VectorizedRowGroupGenUtil;
 import org.junit.Assert;
 import org.junit.Test;
@@ -202,7 +201,7 @@ public class TestVectorFilterExpressions {
 
     LongColAddLongScalar childExpr = new LongColAddLongScalar(0, 10, 2);
 
-    expr.setChildExpressions(new VectorExpression[] {childExpr});
+    expr.setChildExpressions(childExpr);
 
     //Basic case
     lcv0.vector[0] = 10;
@@ -440,7 +439,9 @@ public class TestVectorFilterExpressions {
     lcv0.vector[3] = 15;
     lcv0.vector[4] = 10;
 
-    VectorExpression expr = new FilterLongColumnNotBetween(0, 10, 20);
+    VectorExpression expr = new SelectColumnIsFalse(0);
+    VectorExpression between = new LongColumnBetween(0, 10, 20, 0);
+    expr.setChildExpressions(between);
     expr.evaluate(vrb);
     assertEquals(1, vrb.size);
     assertTrue(vrb.selectedInUse);
@@ -479,6 +480,7 @@ public class TestVectorFilterExpressions {
     VectorizedRowBatch vrb = VectorizedRowGroupGenUtil.getVectorizedRowBatch(
         5, 2, seed);
     vrb.cols[0] = new DoubleColumnVector();
+    vrb.cols[1] = new LongColumnVector();
     DoubleColumnVector dcv = (DoubleColumnVector) vrb.cols[0];
 
     //Basic case
@@ -488,7 +490,9 @@ public class TestVectorFilterExpressions {
     dcv.vector[3] = 15;
     dcv.vector[4] = 10;
 
-    VectorExpression expr = new FilterDoubleColumnNotBetween(0, 10, 20);
+    VectorExpression expr = new SelectColumnIsFalse(1);
+    VectorExpression between = new DoubleColumnBetween(0, 10, 20, 1);
+    expr.setChildExpressions(between);
     expr.evaluate(vrb);
     assertEquals(1, vrb.size);
     assertTrue(vrb.selectedInUse);
@@ -569,6 +573,7 @@ public class TestVectorFilterExpressions {
     VectorizedRowBatch vrb = VectorizedRowGroupGenUtil.getVectorizedRowBatch(
         3, 2, seed);
     vrb.cols[0] = new BytesColumnVector();
+    vrb.cols[1] = new LongColumnVector();
     BytesColumnVector bcv = (BytesColumnVector) vrb.cols[0];
 
     bcv.initBuffer();
@@ -576,7 +581,9 @@ public class TestVectorFilterExpressions {
     bcv.setVal(1, b, 0, 1);
     bcv.setVal(2, c, 0, 1);
 
-    VectorExpression expr = new FilterStringColumnNotBetween(0, b, c);
+    VectorExpression expr = new SelectColumnIsFalse(1);
+    VectorExpression between = new StringColumnBetween(0, b, c, 1);
+    expr.setChildExpressions(between);
     expr.evaluate(vrb);
 
     assertEquals(1, vrb.size);
@@ -628,8 +635,11 @@ public class TestVectorFilterExpressions {
     lcv0.vector[2] = TimestampUtils.getTimeNanoSec(ts2);
     vrb.size = 3;
 
-    VectorExpression expr1 = new FilterLongColumnNotBetween(0, startTS, endTS);
-    expr1.evaluate(vrb);
+    VectorExpression expr = new SelectColumnIsFalse(1);
+    VectorExpression between = new LongColumnBetween(0, startTS, endTS, 1);
+    expr.setChildExpressions(between);
+    expr.evaluate(vrb);
+
     assertEquals(2, vrb.size);
     assertEquals(true, vrb.selectedInUse);
     assertEquals(0, vrb.selected[0]);

@@ -408,7 +408,7 @@ public class TestVectorLogicalExpressions {
     SelectColumnIsFalse expr2 = new SelectColumnIsFalse(1);
 
     FilterExprOrExpr orExpr = new FilterExprOrExpr();
-    orExpr.setChildExpressions(new VectorExpression[] {expr1, expr2});
+    orExpr.setChildExpressions(expr1, expr2);
 
     orExpr.evaluate(batch1);
     orExpr.evaluate(batch2);
@@ -448,7 +448,7 @@ public class TestVectorLogicalExpressions {
     SelectColumnIsFalse expr2 = new SelectColumnIsFalse(1);
 
     FilterExprOrExpr orExpr = new FilterExprOrExpr();
-    orExpr.setChildExpressions(new VectorExpression[] {expr1, expr2});
+    orExpr.setChildExpressions(expr1, expr2);
 
     orExpr.evaluate(batch1);
 
@@ -482,7 +482,7 @@ public class TestVectorLogicalExpressions {
     SelectColumnIsFalse expr2 = new SelectColumnIsFalse(1);
 
     FilterExprOrExpr orExpr = new FilterExprOrExpr();
-    orExpr.setChildExpressions(new VectorExpression[] {expr1, expr2});
+    orExpr.setChildExpressions(expr1, expr2);
 
     // Evaluate batch1 so that temporary arrays in the expression
     // have residual values to interfere in later computation
@@ -512,7 +512,7 @@ public class TestVectorLogicalExpressions {
     SelectColumnIsFalse expr2 = new SelectColumnIsFalse(1);
 
     FilterExprAndExpr andExpr = new FilterExprAndExpr();
-    andExpr.setChildExpressions(new VectorExpression[] {expr1, expr2});
+    andExpr.setChildExpressions(expr1, expr2);
 
     andExpr.evaluate(batch1);
 

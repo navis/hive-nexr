@@ -141,7 +141,7 @@ public class TestMetastoreExpr extends TestCase {
     checkExpr(1, dbName, tblName, e.val("p11").strCol("p1").pred(">", 2)
         .intCol("p2").val(31).pred("<", 2).pred("and", 2).build());
     checkExpr(3, dbName, tblName,
-        e.val(32).val(31).intCol("p2").val(false).pred("between", 4).build());
+        e.val(32).val(31).intCol("p2").pred("between", 3).build());
 
     // Apply isnull and instr (not supported by pushdown) via name filtering.
     checkExpr(4, dbName, tblName, e.val("p").strCol("p1")

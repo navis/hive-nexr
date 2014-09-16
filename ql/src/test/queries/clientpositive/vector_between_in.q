@@ -33,3 +33,17 @@ SELECT cdate FROM decimal_date_test WHERE cdate NOT BETWEEN CAST("1968-05-01" AS
 SELECT cdecimal1 FROM decimal_date_test WHERE cdecimal1 BETWEEN -20 AND 45.9918918919 ORDER BY cdecimal1;
 
 SELECT COUNT(*) FROM decimal_date_test WHERE cdecimal1 NOT BETWEEN -2000 AND 4390.1351351351;
+
+
+----
+
+EXPLAIN
+SELECT cdate,
+       cdate BETWEEN CAST("1969-01-01" AS DATE) AND CAST("1969-03-31" AS DATE),
+       cdate NOT BETWEEN CAST("1969-01-01" AS DATE) AND CAST("1969-03-31" AS DATE)
+FROM (select distinct cdate from decimal_date_test WHERE cdate BETWEEN CAST("1969-01-01" AS DATE) AND CAST("1969-06-30" AS DATE)) X;
+
+SELECT cdate,
+       cdate BETWEEN CAST("1969-01-01" AS DATE) AND CAST("1969-03-31" AS DATE),
+       cdate NOT BETWEEN CAST("1969-01-01" AS DATE) AND CAST("1969-03-31" AS DATE)
+FROM (select distinct cdate from decimal_date_test WHERE cdate BETWEEN CAST("1969-01-01" AS DATE) AND CAST("1969-06-30" AS DATE)) X;

@@ -477,6 +477,8 @@ public class TestExecDriver extends TestCase {
     DriverContext dctx = new DriverContext ();
     mrtask.setWork(mr);
     mrtask.initialize(conf, null, dctx);
+
+    SessionState.get().resetStates();
     int exitVal =  mrtask.execute(dctx);
 
     if (exitVal != 0) {

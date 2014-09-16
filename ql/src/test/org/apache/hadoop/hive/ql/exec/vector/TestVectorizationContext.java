@@ -30,7 +30,6 @@ import java.util.Map;
 import junit.framework.Assert;
 
 import org.apache.hadoop.hive.common.type.HiveChar;
-import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.common.type.HiveVarchar;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.ColAndCol;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.ColOrCol;
@@ -79,21 +78,16 @@ import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.IfExprDoubleScalarL
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.DoubleColUnaryMinus;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterDoubleColLessDoubleScalar;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterDoubleColumnBetween;
-import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterDoubleColumnNotBetween;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterLongColEqualLongScalar;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterLongColGreaterLongScalar;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterLongColLessDoubleScalar;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterLongColumnBetween;
-import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterLongColumnNotBetween;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterLongScalarGreaterLongColumn;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterStringGroupColGreaterStringGroupColumn;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterStringGroupColGreaterStringScalar;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterStringColumnBetween;
-import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterStringColumnNotBetween;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterVarCharColumnBetween;
-import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterVarCharColumnNotBetween;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterCharColumnBetween;
-import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FilterCharColumnNotBetween;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FuncLnDoubleToDouble;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FuncRoundDoubleToDouble;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.gen.FuncSinDoubleToDouble;
@@ -135,12 +129,10 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPOr;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFPower;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFRound;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPPlus;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDFToDecimal;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFToUnixTimeStamp;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFTimestamp;
 import org.apache.hadoop.hive.serde2.typeinfo.CharTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.VarcharTypeInfo;
-import org.apache.hadoop.hive.serde2.typeinfo.DecimalTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.junit.Test;
 
@@ -1013,7 +1005,6 @@ public class TestVectorizationContext {
     // string BETWEEN
     GenericUDFBetween udf = new GenericUDFBetween();
     List<ExprNodeDesc> children1 = new ArrayList<ExprNodeDesc>();
-    children1.add(new ExprNodeConstantDesc(new Boolean(false))); // no NOT keyword
     children1.add(col1Expr);
     children1.add(constDesc);
     children1.add(constDesc2);
@@ -1029,11 +1020,6 @@ public class TestVectorizationContext {
     VectorExpression ve = vc.getVectorExpression(exprDesc, VectorExpressionDescriptor.Mode.FILTER);
     assertTrue(ve instanceof FilterStringColumnBetween);
 
-    // string NOT BETWEEN
-    children1.set(0, new ExprNodeConstantDesc(new Boolean(true))); // has NOT keyword
-    ve = vc.getVectorExpression(exprDesc, VectorExpressionDescriptor.Mode.FILTER);
-    assertTrue(ve instanceof FilterStringColumnNotBetween);
-
     // CHAR tests
     CharTypeInfo charTypeInfo = new CharTypeInfo(10);
     col1Expr = new  ExprNodeColumnDesc(charTypeInfo, "col1", "table", false);
@@ -1043,7 +1029,6 @@ public class TestVectorizationContext {
     // CHAR BETWEEN
     udf = new GenericUDFBetween();
     children1 = new ArrayList<ExprNodeDesc>();
-    children1.add(new ExprNodeConstantDesc(new Boolean(false))); // no NOT keyword
     children1.add(col1Expr);
     children1.add(constDesc);
     children1.add(constDesc2);
@@ -1054,11 +1039,6 @@ public class TestVectorizationContext {
     ve = vc.getVectorExpression(exprDesc, VectorExpressionDescriptor.Mode.FILTER);
     assertTrue(ve instanceof FilterCharColumnBetween);
 
-    // CHAR NOT BETWEEN
-    children1.set(0, new ExprNodeConstantDesc(new Boolean(true))); // has NOT keyword
-    ve = vc.getVectorExpression(exprDesc, VectorExpressionDescriptor.Mode.FILTER);
-    assertTrue(ve instanceof FilterCharColumnNotBetween);
-
     // VARCHAR tests
     VarcharTypeInfo varcharTypeInfo = new VarcharTypeInfo(10);
     col1Expr = new  ExprNodeColumnDesc(varcharTypeInfo, "col1", "table", false);
@@ -1068,7 +1048,6 @@ public class TestVectorizationContext {
     // VARCHAR BETWEEN
     udf = new GenericUDFBetween();
     children1 = new ArrayList<ExprNodeDesc>();
-    children1.add(new ExprNodeConstantDesc(new Boolean(false))); // no NOT keyword
     children1.add(col1Expr);
     children1.add(constDesc);
     children1.add(constDesc2);
@@ -1079,49 +1058,26 @@ public class TestVectorizationContext {
     ve = vc.getVectorExpression(exprDesc, VectorExpressionDescriptor.Mode.FILTER);
     assertTrue(ve instanceof FilterVarCharColumnBetween);
 
-    // VARCHAR NOT BETWEEN
-    children1.set(0, new ExprNodeConstantDesc(new Boolean(true))); // has NOT keyword
-    ve = vc.getVectorExpression(exprDesc, VectorExpressionDescriptor.Mode.FILTER);
-    assertTrue(ve instanceof FilterVarCharColumnNotBetween);
-
     // long BETWEEN
-    children1.set(0, new ExprNodeConstantDesc(new Boolean(false)));
-    children1.set(1, new ExprNodeColumnDesc(Long.class, "col1", "table", false));
-    children1.set(2, new ExprNodeConstantDesc(10));
-    children1.set(3, new ExprNodeConstantDesc(20));
+    children1.set(0, new ExprNodeColumnDesc(Long.class, "col1", "table", false));
+    children1.set(1, new ExprNodeConstantDesc(10));
+    children1.set(2, new ExprNodeConstantDesc(20));
     ve = vc.getVectorExpression(exprDesc, VectorExpressionDescriptor.Mode.FILTER);
     assertTrue(ve instanceof FilterLongColumnBetween);
 
-    // long NOT BETWEEN
-    children1.set(0, new ExprNodeConstantDesc(new Boolean(true)));
-    ve = vc.getVectorExpression(exprDesc, VectorExpressionDescriptor.Mode.FILTER);
-    assertTrue(ve instanceof FilterLongColumnNotBetween);
-
     // double BETWEEN
-    children1.set(0, new ExprNodeConstantDesc(new Boolean(false)));
-    children1.set(1, new ExprNodeColumnDesc(Double.class, "col1", "table", false));
-    children1.set(2, new ExprNodeConstantDesc(10.0d));
-    children1.set(3, new ExprNodeConstantDesc(20.0d));
+    children1.set(0, new ExprNodeColumnDesc(Double.class, "col1", "table", false));
+    children1.set(1, new ExprNodeConstantDesc(10.0d));
+    children1.set(2, new ExprNodeConstantDesc(20.0d));
     ve = vc.getVectorExpression(exprDesc, VectorExpressionDescriptor.Mode.FILTER);
     assertTrue(ve instanceof FilterDoubleColumnBetween);
 
-    // double NOT BETWEEN
-    children1.set(0, new ExprNodeConstantDesc(new Boolean(true)));
-    ve = vc.getVectorExpression(exprDesc, VectorExpressionDescriptor.Mode.FILTER);
-    assertTrue(ve instanceof FilterDoubleColumnNotBetween);
-
     // timestamp BETWEEN
-    children1.set(0, new ExprNodeConstantDesc(new Boolean(false)));
-    children1.set(1, new ExprNodeColumnDesc(Timestamp.class, "col1", "table", false));
-    children1.set(2, new ExprNodeConstantDesc("2013-11-05 00:00:00.000"));
-    children1.set(3, new ExprNodeConstantDesc("2013-11-06 00:00:00.000"));
+    children1.set(0, new ExprNodeColumnDesc(Timestamp.class, "col1", "table", false));
+    children1.set(1, new ExprNodeConstantDesc("2013-11-05 00:00:00.000"));
+    children1.set(2, new ExprNodeConstantDesc("2013-11-06 00:00:00.000"));
     ve = vc.getVectorExpression(exprDesc, VectorExpressionDescriptor.Mode.FILTER);
     assertEquals(FilterStringColumnBetween.class, ve.getClass());
-
-    // timestamp NOT BETWEEN
-    children1.set(0, new ExprNodeConstantDesc(new Boolean(true)));
-    ve = vc.getVectorExpression(exprDesc, VectorExpressionDescriptor.Mode.FILTER);
-    assertEquals(FilterStringColumnNotBetween.class, ve.getClass());
   }
 
   // Test translation of both IN filters and boolean-valued IN expressions (non-filters).

@@ -169,12 +169,12 @@ public class SessionState {
 
   private CreateTableAutomaticGrant createTableGrants;
 
-  private Map<String, MapRedStats> mapRedStats;
+  private Map<String, MapRedStats> mapRedStats = new LinkedHashMap<String, MapRedStats>();
 
   private Map<String, String> hiveVariables;
 
   // A mapping from a hadoop job ID to the stack traces collected from the map reduce task logs
-  private Map<String, List<List<String>>> stackTraces;
+  private Map<String, List<List<String>>> stackTraces = new HashMap<String, List<List<String>>>();
 
   // This mapping collects all the configuration variables which have been set by the user
   // explicitly, either via SET in the CLI, the hiveconf option, or a System property.
@@ -182,7 +182,7 @@ public class SessionState {
   // changes the value of a variable, the corresponding change will be made in this mapping.
   private Map<String, String> overriddenConfigurations;
 
-  private Map<String, List<String>> localMapRedErrors;
+  private Map<String, List<String>> localMapRedErrors = new HashMap<String, List<String>>();
 
   private TezSessionState tezSessionState;
 
@@ -631,6 +631,12 @@ public class SessionState {
 
   public String getHdfsScratchDirURIString() {
     return hdfsScratchDirURIString;
+  }
+
+  public void resetStates() {
+    mapRedStats.clear();
+    stackTraces.clear();
+    localMapRedErrors.clear();
   }
 
   public static Path getLocalSessionPath(Configuration conf) {

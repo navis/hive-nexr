@@ -54,6 +54,7 @@ import org.apache.hadoop.hive.ql.exec.TaskFactory;
 import org.apache.hadoop.hive.ql.exec.TaskResult;
 import org.apache.hadoop.hive.ql.exec.TaskRunner;
 import org.apache.hadoop.hive.ql.exec.Utilities;
+import org.apache.hadoop.hive.ql.history.HiveHistory;
 import org.apache.hadoop.hive.ql.history.HiveHistory.Keys;
 import org.apache.hadoop.hive.ql.hooks.Entity;
 import org.apache.hadoop.hive.ql.hooks.ExecuteWithHookContext;
@@ -1317,21 +1318,21 @@ public class Driver implements CommandProcessor {
 
     maxthreads = HiveConf.getIntVar(conf, HiveConf.ConfVars.EXECPARALLETHREADNUMBER);
 
+    SessionState ss = SessionState.get();
+    HiveHistory history = ss.getHiveHistory();
+
     try {
       LOG.info("Starting command: " + queryStr);
 
       plan.setStarted();
 
-      if (SessionState.get() != null) {
-        SessionState.get().getHiveHistory().startQuery(queryStr,
-            conf.getVar(HiveConf.ConfVars.HIVEQUERYID));
-        SessionState.get().getHiveHistory().logPlanProgress(plan);
-      }
+      history.startQuery(queryStr, conf.getVar(HiveConf.ConfVars.HIVEQUERYID));
+      history.logPlanProgress(plan);
+
       resStream = null;
 
-      SessionState ss = SessionState.get();
-      HookContext hookContext = new HookContext(plan, conf, ctx.getPathToCS(), ss.getUserName(),
-          ss.getUserIpAddress(), operationId);
+      HookContext hookContext = new HookContext(plan, conf, ctx.getPathToCS(),
+          ss.getUserName(), ss.getUserIpAddress(), operationId);
       hookContext.setHookType(HookContext.HookType.PRE_EXEC_HOOK);
 
       for (Hook peh : getHooks(HiveConf.ConfVars.PREEXECHOOKS)) {
@@ -1358,11 +1359,9 @@ public class Driver implements CommandProcessor {
         console.printInfo("Query ID = " + plan.getQueryId());
         console.printInfo("Total jobs = " + jobs);
       }
-      if (SessionState.get() != null) {
-        SessionState.get().getHiveHistory().setQueryProperty(queryId, Keys.QUERY_NUM_TASKS,
-            String.valueOf(jobs));
-        SessionState.get().getHiveHistory().setIdToTableMap(plan.getIdToTableNameMap());
-      }
+      history.setQueryProperty(queryId, Keys.QUERY_NUM_TASKS, String.valueOf(jobs));
+      history.setIdToTableMap(plan.getIdToTableNameMap());
+
       String jobname = Utilities.abbreviate(queryStr, maxlen - 6);
 
       // A runtime that launches runnable tasks as separate Threads through
@@ -1378,10 +1377,7 @@ public class Driver implements CommandProcessor {
 
       this.driverCxt = driverCxt; // for canceling the query (should be bound to session?)
 
-      SessionState.get().setMapRedStats(new LinkedHashMap<String, MapRedStats>());
-      SessionState.get().setStackTraces(new HashMap<String, List<List<String>>>());
-      SessionState.get().setLocalMapRedErrors(new HashMap<String, List<String>>());
-
+      ss.resetStates();
       // Add root Tasks to runnable
       for (Task<? extends Serializable> tsk : plan.getRootTasks()) {
         // This should never happen, if it does, it's a bug with the potential to produce
@@ -1460,11 +1456,9 @@ public class Driver implements CommandProcessor {
 
         driverCxt.finished(tskRun);
 
-        if (SessionState.get() != null) {
-          SessionState.get().getHiveHistory().setTaskProperty(queryId, tsk.getId(),
-              Keys.TASK_RET_CODE, String.valueOf(exitVal));
-          SessionState.get().getHiveHistory().endTask(queryId, tsk);
-        }
+        history.setTaskProperty(queryId, tsk.getId(),
+            Keys.TASK_RET_CODE, String.valueOf(exitVal));
+        history.endTask(queryId, tsk);
 
         if (tsk.getChildTasks() != null) {
           for (Task<? extends Serializable> child : tsk.getChildTasks()) {
@@ -1521,20 +1515,16 @@ public class Driver implements CommandProcessor {
         }
       }
 
+      history.setQueryProperty(queryId, Keys.QUERY_RET_CODE,
+          String.valueOf(0));
+      history.printRowCount(queryId);
 
-      if (SessionState.get() != null) {
-        SessionState.get().getHiveHistory().setQueryProperty(queryId, Keys.QUERY_RET_CODE,
-            String.valueOf(0));
-        SessionState.get().getHiveHistory().printRowCount(queryId);
-      }
     } catch (CommandNeedRetryException e) {
       throw e;
     } catch (Exception e) {
       ctx.restoreOriginalTracker();
-      if (SessionState.get() != null) {
-        SessionState.get().getHiveHistory().setQueryProperty(queryId, Keys.QUERY_RET_CODE,
-            String.valueOf(12));
-      }
+      history.setQueryProperty(queryId, Keys.QUERY_RET_CODE, String.valueOf(12));
+
       // TODO: do better with handling types of Exception here
       errorMessage = "FAILED: Hive Internal Error: " + Utilities.getNameMessage(e);
       SQLState = "08S01";
@@ -1543,15 +1533,13 @@ public class Driver implements CommandProcessor {
           + org.apache.hadoop.util.StringUtils.stringifyException(e));
       return (12);
     } finally {
-      if (SessionState.get() != null) {
-        SessionState.get().getHiveHistory().endQuery(queryId);
-      }
+      history.endQuery(queryId);
       if (noName) {
         conf.setVar(HiveConf.ConfVars.HADOOPJOBNAME, "");
       }
       perfLogger.PerfLogEnd(CLASS_NAME, PerfLogger.DRIVER_EXECUTE);
 
-      Map<String, MapRedStats> stats = SessionState.get().getMapRedStats();
+      Map<String, MapRedStats> stats = ss.getMapRedStats();
       if (stats != null && !stats.isEmpty()) {
         long totalCpu = 0;
         console.printInfo("MapReduce Jobs Launched: ");
@@ -1564,13 +1552,11 @@ public class Driver implements CommandProcessor {
     }
     plan.setDone();
 
-    if (SessionState.get() != null) {
-      try {
-        SessionState.get().getLineageState().clear();
-        SessionState.get().getHiveHistory().logPlanProgress(plan);
-      } catch (Exception e) {
-        // ignore
-      }
+    try {
+      ss.getLineageState().clear();
+      history.logPlanProgress(plan);
+    } catch (Exception e) {
+      // ignore
     }
     console.printInfo("OK");
 

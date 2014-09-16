@@ -97,7 +97,7 @@ public abstract class VectorExpression implements Serializable {
   /**
    * Initialize the child expressions.
    */
-  public void setChildExpressions(VectorExpression [] ve) {
+  public void setChildExpressions(VectorExpression... ve) {
 
     childExpressions = ve;
   }

@@ -99,7 +99,7 @@ public class TestVectorFilterOperator {
     VectorExpression ve1 = new FilterLongColGreaterLongColumn(0,1);
     VectorExpression ve2 = new FilterLongColEqualDoubleScalar(2, 0);
     VectorExpression ve3 = new FilterExprAndExpr();
-    ve3.setChildExpressions(new VectorExpression[] {ve1, ve2});
+    ve3.setChildExpressions(ve1, ve2);
     vfo.setFilterCondition(ve3);
 
     FakeDataReader fdr = new FakeDataReader(1024*1, 3);
@@ -127,7 +127,7 @@ public class TestVectorFilterOperator {
     VectorExpression ve1 = new FilterLongColGreaterLongColumn(0,1);
     VectorExpression ve2 = new FilterLongColEqualDoubleScalar(2, 0);
     VectorExpression ve3 = new FilterExprAndExpr();
-    ve3.setChildExpressions(new VectorExpression[] {ve1, ve2});
+    ve3.setChildExpressions(ve1, ve2);
     vfo.setFilterCondition(ve3);
 
     FakeDataReader fdr = new FakeDataReader(16*1024*1024, 3);

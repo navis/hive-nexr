@@ -19,7 +19,6 @@
 package org.apache.hadoop.hive.ql.exec.vector;
 
 import java.lang.reflect.Constructor;
-import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -35,7 +34,6 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.common.type.HiveChar;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.common.type.HiveVarchar;
@@ -47,7 +45,6 @@ import org.apache.hadoop.hive.ql.exec.UDF;
 import org.apache.hadoop.hive.ql.exec.vector.VectorExpressionDescriptor.InputExpressionType;
 import org.apache.hadoop.hive.ql.exec.vector.VectorExpressionDescriptor.Mode;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.*;
-import org.apache.hadoop.hive.ql.exec.vector.AggregateDefinition;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.aggregates.VectorAggregateExpression;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.aggregates.VectorUDAFAvgDecimal;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.aggregates.VectorUDAFCount;
@@ -915,7 +912,7 @@ public class VectorizationContext {
     }
     VectorExpression expr = new IdentityExpression(inputCol, colType);
     if (v1 != null) {
-      expr.setChildExpressions(new VectorExpression [] {v1});
+      expr.setChildExpressions(v1);
     }
     return expr;
   }
@@ -992,10 +989,12 @@ public class VectorizationContext {
           throw new HiveException("Cannot handle expression type: " + child.getClass().getSimpleName());
         }
       }
-      VectorExpression  vectorExpression = instantiateExpression(vectorClass, returnType, arguments);
-      vectorExpression.setInputTypes(inputTypes);
-      if ((vectorExpression != null) && !children.isEmpty()) {
-        vectorExpression.setChildExpressions(children.toArray(new VectorExpression[0]));
+      VectorExpression vectorExpression = instantiateExpression(vectorClass, returnType, arguments);
+      if (vectorExpression != null) {
+        vectorExpression.setInputTypes(inputTypes);
+        if (!children.isEmpty()) {
+          vectorExpression.setChildExpressions(children.toArray(new VectorExpression[0]));
+        }
       }
       return vectorExpression;
     } catch (Exception ex) {
@@ -1302,10 +1301,10 @@ public class VectorizationContext {
     HiveDecimal rawDecimal;
     switch (ptinfo.getPrimitiveCategory()) {
     case FLOAT:
-      rawDecimal = HiveDecimal.create(String.valueOf((Float) scalar));
+      rawDecimal = HiveDecimal.create(String.valueOf(scalar));
       break;
     case DOUBLE:
-      rawDecimal = HiveDecimal.create(String.valueOf((Double) scalar));
+      rawDecimal = HiveDecimal.create(String.valueOf(scalar));
       break;
     case BYTE:
       rawDecimal = HiveDecimal.create((Byte) scalar);
@@ -1344,7 +1343,7 @@ public class VectorizationContext {
     case SHORT:
     case INT:
     case LONG:
-      return ((Number) scalar).toString();
+      return scalar.toString();
     case DECIMAL:
       HiveDecimal decimalVal = (HiveDecimal) scalar;
       return decimalVal.toString();
@@ -1552,7 +1551,7 @@ public class VectorizationContext {
       int outputCol = ocm.allocateOutputColumn("Long");
       VectorExpression lenToBoolExpr =
           new CastLongToBooleanViaLongToLong(lenExpr.getOutputColumn(), outputCol);
-      lenToBoolExpr.setChildExpressions(new VectorExpression[] {lenExpr});
+      lenToBoolExpr.setChildExpressions(lenExpr);
       ocm.freeOutputColumn(lenExpr.getOutputColumn());
       return lenToBoolExpr;
     }
@@ -1593,43 +1592,34 @@ public class VectorizationContext {
   private VectorExpression getBetweenFilterExpression(List<ExprNodeDesc> childExpr, Mode mode, TypeInfo returnType)
       throws HiveException {
 
-    if (mode == Mode.PROJECTION) {
-
-      // Projection mode is not yet supported for [NOT] BETWEEN. Return null so Vectorizer
-      // knows to revert to row-at-a-time execution.
-      return null;
-    }
-
-    boolean notKeywordPresent = (Boolean) ((ExprNodeConstantDesc) childExpr.get(0)).getValue();
-    ExprNodeDesc colExpr = childExpr.get(1);
+    ExprNodeDesc colExpr = childExpr.get(0);
 
     // The children after not, might need a cast. Get common types for the two comparisons.
     // Casting for 'between' is handled here as a special case, because the first child is for NOT and doesn't need
     // cast
-    TypeInfo commonType = FunctionRegistry.getCommonClassForComparison(childExpr.get(1).getTypeInfo(),
-        childExpr.get(2).getTypeInfo());
+    TypeInfo commonType = FunctionRegistry.getCommonClassForComparison(colExpr.getTypeInfo(),
+        childExpr.get(1).getTypeInfo());
     if (commonType == null) {
 
       // Can't vectorize
       return null;
     }
-    commonType = FunctionRegistry.getCommonClassForComparison(commonType, childExpr.get(3).getTypeInfo());
+    commonType = FunctionRegistry.getCommonClassForComparison(commonType, childExpr.get(2).getTypeInfo());
     if (commonType == null) {
 
       // Can't vectorize
       return null;
     }
 
-    List<ExprNodeDesc> castChildren = new ArrayList<ExprNodeDesc>();
+    List<ExprNodeDesc> castChildren = new ArrayList<ExprNodeDesc>(childExpr.size());
 
-    for (ExprNodeDesc desc: childExpr.subList(1, 4)) {
+    for (ExprNodeDesc desc: childExpr) {
       if (commonType.equals(desc.getTypeInfo())) {
         castChildren.add(desc);
       } else {
         GenericUDF castUdf = getGenericUDFForCast(commonType);
-        ExprNodeGenericFuncDesc engfd = new ExprNodeGenericFuncDesc(commonType, castUdf,
-            Arrays.asList(new ExprNodeDesc[] { desc }));
-        castChildren.add(engfd);
+        castChildren.add(
+            new ExprNodeGenericFuncDesc(commonType, castUdf, Arrays.asList(desc)));
       }
     }
     String colType = commonType.getTypeName();
@@ -1639,48 +1629,30 @@ public class VectorizationContext {
 
     // determine class
     Class<?> cl = null;
-    if (isIntFamily(colType) && !notKeywordPresent) {
-      cl = FilterLongColumnBetween.class;
-    } else if (isIntFamily(colType) && notKeywordPresent) {
-      cl = FilterLongColumnNotBetween.class;
-    } else if (isFloatFamily(colType) && !notKeywordPresent) {
-      cl = FilterDoubleColumnBetween.class;
-    } else if (isFloatFamily(colType) && notKeywordPresent) {
-      cl = FilterDoubleColumnNotBetween.class;
-    } else if (colType.equals("string") && !notKeywordPresent) {
-      cl = FilterStringColumnBetween.class;
-    } else if (colType.equals("string") && notKeywordPresent) {
-      cl = FilterStringColumnNotBetween.class;
-    } else if (varcharTypePattern.matcher(colType).matches() && !notKeywordPresent) {
-      cl = FilterVarCharColumnBetween.class;
-    } else if (varcharTypePattern.matcher(colType).matches() && notKeywordPresent) {
-      cl = FilterVarCharColumnNotBetween.class;
-    } else if (charTypePattern.matcher(colType).matches() && !notKeywordPresent) {
-      cl = FilterCharColumnBetween.class;
-    } else if (charTypePattern.matcher(colType).matches() && notKeywordPresent) {
-      cl = FilterCharColumnNotBetween.class;
+    if (isIntFamily(colType)) {
+      cl = mode == Mode.FILTER ? FilterLongColumnBetween.class : LongColumnBetween.class;
+    } else if (isFloatFamily(colType)) {
+      cl = mode == Mode.FILTER ? FilterDoubleColumnBetween.class : DoubleColumnBetween.class;
+    } else if (colType.equals("string")) {
+      cl = mode == Mode.FILTER ? FilterStringColumnBetween.class : StringColumnBetween.class;
+    } else if (varcharTypePattern.matcher(colType).matches()) {
+      cl = mode == Mode.FILTER ? FilterVarCharColumnBetween.class : VarCharColumnBetween.class;
+    } else if (charTypePattern.matcher(colType).matches()) {
+      cl = mode == Mode.FILTER ? FilterCharColumnBetween.class : CharColumnBetween.class;
     } else if (colType.equals("timestamp")) {
 
       // Get timestamp boundary values as longs instead of the expected strings
-      long left = getTimestampScalar(childExpr.get(2));
-      long right = getTimestampScalar(childExpr.get(3));
+      long left = getTimestampScalar(childExpr.get(0));
+      long right = getTimestampScalar(childExpr.get(1));
       childrenAfterNot = new ArrayList<ExprNodeDesc>();
       childrenAfterNot.add(colExpr);
       childrenAfterNot.add(new ExprNodeConstantDesc(left));
       childrenAfterNot.add(new ExprNodeConstantDesc(right));
-      if (notKeywordPresent) {
-        cl = FilterLongColumnNotBetween.class;
-      } else {
-        cl = FilterLongColumnBetween.class;
-      }
-    } else if (isDecimalFamily(colType) && !notKeywordPresent) {
-      cl = FilterDecimalColumnBetween.class;
-    } else if (isDecimalFamily(colType) && notKeywordPresent) {
-      cl = FilterDecimalColumnNotBetween.class;
-    } else if (isDateFamily(colType) && !notKeywordPresent) {
-      cl = FilterLongColumnBetween.class;
-    } else if (isDateFamily(colType) && notKeywordPresent) {
-      cl = FilterLongColumnNotBetween.class;
+      cl = mode == Mode.FILTER ? FilterLongColumnBetween.class : LongColumnBetween.class;
+    } else if (isDecimalFamily(colType)) {
+      cl = mode == Mode.FILTER ? FilterDecimalColumnBetween.class : DecimalColumnBetween.class;
+    } else if (isDateFamily(colType)) {
+      cl = mode == Mode.FILTER ? FilterLongColumnBetween.class : LongColumnBetween.class;
     }
     return createVectorExpression(cl, childrenAfterNot, Mode.PROJECTION, returnType);
   }
@@ -1808,8 +1780,6 @@ public class VectorizationContext {
       } else {
         return 0;
       }
-    } else if (decimalTypePattern.matcher(constDesc.getTypeString()).matches()) {
-      return (HiveDecimal) constDesc.getValue();
     } else {
       return constDesc.getValue();
     }
