@@ -18,12 +18,17 @@
 
 package org.apache.hive.service;
 
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
+import org.apache.hadoop.hive.common.classification.InterfaceStability;
 import org.apache.hadoop.hive.conf.HiveConf;
 
 /**
  * Service.
  *
  */
+@InterfaceAudience.Public
+@InterfaceStability.Evolving
+@InterfaceStability.Unstable
 public interface Service {
 
   /**
@@ -54,7 +59,6 @@ public interface Service {
    */
   void init(HiveConf conf);
 
-
   /**
    * Start the service.
    *
@@ -72,22 +76,6 @@ public interface Service {
   void stop();
 
   /**
-   * Register an instance of the service state change events.
-   *
-   * @param listener
-   *          a new listener
-   */
-  void register(ServiceStateChangeListener listener);
-
-  /**
-   * Unregister a previously instance of the service state change events.
-   *
-   * @param listener
-   *          the listener to unregister.
-   */
-  void unregister(ServiceStateChangeListener listener);
-
-  /**
    * Get the name of this service.
    *
    * @return the service name
@@ -95,28 +83,9 @@ public interface Service {
   String getName();
 
   /**
-   * Get the configuration of this service.
-   * This is normally not a clone and may be manipulated, though there are no
-   * guarantees as to what the consequences of such actions may be
-   *
-   * @return the current configuration, unless a specific implementation chooses
-   *         otherwise.
-   */
-  HiveConf getHiveConf();
-
-  /**
    * Get the current service state
    *
    * @return the state of the service
    */
   STATE getServiceState();
-
-  /**
-   * Get the service start time
-   *
-   * @return the start time of the service. This will be zero if the service
-   *         has not yet been started.
-   */
-  long getStartTime();
-
 }

@@ -85,6 +85,7 @@ import org.apache.commons.lang.WordUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.ContentSummary;
@@ -2083,6 +2084,43 @@ public final class Utilities {
     } else {
       return "";
     }
+  }
+
+  /**
+   * Returns the instances specified in a configuration variable as a list
+   * in the order they were specified in the configuration variable.
+   *
+   * @param conf        Configuration object
+   * @param confVar     The configuration variable specifying a comma separated list
+   *                    of the class names
+   * @param clazz       The super type of the instances
+   * @return            A list of the instances cast as the type specified in clazz,
+   *                    in the order they are listed in the value of hookConfVar
+   * @throws ClassNotFoundException
+   * @throws IllegalAccessException
+   * @throws InstantiationException
+   */
+  public static <T> List<T> getInstances(HiveConf conf, ConfVars confVar, Class<T> clazz)
+      throws InstantiationException, IllegalAccessException, ClassNotFoundException  {
+    String var = conf.getVar(confVar);
+    if (var == null) {
+      return Collections.emptyList();
+    }
+    var = var.trim();
+    if (var.isEmpty()) {
+      return Collections.emptyList();
+    }
+    ClassLoader loader = getSessionSpecifiedClassLoader();
+    List<T> instances = new ArrayList<T>();
+    for (String className : var.split(",")) {
+      T instance = Class.forName(className.trim(), true, loader).asSubclass(clazz).newInstance();
+      if (instance instanceof Configurable) {
+        ((Configurable) instance).setConf(conf);
+      }
+      instances.add(instance);
+    }
+
+    return instances;
   }
 
   /**

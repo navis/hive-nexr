@@ -18,8 +18,8 @@
 
 package org.apache.hive.service;
 
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hive.service.Service.STATE;
 
 /**
  * This is a service that can be configured to break on any of the lifecycle
@@ -31,6 +31,7 @@ import org.apache.hive.service.Service.STATE;
  * before the superclass state methods are invoked.
  *
  */
+@InterfaceAudience.Private
 public class BreakableService extends AbstractService {
   private boolean failOnInit;
   private boolean failOnStart;

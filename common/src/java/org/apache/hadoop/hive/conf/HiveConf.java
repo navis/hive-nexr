@@ -1643,6 +1643,10 @@ public class HiveConf extends Configuration {
         "SSL Versions to disable for all Hive Servers"),
 
      // HiveServer2 specific configs
+     HIVE_SERVER2_SERVICE_CLASSES("hive.server2.service.classes", "",
+         "Comma separated class names implementing org.apache.hive.service.Service, which is currently in evolving state." +
+         "Managed in HiveServer2 with the same lifecycle."),
+
     HIVE_SERVER2_MAX_START_ATTEMPTS("hive.server2.max.start.attempts", 30L, new RangeValidator(0L, null),
         "Number of times HiveServer2 will attempt to start before exiting, sleeping 60 seconds " +
         "between retries. \n The default of 30 will keep trying for 30 minutes."),

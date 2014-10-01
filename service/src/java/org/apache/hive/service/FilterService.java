@@ -18,12 +18,14 @@
 
 package org.apache.hive.service;
 
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.conf.HiveConf;
 
 /**
  * FilterService.
  *
  */
+@InterfaceAudience.Private
 public class FilterService implements Service {
 
 
@@ -51,33 +53,12 @@ public class FilterService implements Service {
 
 
   @Override
-  public void register(ServiceStateChangeListener listener) {
-    service.register(listener);
-  }
-
-  @Override
-  public void unregister(ServiceStateChangeListener listener) {
-    service.unregister(listener);
-  }
-
-  @Override
   public String getName() {
     return service.getName();
-  }
-
-  @Override
-  public HiveConf getHiveConf() {
-    return service.getHiveConf();
   }
 
   @Override
   public STATE getServiceState() {
     return service.getServiceState();
   }
-
-  @Override
-  public long getStartTime() {
-    return startTime;
-  }
-
 }

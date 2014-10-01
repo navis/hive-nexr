@@ -41,14 +41,15 @@ import org.apache.hadoop.hive.common.LogUtils.LogInitializationException;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.ql.exec.spark.session.SparkSessionManagerImpl;
+import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.exec.tez.TezSessionPoolManager;
 import org.apache.hadoop.hive.ql.util.ZooKeeperHiveHelper;
-import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.hive.shims.Utils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hive.common.util.HiveStringUtils;
 import org.apache.hive.common.util.HiveVersionInfo;
 import org.apache.hive.service.CompositeService;
+import org.apache.hive.service.Service;
 import org.apache.hive.service.cli.CLIService;
 import org.apache.hive.service.cli.thrift.ThriftBinaryCLIService;
 import org.apache.hive.service.cli.thrift.ThriftCLIService;
@@ -89,6 +90,11 @@ public class HiveServer2 extends CompositeService {
       thriftCLIService = new ThriftBinaryCLIService(cliService);
     }
     addService(thriftCLIService);
+
+    for (Service service : getServices(hiveConf)) {
+      addService(service);
+    }
+
     super.init(hiveConf);
 
     // Add a shutdown hook for catching SIGTERM & SIGINT
@@ -99,6 +105,15 @@ public class HiveServer2 extends CompositeService {
         hiveServer2.stop();
       }
     });
+  }
+
+  private List<Service> getServices(HiveConf hiveConf) {
+    try {
+      return Utilities.getInstances(hiveConf,
+          ConfVars.HIVE_SERVER2_SERVICE_CLASSES, Service.class);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to instanciate services for hiveserver2", e);
+    }
   }
 
   public static boolean isHTTPTransportMode(HiveConf hiveConf) {

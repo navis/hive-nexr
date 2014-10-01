@@ -23,12 +23,14 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.conf.HiveConf;
 
 /**
  * AbstractService.
  *
  */
+@InterfaceAudience.Public
 public abstract class AbstractService implements Service {
 
   private static final Log LOG = LogFactory.getLog(AbstractService.class);
@@ -125,12 +127,22 @@ public abstract class AbstractService implements Service {
     LOG.info("Service:" + getName() + " is stopped.");
   }
 
-  @Override
+  /**
+   * Register an instance of the service state change events.
+   *
+   * @param listener
+   *          a new listener
+   */
   public synchronized void register(ServiceStateChangeListener l) {
     listeners.add(l);
   }
 
-  @Override
+  /**
+   * Unregister a previously instance of the service state change events.
+   *
+   * @param listener
+   *          the listener to unregister.
+   */
   public synchronized void unregister(ServiceStateChangeListener l) {
     listeners.remove(l);
   }
@@ -140,12 +152,24 @@ public abstract class AbstractService implements Service {
     return name;
   }
 
-  @Override
+  /**
+   * Get the configuration of this service.
+   * This is normally not a clone and may be manipulated, though there are no
+   * guarantees as to what the consequences of such actions may be
+   *
+   * @return the current configuration, unless a specific implementation chooses
+   *         otherwise.
+   */
   public synchronized HiveConf getHiveConf() {
     return hiveConf;
   }
 
-  @Override
+  /**
+   * Get the service start time
+   *
+   * @return the start time of the service. This will be zero if the service
+   *         has not yet been started.
+   */
   public long getStartTime() {
     return startTime;
   }
@@ -174,10 +198,11 @@ public abstract class AbstractService implements Service {
    *          new service state
    */
   private void changeState(STATE newState) {
+    STATE prev = state;
     state = newState;
     // notify listeners
     for (ServiceStateChangeListener l : listeners) {
-      l.stateChanged(this);
+      l.stateChanged(prev, this);
     }
   }
 

@@ -18,10 +18,13 @@
 
 package org.apache.hive.service;
 
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
+
 /**
  * ServiceStateChangeListener.
  *
  */
+@InterfaceAudience.Private
 public interface ServiceStateChangeListener {
 
   /**
@@ -29,7 +32,7 @@ public interface ServiceStateChangeListener {
    * have changed state before this callback is invoked.
    *
    * This operation is invoked on the thread that initiated the state change,
-   * while the service itself in in a sychronized section.
+   * while the service itself in in a synchronized section.
    * <ol>
    *   <li>Any long-lived operation here will prevent the service state
    *   change from completing in a timely manner.</li>
@@ -39,8 +42,9 @@ public interface ServiceStateChangeListener {
    * </ol>
    *
    *
+   * @param prev
    * @param service the service that has changed.
    */
-  void stateChanged(Service service);
+  void stateChanged(Service.STATE prev, Service service);
 
 }

@@ -18,15 +18,14 @@
 
 package org.apache.hadoop.hive.ql.hooks;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.hadoop.hive.common.JavaUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 
 public class HookUtils {
+
   /**
    * Returns the hooks specified in a configuration variable.  The hooks are returned
    * in a list in the order they were specified in the configuration variable.
@@ -44,25 +43,7 @@ public class HookUtils {
   public static <T extends Hook> List<T> getHooks(HiveConf conf,
       ConfVars hookConfVar, Class<T> clazz)
       throws InstantiationException, IllegalAccessException, ClassNotFoundException  {
-    String csHooks = conf.getVar(hookConfVar);
-    List<T> hooks = new ArrayList<T>();
-    if (csHooks == null) {
-      return hooks;
-    }
-
-    csHooks = csHooks.trim();
-    if (csHooks.equals("")) {
-      return hooks;
-    }
-
-    String[] hookClasses = csHooks.split(",");
-    for (String hookClass : hookClasses) {
-        T hook = (T) Class.forName(hookClass.trim(), true,
-                Utilities.getSessionSpecifiedClassLoader()).newInstance();
-        hooks.add(hook);
-    }
-
-    return hooks;
+    return Utilities.getInstances(conf, hookConfVar, clazz);
   }
 
 }
