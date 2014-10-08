@@ -365,6 +365,8 @@ public final class FunctionRegistry {
     system.registerGenericUDAF("ewah_bitmap", new GenericUDAFEWAHBitmap());
 
     system.registerGenericUDAF("compute_stats", new GenericUDAFComputeStats());
+    
+    system.registerGenericUDAF("hll", new GenericUDAFCardinalityApprox());
 
     system.registerUDAF("percentile", UDAFPercentile.class);
 

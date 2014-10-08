@@ -1,0 +1,131 @@
+PREHOOK: query: DESCRIBE FUNCTION hll
+PREHOOK: type: DESCFUNCTION
+POSTHOOK: query: DESCRIBE FUNCTION hll
+POSTHOOK: type: DESCFUNCTION
+hll([float/double relativeSD, ]expr) or hll([int p, int sp, ]expr) - Returns approximate cadinality of expression by using HyperLogLogPlus.
+PREHOOK: query: DESCRIBE FUNCTION EXTENDED hll
+PREHOOK: type: DESCFUNCTION
+POSTHOOK: query: DESCRIBE FUNCTION EXTENDED hll
+POSTHOOK: type: DESCFUNCTION
+hll([float/double relativeSD, ]expr) or hll([int p, int sp, ]expr) - Returns approximate cadinality of expression by using HyperLogLogPlus.
+PREHOOK: query: explain
+select hll(key), hll(6,key), hll(10, 20, key), hll(0.1, key) from src
+PREHOOK: type: QUERY
+POSTHOOK: query: explain
+select hll(key), hll(6,key), hll(10, 20, key), hll(0.1, key) from src
+POSTHOOK: type: QUERY
+STAGE DEPENDENCIES:
+  Stage-1 is a root stage
+  Stage-0 depends on stages: Stage-1
+
+STAGE PLANS:
+  Stage: Stage-1
+    Map Reduce
+      Map Operator Tree:
+          TableScan
+            alias: src
+            Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
+            Select Operator
+              expressions: key (type: string)
+              outputColumnNames: key
+              Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
+              Reduce Output Operator
+                sort order: 
+                Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
+                value expressions: key (type: string)
+      Reduce Operator Tree:
+        Group By Operator
+          aggregations: hll(VALUE._col0), hll(6, VALUE._col0), hll(10, 20, VALUE._col0), hll(0.1, VALUE._col0)
+          mode: complete
+          outputColumnNames: _col0, _col1, _col2, _col3
+          Statistics: Num rows: 1 Data size: 32 Basic stats: COMPLETE Column stats: NONE
+          Select Operator
+            expressions: _col0 (type: bigint), _col1 (type: bigint), _col2 (type: bigint), _col3 (type: bigint)
+            outputColumnNames: _col0, _col1, _col2, _col3
+            Statistics: Num rows: 1 Data size: 32 Basic stats: COMPLETE Column stats: NONE
+            File Output Operator
+              compressed: false
+              Statistics: Num rows: 1 Data size: 32 Basic stats: COMPLETE Column stats: NONE
+              table:
+                  input format: org.apache.hadoop.mapred.TextInputFormat
+                  output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+                  serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+
+  Stage: Stage-0
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        ListSink
+
+PREHOOK: query: select hll(key), hll(6,key), hll(10, 20, key), hll(0.1, key) from src
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: select hll(key), hll(6,key), hll(10, 20, key), hll(0.1, key) from src
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+309	302	320	331
+PREHOOK: query: explain
+select hll(key), hll(6,key), hll(10, 20, key), hll(0.1, key) from src
+PREHOOK: type: QUERY
+POSTHOOK: query: explain
+select hll(key), hll(6,key), hll(10, 20, key), hll(0.1, key) from src
+POSTHOOK: type: QUERY
+STAGE DEPENDENCIES:
+  Stage-1 is a root stage
+  Stage-0 depends on stages: Stage-1
+
+STAGE PLANS:
+  Stage: Stage-1
+    Map Reduce
+      Map Operator Tree:
+          TableScan
+            alias: src
+            Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
+            Select Operator
+              expressions: key (type: string)
+              outputColumnNames: key
+              Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
+              Group By Operator
+                aggregations: hll(key), hll(6, key), hll(10, 20, key), hll(0.1, key)
+                mode: hash
+                outputColumnNames: _col0, _col1, _col2, _col3
+                Statistics: Num rows: 1 Data size: 160 Basic stats: COMPLETE Column stats: NONE
+                Reduce Output Operator
+                  sort order: 
+                  Statistics: Num rows: 1 Data size: 160 Basic stats: COMPLETE Column stats: NONE
+                  value expressions: _col0 (type: binary), _col1 (type: binary), _col2 (type: binary), _col3 (type: binary)
+      Reduce Operator Tree:
+        Group By Operator
+          aggregations: hll(VALUE._col0), hll(VALUE._col1), hll(VALUE._col2), hll(VALUE._col3)
+          mode: mergepartial
+          outputColumnNames: _col0, _col1, _col2, _col3
+          Statistics: Num rows: 1 Data size: 192 Basic stats: COMPLETE Column stats: NONE
+          Select Operator
+            expressions: _col0 (type: bigint), _col1 (type: bigint), _col2 (type: bigint), _col3 (type: bigint)
+            outputColumnNames: _col0, _col1, _col2, _col3
+            Statistics: Num rows: 1 Data size: 192 Basic stats: COMPLETE Column stats: NONE
+            File Output Operator
+              compressed: false
+              Statistics: Num rows: 1 Data size: 192 Basic stats: COMPLETE Column stats: NONE
+              table:
+                  input format: org.apache.hadoop.mapred.TextInputFormat
+                  output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+                  serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+
+  Stage: Stage-0
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        ListSink
+
+PREHOOK: query: select hll(key), hll(6,key), hll(10, 20, key), hll(0.1, key) from src
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: select hll(key), hll(6,key), hll(10, 20, key), hll(0.1, key) from src
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+309	302	320	331
