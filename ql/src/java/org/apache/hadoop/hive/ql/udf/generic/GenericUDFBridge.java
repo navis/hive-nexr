@@ -22,7 +22,6 @@ import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 
-import org.apache.hadoop.hive.common.JavaUtils;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.exec.UDF;
@@ -127,9 +126,14 @@ public class GenericUDFBridge extends GenericUDF implements Serializable {
     this.isOperator = isOperator;
   }
 
+  public boolean isInitialized() {
+    return udf != null;
+  }
+
   public Class<? extends UDF> getUdfClass() {
     try {
-      return (Class<? extends UDF>) Class.forName(udfClassName, true, Utilities.getSessionSpecifiedClassLoader());
+      return (Class<? extends UDF>) Class.forName(udfClassName, true,
+          Utilities.getSessionSpecifiedClassLoader());
     } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
@@ -139,7 +143,7 @@ public class GenericUDFBridge extends GenericUDF implements Serializable {
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
 
     try {
-      udf = (UDF) Class.forName(udfClassName, true, Utilities.getSessionSpecifiedClassLoader()).newInstance();
+      udf = getUdfClass().newInstance();
     } catch (Exception e) {
       throw new UDFArgumentException(
           "Unable to instantiate UDF implementation class " + udfClassName + ": " + e);

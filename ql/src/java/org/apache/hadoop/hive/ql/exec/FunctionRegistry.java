@@ -1327,10 +1327,6 @@ public final class FunctionRegistry {
       // the deterministic annotation declares
       return false;
     }
-    UDFType genericUDFType = AnnotationUtils.getAnnotation(genericUDF.getClass(), UDFType.class);
-    if (genericUDFType != null && genericUDFType.deterministic() == false) {
-      return false;
-    }
 
     if (genericUDF instanceof GenericUDFBridge) {
       GenericUDFBridge bridge = (GenericUDFBridge) (genericUDF);
@@ -1338,6 +1334,11 @@ public final class FunctionRegistry {
       if (bridgeUDFType != null && bridgeUDFType.deterministic() == false) {
         return false;
       }
+    }
+
+    UDFType genericUDFType = AnnotationUtils.getAnnotation(genericUDF.getClass(), UDFType.class);
+    if (genericUDFType != null && genericUDFType.deterministic() == false) {
+      return false;
     }
 
     if (genericUDF instanceof GenericUDFMacro) {
@@ -1352,17 +1353,17 @@ public final class FunctionRegistry {
    * Returns whether a GenericUDF is stateful or not.
    */
   public static boolean isStateful(GenericUDF genericUDF) {
-    UDFType genericUDFType = AnnotationUtils.getAnnotation(genericUDF.getClass(), UDFType.class);
-    if (genericUDFType != null && genericUDFType.stateful()) {
-      return true;
-    }
-
     if (genericUDF instanceof GenericUDFBridge) {
       GenericUDFBridge bridge = (GenericUDFBridge) genericUDF;
       UDFType bridgeUDFType = AnnotationUtils.getAnnotation(bridge.getUdfClass(), UDFType.class);
       if (bridgeUDFType != null && bridgeUDFType.stateful()) {
         return true;
       }
+    }
+
+    UDFType genericUDFType = AnnotationUtils.getAnnotation(genericUDF.getClass(), UDFType.class);
+    if (genericUDFType != null && genericUDFType.stateful()) {
+      return true;
     }
 
     if (genericUDF instanceof GenericUDFMacro) {

@@ -17,7 +17,6 @@
  */
 package org.apache.hadoop.hive.ql.optimizer.calcite.translator;
 
-import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.Map;
 
@@ -58,6 +57,7 @@ import org.apache.hadoop.hive.serde2.typeinfo.DecimalTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.VarcharTypeInfo;
+import org.apache.hive.common.util.AnnotationUtils;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -242,13 +242,11 @@ public class SqlFunctionConverter {
   private static String getName(GenericUDF hiveUDF) {
     String udfName = null;
     if (hiveUDF instanceof GenericUDFBridge) {
-      udfName = ((GenericUDFBridge) hiveUDF).getUdfName();
+      udfName = hiveUDF.getUdfName();
     } else {
-      Class<? extends GenericUDF> udfClass = hiveUDF.getClass();
-      Annotation udfAnnotation = udfClass.getAnnotation(Description.class);
-
-      if (udfAnnotation != null && udfAnnotation instanceof Description) {
-        Description udfDescription = (Description) udfAnnotation;
+      Class<? extends GenericUDF> clazz = hiveUDF.getClass();
+      Description udfDescription = AnnotationUtils.getAnnotation(clazz, Description.class);
+      if (udfDescription != null) {
         udfName = udfDescription.name();
         if (udfName != null) {
           String[] aliases = udfName.split(",");

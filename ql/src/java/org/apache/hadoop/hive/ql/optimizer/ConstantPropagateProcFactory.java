@@ -42,7 +42,6 @@ import org.apache.hadoop.hive.ql.exec.RowSchema;
 import org.apache.hadoop.hive.ql.exec.SelectOperator;
 import org.apache.hadoop.hive.ql.exec.TableScanOperator;
 import org.apache.hadoop.hive.ql.exec.UDF;
-import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.lib.Node;
 import org.apache.hadoop.hive.ql.lib.NodeProcessor;
 import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
@@ -60,7 +59,6 @@ import org.apache.hadoop.hive.ql.plan.JoinCondDesc;
 import org.apache.hadoop.hive.ql.plan.JoinDesc;
 import org.apache.hadoop.hive.ql.plan.ReduceSinkDesc;
 import org.apache.hadoop.hive.ql.plan.TableScanDesc;
-import org.apache.hadoop.hive.ql.udf.UDFType;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF.DeferredJavaObject;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFBaseCompare;
@@ -258,11 +256,7 @@ public final class ConstantPropagateProcFactory {
   }
 
   private static boolean isDeterministicUdf(GenericUDF udf) {
-    UDFType udfType = udf.getClass().getAnnotation(UDFType.class);
-    if (udf instanceof GenericUDFBridge) {
-      udfType = ((GenericUDFBridge) udf).getUdfClass().getAnnotation(UDFType.class);
-    }
-    if (udfType.deterministic() == false) {
+    if (!FunctionRegistry.isDeterministic(udf)) {
       return false;
     }
 
@@ -270,18 +264,17 @@ public final class ConstantPropagateProcFactory {
     // compile time.
     String[] files;
     String[] jars;
-    if (udf instanceof GenericUDFBridge) {
+    if (udf instanceof GenericUDFBridge && !((GenericUDFBridge)udf).isInitialized()) {
       GenericUDFBridge bridge = (GenericUDFBridge) udf;
-      String udfClassName = bridge.getUdfClassName();
       try {
-        UDF udfInternal =
-            (UDF) Class.forName(bridge.getUdfClassName(), true, Utilities.getSessionSpecifiedClassLoader())
-                .newInstance();
+        UDF udfInternal = bridge.getUdfClass().newInstance();
         files = udfInternal.getRequiredFiles();
         jars = udfInternal.getRequiredJars();
       } catch (Exception e) {
-        LOG.error("The UDF implementation class '" + udfClassName
-            + "' is not present in the class path");
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("The UDF implementation class '" + bridge.getUdfClassName()
+              + "' is not present in the class path");
+        }
         return false;
       }
     } else {
