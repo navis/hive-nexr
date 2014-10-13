@@ -34,7 +34,9 @@ public class ColumnAccess {
           // support non-spec boolean expression
           String stringVal = results.getString(index);
           return results.wasNull() ? null :
-              (stringVal.equals("0") || stringVal.equals("t") || stringVal.equals("true"));
+              (stringVal.equals("1") ||
+                stringVal.equalsIgnoreCase("t") ||
+                stringVal.equalsIgnoreCase("true"));
         }
         boolean boolVal = results.getBoolean(index);
         return results.wasNull() ? null : boolVal;
