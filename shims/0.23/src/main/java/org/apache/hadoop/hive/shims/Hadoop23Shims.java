@@ -21,7 +21,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -60,14 +59,13 @@ import org.apache.hadoop.mapreduce.TaskID;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.mapreduce.task.JobContextImpl;
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
-import org.apache.hadoop.mapreduce.util.HostUtil;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.Progressable;
 import org.apache.tez.test.MiniTezCluster;
 
 /**
- * Implemention of shims against Hadoop 0.23.0.
+ * Implementation of shims against Hadoop 0.23.0.
  */
 public class Hadoop23Shims extends HadoopShimsSecure {
 
@@ -96,11 +94,9 @@ public class Hadoop23Shims extends HadoopShimsSecure {
       LOG.warn("Can't fetch tasklog: TaskLogServlet is not supported in MR2 mode.");
       return null;
     } else {
-      // if the cluster is running in MR1 mode, using HostUtil to construct TaskLogURL
-      URL taskTrackerHttpURL = new URL(taskTrackerHttpAddress);
-      return HostUtil.getTaskLogUrl(taskTrackerHttpURL.getHost(),
-        Integer.toString(taskTrackerHttpURL.getPort()),
-        taskAttemptId);
+      // Was using Hadoop-internal API to get tasklogs, disable until  MAPREDUCE-5857 is fixed.
+      LOG.warn("Can't fetch tasklog: TaskLogServlet is not supported in MR1 mode.");
+      return null;
     }
   }
 
