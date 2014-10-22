@@ -954,11 +954,6 @@ public class Driver implements CommandProcessor {
     return cpr;
   }
 
-  public CommandProcessorResponse compileAndRespond(String command) {
-    return new CommandProcessorResponse(compileInternal(command),
-        errorMessage, SQLState);
-  }
-
   private int compileInternal(String command) {
     int ret;
     synchronized (compileMonitor) {
@@ -983,7 +978,7 @@ public class Driver implements CommandProcessor {
     return ret;
   }
 
-  public CommandProcessorResponse compileCommand(String command) {
+  public CommandProcessorResponse compileAndRespond(String command) {
     errorMessage = null;
     SQLState = null;
     downstreamError = null;
@@ -1017,10 +1012,7 @@ public class Driver implements CommandProcessor {
     perfLogger.PerfLogBegin(CLASS_NAME, PerfLogger.TIME_TO_SUBMIT);
 
     int ret = compileInternal(command);
-    if (ret != 0) {
-      return new CommandProcessorResponse(ret, errorMessage, SQLState);
-    }
-    return new CommandProcessorResponse(ret);
+    return new CommandProcessorResponse(ret, errorMessage, SQLState);
   }
 
   public CommandProcessorResponse executePlan() throws CommandNeedRetryException {

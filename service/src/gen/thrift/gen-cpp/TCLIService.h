@@ -19,6 +19,9 @@ class TCLIServiceIf {
   virtual void CloseSession(TCloseSessionResp& _return, const TCloseSessionReq& req) = 0;
   virtual void GetInfo(TGetInfoResp& _return, const TGetInfoReq& req) = 0;
   virtual void ExecuteStatement(TExecuteStatementResp& _return, const TExecuteStatementReq& req) = 0;
+  virtual void Compile(TCompileRes& _return, const TExecuteStatementReq& req) = 0;
+  virtual void Run(TStatus& _return, const TRunReq& req) = 0;
+  virtual void ExecuteTransient(TStatus& _return, const TExecuteStatementReq& req) = 0;
   virtual void GetTypeInfo(TGetTypeInfoResp& _return, const TGetTypeInfoReq& req) = 0;
   virtual void GetCatalogs(TGetCatalogsResp& _return, const TGetCatalogsReq& req) = 0;
   virtual void GetSchemas(TGetSchemasResp& _return, const TGetSchemasReq& req) = 0;
@@ -73,6 +76,15 @@ class TCLIServiceNull : virtual public TCLIServiceIf {
     return;
   }
   void ExecuteStatement(TExecuteStatementResp& /* _return */, const TExecuteStatementReq& /* req */) {
+    return;
+  }
+  void Compile(TCompileRes& /* _return */, const TExecuteStatementReq& /* req */) {
+    return;
+  }
+  void Run(TStatus& /* _return */, const TRunReq& /* req */) {
+    return;
+  }
+  void ExecuteTransient(TStatus& /* _return */, const TExecuteStatementReq& /* req */) {
     return;
   }
   void GetTypeInfo(TGetTypeInfoResp& /* _return */, const TGetTypeInfoReq& /* req */) {
@@ -549,6 +561,330 @@ class TCLIService_ExecuteStatement_presult {
   TExecuteStatementResp* success;
 
   _TCLIService_ExecuteStatement_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _TCLIService_Compile_args__isset {
+  _TCLIService_Compile_args__isset() : req(false) {}
+  bool req;
+} _TCLIService_Compile_args__isset;
+
+class TCLIService_Compile_args {
+ public:
+
+  TCLIService_Compile_args() {
+  }
+
+  virtual ~TCLIService_Compile_args() throw() {}
+
+  TExecuteStatementReq req;
+
+  _TCLIService_Compile_args__isset __isset;
+
+  void __set_req(const TExecuteStatementReq& val) {
+    req = val;
+  }
+
+  bool operator == (const TCLIService_Compile_args & rhs) const
+  {
+    if (!(req == rhs.req))
+      return false;
+    return true;
+  }
+  bool operator != (const TCLIService_Compile_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TCLIService_Compile_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class TCLIService_Compile_pargs {
+ public:
+
+
+  virtual ~TCLIService_Compile_pargs() throw() {}
+
+  const TExecuteStatementReq* req;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _TCLIService_Compile_result__isset {
+  _TCLIService_Compile_result__isset() : success(false) {}
+  bool success;
+} _TCLIService_Compile_result__isset;
+
+class TCLIService_Compile_result {
+ public:
+
+  TCLIService_Compile_result() {
+  }
+
+  virtual ~TCLIService_Compile_result() throw() {}
+
+  TCompileRes success;
+
+  _TCLIService_Compile_result__isset __isset;
+
+  void __set_success(const TCompileRes& val) {
+    success = val;
+  }
+
+  bool operator == (const TCLIService_Compile_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const TCLIService_Compile_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TCLIService_Compile_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _TCLIService_Compile_presult__isset {
+  _TCLIService_Compile_presult__isset() : success(false) {}
+  bool success;
+} _TCLIService_Compile_presult__isset;
+
+class TCLIService_Compile_presult {
+ public:
+
+
+  virtual ~TCLIService_Compile_presult() throw() {}
+
+  TCompileRes* success;
+
+  _TCLIService_Compile_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _TCLIService_Run_args__isset {
+  _TCLIService_Run_args__isset() : req(false) {}
+  bool req;
+} _TCLIService_Run_args__isset;
+
+class TCLIService_Run_args {
+ public:
+
+  TCLIService_Run_args() {
+  }
+
+  virtual ~TCLIService_Run_args() throw() {}
+
+  TRunReq req;
+
+  _TCLIService_Run_args__isset __isset;
+
+  void __set_req(const TRunReq& val) {
+    req = val;
+  }
+
+  bool operator == (const TCLIService_Run_args & rhs) const
+  {
+    if (!(req == rhs.req))
+      return false;
+    return true;
+  }
+  bool operator != (const TCLIService_Run_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TCLIService_Run_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class TCLIService_Run_pargs {
+ public:
+
+
+  virtual ~TCLIService_Run_pargs() throw() {}
+
+  const TRunReq* req;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _TCLIService_Run_result__isset {
+  _TCLIService_Run_result__isset() : success(false) {}
+  bool success;
+} _TCLIService_Run_result__isset;
+
+class TCLIService_Run_result {
+ public:
+
+  TCLIService_Run_result() {
+  }
+
+  virtual ~TCLIService_Run_result() throw() {}
+
+  TStatus success;
+
+  _TCLIService_Run_result__isset __isset;
+
+  void __set_success(const TStatus& val) {
+    success = val;
+  }
+
+  bool operator == (const TCLIService_Run_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const TCLIService_Run_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TCLIService_Run_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _TCLIService_Run_presult__isset {
+  _TCLIService_Run_presult__isset() : success(false) {}
+  bool success;
+} _TCLIService_Run_presult__isset;
+
+class TCLIService_Run_presult {
+ public:
+
+
+  virtual ~TCLIService_Run_presult() throw() {}
+
+  TStatus* success;
+
+  _TCLIService_Run_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _TCLIService_ExecuteTransient_args__isset {
+  _TCLIService_ExecuteTransient_args__isset() : req(false) {}
+  bool req;
+} _TCLIService_ExecuteTransient_args__isset;
+
+class TCLIService_ExecuteTransient_args {
+ public:
+
+  TCLIService_ExecuteTransient_args() {
+  }
+
+  virtual ~TCLIService_ExecuteTransient_args() throw() {}
+
+  TExecuteStatementReq req;
+
+  _TCLIService_ExecuteTransient_args__isset __isset;
+
+  void __set_req(const TExecuteStatementReq& val) {
+    req = val;
+  }
+
+  bool operator == (const TCLIService_ExecuteTransient_args & rhs) const
+  {
+    if (!(req == rhs.req))
+      return false;
+    return true;
+  }
+  bool operator != (const TCLIService_ExecuteTransient_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TCLIService_ExecuteTransient_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class TCLIService_ExecuteTransient_pargs {
+ public:
+
+
+  virtual ~TCLIService_ExecuteTransient_pargs() throw() {}
+
+  const TExecuteStatementReq* req;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _TCLIService_ExecuteTransient_result__isset {
+  _TCLIService_ExecuteTransient_result__isset() : success(false) {}
+  bool success;
+} _TCLIService_ExecuteTransient_result__isset;
+
+class TCLIService_ExecuteTransient_result {
+ public:
+
+  TCLIService_ExecuteTransient_result() {
+  }
+
+  virtual ~TCLIService_ExecuteTransient_result() throw() {}
+
+  TStatus success;
+
+  _TCLIService_ExecuteTransient_result__isset __isset;
+
+  void __set_success(const TStatus& val) {
+    success = val;
+  }
+
+  bool operator == (const TCLIService_ExecuteTransient_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const TCLIService_ExecuteTransient_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TCLIService_ExecuteTransient_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _TCLIService_ExecuteTransient_presult__isset {
+  _TCLIService_ExecuteTransient_presult__isset() : success(false) {}
+  bool success;
+} _TCLIService_ExecuteTransient_presult__isset;
+
+class TCLIService_ExecuteTransient_presult {
+ public:
+
+
+  virtual ~TCLIService_ExecuteTransient_presult() throw() {}
+
+  TStatus* success;
+
+  _TCLIService_ExecuteTransient_presult__isset __isset;
 
   uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
 
@@ -2206,6 +2542,15 @@ class TCLIServiceClient : virtual public TCLIServiceIf {
   void ExecuteStatement(TExecuteStatementResp& _return, const TExecuteStatementReq& req);
   void send_ExecuteStatement(const TExecuteStatementReq& req);
   void recv_ExecuteStatement(TExecuteStatementResp& _return);
+  void Compile(TCompileRes& _return, const TExecuteStatementReq& req);
+  void send_Compile(const TExecuteStatementReq& req);
+  void recv_Compile(TCompileRes& _return);
+  void Run(TStatus& _return, const TRunReq& req);
+  void send_Run(const TRunReq& req);
+  void recv_Run(TStatus& _return);
+  void ExecuteTransient(TStatus& _return, const TExecuteStatementReq& req);
+  void send_ExecuteTransient(const TExecuteStatementReq& req);
+  void recv_ExecuteTransient(TStatus& _return);
   void GetTypeInfo(TGetTypeInfoResp& _return, const TGetTypeInfoReq& req);
   void send_GetTypeInfo(const TGetTypeInfoReq& req);
   void recv_GetTypeInfo(TGetTypeInfoResp& _return);
@@ -2270,6 +2615,9 @@ class TCLIServiceProcessor : public ::apache::thrift::TDispatchProcessor {
   void process_CloseSession(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_GetInfo(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_ExecuteStatement(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_Compile(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_Run(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_ExecuteTransient(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_GetTypeInfo(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_GetCatalogs(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_GetSchemas(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
@@ -2292,6 +2640,9 @@ class TCLIServiceProcessor : public ::apache::thrift::TDispatchProcessor {
     processMap_["CloseSession"] = &TCLIServiceProcessor::process_CloseSession;
     processMap_["GetInfo"] = &TCLIServiceProcessor::process_GetInfo;
     processMap_["ExecuteStatement"] = &TCLIServiceProcessor::process_ExecuteStatement;
+    processMap_["Compile"] = &TCLIServiceProcessor::process_Compile;
+    processMap_["Run"] = &TCLIServiceProcessor::process_Run;
+    processMap_["ExecuteTransient"] = &TCLIServiceProcessor::process_ExecuteTransient;
     processMap_["GetTypeInfo"] = &TCLIServiceProcessor::process_GetTypeInfo;
     processMap_["GetCatalogs"] = &TCLIServiceProcessor::process_GetCatalogs;
     processMap_["GetSchemas"] = &TCLIServiceProcessor::process_GetSchemas;
@@ -2372,6 +2723,36 @@ class TCLIServiceMultiface : virtual public TCLIServiceIf {
       ifaces_[i]->ExecuteStatement(_return, req);
     }
     ifaces_[i]->ExecuteStatement(_return, req);
+    return;
+  }
+
+  void Compile(TCompileRes& _return, const TExecuteStatementReq& req) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->Compile(_return, req);
+    }
+    ifaces_[i]->Compile(_return, req);
+    return;
+  }
+
+  void Run(TStatus& _return, const TRunReq& req) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->Run(_return, req);
+    }
+    ifaces_[i]->Run(_return, req);
+    return;
+  }
+
+  void ExecuteTransient(TStatus& _return, const TExecuteStatementReq& req) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->ExecuteTransient(_return, req);
+    }
+    ifaces_[i]->ExecuteTransient(_return, req);
     return;
   }
 

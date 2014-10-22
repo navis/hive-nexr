@@ -19,7 +19,6 @@
 package org.apache.hive.service.cli.operation;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.security.PrivilegedExceptionAction;
 import java.sql.SQLException;
@@ -35,11 +34,13 @@ import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.ql.CommandNeedRetryException;
 import org.apache.hadoop.hive.ql.Driver;
+import org.apache.hadoop.hive.ql.QueryPlan;
 import org.apache.hadoop.hive.ql.exec.ExplainTask;
 import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.VariableSubstitution;
+import org.apache.hadoop.hive.ql.plan.api.Query;
 import org.apache.hadoop.hive.ql.processors.CommandProcessorResponse;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.serde.serdeConstants;
@@ -85,7 +86,7 @@ public class SQLOperation extends ExecuteStatementOperation {
    * @param sqlOperationConf
    * @throws HiveSQLException
    */
-  public void prepare(HiveConf sqlOperationConf) throws HiveSQLException {
+  private QueryPlan prepare(HiveConf sqlOperationConf) throws HiveSQLException {
     setState(OperationState.RUNNING);
 
     try {
@@ -98,15 +99,16 @@ public class SQLOperation extends ExecuteStatementOperation {
       String subStatement = new VariableSubstitution().substitute(sqlOperationConf, statement);
       response = driver.compileAndRespond(subStatement);
       if (0 != response.getResponseCode()) {
-        throw new HiveSQLException("Error while compiling statement: "
+        throw new HiveSQLException("Error while compiling statement: " + statement + " by "
             + response.getErrorMessage(), response.getSQLState(), response.getResponseCode());
       }
+      QueryPlan plan = driver.getPlan();
 
       mResultSchema = driver.getSchema();
 
       // hasResultSet should be true only if the query has a FetchTask
       // "explain" is an exception for now
-      if(driver.getPlan().getFetchTask() != null) {
+      if (plan.getFetchTask() != null) {
         //Schema has to be set
         if (mResultSchema == null || !mResultSchema.isSetFieldSchemas()) {
           throw new HiveSQLException("Error compiling query: Schema and FieldSchema " +
@@ -119,23 +121,25 @@ public class SQLOperation extends ExecuteStatementOperation {
       }
       // Set hasResultSet true if the plan has ExplainTask
       // TODO explain should use a FetchTask for reading
-      for (Task<? extends Serializable> task: driver.getPlan().getRootTasks()) {
-        if (task.getClass() == ExplainTask.class) {
+      for (Task task: plan.getRootTasks()) {
+        if (task instanceof ExplainTask) {
           resultSchema = new TableSchema(mResultSchema);
           setHasResultSet(true);
           break;
         }
       }
+      return plan;
     } catch (HiveSQLException e) {
       setState(OperationState.ERROR);
       throw e;
     } catch (Exception e) {
       setState(OperationState.ERROR);
-      throw new HiveSQLException("Error running query: " + e.toString(), e);
+      throw new HiveSQLException("Error while compiling statement: " + statement + " by "
+          + e.toString(), e);
     }
   }
 
-  private void runInternal(HiveConf sqlOperationConf) throws HiveSQLException {
+  private void runInternal() throws HiveSQLException {
     try {
       // In Hive server mode, we are not able to retry in the FetchTask
       // case, when calling fetch queries since execute() has returned.
@@ -171,7 +175,7 @@ public class SQLOperation extends ExecuteStatementOperation {
     final HiveConf opConfig = getConfigForOperation();
     prepare(opConfig);
     if (!shouldRunAsync()) {
-      runInternal(opConfig);
+      runInternal();
     } else {
       final SessionState parentSessionState = SessionState.get();
       // current Hive object needs to be set in aysnc thread in case of remote metastore.
@@ -196,7 +200,7 @@ public class SQLOperation extends ExecuteStatementOperation {
               Hive.set(sessionHive);
               SessionState.setCurrentSessionState(parentSessionState);
               try {
-                runInternal(opConfig);
+                runInternal();
               } catch (HiveSQLException e) {
                 setOperationException(e);
                 LOG.error("Error running hive query: ", e);
@@ -410,7 +414,7 @@ public class SQLOperation extends ExecuteStatementOperation {
   private HiveConf getConfigForOperation() throws HiveSQLException {
     HiveConf sqlOperationConf = getParentSession().getHiveConf();
     if (!getConfOverlay().isEmpty() || shouldRunAsync()) {
-      // clone the partent session config for this query
+      // clone the parent session config for this query
       sqlOperationConf = new HiveConf(sqlOperationConf);
 
       // apply overlay query specific settings, if any
@@ -423,5 +427,19 @@ public class SQLOperation extends ExecuteStatementOperation {
       }
     }
     return sqlOperationConf;
+  }
+
+  public Query compile() throws HiveSQLException {
+    QueryPlan plan = prepare(getConfigForOperation());
+    return plan.getQueryPlan();
+  }
+
+  public void execute() throws HiveSQLException {
+    assert driver != null;
+    runInternal();
+  }
+
+  public QueryPlan getPlan() {
+    return driver.getPlan();
   }
 }

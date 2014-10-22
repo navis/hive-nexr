@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.hive.metastore.IMetaStoreClient;
+import org.apache.hive.service.CompileResult;
 import org.apache.hive.service.auth.HiveAuthFactory;
 import org.apache.hive.service.cli.FetchOrientation;
 import org.apache.hive.service.cli.GetInfoType;
@@ -64,6 +65,14 @@ public interface HiveSession extends HiveSessionBase {
    */
   public OperationHandle executeStatementAsync(String statement,
       Map<String, String> confOverlay) throws HiveSQLException;
+
+  public CompileResult compileStatement(String statement, Map<String, String> confOverlay)
+      throws HiveSQLException;
+
+  public void runStatement(OperationHandle opHandle) throws HiveSQLException;
+
+  public void executeTransient(String statement, Map<String, String> confOverlay)
+      throws HiveSQLException;
 
   /**
    * getTypeInfo operation handler

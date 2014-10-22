@@ -288,7 +288,7 @@ public class HiveServer extends ThriftHive {
         if (proc instanceof Driver) {
           isHiveQuery = true;
           driver = (Driver) proc;
-          response = driver.compileCommand(cmd);
+          response = driver.compileAndRespond(cmd);
         } else {
           isHiveQuery = false;
           driver = null;

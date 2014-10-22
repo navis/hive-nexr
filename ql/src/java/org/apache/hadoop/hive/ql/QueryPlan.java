@@ -142,6 +142,9 @@ public class QueryPlan implements Serializable {
   }
 
   private boolean isPseudoMR(List<Task<? extends Serializable>> tasks) {
+    if (tasks.isEmpty()) {
+      return false;
+    }
     for (Task task : tasks) {
       if (!(task instanceof FetchTask) || !((FetchTask)task).getWork().isPseudoMR()) {
         return false;
@@ -286,7 +289,7 @@ public class QueryPlan implements Serializable {
    *
    * @throws IOException
    */
-  private void populateQueryPlan() throws IOException {
+  private void populateQueryPlan() {
     query.setStageGraph(new org.apache.hadoop.hive.ql.plan.api.Graph());
     query.getStageGraph().setNodeType(NodeType.STAGE);
 
@@ -437,7 +440,7 @@ public class QueryPlan implements Serializable {
   /**
    * Extract all the counters from tasks and operators.
    */
-  private void extractCounters() throws IOException {
+  private void extractCounters() {
     Queue<Task<? extends Serializable>> tasksToVisit =
       new LinkedList<Task<? extends Serializable>>();
     Set<Task<? extends Serializable>> tasksVisited =
@@ -498,8 +501,7 @@ public class QueryPlan implements Serializable {
     }
   }
 
-  public org.apache.hadoop.hive.ql.plan.api.Query getQueryPlan()
-      throws IOException {
+  public org.apache.hadoop.hive.ql.plan.api.Query getQueryPlan() {
     if (query.getStageGraph() == null) {
       populateQueryPlan();
     }

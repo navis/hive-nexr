@@ -12,6 +12,7 @@
 #include <thrift/protocol/TProtocol.h>
 #include <thrift/transport/TTransport.h>
 
+#include "queryplan_types.h"
 
 
 namespace apache { namespace hive { namespace service { namespace cli { namespace thrift {
@@ -3984,6 +3985,110 @@ class TRenewDelegationTokenResp {
 };
 
 void swap(TRenewDelegationTokenResp &a, TRenewDelegationTokenResp &b);
+
+typedef struct _TCompileRes__isset {
+  _TCompileRes__isset() : queryPlan(false) {}
+  bool queryPlan;
+} _TCompileRes__isset;
+
+class TCompileRes {
+ public:
+
+  static const char* ascii_fingerprint; // = "0109DD9AF87F9C16A0392FEEF0301D54";
+  static const uint8_t binary_fingerprint[16]; // = {0x01,0x09,0xDD,0x9A,0xF8,0x7F,0x9C,0x16,0xA0,0x39,0x2F,0xEE,0xF0,0x30,0x1D,0x54};
+
+  TCompileRes() {
+  }
+
+  virtual ~TCompileRes() throw() {}
+
+  TStatus status;
+  TOperationHandle operationHandle;
+   ::Apache::Hadoop::Hive::Query queryPlan;
+
+  _TCompileRes__isset __isset;
+
+  void __set_status(const TStatus& val) {
+    status = val;
+  }
+
+  void __set_operationHandle(const TOperationHandle& val) {
+    operationHandle = val;
+  }
+
+  void __set_queryPlan(const  ::Apache::Hadoop::Hive::Query& val) {
+    queryPlan = val;
+    __isset.queryPlan = true;
+  }
+
+  bool operator == (const TCompileRes & rhs) const
+  {
+    if (!(status == rhs.status))
+      return false;
+    if (!(operationHandle == rhs.operationHandle))
+      return false;
+    if (__isset.queryPlan != rhs.__isset.queryPlan)
+      return false;
+    else if (__isset.queryPlan && !(queryPlan == rhs.queryPlan))
+      return false;
+    return true;
+  }
+  bool operator != (const TCompileRes &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TCompileRes & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(TCompileRes &a, TCompileRes &b);
+
+
+class TRunReq {
+ public:
+
+  static const char* ascii_fingerprint; // = "A9814AAA9B38DC20E9E64AA8FF529EC3";
+  static const uint8_t binary_fingerprint[16]; // = {0xA9,0x81,0x4A,0xAA,0x9B,0x38,0xDC,0x20,0xE9,0xE6,0x4A,0xA8,0xFF,0x52,0x9E,0xC3};
+
+  TRunReq() {
+  }
+
+  virtual ~TRunReq() throw() {}
+
+  TSessionHandle sessionHandle;
+  TOperationHandle operationHandle;
+
+  void __set_sessionHandle(const TSessionHandle& val) {
+    sessionHandle = val;
+  }
+
+  void __set_operationHandle(const TOperationHandle& val) {
+    operationHandle = val;
+  }
+
+  bool operator == (const TRunReq & rhs) const
+  {
+    if (!(sessionHandle == rhs.sessionHandle))
+      return false;
+    if (!(operationHandle == rhs.operationHandle))
+      return false;
+    return true;
+  }
+  bool operator != (const TRunReq &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TRunReq & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(TRunReq &a, TRunReq &b);
 
 }}}}} // namespace
 

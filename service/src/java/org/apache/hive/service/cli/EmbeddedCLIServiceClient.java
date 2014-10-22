@@ -21,6 +21,7 @@ package org.apache.hive.service.cli;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hive.service.CompileResult;
 import org.apache.hive.service.auth.HiveAuthFactory;
 
 
@@ -86,7 +87,32 @@ public class EmbeddedCLIServiceClient extends CLIServiceClient {
       Map<String, String> confOverlay) throws HiveSQLException {
     return cliService.executeStatementAsync(sessionHandle, statement, confOverlay);
   }
+  
+/* (non-Javadoc)
+   * @see org.apache.hive.service.cli.CLIServiceClient#getTypeInfo(org.apache.hive.service.cli.SessionHandle)
+   * @see org.apache.hive.service.sql.SQLServiceClient#compileStatement(org.apache.hive.service.sql.SessionHandle, java.lang.String, java.uti
+   */
+  @Override
+  public CompileResult compileStatement(SessionHandle sessionHandle, String statement, Map<String, String> confOverlay)
+      throws HiveSQLException {
+    return cliService.compileStatement(sessionHandle, statement, confOverlay);
+  }
 
+  /* (non-Javadoc)
+   * @see org.apache.hive.service.sql.SQLServiceClient#runStatement(org.apache.hive.service.sql.SessionHandle, org.apache.hive.service.sql.Se
+   */
+  @Override
+  public void runStatement(SessionHandle sessionHandle, OperationHandle opHandle) throws HiveSQLException {
+    cliService.runStatement(sessionHandle, opHandle);
+  }
+
+  /* (non-Javadoc)
+   * @see org.apache.hive.service.sql.SQLServiceClient#executeTransient(org.apache.hive.service.sql.SessionHandle, java.lang.String, java.uti
+   */
+  @Override
+  public void executeTransient(SessionHandle sessionHandle, String statement, Map<String, String> confOverlay) throws HiveSQLException {
+    cliService.executeTransient(sessionHandle, statement, confOverlay);
+  }
 
   /* (non-Javadoc)
    * @see org.apache.hive.service.cli.CLIServiceClient#getTypeInfo(org.apache.hive.service.cli.SessionHandle)
