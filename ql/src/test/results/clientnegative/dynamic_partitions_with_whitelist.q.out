@@ -30,5 +30,5 @@ PREHOOK: type: QUERY
 PREHOOK: Input: default@source_table
 PREHOOK: Input: default@source_table@ds=2008-04-08/hr=11
 PREHOOK: Output: default@dest_table
-Failed with exception MetaException(message:Partition value 'val_129' contains a character not matched by whitelist pattern '[^9]*'.  (configure with hive.metastore.partition.name.whitelist.pattern))
+Failed with exception MetaException(message:Partition value 'val_389' contains a character not matched by whitelist pattern '[^9]*'.  (configure with hive.metastore.partition.name.whitelist.pattern))
 FAILED: Execution Error, return code 1 from org.apache.hadoop.hive.ql.exec.MoveTask

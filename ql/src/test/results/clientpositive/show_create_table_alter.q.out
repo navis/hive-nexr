@@ -69,8 +69,8 @@ OUTPUTFORMAT
 LOCATION
 #### A masked pattern was here ####
 TBLPROPERTIES (
-  'numFiles'='0', 
   'EXTERNAL'='FALSE', 
+  'numFiles'='0', 
 #### A masked pattern was here ####
   'COLUMN_STATS_ACCURATE'='false', 
   'totalSize'='0', 
