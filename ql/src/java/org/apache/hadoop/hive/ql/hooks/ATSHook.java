@@ -42,6 +42,10 @@ import org.json.JSONObject;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.ATS_HOOK_QUEUE_SIZE;
+import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.ATS_HOOK_SHUTDOWN_WAIT;
+import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.ATS_HOOK_SUBMIT_DELAY_LOG_THRESHOLD;
+
 /**
  * ATSHook sends query + plan info to Yarn App Timeline Server. To enable (hadoop 2.4 and up) set
  * hive.exec.pre.hooks/hive.exec.post.hooks/hive.exec.failure.hooks to include this class.
@@ -57,22 +61,19 @@ public class ATSHook implements ExecuteWithHookContext {
   private enum OtherInfoTypes { QUERY, STATUS, TEZ, MAPRED };
   private enum PrimaryFilterTypes { user, operationid };
 
-  private static final String ATS_QUEUE_SIZE = "hive.ats.queue.size";
-  private static final String ATS_SHUTDOWN_WAIT = "hive.ats.shutdown.wait";
-
-  private static final int QUEUE_SIZE = -1;
-  private static final int WAIT_TIME = 3;
-  private static final int SUBMIT_DELAY_LOG_THRESHOLD = 20;
+  public ATSHook() {
+    LOG.info("Created ATS Hook");
+  }
 
   private ExecutorService getExecutors(HiveConf conf) {
     synchronized(LOCK) {
       if (executor == null) {
 
-        final int queue = conf.getInt(ATS_QUEUE_SIZE, QUEUE_SIZE);
-        final int wait = conf.getInt(ATS_SHUTDOWN_WAIT, WAIT_TIME);
+        final int queueSize = conf.getIntVar(ATS_HOOK_QUEUE_SIZE);
+        final long shutdownWait = conf.getTimeVar(ATS_HOOK_SHUTDOWN_WAIT, TimeUnit.MILLISECONDS);
 
         BlockingQueue<Runnable> workQueue =
-            new LinkedBlockingQueue<Runnable>(queue < 0 ? Integer.MAX_VALUE : queue);
+            new LinkedBlockingQueue<Runnable>(queueSize < 0 ? Integer.MAX_VALUE : queueSize);
 
         executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, workQueue,
             new ThreadFactoryBuilder().setDaemon(true).setNameFormat("ATS Logger %d").build(),
@@ -97,7 +98,7 @@ public class ATSHook implements ExecuteWithHookContext {
           public void run() {
             try {
               executor.shutdown();
-              executor.awaitTermination(wait, TimeUnit.SECONDS);
+              executor.awaitTermination(shutdownWait, TimeUnit.MILLISECONDS);
               executor = null;
             } catch(InterruptedException ie) {
               /* ignore */
@@ -113,8 +114,11 @@ public class ATSHook implements ExecuteWithHookContext {
 
   @Override
   public void run(HookContext hookContext) throws Exception {
+    HiveConf conf = hookContext.getConf();
     long currentTime = System.currentTimeMillis();
-    getExecutors(hookContext.getConf()).submit(new ATSWork(hookContext, currentTime));
+    long delayLogThreshold =
+        conf.getTimeVar(ATS_HOOK_SUBMIT_DELAY_LOG_THRESHOLD, TimeUnit.MILLISECONDS);
+    getExecutors(conf).submit(new ATSWork(hookContext, currentTime, delayLogThreshold));
   }
 
   TimelineEntity createPreHookEvent(String queryId, String query, JSONObject explainPlan,
@@ -180,16 +184,18 @@ public class ATSHook implements ExecuteWithHookContext {
 
     private final HookContext hookContext;
     private final long currentTime;
+    private final long delayThreshold;
 
-    public ATSWork(HookContext hookContext, long currentTime) {
+    public ATSWork(HookContext hookContext, long currentTime, long delayThreshold) {
       this.hookContext = hookContext;
       this.currentTime = currentTime;
+      this.delayThreshold = delayThreshold;
     }
 
     @Override
     public void run() {
       long delay = System.currentTimeMillis() - currentTime;
-      if (delay > SUBMIT_DELAY_LOG_THRESHOLD * 1000) {
+      if (delayThreshold > 0 && delay > delayThreshold) {
         LOG.info("Submission " + this + " delayed " + delay + " msec");
       }
       try {

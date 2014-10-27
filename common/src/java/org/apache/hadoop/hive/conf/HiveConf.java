@@ -2018,7 +2018,16 @@ public class HiveConf extends Configuration {
     SPARK_RPC_CHANNEL_LOG_LEVEL("hive.spark.client.channel.log.level", null,
       "Channel logging level for remote Spark driver.  One of {DEBUG, ERROR, INFO, TRACE, WARN}."),
     SPARK_RPC_SASL_MECHANISM("hive.spark.client.rpc.sasl.mechanisms", "DIGEST-MD5",
-      "Name of the SASL mechanism to use for authentication.");
+      "Name of the SASL mechanism to use for authentication."),
+
+    ATS_HOOK_QUEUE_SIZE("hive.hook.ats.queue.size", -1,
+        "Miximum queue size for ATS entry to YARN ATS(application timeline service). -1 for unlimited. " +
+        "Oldest ATS entry will be purged if queue size exceeds this threshold."),
+    ATS_HOOK_SHUTDOWN_WAIT("hive.hook.ats.shutdown.wait",  "3s",
+        new TimeValidator(TimeUnit.MILLISECONDS), "Shutdown wait time for ATS Hook"),
+    ATS_HOOK_SUBMIT_DELAY_LOG_THRESHOLD("hive.hook.ats.submit.delay.log.threshold", "20s",
+        new TimeValidator(TimeUnit.MILLISECONDS), "Logs ATS entry which took time longer than this")
+    ;
 
     public final String varname;
     private final String defaultExpr;
