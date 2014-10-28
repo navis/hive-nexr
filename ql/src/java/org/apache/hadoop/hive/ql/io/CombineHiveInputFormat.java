@@ -21,6 +21,7 @@ package org.apache.hadoop.hive.ql.io;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -108,8 +109,7 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
         Class<? extends InputFormat> inputFormatClass = part.getInputFileFormatClass();
         InputFormat<WritableComparable, Writable> inputFormat =
             getInputFormatFromCache(inputFormatClass, conf);
-        if (inputFormat instanceof AvoidSplitCombination &&
-            ((AvoidSplitCombination) inputFormat).shouldSkipCombine(paths[i + start], conf)) {
+        if (shouldSkipCombine(inputFormat, paths[i + start], conf)) {
           if (LOG.isDebugEnabled()) {
             LOG.debug("The path [" + paths[i + start] +
                 "] is being parked for HiveInputFormat.getSplits");
@@ -119,6 +119,21 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
       }
       return nonCombinablePathIndices;
     }
+  }
+
+  // to call protected method
+  private static final Method IS_SPLITTABLE;
+
+  static {
+    Method method;
+    try {
+      method = FileInputFormat.class.getDeclaredMethod(
+          "isSplitable", new Class[] {FileSystem.class, Path.class});
+      method.setAccessible(true);
+    } catch (Exception e) {
+      method = null;
+    }
+    IS_SPLITTABLE = method;
   }
 
   /**
@@ -381,8 +396,7 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
         // Hadoop does not handle non-splittable files correctly for CombineFileInputFormat,
         // so don't use CombineFileInputFormat for non-splittable files
 
-        //ie, dont't combine if inputformat is a TextInputFormat and has compression turned on
-
+        //ie, don't combine if inputformat is a TextInputFormat and has compression turned on
         if (inputFormat instanceof TextInputFormat) {
           Queue<Path> dirs = new LinkedList<Path>();
           FileStatus fStats = inpFs.getFileStatus(path);
@@ -391,7 +405,7 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
           if (fStats.isDir()) {
             dirs.offer(path);
           } else if ((new CompressionCodecFactory(job)).getCodec(path) != null) {
-            //if compresssion codec is set, use HiveInputFormat.getSplits (don't combine)
+            //if compression codec is set, use HiveInputFormat.getSplits (don't combine)
             splits = super.getSplits(job, numSplits);
             return splits;
           }
@@ -404,7 +418,7 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
                 dirs.offer(fStatus[idx].getPath());
               } else if ((new CompressionCodecFactory(job)).getCodec(
                   fStatus[idx].getPath()) != null) {
-                //if compresssion codec is set, use HiveInputFormat.getSplits (don't combine)
+                //if compression codec is set, use HiveInputFormat.getSplits (don't combine)
                 splits = super.getSplits(job, numSplits);
                 return splits;
               }
@@ -495,6 +509,23 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
     return result.toArray(new CombineHiveInputSplit[result.size()]);
   }
 
+  private boolean shouldSkipCombine(InputFormat inputFormat, Path path, JobConf job)
+      throws IOException {
+    if (inputFormat instanceof AvoidSplitCombination &&
+        ((AvoidSplitCombination) inputFormat).shouldSkipCombine(path, job)) {
+      return true;
+    }
+    // CombineFileInputFormat does not care return value of isSplitable() in FileInputFormat,
+    // which is common base class for custom input formats.
+    try {
+      return IS_SPLITTABLE != null && inputFormat instanceof FileInputFormat &&
+        !((Boolean) IS_SPLITTABLE.invoke(
+            inputFormat, path.getFileSystem(job), path)).booleanValue();
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
   /**
    * Create Hive splits based on CombineFileSplit.
    */
@@ -554,6 +585,9 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
 
     // Process the normal splits
     if (nonCombinablePaths.size() > 0) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("NonCombinable Paths : " + nonCombinablePaths);
+      }
       FileInputFormat.setInputPaths(job, nonCombinablePaths.toArray
           (new Path[nonCombinablePaths.size()]));
       InputSplit[] splits = super.getSplits(job, numSplits);
@@ -564,6 +598,9 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
 
     // Process the combine splits
     if (combinablePaths.size() > 0) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Combinable Paths : " + combinablePaths);
+      }
       FileInputFormat.setInputPaths(job, combinablePaths.toArray
           (new Path[combinablePaths.size()]));
       Map<String, PartitionDesc> pathToPartitionInfo = this.pathToPartitionInfo != null ?
