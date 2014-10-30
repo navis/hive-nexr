@@ -28,6 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.processors.CommandProcessorResponse;
 import org.apache.hadoop.hive.ql.session.OperationLog;
+import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hive.service.cli.FetchOrientation;
 import org.apache.hive.service.cli.HiveSQLException;
 import org.apache.hive.service.cli.OperationHandle;
@@ -40,15 +41,18 @@ import org.apache.hive.service.cli.session.HiveSession;
 import org.apache.hive.service.cli.thrift.TProtocolVersion;
 
 public abstract class Operation {
-  protected final HiveSession parentSession;
-  private OperationState state = OperationState.INITIALIZED;
-  private final OperationHandle opHandle;
-  private HiveConf configuration;
+
   public static final Log LOG = LogFactory.getLog(Operation.class.getName());
   public static final FetchOrientation DEFAULT_FETCH_ORIENTATION = FetchOrientation.FETCH_NEXT;
   public static final long DEFAULT_FETCH_MAX_ROWS = 100;
-  protected boolean hasResultSet;
-  protected volatile HiveSQLException operationException;
+
+  protected static final EnumSet<FetchOrientation> DEFAULT_FETCH_ORIENTATION_SET =
+      EnumSet.of(FetchOrientation.FETCH_NEXT,FetchOrientation.FETCH_FIRST);
+
+  protected final HiveSession parentSession;
+  private OperationState state = OperationState.INITIALIZED;
+  private final OperationHandle opHandle;
+  protected volatile Throwable operationException;
   protected final boolean runAsync;
   protected volatile Future<?> backgroundHandle;
   protected OperationLog operationLog;
@@ -56,9 +60,6 @@ public abstract class Operation {
 
   private long operationTimeout;
   private long lastAccessTime;
-
-  protected static final EnumSet<FetchOrientation> DEFAULT_FETCH_ORIENTATION_SET =
-      EnumSet.of(FetchOrientation.FETCH_NEXT,FetchOrientation.FETCH_FIRST);
 
   protected Operation(HiveSession parentSession, OperationType opType, boolean runInBackground) {
     this.parentSession = parentSession;
@@ -81,14 +82,6 @@ public abstract class Operation {
     return runAsync;
   }
 
-  public void setConfiguration(HiveConf configuration) {
-    this.configuration = new HiveConf(configuration);
-  }
-
-  public HiveConf getConfiguration() {
-    return new HiveConf(configuration);
-  }
-
   public HiveSession getParentSession() {
     return parentSession;
   }
@@ -109,12 +102,7 @@ public abstract class Operation {
     return new OperationStatus(state, operationException);
   }
 
-  public boolean hasResultSet() {
-    return hasResultSet;
-  }
-
   protected void setHasResultSet(boolean hasResultSet) {
-    this.hasResultSet = hasResultSet;
     opHandle.setHasResultSet(hasResultSet);
   }
 
@@ -124,8 +112,8 @@ public abstract class Operation {
 
   protected final OperationState setState(OperationState newState) throws HiveSQLException {
     state.validateTransition(newState);
-    this.state = newState;
-    this.lastAccessTime = System.currentTimeMillis();
+    state = newState;
+    lastAccessTime = System.currentTimeMillis();
     return this.state;
   }
 
@@ -152,8 +140,12 @@ public abstract class Operation {
     this.operationTimeout = operationTimeout;
   }
 
-  protected void setOperationException(HiveSQLException operationException) {
+  protected void setOperationException(Throwable operationException) {
     this.operationException = operationException;
+  }
+
+  protected Throwable getOperationException() {
+    return operationException;
   }
 
   protected final void assertState(OperationState state) throws HiveSQLException {
@@ -255,6 +247,9 @@ public abstract class Operation {
     beforeRun();
     try {
       runInternal();
+    } catch (HiveSQLException e) {
+      setOperationException(e);
+      throw e;
     } finally {
       afterRun();
     }
@@ -273,18 +268,29 @@ public abstract class Operation {
 
   // TODO: make this abstract and implement in subclasses.
   public void cancel() throws HiveSQLException {
-    setState(OperationState.CANCELED);
-    throw new UnsupportedOperationException("SQLOperation.cancel()");
+    cleanup(OperationState.CANCELED);
+    throw new UnsupportedOperationException(getClass().getSimpleName() + ".cancel()");
   }
 
-  public abstract void close() throws HiveSQLException;
+  public void close() throws HiveSQLException {
+    cleanup(OperationState.CLOSED);
+    cleanupOperationLog();
+  }
 
   public abstract TableSchema getResultSetSchema() throws HiveSQLException;
 
   public abstract RowSet getNextRowSet(FetchOrientation orientation, long maxRows) throws HiveSQLException;
 
-  public RowSet getNextRowSet() throws HiveSQLException {
-    return getNextRowSet(FetchOrientation.FETCH_NEXT, DEFAULT_FETCH_MAX_ROWS);
+  protected void cleanup(OperationState state) throws HiveSQLException {
+    setState(state);
+    Future<?> future = backgroundHandle;
+    if (future != null && !future.isCancelled() && !future.isDone()) {
+      getBackgroundHandle().cancel(true);
+    }
+    SessionState ss = SessionState.get();
+    if (ss.getTmpOutputFile() != null) {
+      ss.getTmpOutputFile().delete();
+    }
   }
 
   /**

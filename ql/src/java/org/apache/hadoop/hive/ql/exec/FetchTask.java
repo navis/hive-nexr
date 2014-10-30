@@ -44,9 +44,11 @@ import org.apache.hadoop.util.StringUtils;
  * FetchTask implementation.
  **/
 public class FetchTask extends Task<FetchWork> implements Serializable {
+
+  public static final long DEFAULT_FETCH_SIZE = 100;
+
   private static final long serialVersionUID = 1L;
 
-  private int maxRows = 100;
   private FetchOperator fetch;
   private ListSinkOperator sink;
   private int totalRows;
@@ -108,23 +110,13 @@ public class FetchTask extends Task<FetchWork> implements Serializable {
     return work.getTblDesc();
   }
 
-  /**
-   * Return the maximum number of rows returned by fetch.
-   */
-  public int getMaxRows() {
-    return maxRows;
-  }
-
-  /**
-   * Set the maximum number of rows returned by fetch.
-   */
-  public void setMaxRows(int maxRows) {
-    this.maxRows = maxRows;
-  }
-
   public boolean fetch(List res) throws IOException, CommandNeedRetryException {
+    return fetch(res, DEFAULT_FETCH_SIZE);
+  }
+
+  public boolean fetch(List res, long maxRows) throws IOException, CommandNeedRetryException {
     sink.reset(res);
-    int rowsRet = work.getLeastNumRows();
+    long rowsRet = work.getLeastNumRows();
     if (rowsRet <= 0) {
       rowsRet = work.getLimit() >= 0 ? Math.min(work.getLimit() - totalRows, maxRows) : maxRows;
     }

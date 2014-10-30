@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.common.JavaUtils;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.ListSinkDesc;
 import org.apache.hadoop.hive.ql.plan.api.OperatorType;
@@ -44,15 +43,19 @@ public class ListSinkOperator extends Operator<ListSinkDesc> {
 
   @Override
   protected void initializeOp(Configuration hconf) throws HiveException {
+    // selectively used by fetch formatter
+    Properties props = new Properties();
+    props.put(serdeConstants.SERIALIZATION_FORMAT, "" + Utilities.tabCode);
+    props.put(serdeConstants.SERIALIZATION_NULL_FORMAT, getConf().getSerializationNullFormat());
     try {
-      fetcher = initializeFetcher(hconf);
+      fetcher = createFetchFormatter(hconf, props);
     } catch (Exception e) {
       throw new HiveException(e);
     }
     super.initializeOp(hconf);
   }
 
-  private FetchFormatter initializeFetcher(Configuration conf) throws Exception {
+  public static FetchFormatter createFetchFormatter(Configuration conf, Properties props) throws Exception {
     String formatterName = conf.get(OUTPUT_FORMATTER);
     FetchFormatter fetcher;
     if (formatterName != null && !formatterName.isEmpty()) {
@@ -62,12 +65,6 @@ public class ListSinkOperator extends Operator<ListSinkDesc> {
     } else {
       fetcher = new DefaultFetchFormatter();
     }
-
-    // selectively used by fetch formatter
-    Properties props = new Properties();
-    props.put(serdeConstants.SERIALIZATION_FORMAT, "" + Utilities.tabCode);
-    props.put(serdeConstants.SERIALIZATION_NULL_FORMAT, getConf().getSerializationNullFormat());
-
     fetcher.initialize(conf, props);
     return fetcher;
   }

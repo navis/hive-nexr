@@ -92,7 +92,7 @@ public class IndexUpdater {
       sb.append(idx.getDbName()).append('.');
       sb.append(idx.getOrigTableName());
       sb.append(" REBUILD");
-      driver.compile(sb.toString(), false);
+      driver.compile(sb.toString());
       tasks.addAll(driver.getPlan().getRootTasks());
       inputs.addAll(driver.getPlan().getInputs());
     }
@@ -133,7 +133,7 @@ public class IndexUpdater {
     sb.append(ps.toString());
     sb.append(" REBUILD");
     Driver driver = new Driver(this.conf);
-    driver.compile(sb.toString(), false);
+    driver.compile(sb.toString());
     tasks.addAll(driver.getPlan().getRootTasks());
     inputs.addAll(driver.getPlan().getInputs());
   }

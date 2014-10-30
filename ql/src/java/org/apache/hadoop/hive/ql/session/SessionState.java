@@ -93,7 +93,7 @@ import com.google.common.base.Preconditions;
  * configuration information
  */
 public class SessionState {
-  private static final Log LOG = LogFactory.getLog(SessionState.class);
+  public static final Log LOG = LogFactory.getLog(SessionState.class);
 
   private static final String TMP_PREFIX = "_tmp_space.db";
   private static final String LOCAL_SESSION_PATH_KEY = "_hive.local.session.path";

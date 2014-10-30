@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hive.common.io;
 
-import java.io.FileNotFoundException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
@@ -31,7 +30,7 @@ public class CachingPrintStream extends PrintStream {
   List<String> output = new ArrayList<String>();
 
   public CachingPrintStream(OutputStream out, boolean autoFlush, String encoding)
-      throws FileNotFoundException, UnsupportedEncodingException {
+      throws UnsupportedEncodingException {
 
     super(out, autoFlush, encoding);
   }

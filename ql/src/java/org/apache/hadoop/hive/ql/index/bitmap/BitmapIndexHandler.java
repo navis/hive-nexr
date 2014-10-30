@@ -28,7 +28,6 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.common.StatsSetupConst;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Index;
@@ -116,7 +115,7 @@ public class BitmapIndexHandler extends TableBasedIndexHandler {
     HiveConf queryConf = new HiveConf(pctx.getConf(), BitmapIndexHandler.class);
     HiveConf.setBoolVar(queryConf, HiveConf.ConfVars.COMPRESSRESULT, false);
     Driver driver = new Driver(queryConf);
-    driver.compile(qlCommand.toString(), false);
+    driver.compile(qlCommand.toString());
 
     queryContext.setIndexIntermediateFile(tmpFile);
     queryContext.addAdditionalSemanticInputs(driver.getPlan().getInputs());

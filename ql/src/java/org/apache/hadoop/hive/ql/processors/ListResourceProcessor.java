@@ -21,7 +21,6 @@ package org.apache.hadoop.hive.ql.processors;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Schema;
-import org.apache.hadoop.hive.ql.CommandNeedRetryException;
 import org.apache.hadoop.hive.ql.session.SessionState;
 
 import java.util.Arrays;
@@ -32,7 +31,7 @@ import static org.apache.hadoop.hive.serde.serdeConstants.SERIALIZATION_NULL_FOR
 import static org.apache.hadoop.hive.serde.serdeConstants.STRING_TYPE_NAME;
 import static org.apache.hadoop.hive.serde2.MetadataTypedColumnsetSerDe.defaultNullString;
 
-public class ListResourceProcessor implements CommandProcessor {
+public class ListResourceProcessor extends SimpleProcessor {
 
   private static final String LIST_COLUMN_NAME = "resource";
   private static final Schema SCHEMA;
@@ -44,11 +43,7 @@ public class ListResourceProcessor implements CommandProcessor {
   }
 
   @Override
-  public void init() {
-  }
-
-  @Override
-  public CommandProcessorResponse run(String command) throws CommandNeedRetryException {
+  public CommandProcessorResponse runCommand(String command) {
     SessionState ss = SessionState.get();
     String[] tokens = command.split("\\s+");
     SessionState.ResourceType t;
@@ -66,5 +61,10 @@ public class ListResourceProcessor implements CommandProcessor {
       ss.out.println(StringUtils.join(s, "\n"));
     }
     return new CommandProcessorResponse(0, null, null, SCHEMA);
+  }
+
+  @Override
+  protected Schema getSchema() {
+    return SCHEMA;
   }
 }

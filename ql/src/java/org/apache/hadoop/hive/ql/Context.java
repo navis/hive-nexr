@@ -18,7 +18,7 @@
 
 package org.apache.hadoop.hive.ql;
 
-import java.io.DataInput;
+import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
@@ -86,8 +86,6 @@ public class Context {
   protected boolean explain = false;
   protected boolean explainLogical = false;
   protected String cmd = "";
-  // number of previous attempts
-  protected int tryCount = 0;
   private TokenRewriteStream tokenRewriteStream;
 
   private String executionId;
@@ -484,7 +482,7 @@ public class Context {
     setNeedLockMgr(false);
   }
 
-  public DataInput getStream() {
+  public DataInputStream getStream() {
     try {
       if (!initialized) {
         initialized = true;
@@ -524,7 +522,7 @@ public class Context {
     }
   }
 
-  private DataInput getNextStream() {
+  private DataInputStream getNextStream() {
     try {
       if (resDir != null && resDirFilesNum < resDirPaths.length
           && (resDirPaths[resDirFilesNum] != null)) {
@@ -678,14 +676,6 @@ public class Context {
 
   public void setNeedLockMgr(boolean needLockMgr) {
     this.needLockMgr = needLockMgr;
-  }
-
-  public int getTryCount() {
-    return tryCount;
-  }
-
-  public void setTryCount(int tryCount) {
-    this.tryCount = tryCount;
   }
 
   public void setAcidOperation(AcidUtils.Operation op) {

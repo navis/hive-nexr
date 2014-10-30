@@ -1812,6 +1812,9 @@ public class HiveConf extends Configuration {
     HIVE_SECURITY_COMMAND_WHITELIST("hive.security.command.whitelist", "set,reset,dfs,add,list,delete,reload,compile",
         "Comma separated list of non-SQL Hive commands users are authorized to execute"),
 
+    HIVE_COMMAND_PROCESSORS("hive.command.processors", "",
+        "Comma separated list of class names, implementing org.apache.hadoop.hive.ql.processors.HiveCommand"),
+
     HIVE_SERVER2_SESSION_CHECK_INTERVAL("hive.server2.session.check.interval", "0ms",
         new TimeValidator(TimeUnit.MILLISECONDS, 3000l, true, null, false),
         "The check interval for session/operation timeout, which can be disabled by setting to zero or negative value."),
@@ -1825,7 +1828,9 @@ public class HiveConf extends Configuration {
         "  With negative value, it's checked for all of the operations regardless of state."),
 
     HIVE_CONF_RESTRICTED_LIST("hive.conf.restricted.list",
-        "hive.security.authenticator.manager,hive.security.authorization.manager,hive.users.in.admin.role",
+        "hive.security.authenticator.manager,hive.security.authorization.manager," +
+        "hive.users.in.admin.role," +
+        "hive.security.command.whitelist",
         "Comma separated list of configuration options which are immutable at runtime"),
 
     // If this is set all move tasks at the end of a multi-insert query will only begin once all

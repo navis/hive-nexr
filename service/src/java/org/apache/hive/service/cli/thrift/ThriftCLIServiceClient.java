@@ -358,7 +358,7 @@ public class ThriftCLIServiceClient extends CLIServiceClient {
       TGetResultSetMetadataReq req = new TGetResultSetMetadataReq(opHandle.toTOperationHandle());
       TGetResultSetMetadataResp resp = cliService.GetResultSetMetadata(req);
       checkStatus(resp.getStatus());
-      return new TableSchema(resp.getSchema());
+      return resp.getSchema() != null ? new TableSchema(resp.getSchema()) : null;
     } catch (HiveSQLException e) {
       throw e;
     } catch (Exception e) {

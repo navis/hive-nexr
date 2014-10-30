@@ -409,10 +409,9 @@ public class TestOperators extends TestCase {
 
     cmd = "select * from fetchOp";
     driver.init();
-    driver.setMaxRows(500);
     response = driver.run(cmd);
     assertEquals(0, response.getResponseCode());
-    driver.getResults(result);
+    driver.getResults(result, 500);
     assertEquals(20, result.size());
     driver.close();
   }

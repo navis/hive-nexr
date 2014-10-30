@@ -18,19 +18,21 @@
 
 package org.apache.hadoop.hive.ql.processors;
 
-import static org.apache.commons.lang.StringUtils.isBlank;
-
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
 
+import com.google.common.annotations.VisibleForTesting;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.Driver;
-import org.apache.hadoop.hive.ql.metadata.*;
-import org.apache.hadoop.hive.ql.session.SessionState;
+import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.hadoop.util.StringUtils;
 
 /**
  * CommandProcessorFactory.
@@ -38,97 +40,90 @@ import org.apache.hadoop.hive.ql.session.SessionState;
  */
 public final class CommandProcessorFactory {
 
+  private static final Log LOG = LogFactory.getLog(CommandProcessorFactory.class.getName());
+
+  private static final List<HiveCommand> COMMANDS;
+  private static final Set<String> WHITE_LISTS;
+  private static final boolean HIVE_IN_TEST;
+
+  static {
+    List<HiveCommand> commands = new ArrayList<HiveCommand>();
+    // hive builtin first
+    commands.add(new NativeCommands.ADD());
+    commands.add(new NativeCommands.COMPILE());
+    commands.add(new NativeCommands.DELETE());
+    commands.add(new NativeCommands.DFS());
+    commands.add(new NativeCommands.LIST());
+    commands.add(new NativeCommands.RELOAD());
+    commands.add(new NativeCommands.RESET());
+    commands.add(new NativeCommands.SET());
+    commands.add(new NativeCommands.CRYPTO());
+
+    HiveConf hiveConf = new HiveConf(CommandProcessorFactory.class);
+    String var = hiveConf.getVar(HiveConf.ConfVars.HIVE_COMMAND_PROCESSORS);
+    for (String className : StringUtils.getTrimmedStrings(var)) {
+      if (!className.isEmpty()) {
+        try {
+          commands.add((HiveCommand) ReflectionUtils.newInstance(
+              Class.forName(className), hiveConf));
+        } catch (Exception e) {
+          LOG.warn("Failed to register hive command " + className, e);
+        }
+      }
+    }
+    COMMANDS = Collections.unmodifiableList(commands);
+
+    Set<String> whiteLists = new HashSet<String>();
+    var = hiveConf.getVar(HiveConf.ConfVars.HIVE_SECURITY_COMMAND_WHITELIST);
+    for (String availableCommand : StringUtils.getTrimmedStrings(var)) {
+      whiteLists.add(availableCommand.toLowerCase());
+    }
+    WHITE_LISTS = Collections.unmodifiableSet(whiteLists);
+    HIVE_IN_TEST = HiveConf.getBoolVar(hiveConf, HiveConf.ConfVars.HIVE_IN_TEST);
+  }
+
   private CommandProcessorFactory() {
     // prevent instantiation
   }
 
-  private static final Map<HiveConf, Driver> mapDrivers = Collections.synchronizedMap(new HashMap<HiveConf, Driver>());
-
-  public static CommandProcessor get(String cmd)
-      throws SQLException {
-    return get(new String[]{cmd}, null);
+  @VisibleForTesting
+  static List<HiveCommand> getCommands() {
+    return COMMANDS;
   }
 
-  public static CommandProcessor getForHiveCommand(String[] cmd, HiveConf conf)
-    throws SQLException {
-    return getForHiveCommandInternal(cmd, conf, false);
+  public static CommandProcessor get(String cmd) throws SQLException {
+    return get(cmd.trim().split("\\s+"));
   }
 
-  public static CommandProcessor getForHiveCommandInternal(String[] cmd, HiveConf conf,
-                                                           boolean testOnly)
-    throws SQLException {
-    HiveCommand hiveCommand = HiveCommand.find(cmd, testOnly);
-    if (hiveCommand == null || isBlank(cmd[0])) {
+  public static CommandProcessor get(String[] cmd) throws SQLException {
+    CommandProcessor result = getForHiveCommand(cmd);
+    if (result == null) {
+      result = new Driver();
+    }
+    return result;
+  }
+
+  public static CommandProcessor getForHiveCommand(String[] cmd) throws SQLException {
+    HiveCommand hiveCommand = cmd == null ? null : findCommand(cmd);
+    if (hiveCommand == null) {
       return null;
     }
-    if (conf == null) {
-      conf = new HiveConf();
-    }
-    Set<String> availableCommands = new HashSet<String>();
-    for (String availableCommand : conf.getVar(HiveConf.ConfVars.HIVE_SECURITY_COMMAND_WHITELIST)
-      .split(",")) {
-      availableCommands.add(availableCommand.toLowerCase().trim());
-    }
-    if (!availableCommands.contains(cmd[0].trim().toLowerCase())) {
+    if (!WHITE_LISTS.contains(hiveCommand.getName().toLowerCase())) {
       throw new SQLException("Insufficient privileges to execute " + cmd[0], "42000");
     }
-    switch (hiveCommand) {
-      case SET:
-        return new SetProcessor();
-      case RESET:
-        return new ResetProcessor();
-      case DFS:
-        SessionState ss = SessionState.get();
-        return new DfsProcessor(ss.getConf());
-      case ADD:
-        return new AddResourceProcessor();
-      case LIST:
-        return new ListResourceProcessor();
-      case DELETE:
-        return new DeleteResourceProcessor();
-      case COMPILE:
-        return new CompileProcessor();
-      case RELOAD:
-        return new ReloadProcessor();
-      case CRYPTO:
-        try {
-          return new CryptoProcessor(SessionState.get().getHdfsEncryptionShim(), conf);
-        } catch (HiveException e) {
-          throw new SQLException("Fail to start the command processor due to the exception: ", e);
-        }
-      default:
-        throw new AssertionError("Unknown HiveCommand " + hiveCommand);
+    try {
+      return hiveCommand.getProcessor(cmd);
+    } catch (HiveException e) {
+      throw new SQLException("Fail to start the command processor due to the exception: ", e);
     }
   }
 
-  public static CommandProcessor get(String[] cmd, HiveConf conf)
-      throws SQLException {
-    CommandProcessor result = getForHiveCommand(cmd, conf);
-    if (result != null) {
-      return result;
-    }
-    if (isBlank(cmd[0])) {
-      return null;
-    } else {
-      if (conf == null) {
-        return new Driver();
+  public static HiveCommand findCommand(String[] cmd) {
+    for (HiveCommand command : COMMANDS) {
+      if (command.accepts(cmd) && (!command.isInternal() || HIVE_IN_TEST)) {
+        return command; 
       }
-      Driver drv = mapDrivers.get(conf);
-      if (drv == null) {
-        drv = new Driver();
-        mapDrivers.put(conf, drv);
-      }
-      drv.init();
-      return drv;
     }
-  }
-
-  public static void clean(HiveConf conf) {
-    Driver drv = mapDrivers.get(conf);
-    if (drv != null) {
-      drv.destroy();
-    }
-
-    mapDrivers.remove(conf);
+    return null;
   }
 }

@@ -25,9 +25,9 @@ package org.apache.hive.service.cli;
 public class OperationStatus {
 
   private final OperationState state;
-  private final HiveSQLException operationException;
+  private final Throwable operationException;
 
-  public OperationStatus(OperationState state, HiveSQLException operationException) {
+  public OperationStatus(OperationState state, Throwable operationException) {
     this.state = state;
     this.operationException = operationException;
   }
@@ -36,7 +36,7 @@ public class OperationStatus {
     return state;
   }
 
-  public HiveSQLException getOperationException() {
+  public Throwable getOperationException() {
     return operationException;
   }
 

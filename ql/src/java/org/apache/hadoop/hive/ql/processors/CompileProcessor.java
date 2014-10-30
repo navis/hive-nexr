@@ -32,7 +32,6 @@ import org.apache.commons.compress.archivers.jar.JarArchiveOutputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.hive.ql.CommandNeedRetryException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.VariableSubstitution;
 import org.apache.hadoop.hive.ql.security.authorization.plugin.HiveOperationType;
@@ -56,7 +55,7 @@ import com.google.common.io.Files;
  * each invocation of CompileProcessor.
  *
  */
-public class CompileProcessor implements CommandProcessor {
+public class CompileProcessor extends SimpleProcessor {
 
   public static final Log LOG = LogFactory.getLog(CompileProcessor.class.getName());
   public static final LogHelper console = new LogHelper(LOG);
@@ -79,10 +78,7 @@ public class CompileProcessor implements CommandProcessor {
    * The name of the file the code will be written to
    */
   private String named;
-  /**
-   * The entire command sent to the processor
-   */
-  private String command;
+
   /**
    * Used as part of a file name to help avoid collisions.
    */
@@ -93,8 +89,12 @@ public class CompileProcessor implements CommandProcessor {
   }
 
   @Override
-  public void init() {
-    //no init needed
+  public CommandProcessorResponse prepare(String command) {
+    this.command = new VariableSubstitution().substitute(conf, command);
+    if (this.command.isEmpty()) {
+      return new CommandProcessorResponse(1, "Command was empty", null);
+    }
+    return new CommandProcessorResponse(0);
   }
 
   /**
@@ -107,12 +107,10 @@ public class CompileProcessor implements CommandProcessor {
    * @return CommandProcessorResponse with 0 for success and 1 for failure
    */
   @Override
-  public CommandProcessorResponse run(String command) throws CommandNeedRetryException {
-    SessionState ss = SessionState.get();
-    this.command = command;
+  public CommandProcessorResponse runCommand(String command) {
 
     CommandProcessorResponse authErrResp =
-        CommandUtil.authorizeCommand(ss, HiveOperationType.COMPILE, Arrays.asList(command));
+        CommandUtil.authorizeCommand(session, HiveOperationType.COMPILE, Arrays.asList(command));
     if(authErrResp != null){
       // there was an authorization issue
       return authErrResp;
@@ -121,13 +119,13 @@ public class CompileProcessor implements CommandProcessor {
     myId = runCount.getAndIncrement();
 
     try {
-      parse(ss);
+      parse(session);
     } catch (CompileProcessorException e) {
       return CommandProcessorResponse.create(e);
     }
     CommandProcessorResponse result = null;
     try {
-      result = compile(ss);
+      result = compile(session);
     } catch (CompileProcessorException e) {
       return CommandProcessorResponse.create(e);
     }
@@ -141,12 +139,6 @@ public class CompileProcessor implements CommandProcessor {
    */
   @VisibleForTesting
   void parse(SessionState ss) throws CompileProcessorException {
-    if (ss != null){
-      command = new VariableSubstitution().substitute(ss.getConf(), command);
-    }
-    if (command == null || command.length() == 0) {
-      throw new CompileProcessorException("Command was empty");
-    }
     StringBuilder toCompile = new StringBuilder();
     int startPosition = 0;
     int endPosition = -1;
@@ -290,10 +282,6 @@ public class CompileProcessor implements CommandProcessor {
 
   public void setNamed(String named) {
     this.named = named;
-  }
-
-  public String getCommand() {
-    return command;
   }
 
   class CompileProcessorException extends HiveException {

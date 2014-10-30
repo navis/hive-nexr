@@ -18,73 +18,23 @@
 
 package org.apache.hadoop.hive.ql.processors;
 
-import java.util.HashSet;
-import java.util.Set;
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
+import org.apache.hadoop.hive.common.classification.InterfaceStability;
+import org.apache.hadoop.hive.ql.metadata.HiveException;
 
 /*
  * HiveCommand is non-SQL statement such as setting a property or
  * adding a resource.
  **/
-public enum HiveCommand {
-  SET(),
-  RESET(),
-  DFS(),
-  CRYPTO(true),
-  ADD(),
-  LIST(),
-  RELOAD(),
-  DELETE(),
-  COMPILE();
+@InterfaceAudience.Public
+@InterfaceStability.Unstable
+public interface HiveCommand {
 
-  public static boolean ONLY_FOR_TESTING = true;
-  private boolean usedOnlyForTesting;
+  String getName();
 
-  HiveCommand() {
-    this(false);
-  }
+  boolean isInternal();
 
-  HiveCommand(boolean onlyForTesting) {
-    this.usedOnlyForTesting = onlyForTesting;
-  }
+  boolean accepts(String[] command);
 
-  public boolean isOnlyForTesting() {
-    return this.usedOnlyForTesting;
-  }
-
-  private static final Set<String> COMMANDS = new HashSet<String>();
-  static {
-    for (HiveCommand command : HiveCommand.values()) {
-      COMMANDS.add(command.name());
-    }
-  }
-
-  public static HiveCommand find(String[] command) {
-    return find(command, false);
-  }
-
-  public static HiveCommand find(String[] command, boolean findOnlyForTesting) {
-    if (null == command){
-      return null;
-    }
-    String cmd = command[0];
-    if (cmd != null) {
-      cmd = cmd.trim().toUpperCase();
-      if (command.length > 1 && "role".equalsIgnoreCase(command[1])) {
-        // special handling for set role r1 statement
-        return null;
-      } else if(command.length > 1 && "from".equalsIgnoreCase(command[1])) {
-        //special handling for SQL "delete from <table> where..."
-        return null;
-      } else if (COMMANDS.contains(cmd)) {
-        HiveCommand hiveCommand = HiveCommand.valueOf(cmd);
-
-        if (findOnlyForTesting == hiveCommand.isOnlyForTesting()) {
-          return hiveCommand;
-        }
-
-        return null;
-      }
-    }
-    return null;
-  }
+  CommandProcessor getProcessor(String[] command) throws HiveException;
 }

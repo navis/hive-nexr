@@ -19,7 +19,7 @@
 package org.apache.hadoop.hive.ql;
 
 import java.io.ByteArrayOutputStream;
-import java.io.DataInput;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serializable;
@@ -33,10 +33,10 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.hive.common.ValidTxnList;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
@@ -65,7 +65,6 @@ import org.apache.hadoop.hive.ql.hooks.PreExecute;
 import org.apache.hadoop.hive.ql.hooks.ReadEntity;
 import org.apache.hadoop.hive.ql.hooks.Redactor;
 import org.apache.hadoop.hive.ql.hooks.WriteEntity;
-import org.apache.hadoop.hive.ql.lockmgr.HiveLock;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockMode;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockObj;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockObject;
@@ -115,10 +114,9 @@ import org.apache.hadoop.hive.ql.session.OperationLog;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.ql.session.SessionState.LogHelper;
 import org.apache.hadoop.hive.serde2.ByteStream;
+import org.apache.hadoop.hive.serde2.Deserializer;
 import org.apache.hadoop.hive.shims.Utils;
-import org.apache.hadoop.mapred.ClusterStatus;
-import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.io.IOUtils;
 
 public class Driver implements CommandProcessor {
 
@@ -128,11 +126,10 @@ public class Driver implements CommandProcessor {
 
   private static final Object compileMonitor = new Object();
 
-  private int maxRows = 100;
-  ByteStream.Output bos = new ByteStream.Output();
+  private final ByteStream.Output bos = new ByteStream.Output();
 
   private HiveConf conf;
-  private DataInput resStream;
+  private DataInputStream resStream;
   private Context ctx;
   private DriverContext driverCxt;
   private QueryPlan plan;
@@ -146,14 +143,12 @@ public class Driver implements CommandProcessor {
 
   // A limit on the number of threads that can be launched
   private int maxthreads;
-  private int tryCount = Integer.MAX_VALUE;
-
-  private boolean destroyed;
 
   private String userName;
 
   // HS2 operation handle guid string
   private String operationId;
+  private volatile boolean destroyed;
 
   private boolean checkConcurrency() {
     boolean supportConcurrency = conf.getBoolVar(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY);
@@ -164,120 +159,39 @@ public class Driver implements CommandProcessor {
     return true;
   }
 
-  @Override
+  @VisibleForTesting
   public void init() {
+    init(SessionState.get().getConf(), SessionState.get());
+  }
+
+  @Override
+  public void init(HiveConf conf, SessionState sessionState) {
     Operator.resetId();
-  }
-
-  /**
-   * Return the status information about the Map-Reduce cluster
-   */
-  public ClusterStatus getClusterStatus() throws Exception {
-    ClusterStatus cs;
-    try {
-      JobConf job = new JobConf(conf);
-      JobClient jc = new JobClient(job);
-      cs = jc.getClusterStatus();
-    } catch (Exception e) {
-      e.printStackTrace();
-      throw e;
-    }
-    LOG.info("Returning cluster status: " + cs.toString());
-    return cs;
-  }
-
-
-  public Schema getSchema() {
-    return schema;
+    this.conf = conf;
+    this.userName = sessionState.getUserName();
   }
 
   /**
    * Get a Schema with fields represented with native Hive types
    */
-  public static Schema getSchema(BaseSemanticAnalyzer sem, HiveConf conf) {
-    Schema schema = null;
-
+  private Schema getSchema(BaseSemanticAnalyzer sem) {
     // If we have a plan, prefer its logical result schema if it's
     // available; otherwise, try digging out a fetch task; failing that,
     // give up.
-    if (sem == null) {
-      // can't get any info without a plan
-    } else if (sem.getResultSchema() != null) {
-      List<FieldSchema> lst = sem.getResultSchema();
-      schema = new Schema(lst, null);
-    } else if (sem.getFetchTask() != null) {
-      FetchTask ft = sem.getFetchTask();
-      TableDesc td = ft.getTblDesc();
-      // partitioned tables don't have tableDesc set on the FetchTask. Instead
-      // they have a list of PartitionDesc objects, each with a table desc.
-      // Let's
-      // try to fetch the desc for the first partition and use it's
-      // deserializer.
-      if (td == null && ft.getWork() != null && ft.getWork().getPartDesc() != null) {
-        if (ft.getWork().getPartDesc().size() > 0) {
-          td = ft.getWork().getPartDesc().get(0).getTableDesc();
-        }
-      }
-
-      if (td == null) {
-        LOG.info("No returning schema.");
-      } else {
-        String tableName = "result";
-        List<FieldSchema> lst = null;
-        try {
-          lst = MetaStoreUtils.getFieldsFromDeserializer(tableName, td.getDeserializer(conf));
-        } catch (Exception e) {
-          LOG.warn("Error getting schema: "
-              + org.apache.hadoop.util.StringUtils.stringifyException(e));
-        }
-        if (lst != null) {
-          schema = new Schema(lst, null);
-        }
+    List<FieldSchema> resultSchema = sem.getResultSchema();
+    if (resultSchema == null && sem.getFetchTask() != null) {
+      TableDesc td = sem.getFetchTask().getTblDesc();
+      try {
+        Deserializer deserializer = td.getDeserializer(conf);
+        resultSchema = MetaStoreUtils.getFieldsFromDeserializer("result", deserializer);
+      } catch (Exception e) {
+        LOG.warn("Error getting schema: "
+            + org.apache.hadoop.util.StringUtils.stringifyException(e));
       }
     }
-    if (schema == null) {
-      schema = new Schema();
-    }
+    Schema schema = resultSchema != null ? new Schema(resultSchema, null) : null;
     LOG.info("Returning Hive schema: " + schema);
     return schema;
-  }
-
-  /**
-   * Get a Schema with fields represented with Thrift DDL types
-   */
-  public Schema getThriftSchema() throws Exception {
-    Schema schema;
-    try {
-      schema = getSchema();
-      if (schema != null) {
-        List<FieldSchema> lst = schema.getFieldSchemas();
-        // Go over the schema and convert type to thrift type
-        if (lst != null) {
-          for (FieldSchema f : lst) {
-            f.setType(MetaStoreUtils.typeToThriftType(f.getType()));
-          }
-        }
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-      throw e;
-    }
-    LOG.info("Returning Thrift schema: " + schema);
-    return schema;
-  }
-
-  /**
-   * Return the maximum number of rows returned by getResults
-   */
-  public int getMaxRows() {
-    return maxRows;
-  }
-
-  /**
-   * Set the maximum number of rows returned by getResults
-   */
-  public void setMaxRows(int maxRows) {
-    this.maxRows = maxRows;
   }
 
   /**
@@ -288,25 +202,16 @@ public class Driver implements CommandProcessor {
   }
 
   public Driver(HiveConf conf, String userName) {
-    this(conf);
+    this.conf = conf;
     this.userName = userName;
   }
 
   public Driver() {
-    if (SessionState.get() != null) {
-      conf = SessionState.get().getConf();
+    SessionState session = SessionState.get();
+    if (session != null) {
+      conf = session.getConf();
+      userName = session.getUserName();
     }
-  }
-
-  /**
-   * Compile a new query. Any currently-planned query associated with this Driver is discarded.
-   * Do not reset id for inner queries(index, etc). Task ids are used for task identity check.
-   *
-   * @param command
-   *          The SQL query to compile.
-   */
-  public int compile(String command) {
-    return compile(command, true);
   }
 
   /**
@@ -358,11 +263,11 @@ public class Driver implements CommandProcessor {
   /**
    * Compile a new query, but potentially reset taskID counter.  Not resetting task counter
    * is useful for generating re-entrant QL queries.
+   *
    * @param command  The HiveQL query to compile
-   * @param resetTaskIds Resets taskID counter if true.
    * @return 0 for ok
    */
-  public int compile(String command, boolean resetTaskIds) {
+  private int compileInternal(String command) {
     PerfLogger perfLogger = PerfLogger.getPerfLogger();
     perfLogger.PerfLogBegin(CLASS_NAME, PerfLogger.COMPILE);
 
@@ -374,9 +279,6 @@ public class Driver implements CommandProcessor {
       plan = null;
     }
 
-    if (resetTaskIds) {
-      TaskFactory.resetId();
-    }
     saveSession(queryState);
 
     // generate new query id
@@ -388,7 +290,6 @@ public class Driver implements CommandProcessor {
     try {
       command = new VariableSubstitution().substitute(conf,command);
       ctx = new Context(conf);
-      ctx.setTryCount(getTryCount());
       ctx.setCmd(command);
       ctx.setHDFSCleanup(true);
 
@@ -460,7 +361,7 @@ public class Driver implements CommandProcessor {
       }
 
       // get the output schema
-      schema = getSchema(sem, conf);
+      schema = getSchema(sem);
 
       //do the authorization check
       if (!sem.skipAuthorization() &&
@@ -1008,7 +909,7 @@ public class Driver implements CommandProcessor {
    *               if false rollback.  If there is no open transaction this parameter is ignored.
    *
    **/
-  private void releaseLocksAndCommitOrRollback(List<HiveLock> hiveLocks, boolean commit)
+  private void releaseLocksAndCommitOrRollback(Context ctx, boolean commit)
       throws LockException {
     PerfLogger perfLogger = PerfLogger.getPerfLogger();
     perfLogger.PerfLogBegin(CLASS_NAME, PerfLogger.RELEASE_LOCKS);
@@ -1028,8 +929,8 @@ public class Driver implements CommandProcessor {
         ss.setCurrentTxn(SessionState.NO_CURRENT_TXN);
       }
     } else {
-      if (hiveLocks != null) {
-        txnMgr.getLockManager().releaseLocks(hiveLocks);
+      if (ctx.getHiveLocks() != null) {
+        txnMgr.getLockManager().releaseLocks(ctx.getHiveLocks());
       }
     }
     ctx.setHiveLocks(null);
@@ -1038,24 +939,17 @@ public class Driver implements CommandProcessor {
   }
 
   @Override
-  public CommandProcessorResponse run(String command)
-      throws CommandNeedRetryException {
-    return run(command, false);
+  public CommandProcessorResponse run() throws CommandNeedRetryException {
+    return run(null);
   }
 
-  public CommandProcessorResponse run()
-      throws CommandNeedRetryException {
-    return run(null, true);
-  }
-
-  public CommandProcessorResponse run(String command, boolean alreadyCompiled)
-        throws CommandNeedRetryException {
-    CommandProcessorResponse cpr = runInternal(command, alreadyCompiled);
-    if(cpr.getResponseCode() == 0) {
+  public CommandProcessorResponse run(String command) throws CommandNeedRetryException {
+    CommandProcessorResponse cpr = runInternal(command);
+    if (cpr.getResponseCode() == 0) {
       return cpr;
     }
     SessionState ss = SessionState.get();
-    if(ss == null) {
+    if (ss == null) {
       return cpr;
     }
     MetaDataFormatter mdf = MetaDataFormatUtils.getFormatter(ss.getConf());
@@ -1106,27 +1000,25 @@ public class Driver implements CommandProcessor {
     return cpr;
   }
 
-  public CommandProcessorResponse compileAndRespond(String command) {
-    return createProcessorResponse(compileInternal(command));
+  public CommandProcessorResponse prepare(String command) {
+    TaskFactory.resetId();
+    return createProcessorResponse(compile(command));
   }
 
-  private int compileInternal(String command) {
-    int ret;
+  /**
+   * Compile a new query. Any currently-planned query associated with this Driver is discarded.
+   * Do not reset id for inner queries(index, etc). Task ids are used for task identity check.
+   *
+   * @param command
+   *          The SQL query to compile.
+   */
+  public int compile(String command) {
     synchronized (compileMonitor) {
-      ret = compile(command);
+      return compileInternal(command);
     }
-    if (ret != 0) {
-      try {
-        releaseLocksAndCommitOrRollback(ctx.getHiveLocks(), false);
-      } catch (LockException e) {
-        LOG.warn("Exception in releasing locks. "
-            + org.apache.hadoop.util.StringUtils.stringifyException(e));
-      }
-    }
-    return ret;
   }
 
-  private CommandProcessorResponse runInternal(String command, boolean alreadyCompiled)
+  private CommandProcessorResponse runInternal(String command)
       throws CommandNeedRetryException {
     errorMessage = null;
     SQLState = null;
@@ -1160,7 +1052,7 @@ public class Driver implements CommandProcessor {
     perfLogger.PerfLogBegin(CLASS_NAME, PerfLogger.TIME_TO_SUBMIT);
 
     int ret;
-    if (!alreadyCompiled) {
+    if (command != null) {
       ret = compileInternal(command);
       if (ret != 0) {
         return createProcessorResponse(ret);
@@ -1176,7 +1068,7 @@ public class Driver implements CommandProcessor {
       ret = acquireLocksAndOpenTxn();
       if (ret != 0) {
         try {
-          releaseLocksAndCommitOrRollback(ctx.getHiveLocks(), false);
+          releaseLocksAndCommitOrRollback(ctx, false);
         } catch (LockException e) {
           // Not much to do here
         }
@@ -1188,7 +1080,7 @@ public class Driver implements CommandProcessor {
     if (ret != 0) {
       //if needRequireLock is false, the release here will do nothing because there is no lock
       try {
-        releaseLocksAndCommitOrRollback(ctx.getHiveLocks(), false);
+        releaseLocksAndCommitOrRollback(ctx, false);
       } catch (LockException e) {
         // Nothing to do here
       }
@@ -1197,7 +1089,7 @@ public class Driver implements CommandProcessor {
 
     //if needRequireLock is false, the release here will do nothing because there is no lock
     try {
-      releaseLocksAndCommitOrRollback(ctx.getHiveLocks(), true);
+      releaseLocksAndCommitOrRollback(ctx, true);
     } catch (LockException e) {
       errorMessage = "FAILED: Hive Internal Error: " + Utilities.getNameMessage(e);
       SQLState = ErrorMsg.findSQLState(e.getMessage());
@@ -1254,7 +1146,10 @@ public class Driver implements CommandProcessor {
   }
 
   private CommandProcessorResponse createProcessorResponse(int ret) {
-    return new CommandProcessorResponse(ret, errorMessage, SQLState, downstreamError);
+    if (ret != 0) {
+      return new CommandProcessorResponse(ret, errorMessage, SQLState, downstreamError);
+    }
+    return new CommandProcessorResponse(0, errorMessage, SQLState, schema);
   }
 
   /**
@@ -1644,19 +1539,23 @@ public class Driver implements CommandProcessor {
     return tskRun;
   }
 
-  public boolean isFetchingTable() {
+  public boolean isFromFetchTask() {
     return plan != null && plan.getFetchTask() != null;
   }
 
+  public boolean getResults(List result) throws IOException, CommandNeedRetryException {
+    return getResults(result, FetchTask.DEFAULT_FETCH_SIZE);
+  }
+
   @SuppressWarnings("unchecked")
-  public boolean getResults(List res) throws IOException, CommandNeedRetryException {
+  public boolean getResults(List result, long maxRows)
+      throws IOException, CommandNeedRetryException {
     if (destroyed) {
       throw new IOException("FAILED: Operation cancelled");
     }
-    if (isFetchingTable()) {
+    if (isFromFetchTask()) {
       FetchTask ft = plan.getFetchTask();
-      ft.setMaxRows(maxRows);
-      return ft.fetch(res);
+      return ft.fetch(result, maxRows);
     }
 
     if (resStream == null) {
@@ -1671,11 +1570,7 @@ public class Driver implements CommandProcessor {
 
     while (numRows < maxRows) {
       if (resStream == null) {
-        if (numRows > 0) {
-          return true;
-        } else {
-          return false;
-        }
+        return numRows > 0;
       }
 
       bos.reset();
@@ -1690,7 +1585,7 @@ public class Driver implements CommandProcessor {
 
         if (row != null) {
           numRows++;
-          res.add(row);
+          result.add(row);
         }
         row = null;
       } catch (IOException e) {
@@ -1705,12 +1600,12 @@ public class Driver implements CommandProcessor {
     return true;
   }
 
-  public void resetFetch() throws IOException {
+  public void resetFetch() {
     if (plan != null && plan.getFetchTask() != null) {
       try {
         plan.getFetchTask().clearFetch();
       } catch (Exception e) {
-        throw new IOException("Error closing the current fetch task", e);
+        LOG.warn("Failed to clear fetch context.. proceeding", e);
       }
       plan.getFetchTask().initialize(conf, plan, null);
     } else {
@@ -1719,16 +1614,11 @@ public class Driver implements CommandProcessor {
     }
   }
 
-  public int getTryCount() {
-    return tryCount;
-  }
-
-  public void setTryCount(int tryCount) {
-    this.tryCount = tryCount;
-  }
-
-
   public int close() {
+    if (destroyed) {
+      return 0;
+    }
+    destroyed = true;
     try {
       if (plan != null) {
         FetchTask fetchTask = plan.getFetchTask();
@@ -1744,42 +1634,26 @@ public class Driver implements CommandProcessor {
         driverCxt.shutdown();
         driverCxt = null;
       }
+
+      IOUtils.closeStream(resStream);
       if (ctx != null) {
         ctx.clear();
-      }
-      if (null != resStream) {
-        try {
-          ((FSDataInputStream) resStream).close();
-        } catch (Exception e) {
-          LOG.debug(" Exception while closing the resStream ", e);
-        }
       }
     } catch (Exception e) {
       console.printError("FAILED: Hive Internal Error: " + Utilities.getNameMessage(e) + "\n"
           + org.apache.hadoop.util.StringUtils.stringifyException(e));
       return 13;
+    } finally {
+      if (ctx != null) {
+        try {
+          releaseLocksAndCommitOrRollback(ctx, false);
+        } catch (Exception e) {
+          LOG.warn("Exception when releasing lock in destroy: " + e, e);
+        }
+      }
     }
 
     return 0;
-  }
-
-  public void destroy() {
-    if (destroyed) {
-      return;
-    }
-    destroyed = true;
-    if (ctx != null) {
-      try {
-        releaseLocksAndCommitOrRollback(ctx.getHiveLocks(), false);
-      } catch (LockException e) {
-        LOG.warn("Exception when releasing locking in destroy: " +
-            e.getMessage());
-      }
-    }
-  }
-
-  public org.apache.hadoop.hive.ql.plan.api.Query getQueryPlan() throws IOException {
-    return plan.getQueryPlan();
   }
 
   public String getErrorMsg() {

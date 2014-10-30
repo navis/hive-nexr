@@ -19,10 +19,8 @@ package org.apache.hadoop.hive.cli;
 
 
 import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -48,7 +46,6 @@ import jline.console.completer.Completer;
 import junit.framework.TestCase;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -112,14 +109,12 @@ public class TestCliDriverMethods extends TestCase {
    *           won't actually be thrown
    */
   private PrintStream headerPrintingTestDriver(Schema mockSchema) throws CommandNeedRetryException {
-    CliDriver cliDriver = new CliDriver();
-
-    // We want the driver to try to print the header...
-
-    Configuration conf = mock(Configuration.class);
+    HiveConf conf = mock(HiveConf.class);
     when(conf.getBoolean(eq(ConfVars.HIVE_CLI_PRINT_HEADER.varname), anyBoolean()))
         .thenReturn(true);
-    cliDriver.setConf(conf);
+    CliDriver cliDriver = new CliDriver(conf);
+
+    // We want the driver to try to print the header...
 
     Driver proc = mock(Driver.class);
 
@@ -128,7 +123,7 @@ public class TestCliDriverMethods extends TestCase {
     when(proc.run(anyString())).thenReturn(cpr);
 
     // and then see what happens based on the provided schema
-    when(proc.getSchema()).thenReturn(mockSchema);
+    when(cpr.getSchema()).thenReturn(mockSchema);
 
     CliSessionState mockSS = mock(CliSessionState.class);
     PrintStream mockOut = mock(PrintStream.class);

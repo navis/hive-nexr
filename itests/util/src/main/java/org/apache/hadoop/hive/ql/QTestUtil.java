@@ -1032,12 +1032,11 @@ public class QTestUtil {
 
   private boolean isHiveCommand(String command) {
     String[] cmd = command.trim().split("\\s+");
-    if (HiveCommand.find(cmd) != null) {
-      return true;
-    } else if (HiveCommand.find(cmd, HiveCommand.ONLY_FOR_TESTING) != null) {
-      return true;
-    } else {
-      return false;
+    try {
+      CommandProcessor processor = CommandProcessorFactory.get(cmd);
+      return processor != null;
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -1061,7 +1060,11 @@ public class QTestUtil {
     try {
       CommandProcessor proc = getTestCommand(commandName);
       if (proc != null) {
-        CommandProcessorResponse response = proc.run(commandArgs.trim());
+        CommandProcessorResponse response = proc.prepare(commandArgs.trim());
+        if (response.getResponseCode() != 0) {
+          return response.getResponseCode(); 
+        }
+        response = proc.run();
 
         int rc = response.getResponseCode();
         if (rc != 0) {
@@ -1078,15 +1081,7 @@ public class QTestUtil {
   }
 
   private CommandProcessor getTestCommand(final String commandName) throws SQLException {
-    HiveCommand testCommand = HiveCommand.find(new String[]{commandName}, HiveCommand.ONLY_FOR_TESTING);
-
-    if (testCommand == null) {
-      return null;
-    }
-
-    return CommandProcessorFactory
-      .getForHiveCommandInternal(new String[]{commandName}, SessionState.get().getConf(),
-        testCommand.isOnlyForTesting());
+    return CommandProcessorFactory.get(new String[]{commandName});
   }
 
   private void enableTestOnlyCmd(HiveConf conf){
@@ -1099,9 +1094,9 @@ public class QTestUtil {
   }
 
   private boolean isCommandUsedForTesting(final String command) {
-    String commandName = command.trim().split("\\s+")[0];
-    HiveCommand testCommand = HiveCommand.find(new String[]{commandName}, HiveCommand.ONLY_FOR_TESTING);
-    return testCommand != null;
+    String[] split = command.trim().split("\\s+");
+    HiveCommand testCommand = CommandProcessorFactory.findCommand(split);
+    return testCommand != null && testCommand.isInternal();
   }
 
   private String getCommand(String tname) {

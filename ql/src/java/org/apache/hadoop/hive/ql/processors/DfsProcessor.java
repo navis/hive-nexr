@@ -23,7 +23,6 @@ import java.util.Arrays;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Schema;
@@ -36,35 +35,26 @@ import org.apache.hadoop.hive.ql.session.SessionState.LogHelper;
  * DfsProcessor.
  *
  */
-public class DfsProcessor implements CommandProcessor {
+public class DfsProcessor extends SimpleProcessor {
 
   public static final Log LOG = LogFactory.getLog(DfsProcessor.class.getName());
   public static final LogHelper console = new LogHelper(LOG);
   public static final String DFS_RESULT_HEADER = "DFS Output";
 
-  private final FsShell dfs;
-  private final Schema dfsSchema;
+  private static final Schema SCHEMA;
 
-  public DfsProcessor(Configuration conf) {
-    this(conf, false);
-  }
-
-  public DfsProcessor(Configuration conf, boolean addSchema) {
-    dfs = new FsShell(conf);
-    dfsSchema = new Schema();
-    dfsSchema.addToFieldSchemas(new FieldSchema(DFS_RESULT_HEADER, "string", ""));
+  static {
+    SCHEMA = new Schema();
+    SCHEMA.addToFieldSchemas(new FieldSchema(DFS_RESULT_HEADER, "string", null));
   }
 
   @Override
-  public void init() {
-  }
+  public CommandProcessorResponse runCommand(String command) {
 
-  @Override
-  public CommandProcessorResponse run(String command) {
+    SessionState ss = SessionState.get();
 
-
+    FsShell dfs = new FsShell(ss.getConf());
     try {
-      SessionState ss = SessionState.get();
       command = new VariableSubstitution().substitute(ss.getConf(),command);
 
       String[] tokens = command.split("\\s+");
@@ -87,7 +77,7 @@ public class DfsProcessor implements CommandProcessor {
       }
 
       System.setOut(oldOut);
-      return new CommandProcessorResponse(ret, null, null, dfsSchema);
+      return new CommandProcessorResponse(ret, null, null, SCHEMA);
 
     } catch (Exception e) {
       console.printError("Exception raised from DFSShell.run "
@@ -97,4 +87,8 @@ public class DfsProcessor implements CommandProcessor {
     }
   }
 
+  @Override
+  protected Schema getSchema() {
+    return SCHEMA;
+  }
 }

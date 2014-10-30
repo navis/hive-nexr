@@ -26,8 +26,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -47,22 +45,19 @@ import jline.console.completer.ArgumentCompleter.ArgumentDelimiter;
 import jline.console.completer.ArgumentCompleter.AbstractArgumentDelimiter;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.HiveInterruptUtils;
 import org.apache.hadoop.hive.common.LogUtils;
 import org.apache.hadoop.hive.common.LogUtils.LogInitializationException;
 import org.apache.hadoop.hive.common.cli.ShellCmdExecutor;
-import org.apache.hadoop.hive.common.io.CachingPrintStream;
 import org.apache.hadoop.hive.common.io.FetchConverter;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.Validator;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.ql.CommandNeedRetryException;
-import org.apache.hadoop.hive.ql.Driver;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.exec.mr.HadoopJobExecHelper;
 import org.apache.hadoop.hive.ql.exec.tez.TezJobExecHelper;
@@ -93,13 +88,15 @@ public class CliDriver {
   public static final String HIVERCFILE = ".hiverc";
 
   private final LogHelper console;
-  private Configuration conf;
+  private final HiveConf conf;
 
   public CliDriver() {
-    SessionState ss = SessionState.get();
-    conf = (ss != null) ? ss.getConf() : new Configuration();
-    Log LOG = LogFactory.getLog("CliDriver");
-    console = new LogHelper(LOG);
+    this(SessionState.get() != null ? SessionState.get().getConf() : new HiveConf());
+  }
+
+  public CliDriver(HiveConf conf) {
+    this.conf = conf;
+    console = new LogHelper(LogFactory.getLog("CliDriver"));
   }
 
   public int processCmd(String cmd) {
@@ -153,11 +150,12 @@ public class CliDriver {
             stringifyException(e));
         ret = 1;
       }
-    }  else { // local mode
+    } else { // local mode
       try {
-        CommandProcessor proc = CommandProcessorFactory.get(tokens, (HiveConf) conf);
+        CommandProcessor proc = CommandProcessorFactory.get(tokens);
+        proc.init(ss.getConf(), ss);
         ret = processLocalCmd(cmd, proc, ss);
-      } catch (SQLException e) {
+      } catch (Exception e) {
         console.printError("Failed processing command " + tokens[0] + " " + e.getLocalizedMessage(),
           org.apache.hadoop.util.StringUtils.stringifyException(e));
         ret = 1;
@@ -165,14 +163,6 @@ public class CliDriver {
     }
 
     return ret;
-  }
-
-  /**
-   * For testing purposes to inject Configuration dependency
-   * @param conf to replace default
-   */
-  void setConf(Configuration conf) {
-    this.conf = conf;
   }
 
   /**
@@ -194,79 +184,66 @@ public class CliDriver {
     do {
       try {
         needRetry = false;
-        if (proc != null) {
-          if (proc instanceof Driver) {
-            Driver qp = (Driver) proc;
-            PrintStream out = ss.out;
-            long start = System.currentTimeMillis();
-            if (ss.getIsVerbose()) {
-              out.println(cmd);
-            }
-
-            qp.setTryCount(tryCount);
-            ret = qp.run(cmd).getResponseCode();
-            if (ret != 0) {
-              qp.close();
-              return ret;
-            }
-
-            // query has run capture the time
-            long end = System.currentTimeMillis();
-            double timeTaken = (end - start) / 1000.0;
-
-            ArrayList<String> res = new ArrayList<String>();
-
-            printHeader(qp, out);
-
-            // print the results
-            int counter = 0;
-            try {
-              if (out instanceof FetchConverter) {
-                ((FetchConverter)out).fetchStarted();
-              }
-              while (qp.getResults(res)) {
-                for (String r : res) {
-                  out.println(r);
-                }
-                counter += res.size();
-                res.clear();
-                if (out.checkError()) {
-                  break;
-                }
-              }
-            } catch (IOException e) {
-              console.printError("Failed with exception " + e.getClass().getName() + ":"
-                  + e.getMessage(), "\n"
-                  + org.apache.hadoop.util.StringUtils.stringifyException(e));
-              ret = 1;
-            }
-
-            int cret = qp.close();
-            if (ret == 0) {
-              ret = cret;
-            }
-
-            if (out instanceof FetchConverter) {
-              ((FetchConverter)out).fetchFinished();
-            }
-
-            console.printInfo("Time taken: " + timeTaken + " seconds" +
-                (counter == 0 ? "" : ", Fetched: " + counter + " row(s)"));
-          } else {
-            String firstToken = tokenizeCmd(cmd.trim())[0];
-            String cmd_1 = getFirstCmd(cmd.trim(), firstToken.length());
-
-            if (ss.getIsVerbose()) {
-              ss.out.println(firstToken + " " + cmd_1);
-            }
-            CommandProcessorResponse res = proc.run(cmd_1);
-            if (res.getResponseCode() != 0) {
-              ss.out.println("Query returned non-zero code: " + res.getResponseCode() +
-                  ", cause: " + res.getErrorMessage());
-            }
-            ret = res.getResponseCode();
-          }
+        PrintStream out = ss.out;
+        long start = System.currentTimeMillis();
+        if (ss.getIsVerbose()) {
+          out.println(cmd);
         }
+
+        CommandProcessorResponse res = proc.prepare(cmd);
+        if (res.getResponseCode() != 0) {
+          proc.close();
+          ss.out.println("Query returned non-zero code: " + res.getResponseCode() +
+              ", cause: " + res.getErrorMessage());
+          return res.getResponseCode();
+        }
+        res = proc.run();
+        if (res.getResponseCode() != 0 || res.getSchema() == null) {
+          return 0;
+        }
+
+        // query has run capture the time
+        long end = System.currentTimeMillis();
+        double timeTaken = (end - start) / 1000.0;
+
+        ArrayList<String> load = new ArrayList<String>();
+
+        printHeader(res.getSchema(), out);
+
+        // print the results
+        int counter = 0;
+        try {
+          if (out instanceof FetchConverter) {
+            ((FetchConverter)out).fetchStarted();
+          }
+          while (proc.getResults(load, 100)) {
+            for (String r : load) {
+              out.println(r);
+            }
+            counter += load.size();
+            load.clear();
+            if (out.checkError()) {
+              break;
+            }
+          }
+        } catch (IOException e) {
+          console.printError("Failed with exception " + e.getClass().getName() + ":"
+              + e.getMessage(), "\n"
+              + org.apache.hadoop.util.StringUtils.stringifyException(e));
+          ret = 1;
+        }
+
+        int cret = proc.close();
+        if (ret == 0) {
+          ret = cret;
+        }
+
+        if (out instanceof FetchConverter) {
+          ((FetchConverter)out).fetchFinished();
+        }
+
+        console.printInfo("Time taken: " + timeTaken + " seconds" +
+            (counter == 0 ? "" : ", Fetched: " + counter + " row(s)"));
       } catch (CommandNeedRetryException e) {
         console.printInfo("Retry query with a different approach...");
         tryCount++;
@@ -281,11 +258,11 @@ public class CliDriver {
    * If enabled and applicable to this command, print the field headers
    * for the output.
    *
-   * @param qp Driver that executed the command
+   * @param schema Schema schema of result
    * @param out PrintStream which to send output to
    */
-  private void printHeader(Driver qp, PrintStream out) {
-    List<FieldSchema> fieldSchemas = qp.getSchema().getFieldSchemas();
+  private void printHeader(Schema schema, PrintStream out) {
+    List<FieldSchema> fieldSchemas = schema.getFieldSchemas();
     if (HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_CLI_PRINT_HEADER)
           && fieldSchemas != null) {
       // Print the column names
@@ -375,11 +352,9 @@ public class CliDriver {
         lastRet = ret;
         boolean ignoreErrors = HiveConf.getBoolVar(conf, HiveConf.ConfVars.CLIIGNOREERRORS);
         if (ret != 0 && !ignoreErrors) {
-          CommandProcessorFactory.clean((HiveConf) conf);
           return ret;
         }
       }
-      CommandProcessorFactory.clean((HiveConf) conf);
       return lastRet;
     } finally {
       // Once we are done processing the line, restore the old handler
@@ -635,15 +610,6 @@ public class CliDriver {
     }
 
     CliSessionState ss = new CliSessionState(new HiveConf(SessionState.class));
-    ss.in = System.in;
-    try {
-      ss.out = new PrintStream(System.out, true, "UTF-8");
-      ss.info = new PrintStream(System.err, true, "UTF-8");
-      ss.err = new CachingPrintStream(System.err, true, "UTF-8");
-    } catch (UnsupportedEncodingException e) {
-      return 3;
-    }
-
     if (!oproc.process_stage2(ss)) {
       return 2;
     }

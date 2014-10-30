@@ -32,18 +32,14 @@ import org.apache.hadoop.hive.ql.session.SessionState.LogHelper;
  * AddResourceProcessor.
  *
  */
-public class AddResourceProcessor implements CommandProcessor {
+public class AddResourceProcessor extends SimpleProcessor {
 
   public static final Log LOG = LogFactory.getLog(AddResourceProcessor.class
       .getName());
   public static final LogHelper console = new LogHelper(LOG);
 
   @Override
-  public void init() {
-  }
-
-  @Override
-  public CommandProcessorResponse run(String command) {
+  public CommandProcessorResponse runCommand(String command) {
     SessionState ss = SessionState.get();
     command = new VariableSubstitution().substitute(ss.getConf(),command);
     String[] tokens = command.split("\\s+");

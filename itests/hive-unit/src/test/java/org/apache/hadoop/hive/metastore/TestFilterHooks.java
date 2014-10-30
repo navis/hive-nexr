@@ -196,7 +196,6 @@ public class TestFilterHooks {
     driver.run("drop database if exists " + DBNAME1  + " cascade");
     driver.run("drop database if exists " + DBNAME2  + " cascade");
     driver.close();
-    driver.destroy();
     msc.close();
   }
 

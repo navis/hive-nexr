@@ -220,8 +220,9 @@ public abstract class CLIServiceTest {
     queryString = "CREATE TABLE NON_EXISTING_TAB (ID STRING) location 'invalid://localhost:10000/a/b/c'";
     opStatus = runQueryAsync(sessionHandle, queryString, confOverlay, OperationState.ERROR, longPollingTimeout);
     // sqlState, errorCode should be set
-    assertEquals(opStatus.getOperationException().getSQLState(), "08S01");
-    assertEquals(opStatus.getOperationException().getErrorCode(), 1);
+    Throwable ex = opStatus.getOperationException();
+    assertEquals(((HiveSQLException) ex).getSQLState(), "08S01");
+    assertEquals(((HiveSQLException) ex).getErrorCode(), 1);
     /**
      * Execute an async query with default config
      */

@@ -18,26 +18,29 @@
 
 package org.apache.hadoop.hive.ql.processors;
 
+import junit.framework.Assert;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.ql.CommandNeedRetryException;
-import org.apache.hadoop.hive.ql.session.SessionState;
+import org.junit.Test;
 
-import java.io.IOException;
-import java.util.List;
+import java.sql.SQLException;
 
-public interface CommandProcessor {
+public class TestCommandProcessorFactoryWhiteList {
 
-  void init(HiveConf conf, SessionState session);
+  static {
+    System.setProperty(HiveConf.ConfVars.HIVE_SECURITY_COMMAND_WHITELIST.toString(), " ");
+  }
 
-  CommandProcessorResponse prepare(String command);
-
-  CommandProcessorResponse run() throws CommandNeedRetryException;
-
-  boolean isFromFetchTask();
-
-  boolean getResults(List result, long nLines) throws IOException, CommandNeedRetryException;
-
-  void resetFetch();
-
-  int close();
+  @Test
+  public void testAvailableCommands() throws Exception {
+    for (HiveCommand command : CommandProcessorFactory.getCommands()) {
+      String cmd = command.getName();
+      try {
+        CommandProcessorFactory.getForHiveCommand(new String[]{cmd});
+        Assert.fail("Expected SQLException for " + cmd + " as available commands is empty");
+      } catch (SQLException e) {
+        Assert.assertEquals("Insufficient privileges to execute " + cmd, e.getMessage());
+        Assert.assertEquals("42000", e.getSQLState());
+      }
+    }
+  }
 }

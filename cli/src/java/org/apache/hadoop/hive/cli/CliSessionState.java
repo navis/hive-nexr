@@ -19,10 +19,13 @@
 package org.apache.hadoop.hive.cli;
 
 import java.io.IOException;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.hadoop.hive.common.io.CachingPrintStream;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.session.SessionState;
 
@@ -58,6 +61,14 @@ public class CliSessionState extends SessionState {
 
   public CliSessionState(HiveConf conf) {
     super(conf);
+    this.in = System.in;
+    try {
+      this.out = new PrintStream(System.out, true, "UTF-8");
+      this.info = new PrintStream(System.err, true, "UTF-8");
+      this.err = new CachingPrintStream(System.err, true, "UTF-8");
+    } catch (UnsupportedEncodingException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

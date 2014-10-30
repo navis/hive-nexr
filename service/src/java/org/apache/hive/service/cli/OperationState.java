@@ -56,6 +56,7 @@ public enum OperationState {
       case PENDING:
       case RUNNING:
       case CANCELED:
+      case ERROR:
       case CLOSED:
         return;
       }

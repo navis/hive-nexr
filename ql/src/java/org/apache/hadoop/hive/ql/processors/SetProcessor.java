@@ -40,7 +40,7 @@ import org.apache.hadoop.hive.ql.session.SessionState;
  * SetProcessor.
  *
  */
-public class SetProcessor implements CommandProcessor {
+public class SetProcessor extends SimpleProcessor {
 
   private static final String prefix = "set: ";
 
@@ -95,10 +95,6 @@ public class SetProcessor implements CommandProcessor {
     } else {
       ss.out.println(s + " is undefined");
     }
-  }
-
-  @Override
-  public void init() {
   }
 
   public CommandProcessorResponse executeSetVariable(String varname, String varvalue) {
@@ -244,12 +240,8 @@ public class SetProcessor implements CommandProcessor {
     }
   }
 
-  private CommandProcessorResponse createProcessorSuccessResponse() {
-    return new CommandProcessorResponse(0, null, null, getSchema());
-  }
-
   @Override
-  public CommandProcessorResponse run(String command) {
+  public CommandProcessorResponse runCommand(String command) {
     SessionState ss = SessionState.get();
 
     String nwcmd = command.trim();
@@ -288,7 +280,7 @@ public class SetProcessor implements CommandProcessor {
   }
 
 // create a Schema object containing the give column
-  private Schema getSchema() {
+  protected Schema getSchema() {
     Schema sch = new Schema();
     FieldSchema tmpFieldSchema = new FieldSchema();
 

@@ -23,9 +23,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Properties;
 
@@ -68,13 +66,12 @@ public class HCatCli {
     }
     LOG = LogFactory.getLog(HCatCli.class);
 
-    CliSessionState ss = new CliSessionState(new HiveConf(SessionState.class));
-    ss.in = System.in;
+    CliSessionState ss;
     try {
-      ss.out = new PrintStream(System.out, true, "UTF-8");
-      ss.err = new PrintStream(System.err, true, "UTF-8");
-    } catch (UnsupportedEncodingException e) {
+      ss = new CliSessionState(new HiveConf(SessionState.class));
+    } catch (Throwable e) {
       System.exit(1);
+      return;
     }
 
     HiveConf conf = ss.getConf();
@@ -280,10 +277,16 @@ public class HCatCli {
     cmd = cmd.trim();
     String firstToken = cmd.split("\\s+")[0].trim();
 
-    if (firstToken.equalsIgnoreCase("set")) {
-      return new SetProcessor().run(cmd.substring(firstToken.length()).trim()).getResponseCode();
-    } else if (firstToken.equalsIgnoreCase("dfs")) {
-      return new DfsProcessor(ss.getConf()).run(cmd.substring(firstToken.length()).trim()).getResponseCode();
+    try {
+      if (firstToken.equalsIgnoreCase("set")) {
+        return new SetProcessor().run(cmd).getResponseCode();
+      } else if (firstToken.equalsIgnoreCase("dfs")) {
+        return new DfsProcessor().run(cmd).getResponseCode();
+      }
+    } catch (CommandNeedRetryException e) {
+      ss.err.println("Failed with exception " + e.getClass().getName() + ":"
+          + e.getMessage() + "\n" + org.apache.hadoop.util.StringUtils.stringifyException(e));
+      return 1;
     }
 
     HCatDriver driver = new HCatDriver();

@@ -58,11 +58,11 @@ public class CommandProcessorResponse {
    * @param e
    * @return
    */
-  public static CommandProcessorResponse create(Exception e) {
-    return new CommandProcessorResponse(1, e.getMessage(), null);
+  public static CommandProcessorResponse create(Throwable e) {
+    return new CommandProcessorResponse(1, e.getMessage(), null, e);
   }
 
-  public CommandProcessorResponse(int responseCode, String errorMessage, String SQLState,
+  private CommandProcessorResponse(int responseCode, String errorMessage, String SQLState,
       Schema schema, Throwable exception) {
     this.responseCode = responseCode;
     this.errorMessage = errorMessage;

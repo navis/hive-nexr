@@ -236,9 +236,8 @@ public class CalcitePlanner extends SemanticAnalyzer {
             newAST = reAnalyzeCtasAfterCbo(newAST);
           }
           Phase1Ctx ctx_1 = initPhase1Ctx();
-          if (!doPhase1(newAST, getQB(), ctx_1, null)) {
-            throw new RuntimeException("Couldn't do phase1 on CBO optimized query plan");
-          }
+          doPhase1(newAST, getQB(), ctx_1, null);
+
           // unfortunately making prunedPartitions immutable is not possible
           // here with SemiJoins not all tables are costed in CBO, so their
           // PartitionList is not evaluated until the run phase.

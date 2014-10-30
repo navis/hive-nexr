@@ -1108,10 +1108,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
    * @throws SemanticException
    */
   @SuppressWarnings({"fallthrough", "nls"})
-  public boolean doPhase1(ASTNode ast, QB qb, Phase1Ctx ctx_1, PlannerContext plannerCtx)
+  public void doPhase1(ASTNode ast, QB qb, Phase1Ctx ctx_1, PlannerContext plannerCtx)
       throws SemanticException {
 
-    boolean phase1Result = true;
     QBParseInfo qbp = qb.getParseInfo();
     boolean skipRecursion = false;
 
@@ -1360,15 +1359,14 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           if (childCount == partition.size()) {
             try {
               Table table = db.getTable(tableName);
+              // Check partition exists if it exists skip the overwrite
               Partition parMetaData = db.getPartition(table, partition, false);
               // Check partition exists if it exists skip the overwrite
               if (parMetaData != null) {
-                phase1Result = false;
-                skipRecursion = true;
-                LOG.info("Partition already exists so insert into overwrite " +
+                throw new SemanticException("Partition already exists so insert into overwrite " +
                     "skipped for partition : " + parMetaData.toString());
-                break;
               }
+              validatePartSpec(table, partition, (ASTNode)tab, conf, false);
             } catch (HiveException e) {
               LOG.info("Error while getting metadata : ", e);
             }
@@ -1397,13 +1395,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     if (!skipRecursion) {
       // Iterate over the rest of the children
       int child_count = ast.getChildCount();
-      for (int child_pos = 0; child_pos < child_count && phase1Result; ++child_pos) {
+      for (int child_pos = 0; child_pos < child_count; ++child_pos) {
         // Recurse
-        phase1Result = phase1Result && doPhase1(
-            (ASTNode)ast.getChild(child_pos), qb, ctx_1, plannerCtx);
+        doPhase1((ASTNode) ast.getChild(child_pos), qb, ctx_1, plannerCtx);
       }
     }
-    return phase1Result;
   }
 
   /**
@@ -9953,10 +9949,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
     // 4. continue analyzing from the child ASTNode.
     Phase1Ctx ctx_1 = initPhase1Ctx();
-    if (!doPhase1(child, qb, ctx_1, plannerCtx)) {
-      // if phase1Result false return
-      return false;
-    }
+    doPhase1(child, qb, ctx_1, plannerCtx);
+
     LOG.info("Completed phase 1 of Semantic Analysis");
 
     // 5. Resolve Parse Tree
@@ -10564,11 +10558,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
   /**
    * Analyze the create table command. If it is a regular create-table or
-   * create-table-like statements, we create a DDLWork and return true. If it is
+   * create-table-like statements, we create a DDLWork and return null. If it is
    * a create-table-as-select, we get the necessary info such as the SerDe and
-   * Storage Format and put it in QB, and return false, indicating the rest of
-   * the semantic analyzer need to deal with the select statement with respect
-   * to the SerDe and Storage Format.
+   * Storage Format and put it in QB, and return ASTNode for select clause,
+   * indicating the rest of the semantic analyzer need to deal with the
+   * select statement with respect to the SerDe and Storage Format.
    */
   ASTNode analyzeCreateTable(
       ASTNode ast, QB qb, PlannerContext plannerCtx) throws SemanticException {

@@ -40,15 +40,6 @@ public abstract class MetadataOperation extends Operation {
   }
 
 
-  /* (non-Javadoc)
-   * @see org.apache.hive.service.cli.Operation#close()
-   */
-  @Override
-  public void close() throws HiveSQLException {
-    setState(OperationState.CLOSED);
-    cleanupOperationLog();
-  }
-
   /**
    * Convert wildchars and escape sequence from JDBC format to datanucleous/regex
    */

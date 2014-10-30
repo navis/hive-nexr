@@ -220,7 +220,7 @@ public final class IndexUtils {
     // Don't try to index optimize the query to build the index
     HiveConf.setBoolVar(builderConf, HiveConf.ConfVars.HIVEOPTINDEXFILTER, false);
     Driver driver = new Driver(builderConf);
-    driver.compile(command.toString(), false);
+    driver.compile(command.toString());
 
     Task<?> rootTask = driver.getPlan().getRootTasks().get(0);
     inputs.addAll(driver.getPlan().getInputs());

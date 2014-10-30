@@ -539,10 +539,13 @@ public abstract class ThriftCLIService extends AbstractService implements TCLISe
       OperationStatus operationStatus = cliService.getOperationStatus(
           new OperationHandle(req.getOperationHandle()));
       resp.setOperationState(operationStatus.getState().toTOperationState());
-      HiveSQLException opException = operationStatus.getOperationException();
+      Throwable opException = operationStatus.getOperationException();
       if (opException != null) {
-        resp.setSqlState(opException.getSQLState());
-        resp.setErrorCode(opException.getErrorCode());
+        if (opException instanceof HiveSQLException) {
+          HiveSQLException se = (HiveSQLException) opException;
+          resp.setSqlState(se.getSQLState());
+          resp.setErrorCode(se.getErrorCode());
+        }
         resp.setErrorMessage(opException.getMessage());
       }
       resp.setStatus(OK_STATUS);
@@ -585,7 +588,9 @@ public abstract class ThriftCLIService extends AbstractService implements TCLISe
     TGetResultSetMetadataResp resp = new TGetResultSetMetadataResp();
     try {
       TableSchema schema = cliService.getResultSetMetadata(new OperationHandle(req.getOperationHandle()));
-      resp.setSchema(schema.toTTableSchema());
+      if (schema != null) {
+        resp.setSchema(schema.toTTableSchema());
+      }
       resp.setStatus(OK_STATUS);
     } catch (Exception e) {
       LOG.warn("Error getting result set metadata: ", e);

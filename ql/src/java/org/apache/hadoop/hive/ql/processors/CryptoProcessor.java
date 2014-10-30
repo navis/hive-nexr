@@ -39,7 +39,7 @@ import java.util.Arrays;
  * This class processes HADOOP commands used for HDFS encryption. It is meant to be run
  * only by Hive unit & queries tests.
  */
-public class CryptoProcessor implements CommandProcessor {
+public class CryptoProcessor extends AbstractCommandProcessor {
   public static final Log LOG = LogFactory.getLog(CryptoProcessor.class.getName());
 
   private HadoopShims.HdfsEncryptionShim encryptionShim;
@@ -52,9 +52,8 @@ public class CryptoProcessor implements CommandProcessor {
 
   private HiveConf conf;
 
-  public CryptoProcessor(HadoopShims.HdfsEncryptionShim encryptionShim, HiveConf conf) {
+  public CryptoProcessor(HadoopShims.HdfsEncryptionShim encryptionShim) {
     this.encryptionShim = encryptionShim;
-    this.conf = conf;
 
     CREATE_KEY_OPTIONS = new Options();
     CREATE_KEY_OPTIONS.addOption(OptionBuilder.hasArg().withLongOpt("keyName").isRequired().create());
@@ -82,11 +81,15 @@ public class CryptoProcessor implements CommandProcessor {
   }
 
   @Override
-  public void init() {
+  public void init(HiveConf conf, SessionState session) {
+    this.conf = conf;
   }
+  
+  private transient String action;
+  private transient String[] params;
 
   @Override
-  public CommandProcessorResponse run(String command) throws CommandNeedRetryException {
+  public CommandProcessorResponse prepare(String command) {
     String[] args = command.split("\\s+");
 
     if (args.length < 1) {
@@ -96,10 +99,13 @@ public class CryptoProcessor implements CommandProcessor {
     if (encryptionShim == null) {
       return returnErrorResponse("Hadoop encryption shim is not initialized.");
     }
+    action = args[0];
+    params = Arrays.copyOfRange(args, 1, args.length);
+    return new CommandProcessorResponse(0);
+  }
 
-    String action = args[0];
-    String params[] = Arrays.copyOfRange(args, 1, args.length);
-
+  @Override
+  public CommandProcessorResponse run() throws CommandNeedRetryException {
     try {
       if (action.equalsIgnoreCase("create_key")) {
         createEncryptionKey(params);

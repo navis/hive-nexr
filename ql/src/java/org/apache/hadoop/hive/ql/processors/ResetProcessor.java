@@ -21,18 +21,13 @@ package org.apache.hadoop.hive.ql.processors;
 import java.util.Arrays;
 
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.ql.CommandNeedRetryException;
 import org.apache.hadoop.hive.ql.security.authorization.plugin.HiveOperationType;
 import org.apache.hadoop.hive.ql.session.SessionState;
 
-public class ResetProcessor implements CommandProcessor {
+public class ResetProcessor extends SimpleProcessor {
 
   @Override
-  public void init() {
-  }
-
-  @Override
-  public CommandProcessorResponse run(String command) throws CommandNeedRetryException {
+  public CommandProcessorResponse runCommand(String command) {
     SessionState ss = SessionState.get();
 
     CommandProcessorResponse authErrResp =

@@ -28,7 +28,6 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.common.StatsSetupConst;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -190,7 +189,7 @@ public class CompactIndexHandler extends TableBasedIndexHandler {
     HiveConf queryConf = new HiveConf(pctx.getConf(), CompactIndexHandler.class);
     HiveConf.setBoolVar(queryConf, HiveConf.ConfVars.COMPRESSRESULT, false);
     Driver driver = new Driver(queryConf);
-    driver.compile(qlCommand.toString(), false);
+    driver.compile(qlCommand.toString());
 
     if (pctx.getConf().getBoolVar(ConfVars.HIVE_INDEX_COMPACT_BINARY_SEARCH) && useSorted) {
       // For now, only works if the predicate is a single condition

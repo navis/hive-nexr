@@ -27,6 +27,7 @@ import java.util.Map;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hive.service.Service;
+import org.apache.hive.service.cli.HiveSQLException;
 import org.apache.hive.service.cli.OperationHandle;
 import org.apache.hive.service.cli.OperationState;
 import org.apache.hive.service.cli.OperationStatus;
@@ -291,8 +292,9 @@ public abstract class ThriftCLIServiceTest {
     assertEquals("Operation should be in error state",
         OperationState.ERROR, state);
     // sqlState, errorCode should be set to appropriate values
-    assertEquals(opStatus.getOperationException().getSQLState(), "08S01");
-    assertEquals(opStatus.getOperationException().getErrorCode(), 1);
+    Throwable ex = opStatus.getOperationException();
+    assertEquals(((HiveSQLException) ex).getSQLState(), "08S01");
+    assertEquals(((HiveSQLException) ex).getErrorCode(), 1);
 
     // Cleanup
     queryString = "DROP TABLE TEST_EXEC_ASYNC_THRIFT";

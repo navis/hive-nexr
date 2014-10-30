@@ -25,19 +25,38 @@ import org.apache.hadoop.hive.ql.session.SessionState;
 import java.io.IOException;
 import java.util.List;
 
-public interface CommandProcessor {
+public class AbstractCommandProcessor implements CommandProcessor {
+  
+  @Override
+  public void init(HiveConf conf, SessionState session) {
+  }
 
-  void init(HiveConf conf, SessionState session);
+  @Override
+  public CommandProcessorResponse prepare(String command) {
+    return new CommandProcessorResponse(0);
+  }
 
-  CommandProcessorResponse prepare(String command);
+  @Override
+  public CommandProcessorResponse run() throws CommandNeedRetryException {
+    return new CommandProcessorResponse(0);
+  }
 
-  CommandProcessorResponse run() throws CommandNeedRetryException;
+  @Override
+  public boolean isFromFetchTask() {
+    return false;
+  }
 
-  boolean isFromFetchTask();
+  @Override
+  public boolean getResults(List result, long nLines) throws IOException, CommandNeedRetryException {
+    return false;
+  }
 
-  boolean getResults(List result, long nLines) throws IOException, CommandNeedRetryException;
+  @Override
+  public void resetFetch() {
+  }
 
-  void resetFetch();
-
-  int close();
+  @Override
+  public int close() {
+    return 0;
+  }
 }

@@ -34,10 +34,10 @@ import org.apache.hadoop.hive.common.LogUtils;
 import org.apache.hadoop.hive.common.LogUtils.LogInitializationException;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.CommandNeedRetryException;
-import org.apache.hadoop.hive.ql.Driver;
 import org.apache.hadoop.hive.ql.history.HiveHistoryViewer;
 import org.apache.hadoop.hive.ql.processors.CommandProcessor;
 import org.apache.hadoop.hive.ql.processors.CommandProcessorFactory;
+import org.apache.hadoop.hive.ql.processors.CommandProcessorResponse;
 import org.apache.hadoop.hive.ql.session.SessionState;
 
 /**
@@ -330,24 +330,28 @@ public class HWISessionItem implements Runnable, Comparable<HWISessionItem> {
     queryRet = new ArrayList<Integer>(queries.size());
     for (int i = 0; i < queries.size(); i++) {
       String cmd = queries.get(i);
-      String cmd_trimmed = cmd.trim();
-      String[] tokens = cmd_trimmed.split("\\s+");
-      String cmd_1 = cmd_trimmed.substring(tokens[0].length()).trim();
-      CommandProcessor proc = null;
+      CommandProcessor qp = null;
       try {
-        proc = CommandProcessorFactory.get(tokens[0]);
+        qp = CommandProcessorFactory.get(cmd);
       } catch (SQLException e) {
         l4j.error(getSessionName() + " error processing " + cmd, e);
       }
-      if (proc != null) {
-        if (proc instanceof Driver) {
-          Driver qp = (Driver) proc;
-          qp.setTryCount(Integer.MAX_VALUE);
-          try {
-          queryRet.add(Integer.valueOf(qp.run(cmd).getResponseCode()));
+      if (qp != null) {
+        try {
+          qp.init(ss.getConf(), ss);
+          CommandProcessorResponse run = qp.prepare(cmd);
+          if (run.getResponseCode() != 0) {
+            queryRet.add(run.getResponseCode());
+            return;
+          }
+          run = qp.run();
+          queryRet.add(run.getResponseCode());
+          if (run.getResponseCode() != 0 || run.getSchema() == null) {
+            return;
+          }
           ArrayList<String> res = new ArrayList<String>();
           try {
-            while (qp.getResults(res)) {
+            while (qp.getResults(res, -1)) {
               ArrayList<String> resCopy = new ArrayList<String>();
               resCopy.addAll(res);
               resultBucket.add(resCopy);
@@ -370,19 +374,10 @@ public class HWISessionItem implements Runnable, Comparable<HWISessionItem> {
             l4j.error(getSessionName() + " getting results " + getResultFile()
                 + " caused exception.", ex);
           }
-          } catch (CommandNeedRetryException e) {
-            // this should never happen since we Driver.setTryCount(Integer.MAX_VALUE)
-            l4j.error(getSessionName() + " Exception when executing", e);
-          } finally {
-            qp.close();
-          }
-        } else {
-          try {
-            queryRet.add(Integer.valueOf(proc.run(cmd_1).getResponseCode()));
-          } catch (CommandNeedRetryException e) {
-            // this should never happen if there is no bug
-            l4j.error(getSessionName() + " Exception when executing", e);
-          }
+        } catch (Exception e) {
+          l4j.error(getSessionName() + " Exception when executing", e);
+        } finally {
+          qp.close();
         }
       } else {
         // processor was null

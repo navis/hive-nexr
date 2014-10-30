@@ -22,21 +22,16 @@ import java.io.IOException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.hive.ql.CommandNeedRetryException;
 import org.apache.hadoop.hive.ql.session.SessionState;
 
 /**
  * used for reload auxiliary and jars without restarting hive server2
  */
-public class ReloadProcessor implements CommandProcessor{
+public class ReloadProcessor extends SimpleProcessor {
   private static final Log LOG = LogFactory.getLog(ReloadProcessor.class);
 
   @Override
-  public void init() {
-  }
-
-  @Override
-  public CommandProcessorResponse run(String command) throws CommandNeedRetryException {
+  public CommandProcessorResponse runCommand(String command) {
     SessionState ss = SessionState.get();
     try {
       ss.reloadAuxJars();
