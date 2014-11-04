@@ -23,7 +23,6 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +36,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.io.HiveIOExceptionHandlerUtil;
-import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.TableScanOperator;
@@ -45,7 +43,6 @@ import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.log.PerfLogger;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
 import org.apache.hadoop.hive.ql.plan.MapWork;
-import org.apache.hadoop.hive.ql.plan.MergeJoinWork;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.PartitionDesc;
 import org.apache.hadoop.hive.ql.plan.TableScanDesc;
@@ -250,7 +247,22 @@ public class HiveInputFormat<K extends WritableComparable, V extends Writable>
     }
     HiveRecordReader<K,V> rr = new HiveRecordReader(innerReader, job);
     rr.initIOContext(hsplit, job, inputFormatClass, innerReader);
-    return rr;
+    return wrapReader(rr, job);
+  }
+
+  public static RecordReader wrapReader(RecordReader reader, JobConf job) throws IOException {
+    String wrapperClass = job.get("input.wrapper.class");
+    if (wrapperClass != null) {
+      try {
+        InputWrapper wrapper = ReflectionUtils.newInstance(
+            (Class<? extends InputWrapper>) job.getClassByName(wrapperClass), job);
+        wrapper.setRecordReader(reader);
+        return wrapper;
+      } catch (Exception e) {
+        throw new IOException("Failed to instantiate " + wrapperClass, e);
+      }
+    }
+    return reader;
   }
 
   protected void init(JobConf job) {

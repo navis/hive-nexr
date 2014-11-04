@@ -71,6 +71,8 @@ public abstract class HiveContextAwareRecordReader<K, V> implements RecordReader
   protected JobConf jobConf;
   protected boolean isSorted = false;
 
+  public HiveContextAwareRecordReader() {};
+
   public HiveContextAwareRecordReader(JobConf conf) throws IOException {
     this(null, conf);
   }

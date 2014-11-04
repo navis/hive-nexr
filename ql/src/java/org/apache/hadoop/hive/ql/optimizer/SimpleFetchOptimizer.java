@@ -174,9 +174,10 @@ public class SimpleFetchOptimizer implements Transform {
     if (table == null) {
       return null;
     }
+    Map<String, String> props = pctx.getTopToProps().get(ts);
     ReadEntity parent = PlanUtils.getParentViewInfo(alias, pctx.getViewAliasToInput());
     if (!table.isPartitioned()) {
-      return checkOperators(new FetchData(parent, table, splitSample), ts, aggressive, false);
+      return checkOperators(new FetchData(parent, table, props, splitSample), ts, aggressive, false);
     }
 
     boolean bypassFilter = false;
@@ -188,7 +189,7 @@ public class SimpleFetchOptimizer implements Transform {
       PrunedPartitionList pruned = pctx.getPrunedPartitions(alias, ts);
       if (aggressive || !pruned.hasUnknownPartitions()) {
         bypassFilter &= !pruned.hasUnknownPartitions();
-        return checkOperators(new FetchData(parent, table, pruned, splitSample, bypassFilter), ts,
+        return checkOperators(new FetchData(parent, table, props, pruned, splitSample, bypassFilter), ts,
             aggressive, bypassFilter);
       }
     }
@@ -264,6 +265,7 @@ public class SimpleFetchOptimizer implements Transform {
 
     private final ReadEntity parent;
     private final Table table;
+    private final Map<String, String> tableProps;
     private final SplitSample splitSample;
     private final PrunedPartitionList partsList;
     private final HashSet<ReadEntity> inputs = new HashSet<ReadEntity>();
@@ -275,18 +277,21 @@ public class SimpleFetchOptimizer implements Transform {
     // this is always non-null when conversion is completed
     private Operator<?> fileSink;
 
-    private FetchData(ReadEntity parent, Table table, SplitSample splitSample) {
+    private FetchData(ReadEntity parent, Table table, Map<String, String> tableProps,
+        SplitSample splitSample) {
       this.parent = parent;
       this.table = table;
+      this.tableProps = tableProps;
       this.partsList = null;
       this.splitSample = splitSample;
       this.onlyPruningFilter = false;
     }
 
-    private FetchData(ReadEntity parent, Table table, PrunedPartitionList partsList,
-        SplitSample splitSample, boolean bypassFilter) {
+    private FetchData(ReadEntity parent, Table table, Map<String, String> tableProps,
+        PrunedPartitionList partsList, SplitSample splitSample, boolean bypassFilter) {
       this.parent = parent;
       this.table = table;
+      this.tableProps = tableProps;
       this.partsList = partsList;
       this.splitSample = splitSample;
       this.onlyPruningFilter = bypassFilter;
@@ -303,7 +308,8 @@ public class SimpleFetchOptimizer implements Transform {
       inputs.clear();
       if (!table.isPartitioned()) {
         inputs.add(new ReadEntity(table, parent, parent == null));
-        FetchWork work = new FetchWork(table.getPath(), Utilities.getTableDesc(table));
+        TableDesc tableDesc = Utilities.getTableDesc(table, tableProps);
+        FetchWork work = new FetchWork(table.getPath(), tableDesc);
         PlanUtils.configureInputJobPropertiesForStorageHandler(work.getTblDesc());
         work.setSplitSample(splitSample);
         return work;
@@ -311,20 +317,20 @@ public class SimpleFetchOptimizer implements Transform {
       List<Path> listP = new ArrayList<Path>();
       List<PartitionDesc> partP = new ArrayList<PartitionDesc>();
 
-      for (Partition partition : partsList.getNotDeniedPartns()) {
-        inputs.add(new ReadEntity(partition, parent, parent == null));
-        listP.add(partition.getDataLocation());
-        partP.add(Utilities.getPartitionDesc(partition));
-      }
       Table sourceTable = partsList.getSourceTable();
       inputs.add(new ReadEntity(sourceTable, parent, parent == null));
-      TableDesc table = Utilities.getTableDesc(sourceTable);
-      FetchWork work = new FetchWork(listP, partP, table);
-      if (!work.getPartDesc().isEmpty()) {
-        PartitionDesc part0 = work.getPartDesc().get(0);
-        PlanUtils.configureInputJobPropertiesForStorageHandler(part0.getTableDesc());
-        work.setSplitSample(splitSample);
+      TableDesc tableDesc = Utilities.getTableDesc(sourceTable, tableProps);
+
+      for (Partition partition : partsList.getNotDeniedPartns()) {
+        inputs.add(new ReadEntity(partition, parent, parent == null));
+        PartitionDesc partitionDesc = Utilities.getPartitionDesc(partition);
+        partitionDesc.setTableDesc(tableDesc);
+        listP.add(partition.getDataLocation());
+        partP.add(partitionDesc);
       }
+      FetchWork work = new FetchWork(listP, partP, tableDesc);
+      PlanUtils.configureInputJobPropertiesForStorageHandler(tableDesc);
+      work.setSplitSample(splitSample);
       return work;
     }
 

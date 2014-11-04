@@ -93,6 +93,7 @@ public abstract class TaskCompiler {
     boolean isCStats = qb.isAnalyzeRewrite();
 
     if (pCtx.getFetchTask() != null) {
+      optimizeFetchPlan(pCtx.getFetchTask(), pCtx, ctx);
       return;
     }
 
@@ -360,6 +361,10 @@ public abstract class TaskCompiler {
    */
   protected void optimizeOperatorPlan(ParseContext pCtxSet, Set<ReadEntity> inputs,
       Set<WriteEntity> outputs) throws SemanticException {
+  }
+
+  protected void optimizeFetchPlan(FetchTask fetchTask,
+      ParseContext pCtx, Context ctx) throws SemanticException {
   }
 
   /*

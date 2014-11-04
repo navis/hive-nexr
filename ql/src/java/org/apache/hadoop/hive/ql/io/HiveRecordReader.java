@@ -33,7 +33,7 @@ import org.apache.hadoop.mapred.RecordReader;
 public class HiveRecordReader<K extends WritableComparable, V extends Writable>
     extends HiveContextAwareRecordReader<K, V> {
 
-
+  public HiveRecordReader() {}
 
   public HiveRecordReader(RecordReader recordReader)
       throws IOException {

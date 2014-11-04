@@ -1133,7 +1133,14 @@ public final class Utilities {
   }
 
   public static TableDesc getTableDesc(Table tbl) {
+    return getTableDesc(tbl, null);
+  }
+
+  public static TableDesc getTableDesc(Table tbl, Map<String, String> tblProps) {
     Properties props = tbl.getMetadata();
+    if (tblProps != null && !tblProps.isEmpty()) {
+      props.putAll(tblProps);
+    }
     props.put(serdeConstants.SERIALIZATION_LIB, tbl.getDeserializer().getClass().getName());
     return (new TableDesc(tbl.getInputFormatClass(), tbl
         .getOutputFormatClass(), props));

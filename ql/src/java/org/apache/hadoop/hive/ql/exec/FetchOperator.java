@@ -521,6 +521,8 @@ public class FetchOperator implements Serializable {
     } else {
       currRecReader = reader;
     }
+    currRecReader = HiveInputFormat.wrapReader(currRecReader, job);
+
     splitNum++;
     key = currRecReader.createKey();
     value = currRecReader.createValue();

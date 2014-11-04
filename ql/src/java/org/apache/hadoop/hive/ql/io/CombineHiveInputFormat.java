@@ -41,8 +41,6 @@ import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.Utilities;
-import org.apache.hadoop.hive.ql.io.orc.OrcInputFormat;
-import org.apache.hadoop.hive.ql.io.orc.OrcRecordUpdater;
 import org.apache.hadoop.hive.ql.log.PerfLogger;
 import org.apache.hadoop.hive.ql.parse.SplitSample;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
@@ -649,10 +647,11 @@ public class CombineHiveInputFormat<K extends WritableComparable, V extends Writ
         hsplit.getPath(0).toString(),
         hsplit.getPath(0).toUri().getPath());
 
-    return ShimLoader.getHadoopShims().getCombineFileInputFormat()
+    RecordReader reader = ShimLoader.getHadoopShims().getCombineFileInputFormat()
         .getRecordReader(job,
         ((CombineHiveInputSplit) split).getInputSplitShim(), reporter,
         CombineHiveRecordReader.class);
+    return wrapReader(reader, job);
   }
 
   static class CombineFilter implements PathFilter {
