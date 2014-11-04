@@ -27,8 +27,6 @@ import java.util.Properties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.common.type.Decimal128;
-import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.AbstractSerDe;
 import org.apache.hadoop.hive.serde2.ByteStream;
@@ -38,12 +36,10 @@ import org.apache.hadoop.hive.serde2.SerDeStats;
 import org.apache.hadoop.hive.serde2.io.DateWritable;
 import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.io.TimestampWritable;
-import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.MapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
-import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.PrimitiveCategory;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
@@ -150,38 +146,22 @@ public class LazyBinarySerDe extends AbstractSerDe {
     return BytesWritable.class;
   }
 
-  // The wrapper for byte array
-  ByteArrayRef byteArrayRef;
-
   /**
    * Deserialize a table record to a lazybinary struct.
    */
   @Override
   public Object deserialize(Writable field) throws SerDeException {
-    if (byteArrayRef == null) {
-      byteArrayRef = new ByteArrayRef();
-    }
-    if (field instanceof BinaryComparable) {
-      BinaryComparable b = (BinaryComparable) field;
-      if (b.getLength() == 0) {
-        return null;
-      }
-      // For backward-compatibility with hadoop 0.17
-      byteArrayRef.setData(b.getBytes());
-      cachedLazyBinaryStruct.init(byteArrayRef, 0, b.getLength());
-    } else if (field instanceof Text) {
-      Text t = (Text) field;
-      if (t.getLength() == 0) {
-        return null;
-      }
-      byteArrayRef.setData(t.getBytes());
-      cachedLazyBinaryStruct.init(byteArrayRef, 0, t.getLength());
-    } else {
-      throw new SerDeException(getClass().toString()
-          + ": expects either BinaryComparable or Text object!");
+    if (!(field instanceof BinaryComparable)) {
+      throw new SerDeException(getClass().toString() + ": expects BinaryComparable object!");
     }
     lastOperationSerialize = false;
     lastOperationDeserialize = true;
+    BinaryComparable b = (BinaryComparable) field;
+    if (b.getLength() == 0) {
+      return null;
+    }
+    // For backward-compatibility with hadoop 0.17
+    cachedLazyBinaryStruct.init(b.getBytes(), 0, b.getLength());
     return cachedLazyBinaryStruct;
   }
 

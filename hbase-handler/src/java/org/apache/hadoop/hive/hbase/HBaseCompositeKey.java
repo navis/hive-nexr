@@ -20,10 +20,7 @@ package org.apache.hadoop.hive.hbase;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
 import org.apache.hadoop.hive.serde2.lazy.LazyObject;
 import org.apache.hadoop.hive.serde2.lazy.LazyStruct;
@@ -87,12 +84,8 @@ public class HBaseCompositeKey extends LazyStruct {
     LazyObject<? extends ObjectInspector> lazyObject = LazyFactory
         .createLazyObject(fieldOI);
 
-    ByteArrayRef ref = new ByteArrayRef();
-
-    ref.setData(bytes);
-
     // initialize the lazy object
-    lazyObject.init(ref, 0, ref.getData().length);
+    lazyObject.init(bytes, 0, bytes.length);
 
     return lazyObject;
   }
