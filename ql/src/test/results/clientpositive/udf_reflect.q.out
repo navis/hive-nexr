@@ -144,4 +144,4 @@ FROM src tablesample (1 rows)
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
 #### A masked pattern was here ####
-1	true	3	2	3	2.7182818284590455	1.0	568
+1	true	3	2	3	2.718281828459045	1.0	568
