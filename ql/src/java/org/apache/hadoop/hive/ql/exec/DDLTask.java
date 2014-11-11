@@ -165,6 +165,7 @@ import org.apache.hadoop.hive.ql.plan.UnlockTableDesc;
 import org.apache.hadoop.hive.ql.plan.api.StageType;
 import org.apache.hadoop.hive.ql.security.authorization.AuthorizationUtils;
 import org.apache.hadoop.hive.ql.security.authorization.Privilege;
+import org.apache.hadoop.hive.ql.security.authorization.PrivilegeType;
 import org.apache.hadoop.hive.ql.security.authorization.plugin.HiveAuthorizer;
 import org.apache.hadoop.hive.ql.security.authorization.plugin.HivePrincipal;
 import org.apache.hadoop.hive.ql.security.authorization.plugin.HivePrincipal.HivePrincipalType;
@@ -579,35 +580,19 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       if (hiveObjectDesc == null) {
         privs.addAll(db.showPrivilegeGrant(HiveObjectType.GLOBAL, principalName, type,
             null, null, null, null));
-      } else if (hiveObjectDesc != null && hiveObjectDesc.getObject() == null) {
+      } else if (hiveObjectDesc != null && hiveObjectDesc.getDatabase() == null) {
         privs.addAll(db.showPrivilegeGrant(null, principalName, type, null, null, null, null));
       } else {
-        String obj = hiveObjectDesc.getObject();
-        boolean notFound = true;
-        String dbName = null;
-        String tableName = null;
-        Table tableObj = null;
-        Database dbObj = null;
-
-        if (hiveObjectDesc.getTable()) {
-          String[] dbTab = obj.split("\\.");
-          if (dbTab.length == 2) {
-            dbName = dbTab[0];
-            tableName = dbTab[1];
-          } else {
-            dbName = SessionState.get().getCurrentDatabase();
-            tableName = obj;
-          }
-          dbObj = db.getDatabase(dbName);
-          tableObj = db.getTable(dbName, tableName);
-          notFound = (dbObj == null || tableObj == null);
-        } else {
-          dbName = hiveObjectDesc.getObject();
-          dbObj = db.getDatabase(dbName);
-          notFound = (dbObj == null);
+        Database dbObj = db.getDatabase(hiveObjectDesc.getDatabase());
+        if (dbObj == null) {
+          throw new HiveException("database " + hiveObjectDesc.getDatabase() + " can not be found");
         }
-        if (notFound) {
-          throw new HiveException(obj + " can not be found");
+        Table tableObj = null;
+        if (hiveObjectDesc.getTable() != null) {
+          tableObj = db.getTable(dbObj.getName(), hiveObjectDesc.getTable(), false);
+          if (tableObj == null) {
+            throw new HiveException("table " + hiveObjectDesc.getTable() + " can not be found");
+          }
         }
 
         String partName = null;
@@ -618,29 +603,29 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
           partValues = Warehouse.getPartValuesFromPartName(partName);
         }
 
-        if (!hiveObjectDesc.getTable()) {
+        if (hiveObjectDesc.getTable() == null) {
           // show database level privileges
           privs.addAll(db.showPrivilegeGrant(HiveObjectType.DATABASE,
-              principalName, type, dbName, null, null, null));
+              principalName, type, dbObj.getName(), null, null, null));
         } else {
           if (showGrantDesc.getColumns() != null) {
             // show column level privileges
             for (String columnName : showGrantDesc.getColumns()) {
               privs.addAll(db.showPrivilegeGrant(
                   HiveObjectType.COLUMN, principalName,
-                  type, dbName, tableName, partValues,
+                  type, dbObj.getName(), tableObj.getTableName(), partValues,
                   columnName));
             }
           } else if (hiveObjectDesc.getPartSpec() != null) {
             // show partition level privileges
             privs.addAll(db.showPrivilegeGrant(
                 HiveObjectType.PARTITION, principalName, type,
-                dbName, tableName, partValues, null));
+                dbObj.getName(), tableObj.getTableName(), partValues, null));
           } else {
             // show table level privileges
             privs.addAll(db.showPrivilegeGrant(
                 HiveObjectType.TABLE, principalName, type,
-                dbName, tableName, null, null));
+                dbObj.getName(), tableObj.getTableName(), null, null));
           }
         }
       }
@@ -692,125 +677,79 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
   }
 
   private int grantOrRevokePrivileges(List<PrincipalDesc> principals,
-      List<PrivilegeDesc> privileges, PrivilegeObjectDesc privSubjectDesc,
+      List<PrivilegeDesc> privileges, PrivilegeObjectDesc privObj,
       String grantor, PrincipalType grantorType, boolean grantOption, boolean isGrant)
           throws HiveException {
 
-    if(SessionState.get().isAuthorizationModeV2()){
-      return grantOrRevokePrivilegesV2(principals, privileges, privSubjectDesc, grantor,
+    if (SessionState.get().isAuthorizationModeV2()) {
+      return grantOrRevokePrivilegesV2(principals, privileges, privObj, grantor,
           grantorType, grantOption, isGrant);
     }
 
-    if (privileges == null || privileges.size() == 0) {
+    if (privileges == null || privileges.isEmpty()) {
       console.printError("No privilege found.");
       return 1;
     }
 
-    String dbName = null;
-    String tableName = null;
-    Table tableObj = null;
-    Database dbObj = null;
-
     try {
-
-      if (privSubjectDesc != null) {
-        if (privSubjectDesc.getPartSpec() != null && isGrant) {
-          throw new HiveException("Grant does not support partition level.");
-        }
-        String obj = privSubjectDesc.getObject();
-
-        //get the db, table objects
-        if (privSubjectDesc.getTable()) {
-          String[] dbTable = Utilities.getDbTableName(obj);
-          dbName = dbTable[0];
-          tableName = dbTable[1];
-
-          dbObj = db.getDatabase(dbName);
-          if (dbObj == null) {
-            throwNotFound("Database", dbName);
-          }
-          tableObj = db.getTable(dbName, tableName);
-          if (tableObj == null) {
-            throwNotFound("Table", obj);
-          }
-        } else {
-          dbName = privSubjectDesc.getObject();
-          dbObj = db.getDatabase(dbName);
-          if (dbObj == null) {
-            throwNotFound("Database", dbName);
-          }
-        }
-      }
-
       PrivilegeBag privBag = new PrivilegeBag();
-      if (privSubjectDesc == null) {
-        for (int idx = 0; idx < privileges.size(); idx++) {
-          Privilege priv = privileges.get(idx).getPrivilege();
-          if (privileges.get(idx).getColumns() != null
-              && privileges.get(idx).getColumns().size() > 0) {
+      if (privObj == null) {
+        for (PrivilegeDesc priv : privileges) {
+          if (priv.getColumns() != null && !priv.getColumns().isEmpty()) {
             throw new HiveException(
                 "For user-level privileges, column sets should be null. columns="
-                    + privileges.get(idx).getColumns().toString());
+                    + priv.getColumns().toString());
           }
 
+          PrivilegeType privType = priv.getPrivilege().getPriv();
           privBag.addToPrivileges(new HiveObjectPrivilege(new HiveObjectRef(
               HiveObjectType.GLOBAL, null, null, null, null), null, null,
-              new PrivilegeGrantInfo(priv.toString(), 0, grantor, grantorType,
+              new PrivilegeGrantInfo(privType.toString(), 0, grantor, grantorType,
                   grantOption)));
         }
       } else {
-        org.apache.hadoop.hive.metastore.api.Partition partObj = null;
-        List<String> partValues = null;
-        if (tableObj != null) {
-          if ((!tableObj.isPartitioned())
-              && privSubjectDesc.getPartSpec() != null) {
-            throw new HiveException(
-                "Table is not partitioned, but partition name is present: partSpec="
-                    + privSubjectDesc.getPartSpec().toString());
-          }
+        String database = privObj.getDatabase();
+        String table = privObj.getTable();
+        HashMap<String, String> partSpec = privObj.getPartSpec();
 
-          if (privSubjectDesc.getPartSpec() != null) {
-            partObj = db.getPartition(tableObj, privSubjectDesc.getPartSpec(),
-                false).getTPartition();
-            partValues = partObj.getValues();
-          }
+        if (partSpec != null && isGrant) {
+          throw new HiveException("Grant does not support partition level.");
+        }
+        Database dbObj = db.getDatabase(database);
+
+        Table tableObj = null;
+        if (table != null) {
+          tableObj = db.getTable(dbObj.getName(), table);
+        }
+        List<String> partValues = null;
+        if (partSpec != null) {
+          partValues = db.getPartition(tableObj, partSpec, false).getValues();
         }
 
         for (PrivilegeDesc privDesc : privileges) {
           List<String> columns = privDesc.getColumns();
           Privilege priv = privDesc.getPrivilege();
-          if (columns != null && columns.size() > 0) {
+          PrivilegeGrantInfo grant =
+              new PrivilegeGrantInfo(priv.toString(), 0, grantor, grantorType, grantOption);
+          if (columns != null && !columns.isEmpty()) {
             if (!priv.supportColumnLevel()) {
-              throw new HiveException(priv.toString()
-                  + " does not support column level.");
-            }
-            if (privSubjectDesc == null || tableName == null) {
-              throw new HiveException(
-                  "For user-level/database-level privileges, column sets should be null. columns="
-                      + columns);
+              throw new HiveException(priv.toString() + " does not support column level.");
             }
             for (int i = 0; i < columns.size(); i++) {
-              privBag.addToPrivileges(new HiveObjectPrivilege(
-                  new HiveObjectRef(HiveObjectType.COLUMN, dbName, tableName,
-                      partValues, columns.get(i)), null, null,  new PrivilegeGrantInfo(priv.toString(), 0, grantor, grantorType, grantOption)));
+              HiveObjectRef objRef = new HiveObjectRef(HiveObjectType.COLUMN,
+                  tableObj.getDbName(), tableObj.getTableName(), partValues, columns.get(i));
+              privBag.addToPrivileges(new HiveObjectPrivilege(objRef, null, null, grant));
             }
           } else {
-            if (privSubjectDesc.getTable()) {
-              if (privSubjectDesc.getPartSpec() != null) {
-                privBag.addToPrivileges(new HiveObjectPrivilege(
-                    new HiveObjectRef(HiveObjectType.PARTITION, dbName,
-                        tableName, partValues, null), null, null,  new PrivilegeGrantInfo(priv.toString(), 0, grantor, grantorType, grantOption)));
-              } else {
-                privBag
-                .addToPrivileges(new HiveObjectPrivilege(
-                    new HiveObjectRef(HiveObjectType.TABLE, dbName,
-                        tableName, null, null), null, null, new PrivilegeGrantInfo(priv.toString(), 0, grantor, grantorType, grantOption)));
-              }
+            HiveObjectRef objRef;
+            if (table == null) {
+              objRef = new HiveObjectRef(HiveObjectType.DATABASE, database, null, null, null);
+            } else if (partSpec == null) {
+              objRef = new HiveObjectRef(HiveObjectType.TABLE, database, table, null, null);
             } else {
-              privBag.addToPrivileges(new HiveObjectPrivilege(
-                  new HiveObjectRef(HiveObjectType.DATABASE, dbName, null,
-                      null, null), null, null, new PrivilegeGrantInfo(priv.toString(), 0, grantor, grantorType, grantOption)));
+              objRef = new HiveObjectRef(HiveObjectType.PARTITION, database, table, partValues, null);
             }
+            privBag.addToPrivileges(new HiveObjectPrivilege(objRef, null, null, grant));
           }
         }
       }
@@ -859,9 +798,19 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
 
   private HivePrivilegeObject getHivePrivilegeObject(PrivilegeObjectDesc privSubjectDesc)
       throws HiveException {
-
-    String [] dbTable = Utilities.getDbTableName(privSubjectDesc.getObject());
-    return new HivePrivilegeObject(getPrivObjectType(privSubjectDesc), dbTable[0], dbTable[1]);
+    HivePrivilegeObjectType objectType = getPrivObjectType(privSubjectDesc);
+    if (objectType == null) {
+      return new HivePrivilegeObject(null, null, null);
+    }
+    switch (objectType) {
+      case DATABASE:
+        return new HivePrivilegeObject(
+            HivePrivilegeObjectType.DATABASE, privSubjectDesc.getDatabase(), null);
+      default:
+        return new HivePrivilegeObject(
+            HivePrivilegeObjectType.TABLE_OR_VIEW, privSubjectDesc.getDatabase(),
+            privSubjectDesc.getTable());
+    }
   }
 
   private HivePrincipalType getHivePrincipalType(PrincipalType type) throws HiveException {
@@ -883,10 +832,16 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
   }
 
   private HivePrivilegeObjectType getPrivObjectType(PrivilegeObjectDesc privSubjectDesc) {
-    if (privSubjectDesc.getObject() == null) {
-      return null;
+    if (privSubjectDesc.getDatabase() == null) {
+      return null;  // all
     }
-    return privSubjectDesc.getTable() ? HivePrivilegeObjectType.TABLE_OR_VIEW : HivePrivilegeObjectType.DATABASE;
+    if (privSubjectDesc.getTable() == null) {
+      return HivePrivilegeObjectType.DATABASE;
+    }
+    if (privSubjectDesc.getPartSpec() != null) {
+      return HivePrivilegeObjectType.PARTITION;
+    }
+    return HivePrivilegeObjectType.TABLE_OR_VIEW;
   }
 
   private List<HivePrivilege> getHivePrivileges(List<PrivilegeDesc> privileges) {

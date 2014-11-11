@@ -40,8 +40,8 @@ LOCATION
 #### A masked pattern was here ####
 TBLPROPERTIES (
   'numFiles'='0', 
-#### A masked pattern was here ####
   'COLUMN_STATS_ACCURATE'='false', 
+#### A masked pattern was here ####
   'totalSize'='0', 
   'numRows'='-1', 
   'rawDataSize'='-1')

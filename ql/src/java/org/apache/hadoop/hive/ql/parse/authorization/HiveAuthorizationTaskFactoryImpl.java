@@ -19,6 +19,7 @@ package org.apache.hadoop.hive.ql.parse.authorization;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -171,25 +172,8 @@ public class HiveAuthorizationTaskFactoryImpl implements HiveAuthorizationTaskFa
       if (param.getType() == HiveParser.TOK_RESOURCE_ALL) {
         privHiveObj = new PrivilegeObjectDesc();
       } else if (param.getType() == HiveParser.TOK_PRIV_OBJECT_COL) {
-        privHiveObj = new PrivilegeObjectDesc();
-        //set object name
-        String text = param.getChild(0).getText();
-        privHiveObj.setObject(BaseSemanticAnalyzer.unescapeIdentifier(text));
-        //set object type
-        ASTNode objTypeNode = (ASTNode) param.getChild(1);
-        privHiveObj.setTable(objTypeNode.getToken().getType() == HiveParser.TOK_TABLE_TYPE);
-
-        //set col and partition spec if specified
-        for (int i = 2; i < param.getChildCount(); i++) {
-          ASTNode partOrCol = (ASTNode) param.getChild(i);
-          if (partOrCol.getType() == HiveParser.TOK_PARTSPEC) {
-            privHiveObj.setPartSpec(DDLSemanticAnalyzer.getPartSpec(partOrCol));
-          } else if (partOrCol.getType() == HiveParser.TOK_TABCOLNAME) {
-            cols = BaseSemanticAnalyzer.getColumnNames(partOrCol);
-          } else {
-            throw new SemanticException("Invalid token type " + partOrCol.getType());
-          }
-        }
+        privHiveObj = analyzePrivilegeObject(param, new HashSet<WriteEntity>());
+        cols = privHiveObj.getColumns();
       }
     }
 
@@ -203,6 +187,9 @@ public class HiveAuthorizationTaskFactoryImpl implements HiveAuthorizationTaskFa
       HashSet<WriteEntity> outputs) {
     return analyzeGrantRevokeRole(false, ast, inputs, outputs);
   }
+
+  // ^(TOK_GRANT privilegeList principalSpecification privilegeObject? withGrantOption?)
+  // ^(TOK_REVOKE privilegeList principalSpecification privilegeObject?)
   private Task<? extends Serializable> analyzeGrantRevokeRole(boolean isGrant, ASTNode ast,
       HashSet<ReadEntity> inputs, HashSet<WriteEntity> outputs) {
     List<PrincipalDesc> principalDesc = AuthorizationParseUtils.analyzePrincipalListDef(
@@ -213,7 +200,7 @@ public class HiveAuthorizationTaskFactoryImpl implements HiveAuthorizationTaskFa
     ASTNode wAdminOption = (ASTNode) ast.getChild(1);
     boolean isAdmin = false;
     if(wAdminOption.getToken().getType() == HiveParser.TOK_GRANT_WITH_ADMIN_OPTION){
-      rolesStartPos = 2; //start reading role names from next postion
+      rolesStartPos = 2; //start reading role names from next position
       isAdmin = true;
     }
 
@@ -232,33 +219,51 @@ public class HiveAuthorizationTaskFactoryImpl implements HiveAuthorizationTaskFa
     return TaskFactory.get(new DDLWork(inputs, outputs, grantRevokeRoleDDL), conf);
   }
 
-  private PrivilegeObjectDesc analyzePrivilegeObject(ASTNode ast,
-      HashSet<WriteEntity> outputs)
+  // ^(TOK_PRIV_OBJECT identifier privObjectType $cols? partitionSpec?)
+  private PrivilegeObjectDesc analyzePrivilegeObject(ASTNode ast, HashSet<WriteEntity> outputs)
       throws SemanticException {
 
-    PrivilegeObjectDesc subject = new PrivilegeObjectDesc();
-    //set object identifier
-    subject.setObject(BaseSemanticAnalyzer.unescapeIdentifier(ast.getChild(0).getText()));
-    //set object type
-    ASTNode objTypeNode =  (ASTNode) ast.getChild(1);
-    subject.setTable(objTypeNode.getToken().getType() == HiveParser.TOK_TABLE_TYPE);
-    if (ast.getChildCount() == 3) {
-      //if partition spec node is present, set partition spec
-      ASTNode partSpecNode = (ASTNode) ast.getChild(2);
-      subject.setPartSpec(DDLSemanticAnalyzer.getPartSpec(partSpecNode));
-    }
+    final WriteEntity.WriteType writeType = WriteEntity.WriteType.DDL_NO_LOCK;
 
-    if (subject.getTable()) {
-      Table tbl = getTable(SessionState.get().getCurrentDatabase(), subject.getObject());
-      if (subject.getPartSpec() != null) {
-        Partition part = getPartition(tbl, subject.getPartSpec());
-        outputs.add(new WriteEntity(part, WriteEntity.WriteType.DDL_NO_LOCK));
-      } else {
-        outputs.add(new WriteEntity(tbl, WriteEntity.WriteType.DDL_NO_LOCK));
+    try {
+      String name = BaseSemanticAnalyzer.unescapeIdentifier(ast.getChild(0).getText());
+      if (ast.getChild(1).getType() == HiveParser.TOK_DB_TYPE) {
+        outputs.add(new WriteEntity(db.getDatabase(name), writeType));
+        return new PrivilegeObjectDesc(name, null, null, null);
       }
-    }
 
-    return subject;
+      Table table = db.getTable(name);
+
+      ASTNode child = (ASTNode) ast.getChild(2);
+      if (child == null) {
+        outputs.add(new WriteEntity(table, writeType));
+        return new PrivilegeObjectDesc(table.getDbName(), table.getTableName(), null, null);
+      }
+      List<String> colNames = null;
+      if (child.getType() == HiveParser.TOK_TABCOLNAME) {
+        colNames = BaseSemanticAnalyzer.getColumnNames(child);
+        child = (ASTNode) ast.getChild(3);
+      }
+      HashMap<String, String> partSpec = null;
+      if (child != null && child.getType() == HiveParser.TOK_PARTSPEC) {
+        partSpec = DDLSemanticAnalyzer.getPartSpec(child);
+      }
+      if (!table.isPartitioned() && partSpec != null) {
+        throw new SemanticException("Table is not partitioned, but " +
+            "partition name is present: partSpec=" + partSpec);
+      }
+      if (partSpec == null || partSpec.isEmpty()) {
+        outputs.add(new WriteEntity(table, writeType));
+      } else {
+        Partition partition = db.getPartition(table, partSpec, false);
+        outputs.add(new WriteEntity(partition, writeType));
+      }
+      return new PrivilegeObjectDesc(table.getDbName(), table.getTableName(), partSpec, colNames);
+    } catch (SemanticException e) {
+      throw e;
+    } catch (HiveException e) {
+      throw new SemanticException(e);
+    }
   }
 
   private List<PrivilegeDesc> analyzePrivilegeListDef(ASTNode node)

@@ -1373,7 +1373,7 @@ grantPrivileges
 @init {pushMsg("grant privileges", state);}
 @after {popMsg(state);}
     : KW_GRANT privList=privilegeList
-      privilegeObject?
+      KW_ON? privilegeObject?
       KW_TO principalSpecification
       withGrantOption?
     -> ^(TOK_GRANT $privList principalSpecification privilegeObject? withGrantOption?)
@@ -1382,7 +1382,7 @@ grantPrivileges
 revokePrivileges
 @init {pushMsg("revoke privileges", state);}
 @afer {popMsg(state);}
-    : KW_REVOKE privilegeList privilegeObject? KW_FROM principalSpecification
+    : KW_REVOKE privilegeList KW_ON? privilegeObject? KW_FROM principalSpecification
     -> ^(TOK_REVOKE privilegeList principalSpecification privilegeObject?)
     ;
 

@@ -386,6 +386,10 @@ public class SQLStdHiveAccessController implements HiveAccessController {
 
       // convert the metastore thrift objects to result objects
       for (HiveObjectPrivilege msObjPriv : msObjPrivs) {
+        HiveObjectType objectType = msObjPriv.getHiveObject().getObjectType();
+        if (objectType != HiveObjectType.DATABASE && objectType != HiveObjectType.TABLE) {
+          continue; // v1 objects.. ignored
+        }
         // result principal
         HivePrincipal resPrincipal = new HivePrincipal(msObjPriv.getPrincipalName(),
             AuthorizationUtils.getHivePrincipalType(msObjPriv.getPrincipalType()));

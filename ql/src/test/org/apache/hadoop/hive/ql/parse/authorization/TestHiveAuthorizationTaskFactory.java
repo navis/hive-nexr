@@ -120,8 +120,8 @@ public class TestHiveAuthorizationTaskFactory {
     for(PrivilegeDesc privilege : ListSizeMatcher.inList(grantDesc.getPrivileges()).ofSize(1)) {
       Assert.assertEquals(Privilege.SELECT, privilege.getPrivilege());
     }
-    Assert.assertTrue("Expected table", grantDesc.getPrivilegeSubjectDesc().getTable());
-    Assert.assertEquals(TABLE, grantDesc.getPrivilegeSubjectDesc().getObject());
+    Assert.assertTrue("Expected table", grantDesc.getPrivilegeSubjectDesc().getTable() != null);
+    Assert.assertEquals(TABLE, grantDesc.getPrivilegeSubjectDesc().getTable());
   }
   /**
    * GRANT ... ON TABLE ... TO ROLE ...
@@ -138,8 +138,8 @@ public class TestHiveAuthorizationTaskFactory {
     for(PrivilegeDesc privilege : ListSizeMatcher.inList(grantDesc.getPrivileges()).ofSize(1)) {
       Assert.assertEquals(Privilege.SELECT, privilege.getPrivilege());
     }
-    Assert.assertTrue("Expected table", grantDesc.getPrivilegeSubjectDesc().getTable());
-    Assert.assertEquals(TABLE, grantDesc.getPrivilegeSubjectDesc().getObject());
+    Assert.assertTrue("Expected table", grantDesc.getPrivilegeSubjectDesc().getTable() != null);
+    Assert.assertEquals(TABLE, grantDesc.getPrivilegeSubjectDesc().getTable());
   }
   /**
    * GRANT ... ON TABLE ... TO GROUP ...
@@ -156,8 +156,8 @@ public class TestHiveAuthorizationTaskFactory {
     for(PrivilegeDesc privilege : ListSizeMatcher.inList(grantDesc.getPrivileges()).ofSize(1)) {
       Assert.assertEquals(Privilege.SELECT, privilege.getPrivilege());
     }
-    Assert.assertTrue("Expected table", grantDesc.getPrivilegeSubjectDesc().getTable());
-    Assert.assertEquals(TABLE, grantDesc.getPrivilegeSubjectDesc().getObject());
+    Assert.assertTrue("Expected table", grantDesc.getPrivilegeSubjectDesc().getTable() != null);
+    Assert.assertEquals(TABLE, grantDesc.getPrivilegeSubjectDesc().getTable());
   }
   /**
    * REVOKE ... ON TABLE ... FROM USER ...
@@ -174,8 +174,8 @@ public class TestHiveAuthorizationTaskFactory {
     for(PrivilegeDesc privilege : ListSizeMatcher.inList(grantDesc.getPrivileges()).ofSize(1)) {
       Assert.assertEquals(Privilege.SELECT, privilege.getPrivilege());
     }
-    Assert.assertTrue("Expected table", grantDesc.getPrivilegeSubjectDesc().getTable());
-    Assert.assertEquals(TABLE, grantDesc.getPrivilegeSubjectDesc().getObject());
+    Assert.assertTrue("Expected table", grantDesc.getPrivilegeSubjectDesc().getTable() != null);
+    Assert.assertEquals(TABLE, grantDesc.getPrivilegeSubjectDesc().getTable());
   }
   /**
    * REVOKE ... ON TABLE ... FROM ROLE ...
@@ -192,8 +192,8 @@ public class TestHiveAuthorizationTaskFactory {
     for(PrivilegeDesc privilege : ListSizeMatcher.inList(grantDesc.getPrivileges()).ofSize(1)) {
       Assert.assertEquals(Privilege.SELECT, privilege.getPrivilege());
     }
-    Assert.assertTrue("Expected table", grantDesc.getPrivilegeSubjectDesc().getTable());
-    Assert.assertEquals(TABLE, grantDesc.getPrivilegeSubjectDesc().getObject());
+    Assert.assertTrue("Expected table", grantDesc.getPrivilegeSubjectDesc().getTable() != null);
+    Assert.assertEquals(TABLE, grantDesc.getPrivilegeSubjectDesc().getTable());
   }
   /**
    * REVOKE ... ON TABLE ... FROM GROUP ...
@@ -210,8 +210,8 @@ public class TestHiveAuthorizationTaskFactory {
     for(PrivilegeDesc privilege : ListSizeMatcher.inList(grantDesc.getPrivileges()).ofSize(1)) {
       Assert.assertEquals(Privilege.SELECT, privilege.getPrivilege());
     }
-    Assert.assertTrue("Expected table", grantDesc.getPrivilegeSubjectDesc().getTable());
-    Assert.assertEquals(TABLE, grantDesc.getPrivilegeSubjectDesc().getObject());
+    Assert.assertTrue("Expected table", grantDesc.getPrivilegeSubjectDesc().getTable() != null);
+    Assert.assertEquals(TABLE, grantDesc.getPrivilegeSubjectDesc().getTable());
   }
   /**
    * GRANT ROLE ... TO USER ...
@@ -379,9 +379,8 @@ public class TestHiveAuthorizationTaskFactory {
     Assert.assertNotNull("Show grant should not be null", grantDesc);
     Assert.assertEquals(PrincipalType.USER, grantDesc.getPrincipalDesc().getType());
     Assert.assertEquals(USER, grantDesc.getPrincipalDesc().getName());
-    Assert.assertTrue("Expected table", grantDesc.getHiveObj().getTable());
-    Assert.assertEquals(TABLE, grantDesc.getHiveObj().getObject());
-    Assert.assertTrue("Expected table", grantDesc.getHiveObj().getTable());
+    Assert.assertTrue("Expected table", grantDesc.getHiveObj().getTable() != null);
+    Assert.assertEquals(TABLE, grantDesc.getHiveObj().getTable());
   }
   /**
    * SHOW GRANT ROLE ... ON TABLE ...
@@ -393,9 +392,8 @@ public class TestHiveAuthorizationTaskFactory {
     Assert.assertNotNull("Show grant should not be null", grantDesc);
     Assert.assertEquals(PrincipalType.ROLE, grantDesc.getPrincipalDesc().getType());
     Assert.assertEquals(ROLE, grantDesc.getPrincipalDesc().getName());
-    Assert.assertTrue("Expected table", grantDesc.getHiveObj().getTable());
-    Assert.assertEquals(TABLE, grantDesc.getHiveObj().getObject());
-    Assert.assertTrue("Expected table", grantDesc.getHiveObj().getTable());
+    Assert.assertTrue("Expected table", grantDesc.getHiveObj().getTable() != null);
+    Assert.assertEquals(TABLE, grantDesc.getHiveObj().getTable());
   }
   /**
    * SHOW GRANT GROUP ... ON TABLE ...
@@ -407,9 +405,8 @@ public class TestHiveAuthorizationTaskFactory {
     Assert.assertNotNull("Show grant should not be null", grantDesc);
     Assert.assertEquals(PrincipalType.GROUP, grantDesc.getPrincipalDesc().getType());
     Assert.assertEquals(GROUP, grantDesc.getPrincipalDesc().getName());
-    Assert.assertTrue("Expected table", grantDesc.getHiveObj().getTable());
-    Assert.assertEquals(TABLE, grantDesc.getHiveObj().getObject());
-    Assert.assertTrue("Expected table", grantDesc.getHiveObj().getTable());
+    Assert.assertTrue("Expected table", grantDesc.getHiveObj().getTable() != null);
+    Assert.assertEquals(TABLE, grantDesc.getHiveObj().getTable());
   }
 
   private DDLWork analyze(String command) throws Exception {

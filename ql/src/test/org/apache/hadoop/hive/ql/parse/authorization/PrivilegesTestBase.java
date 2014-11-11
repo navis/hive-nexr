@@ -49,8 +49,8 @@ public class PrivilegesTestBase {
       Assert.assertEquals(PrincipalType.USER, principal.getType());
       Assert.assertEquals(USER, principal.getName());
     }
-    Assert.assertTrue("Expected table", grantDesc.getPrivilegeSubjectDesc().getTable());
-    Assert.assertEquals(TABLE, grantDesc.getPrivilegeSubjectDesc().getObject());
+    Assert.assertTrue("Expected table", grantDesc.getPrivilegeSubjectDesc().getTable() != null);
+    Assert.assertEquals(TABLE, grantDesc.getPrivilegeSubjectDesc().getTable());
   }
 
 }
