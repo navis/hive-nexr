@@ -17,6 +17,7 @@
  */
 package org.apache.hadoop.hive.ql.io;
 
+import org.apache.hadoop.hive.serde2.RecordIdentifier;
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;

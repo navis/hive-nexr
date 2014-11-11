@@ -112,7 +112,7 @@ import org.apache.hadoop.hive.ql.metadata.HiveUtils;
 import org.apache.hadoop.hive.ql.metadata.InvalidTableException;
 import org.apache.hadoop.hive.ql.metadata.Partition;
 import org.apache.hadoop.hive.ql.metadata.Table;
-import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
+import org.apache.hadoop.hive.ql.metadata.VirtualColumns;
 import org.apache.hadoop.hive.ql.optimizer.Optimizer;
 import org.apache.hadoop.hive.ql.optimizer.calcite.CalciteSemanticException;
 import org.apache.hadoop.hive.ql.optimizer.unionproc.UnionProcContext;
@@ -192,6 +192,7 @@ import org.apache.hadoop.hive.serde2.MetadataTypedColumnsetSerDe;
 import org.apache.hadoop.hive.serde2.NullStructSerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeUtils;
+import org.apache.hadoop.hive.serde2.VirtualColumn;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.serde2.objectinspector.ConstantObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -9263,12 +9264,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
             TypeInfoFactory.getPrimitiveTypeInfo(part_col.getType()), alias, true));
       }
 
-      // put all virtual columns in RowResolver.
-      Iterator<VirtualColumn> vcs = VirtualColumn.getRegistry(conf).iterator();
-      // use a list for easy cumtomize
+      // put all virtual columns in RowResolver. use a list for easy customize
       List<VirtualColumn> vcList = new ArrayList<VirtualColumn>();
-      while (vcs.hasNext()) {
-        VirtualColumn vc = vcs.next();
+      for (VirtualColumn vc : VirtualColumns.getRegistry(conf, tab.getDeserializer())) {
         rwsch.put(alias, vc.getName(), new ColumnInfo(vc.getName(),
             vc.getTypeInfo(), alias, true, vc.getIsHidden()));
         vcList.add(vc);
@@ -9469,10 +9467,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       tsDesc.setMaxStatsKeyPrefixLength(StatsFactory.getMaxPrefixLength(conf));
 
       // append additional virtual columns for storing statistics
-      Iterator<VirtualColumn> vcs = VirtualColumn.getStatsRegistry(conf).iterator();
       List<VirtualColumn> vcList = new ArrayList<VirtualColumn>();
-      while (vcs.hasNext()) {
-        VirtualColumn vc = vcs.next();
+      for (VirtualColumn vc : VirtualColumns.getStatsRegistry(conf, tab.getDeserializer())) {
         rwsch.put(alias, vc.getName(), new ColumnInfo(vc.getName(),
             vc.getTypeInfo(), alias, true, vc.getIsHidden()));
         vcList.add(vc);

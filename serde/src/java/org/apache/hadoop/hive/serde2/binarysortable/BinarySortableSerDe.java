@@ -39,7 +39,6 @@ import org.apache.hadoop.hive.serde2.ByteStream.Output;
 import org.apache.hadoop.hive.serde2.ByteStream.RandomAccessOutput;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeSpec;
-import org.apache.hadoop.hive.serde2.SerDeStats;
 import org.apache.hadoop.hive.serde2.io.ByteWritable;
 import org.apache.hadoop.hive.serde2.io.DateWritable;
 import org.apache.hadoop.hive.serde2.io.DoubleWritable;
@@ -875,12 +874,6 @@ public class BinarySortableSerDe extends AbstractSerDe {
     writeByte(buffer, (byte) (v >> 16), invert);
     writeByte(buffer, (byte) (v >> 8), invert);
     writeByte(buffer, (byte) v, invert);
-  }
-
-  @Override
-  public SerDeStats getSerDeStats() {
-    // no support for statistics
-    return null;
   }
 
   public static void serializeStruct(Output byteStream, Object[] fieldData,

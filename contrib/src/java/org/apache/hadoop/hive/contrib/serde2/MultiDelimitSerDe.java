@@ -287,11 +287,4 @@ public class MultiDelimitSerDe extends AbstractSerDe {
     }
     throw new RuntimeException("Unknown category type: "+ objInspector.getCategory());
   }
-
-  @Override
-  public SerDeStats getSerDeStats() {
-    // no support for statistics
-    return null;
-  }
-
 }

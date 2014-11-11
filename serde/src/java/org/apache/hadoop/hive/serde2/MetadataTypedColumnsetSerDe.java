@@ -227,11 +227,4 @@ public class MetadataTypedColumnsetSerDe extends AbstractSerDe {
     serializeCache.set(sb.toString());
     return serializeCache;
   }
-
-  @Override
-  public SerDeStats getSerDeStats() {
-    // no support for statistics
-    return null;
-  }
-
 }

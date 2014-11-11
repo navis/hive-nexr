@@ -25,6 +25,8 @@ import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeSpec;
 import org.apache.hadoop.hive.serde2.SerDeStats;
 import org.apache.hadoop.hive.serde2.io.ParquetHiveRecord;
+import org.apache.hadoop.hive.serde2.VirtualColumn;
+import org.apache.hadoop.hive.serde2.VirtualColumnProvider;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
@@ -46,7 +48,7 @@ import parquet.hadoop.ParquetWriter;
  */
 @SerDeSpec(schemaProps = {serdeConstants.LIST_COLUMNS, serdeConstants.LIST_COLUMN_TYPES,
         ParquetOutputFormat.COMPRESSION})
-public class ParquetHiveSerDe extends AbstractSerDe {
+public class ParquetHiveSerDe extends AbstractSerDe implements VirtualColumnProvider {
   public static final Text MAP_KEY = new Text("key");
   public static final Text MAP_VALUE = new Text("value");
   public static final Text MAP = new Text("map");
@@ -171,5 +173,17 @@ public class ParquetHiveSerDe extends AbstractSerDe {
       stats.setRawDataSize(deserializedSize);
     }
     return stats;
+  }
+
+  @Override
+  public List<VirtualColumn> getVirtualColumns() {
+    return Arrays.asList(VirtualColumn.RAWDATASIZE);
+  }
+
+  @Override
+  public Object evaluate(VirtualColumn vc) {
+    assert vc == VirtualColumn.RAWDATASIZE;
+    assert (status != LAST_OPERATION.UNKNOWN);
+    return status == LAST_OPERATION.SERIALIZE ? serializedSize : deserializedSize;
   }
 }

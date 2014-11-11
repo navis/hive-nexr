@@ -44,7 +44,7 @@ import org.apache.hadoop.hive.ql.io.HiveContextAwareRecordReader;
 import org.apache.hadoop.hive.ql.io.HiveInputFormat;
 import org.apache.hadoop.hive.ql.io.HiveRecordReader;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
-import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
+import org.apache.hadoop.hive.ql.metadata.VirtualColumns;
 import org.apache.hadoop.hive.ql.parse.SplitSample;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
 import org.apache.hadoop.hive.ql.plan.PartitionDesc;
@@ -52,6 +52,7 @@ import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.session.SessionState.LogHelper;
 import org.apache.hadoop.hive.serde2.Deserializer;
 import org.apache.hadoop.hive.serde2.SerDeSpec;
+import org.apache.hadoop.hive.serde2.VirtualColumn;
 import org.apache.hadoop.hive.serde2.objectinspector.InspectableObject;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorConverters;
@@ -95,6 +96,7 @@ public class FetchOperator implements Serializable {
   private StructObjectInspector vcsOI;
   private List<VirtualColumn> vcCols;
   private ExecMapperContext context;
+  private VirtualColumns.Builder builder;
 
   private transient Deserializer tableSerDe;
   private transient StructObjectInspector tableOI;
@@ -146,14 +148,7 @@ public class FetchOperator implements Serializable {
       return;
     }
     if (hasVC) {
-      List<String> names = new ArrayList<String>(vcCols.size());
-      List<ObjectInspector> inspectors = new ArrayList<ObjectInspector>(vcCols.size());
-      for (VirtualColumn vc : vcCols) {
-        inspectors.add(vc.getObjectInspector());
-        names.add(vc.getName());
-      }
-      vcsOI = ObjectInspectorFactory.getStandardStructObjectInspector(names, inspectors);
-      vcValues = new Object[vcCols.size()];
+      vcsOI = VirtualColumns.getVCSObjectInspector(vcCols);
     }
     if (hasVC && isPartitioned) {
       row = new Object[3];
@@ -305,6 +300,9 @@ public class FetchOperator implements Serializable {
       }
       if (isPartitioned) {
         row[1] = createPartValue(currDesc, partKeyOI);
+      }
+      if (hasVC) {
+        builder = VirtualColumns.builder(vcCols, context, currSerDe);
       }
       iterSplits = Arrays.asList(splits).iterator();
 
@@ -482,8 +480,7 @@ public class FetchOperator implements Serializable {
             operator.cleanUpInputFileChanged();
           }
           if (hasVC) {
-            row[isPartitioned ? 2 : 1] =
-                MapOperator.populateVirtualColumnValues(context, vcCols, vcValues, currSerDe);
+            row[isPartitioned ? 2 : 1] = builder.evaluate();
           }
           Object deserialized = currSerDe.deserialize(value);
           if (ObjectConverter != null) {

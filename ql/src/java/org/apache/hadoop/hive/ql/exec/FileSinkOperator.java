@@ -162,6 +162,7 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
      * Update OutPath according to tmpPath.
      */
     public Path getTaskOutPath(String taskId) {
+      LOG.warn("OUTPUT PATH : " + taskId + " in " + taskOutputTempPath);
       return new Path(this.taskOutputTempPath, Utilities.toTempPath(taskId));
     }
 
@@ -169,6 +170,7 @@ public class FileSinkOperator extends TerminalOperator<FileSinkDesc> implements
      * Update the final paths according to tmpPath.
      */
     public Path getFinalPath(String taskId, Path tmpPath, String extension) {
+      LOG.warn("FINAL PATH : " + taskId + ":" + extension + " in " + tmpPath);
       if (extension != null) {
         return new Path(tmpPath, taskId + extension);
       } else {

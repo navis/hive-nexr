@@ -18,7 +18,7 @@
 
 package org.apache.hadoop.hive.ql.parse;
 
-import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
+import org.apache.hadoop.hive.serde2.VirtualColumn;
 
 import java.util.ArrayList;
 import java.util.Collections;

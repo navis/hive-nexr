@@ -21,7 +21,7 @@ import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.ql.io.IOConstants;
 import org.apache.hadoop.hive.ql.io.parquet.convert.DataWritableRecordConverter;
-import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
+import org.apache.hadoop.hive.ql.metadata.VirtualColumns;
 import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.util.StringUtils;
@@ -57,7 +57,7 @@ public class DataWritableReadSupport extends ReadSupport<ArrayWritable> {
    * @return list with virtual columns removed
    */
   private static List<String> getColumns(final String columns) {
-    return (List<String>) VirtualColumn.
+    return (List<String>) VirtualColumns.
         removeVirtualColumns(StringUtils.getStringCollection(columns));
   }
 

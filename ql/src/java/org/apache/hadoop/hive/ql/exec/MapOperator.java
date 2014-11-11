@@ -36,9 +36,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants;
 import org.apache.hadoop.hive.ql.exec.mr.ExecMapperContext;
 import org.apache.hadoop.hive.ql.exec.tez.MapRecordProcessor;
-import org.apache.hadoop.hive.ql.io.RecordIdentifier;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
-import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
+import org.apache.hadoop.hive.ql.metadata.VirtualColumns;
 import org.apache.hadoop.hive.ql.plan.MapWork;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.PartitionDesc;
@@ -47,8 +46,8 @@ import org.apache.hadoop.hive.ql.plan.TableScanDesc;
 import org.apache.hadoop.hive.ql.plan.api.OperatorType;
 import org.apache.hadoop.hive.serde2.Deserializer;
 import org.apache.hadoop.hive.serde2.SerDeException;
-import org.apache.hadoop.hive.serde2.SerDeStats;
 import org.apache.hadoop.hive.serde2.SerDeUtils;
+import org.apache.hadoop.hive.serde2.VirtualColumn;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorConverters;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorConverters.Converter;
@@ -57,7 +56,6 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.util.StringUtils;
@@ -116,7 +114,8 @@ public class MapOperator extends Operator<MapWork> implements Serializable, Clon
     String tableName;
     String partName;
     List<VirtualColumn> vcs;
-    Object[] vcValues;
+
+    VirtualColumns.Builder builder;
 
     public MapOpCtx(String alias, Operator<?> op, PartitionDesc partDesc) {
       this.alias = alias;
@@ -132,17 +131,19 @@ public class MapOperator extends Operator<MapWork> implements Serializable, Clon
       return vcsObjectInspector != null;
     }
 
+    private void activate(ExecMapperContext context) {
+      if (hasVC()) {
+        builder = VirtualColumns.builder(vcs, context, deserializer);
+      }
+    }
+
     private Object readRow(Writable value, ExecMapperContext context) throws SerDeException {
       Object deserialized = deserializer.deserialize(value);
       Object row = partTblObjectInspectorConverter.convert(deserialized);
       if (hasVC()) {
         rowWithPartAndVC[0] = row;
-        if (context != null) {
-          populateVirtualColumnValues(context, vcs, vcValues, deserializer);
-        }
-        int vcPos = isPartitioned() ? 2 : 1;
-        rowWithPartAndVC[vcPos] = vcValues;
-        return  rowWithPartAndVC;
+        rowWithPartAndVC[(isPartitioned() ? 2 : 1)] = builder.evaluate();
+        return rowWithPartAndVC;
       } else if (isPartitioned()) {
         rowWithPart[0] = row;
         return rowWithPart;
@@ -250,8 +251,7 @@ public class MapOperator extends Operator<MapWork> implements Serializable, Clon
       TableScanDesc tsDesc = tsOp.getConf();
       if (tsDesc != null && tsDesc.hasVirtualCols()) {
         opCtx.vcs = tsDesc.getVirtualCols();
-        opCtx.vcValues = new Object[opCtx.vcs.size()];
-        opCtx.vcsObjectInspector = VirtualColumn.getVCSObjectInspector(opCtx.vcs);
+        opCtx.vcsObjectInspector = VirtualColumns.getVCSObjectInspector(opCtx.vcs);
         if (opCtx.isPartitioned()) {
           opCtx.rowWithPartAndVC = Arrays.copyOfRange(opCtx.rowWithPart, 0, 3);
         } else {
@@ -438,7 +438,9 @@ public class MapOperator extends Operator<MapWork> implements Serializable, Clon
   @Override
   public void cleanUpInputFileChangedOp() throws HiveException {
     super.cleanUpInputFileChangedOp();
-    Path fpath = getExecContext().getCurrentInputPath();
+    ExecMapperContext execContext = getExecContext();
+
+    Path fpath = execContext.getCurrentInputPath();
     String nominalPath = getNominalPath(fpath);
     Map<Operator<?>, MapOpCtx> contexts = opCtxMap.get(nominalPath);
     if (isLogInfoEnabled) {
@@ -449,16 +451,16 @@ public class MapOperator extends Operator<MapWork> implements Serializable, Clon
         }
         builder.append(context.alias);
       }
-      if (isLogDebugEnabled) {
-        LOG.info("Processing alias(es) " + builder.toString() + " for file " + fpath);
-      }
+      LOG.info("Processing alias(es) " + builder.toString() + " for file " + fpath);
     }
+
     // Add alias, table name, and partitions to hadoop conf so that their
     // children will inherit these
     for (Entry<Operator<?>, MapOpCtx> entry : contexts.entrySet()) {
       Operator<?> operator = entry.getKey();
       MapOpCtx context = entry.getValue();
       operator.setInputContext(nominalPath, context.tableName, context.partName);
+      context.activate(execContext);
     }
     currentCtxs = contexts.values().toArray(new MapOpCtx[contexts.size()]);
   }
@@ -528,75 +530,6 @@ public class MapOperator extends Operator<MapWork> implements Serializable, Clon
     } catch (Exception e) {
       return "[Error getting row data with exception " + StringUtils.stringifyException(e) + " ]";
     }
-  }
-
-  public static Object[] populateVirtualColumnValues(ExecMapperContext ctx,
-      List<VirtualColumn> vcs, Object[] vcValues, Deserializer deserializer) {
-    if (vcs == null) {
-      return vcValues;
-    }
-    if (vcValues == null) {
-      vcValues = new Object[vcs.size()];
-    }
-    for (int i = 0; i < vcs.size(); i++) {
-      VirtualColumn vc = vcs.get(i);
-      if (vc.equals(VirtualColumn.FILENAME)) {
-        if (ctx.inputFileChanged()) {
-          vcValues[i] = new Text(ctx.getCurrentInputPath().toString());
-        }
-      } else if (vc.equals(VirtualColumn.BLOCKOFFSET)) {
-        long current = ctx.getIoCxt().getCurrentBlockStart();
-        LongWritable old = (LongWritable) vcValues[i];
-        if (old == null) {
-          old = new LongWritable(current);
-          vcValues[i] = old;
-          continue;
-        }
-        if (current != old.get()) {
-          old.set(current);
-        }
-      } else if (vc.equals(VirtualColumn.ROWOFFSET)) {
-        long current = ctx.getIoCxt().getCurrentRow();
-        LongWritable old = (LongWritable) vcValues[i];
-        if (old == null) {
-          old = new LongWritable(current);
-          vcValues[i] = old;
-          continue;
-        }
-        if (current != old.get()) {
-          old.set(current);
-        }
-      } else if (vc.equals(VirtualColumn.RAWDATASIZE)) {
-        long current = 0L;
-        SerDeStats stats = deserializer.getSerDeStats();
-        if(stats != null) {
-          current = stats.getRawDataSize();
-        }
-        LongWritable old = (LongWritable) vcValues[i];
-        if (old == null) {
-          old = new LongWritable(current);
-          vcValues[i] = old;
-          continue;
-        }
-        if (current != old.get()) {
-          old.set(current);
-        }
-      }
-      else if(vc.equals(VirtualColumn.ROWID)) {
-        if(ctx.getIoCxt().getRecordIdentifier() == null) {
-          vcValues[i] = null;
-        }
-        else {
-          if(vcValues[i] == null) {
-            vcValues[i] = new Object[RecordIdentifier.Field.values().length];
-          }
-          RecordIdentifier.StructInfo.toArray(ctx.getIoCxt().getRecordIdentifier(), (Object[])vcValues[i]);
-          ctx.getIoCxt().setRecordIdentifier(null);//so we don't accidentally cache the value; shouldn't
-          //happen since IO layer either knows how to produce ROW__ID or not - but to be safe
-        }
-      }
-    }
-    return vcValues;
   }
 
   @Override

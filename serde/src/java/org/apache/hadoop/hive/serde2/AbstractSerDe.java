@@ -86,7 +86,10 @@ public abstract class AbstractSerDe implements SerDe {
   /**
    * Returns statistics collected when serializing
    */
-  public abstract SerDeStats getSerDeStats();
+  @Deprecated
+  public SerDeStats getSerDeStats() {
+    return null;
+  }
 
   /**
    * Deserialize an object out of a Writable blob. In most cases, the return

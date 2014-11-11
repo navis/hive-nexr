@@ -19,18 +19,14 @@
 package org.apache.hadoop.hive.serde2.lazy;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.AbstractEncodingAwareSerDe;
 import org.apache.hadoop.hive.serde2.ByteStream;
@@ -38,8 +34,8 @@ import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeSpec;
 import org.apache.hadoop.hive.serde2.SerDeStats;
 import org.apache.hadoop.hive.serde2.SerDeUtils;
-import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyObjectInspectorParameters;
-import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyObjectInspectorParametersImpl;
+import org.apache.hadoop.hive.serde2.VirtualColumn;
+import org.apache.hadoop.hive.serde2.VirtualColumnProvider;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.MapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -50,14 +46,10 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.UnionObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.io.BinaryComparable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.hive.common.util.HiveStringUtils;
-
 
 /**
  * LazySimpleSerDe can be used to read the same data format as
@@ -79,7 +71,7 @@ import org.apache.hive.common.util.HiveStringUtils;
     LazySerDeParameters.SERIALIZATION_EXTEND_NESTING_LEVELS,
     LazySerDeParameters.SERIALIZATION_EXTEND_ADDITIONAL_NESTING_LEVELS
     })
-public class LazySimpleSerDe extends AbstractEncodingAwareSerDe {
+public class LazySimpleSerDe extends AbstractEncodingAwareSerDe implements VirtualColumnProvider {
 
   public static final Log LOG = LogFactory.getLog(LazySimpleSerDe.class
       .getName());
@@ -409,6 +401,20 @@ public class LazySimpleSerDe extends AbstractEncodingAwareSerDe {
     }
     return stats;
 
+  }
+
+  @Override
+  public List<VirtualColumn> getVirtualColumns() {
+    return Arrays.asList(VirtualColumn.RAWDATASIZE);
+  }
+
+  @Override
+  public Object evaluate(VirtualColumn vc) {
+    assert vc == VirtualColumn.RAWDATASIZE;
+    // must be different
+    assert (lastOperationSerialize != lastOperationDeserialize);
+
+    return lastOperationSerialize ? serializedSize : cachedLazyStruct.getRawDataSerializedSize();
   }
 
   @Override

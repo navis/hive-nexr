@@ -35,7 +35,6 @@ import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.AbstractSerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeSpec;
-import org.apache.hadoop.hive.serde2.SerDeStats;
 import org.apache.hadoop.hive.serde2.SerDeUtils;
 import org.apache.hadoop.hive.serde2.io.ByteWritable;
 import org.apache.hadoop.hive.serde2.io.DoubleWritable;
@@ -382,10 +381,5 @@ public class TypedBytesSerDe extends AbstractSerDe {
       throw new RuntimeException("Unrecognized type: " + oi.getCategory());
     }
     }
-  }
-
-  public SerDeStats getSerDeStats() {
-    // no support for statistics
-    return null;
   }
 }

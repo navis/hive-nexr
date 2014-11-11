@@ -112,10 +112,10 @@ import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.lib.Node;
 import org.apache.hadoop.hive.ql.metadata.Table;
-import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
+import org.apache.hadoop.hive.ql.metadata.VirtualColumns;
 import org.apache.hadoop.hive.ql.optimizer.calcite.CalciteSemanticException;
-import org.apache.hadoop.hive.ql.optimizer.calcite.HiveCalciteUtil;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveDefaultRelMetadataProvider;
+import org.apache.hadoop.hive.ql.optimizer.calcite.HiveCalciteUtil;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveTypeSystemImpl;
 import org.apache.hadoop.hive.ql.optimizer.calcite.RelOptHiveTable;
 import org.apache.hadoop.hive.ql.optimizer.calcite.TraitsUtil;
@@ -157,6 +157,8 @@ import org.apache.hadoop.hive.ql.plan.GroupByDesc;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.Mode;
 import org.apache.hadoop.hive.serde.serdeConstants;
+import org.apache.hadoop.hive.serde2.Deserializer;
+import org.apache.hadoop.hive.serde2.VirtualColumn;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
@@ -1175,7 +1177,8 @@ public class CalcitePlanner extends SemanticAnalyzer {
 
         // 3.1 Add Column info for non partion cols (Object Inspector fields)
         @SuppressWarnings("deprecation")
-        StructObjectInspector rowObjectInspector = (StructObjectInspector) tab.getDeserializer()
+        Deserializer deserializer = tab.getDeserializer();
+        StructObjectInspector rowObjectInspector = (StructObjectInspector) deserializer
             .getObjectInspector();
         List<? extends StructField> fields = rowObjectInspector.getAllStructFieldRefs();
         ColumnInfo colInfo;
@@ -1207,9 +1210,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
         }
 
         // 3.3 Add column info corresponding to virtual columns
-        Iterator<VirtualColumn> vcs = VirtualColumn.getRegistry(conf).iterator();
-        while (vcs.hasNext()) {
-          VirtualColumn vc = vcs.next();
+        for (VirtualColumn vc : VirtualColumns.getRegistry(conf, deserializer)) {
           colInfo = new ColumnInfo(vc.getName(), vc.getTypeInfo(), tableAlias, true,
               vc.getIsHidden());
           rr.put(tableAlias, vc.getName(), colInfo);

@@ -30,7 +30,6 @@ import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.AbstractSerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeSpec;
-import org.apache.hadoop.hive.serde2.SerDeStats;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
@@ -202,12 +201,6 @@ public class AvroSerDe extends AbstractSerDe {
   @Override
   public ObjectInspector getObjectInspector() throws SerDeException {
     return oi;
-  }
-
-  @Override
-  public SerDeStats getSerDeStats() {
-    // No support for statistics. That seems to be a popular answer.
-    return null;
   }
 
   private AvroDeserializer getDeserializer() {

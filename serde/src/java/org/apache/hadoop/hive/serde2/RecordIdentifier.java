@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hive.ql.io;
+package org.apache.hadoop.hive.serde2;
 
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
@@ -39,7 +39,7 @@ public class RecordIdentifier implements WritableComparable<RecordIdentifier> {
   /**
    * This is in support of {@link org.apache.hadoop.hive.ql.metadata.VirtualColumn#ROWID}
    * Contains metadata about each field in RecordIdentifier that needs to be part of ROWID
-   * which is represented as a struct {@link org.apache.hadoop.hive.ql.io.RecordIdentifier.StructInfo}.
+   * which is represented as a struct {@link RecordIdentifier.StructInfo}.
    * Each field of RecordIdentifier which should be part of ROWID should be in this enum... which 
    * really means that it should be part of VirtualColumn (so make a subclass for rowid).
    */

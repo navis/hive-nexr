@@ -217,6 +217,7 @@ public class ExecMapper extends MapReduceBase implements Mapper {
         throw new RuntimeException("Hive Runtime Error while closing operators", e);
       }
     } finally {
+      execContext.clear();
       MapredContext.close();
       Utilities.clearWorkMap();
     }

@@ -59,7 +59,7 @@ import org.apache.hadoop.hive.ql.lib.Rule;
 import org.apache.hadoop.hive.ql.lib.RuleRegExp;
 import org.apache.hadoop.hive.ql.lib.TaskGraphWalker;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
-import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
+import org.apache.hadoop.hive.ql.metadata.VirtualColumns;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.AbstractOperatorDesc;
 import org.apache.hadoop.hive.ql.plan.AggregationDesc;
@@ -1139,7 +1139,7 @@ public class Vectorizer implements PhysicalPlanResolver {
     if (desc instanceof ExprNodeColumnDesc) {
       ExprNodeColumnDesc c = (ExprNodeColumnDesc) desc;
       // Currently, we do not support vectorized virtual columns (see HIVE-5570).
-      if (VirtualColumn.VIRTUAL_COLUMN_NAMES.contains(c.getColumn())) {
+      if (isVirtualColumn(c.getColumn())) {
         LOG.info("Cannot vectorize virtual column " + c.getColumn());
         return false;
       }
@@ -1266,7 +1266,7 @@ public class Vectorizer implements PhysicalPlanResolver {
     VectorizationContext vContext = new VectorizationContext();
     for (ColumnInfo c : rs.getSignature()) {
       // Earlier, validation code should have eliminated virtual columns usage (HIVE-5560).
-      if (!isVirtualColumn(c)) {
+      if (!isVirtualColumn(c.getInternalName())) {
         vContext.addInitialColumn(c.getInternalName());
       }
     }
@@ -1318,14 +1318,10 @@ public class Vectorizer implements PhysicalPlanResolver {
     return vectorOp;
   }
 
-  private boolean isVirtualColumn(ColumnInfo column) {
-
+  private boolean isVirtualColumn(String columnName) {
     // Not using method column.getIsVirtualCol() because partitioning columns are also
     // treated as virtual columns in ColumnInfo.
-    if (VirtualColumn.VIRTUAL_COLUMN_NAMES.contains(column.getInternalName())) {
-        return true;
-    }
-    return false;
+    return VirtualColumns.VIRTUAL_COLUMN_NAMES.contains(columnName);
   }
 
   public void debugDisplayAllMaps(Map<String, Map<String, Integer>> allColumnVectorMaps,

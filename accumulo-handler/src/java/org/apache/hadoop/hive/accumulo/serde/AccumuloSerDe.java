@@ -140,7 +140,7 @@ public class AccumuloSerDe implements SerDe {
   }
 
   public SerDeStats getSerDeStats() {
-    throw new UnsupportedOperationException("SerdeStats not supported.");
+    return null;
   }
 
   public AccumuloSerDeParameters getParams() {

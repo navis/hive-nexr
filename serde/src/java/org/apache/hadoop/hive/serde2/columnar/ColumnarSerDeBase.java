@@ -22,10 +22,15 @@ import org.apache.hadoop.hive.serde2.AbstractSerDe;
 import org.apache.hadoop.hive.serde2.ByteStream;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeStats;
+import org.apache.hadoop.hive.serde2.VirtualColumn;
+import org.apache.hadoop.hive.serde2.VirtualColumnProvider;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.io.Writable;
 
-public abstract class ColumnarSerDeBase extends AbstractSerDe {
+import java.util.Arrays;
+import java.util.List;
+
+public abstract class ColumnarSerDeBase extends AbstractSerDe implements VirtualColumnProvider {
 
   // The object for storing row data
   ColumnarStructBase cachedLazyStruct;
@@ -66,6 +71,21 @@ public abstract class ColumnarSerDeBase extends AbstractSerDe {
       stats.setRawDataSize(cachedLazyStruct.getRawDataSerializedSize());
     }
     return stats;
+  }
+
+  @Override
+  public List<VirtualColumn> getVirtualColumns() {
+    return Arrays.asList(VirtualColumn.RAWDATASIZE);
+  }
+
+  @Override
+  public Object evaluate(VirtualColumn vc) {
+    assert vc == VirtualColumn.RAWDATASIZE;
+    // must be different
+    assert (lastOperationSerialize != lastOperationDeserialize);
+
+    return lastOperationSerialize ? serializedSize :
+        cachedLazyStruct.getRawDataSerializedSize();
   }
 
   @Override

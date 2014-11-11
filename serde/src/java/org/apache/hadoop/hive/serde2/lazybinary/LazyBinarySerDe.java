@@ -34,6 +34,8 @@ import org.apache.hadoop.hive.serde2.ByteStream.RandomAccessOutput;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeSpec;
 import org.apache.hadoop.hive.serde2.SerDeStats;
+import org.apache.hadoop.hive.serde2.VirtualColumn;
+import org.apache.hadoop.hive.serde2.VirtualColumnProvider;
 import org.apache.hadoop.hive.serde2.io.DateWritable;
 import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.io.TimestampWritable;
@@ -75,7 +77,7 @@ import org.apache.hadoop.io.Writable;
  * compact format.
  */
 @SerDeSpec(schemaProps = {serdeConstants.LIST_COLUMNS, serdeConstants.LIST_COLUMN_TYPES})
-public class LazyBinarySerDe extends AbstractSerDe {
+public class LazyBinarySerDe extends AbstractSerDe implements VirtualColumnProvider {
   public static final Log LOG = LogFactory.getLog(LazyBinarySerDe.class.getName());
 
   public LazyBinarySerDe() throws SerDeException {
@@ -202,6 +204,21 @@ public class LazyBinarySerDe extends AbstractSerDe {
     lastOperationSerialize = true;
     lastOperationDeserialize = false;
     return serializeBytesWritable;
+  }
+
+  @Override
+  public List<VirtualColumn> getVirtualColumns() {
+    return Arrays.asList(VirtualColumn.RAWDATASIZE);
+  }
+
+  @Override
+  public Object evaluate(VirtualColumn vc) {
+    assert vc == VirtualColumn.RAWDATASIZE;
+    // must be different
+    assert (lastOperationSerialize != lastOperationDeserialize);
+
+    return lastOperationSerialize ? serializedSize :
+        cachedLazyBinaryStruct.getRawDataSerializedSize();
   }
 
   public static class StringWrapper {

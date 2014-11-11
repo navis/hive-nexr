@@ -31,13 +31,13 @@ import org.apache.hadoop.hive.common.StatsSetupConst;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
-import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.plan.TableScanDesc;
 import org.apache.hadoop.hive.ql.plan.api.OperatorType;
 import org.apache.hadoop.hive.ql.stats.StatsCollectionTaskIndependent;
 import org.apache.hadoop.hive.ql.stats.StatsPublisher;
+import org.apache.hadoop.hive.serde2.VirtualColumn;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils.ObjectInspectorCopyOption;
@@ -148,7 +148,7 @@ public class TableScanOperator extends Operator<TableScanDesc> implements
             (StructObjectInspector) inputObjInspectors[0], ObjectInspectorCopyOption.WRITABLE);
 
         for (Object o : writable) {
-          // It's possible that a parition column may have NULL value, in which case the row belongs
+          // It's possible that a partition column may have NULL value, in which case the row belongs
           // to the special partition, __HIVE_DEFAULT_PARTITION__.
           values.add(o == null ? defaultPartitionName : o.toString());
         }

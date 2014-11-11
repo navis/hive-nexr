@@ -86,11 +86,4 @@ public abstract class TypedSerDe extends AbstractSerDe {
   public Writable serialize(Object obj, ObjectInspector objInspector) throws SerDeException {
     throw new RuntimeException("not supported");
   }
-
-  @Override
-  public SerDeStats getSerDeStats() {
-    // no support for statistics
-    return null;
-  }
-
 }

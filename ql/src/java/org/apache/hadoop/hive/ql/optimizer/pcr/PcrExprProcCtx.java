@@ -22,7 +22,7 @@ import java.util.List;
 
 import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
 import org.apache.hadoop.hive.ql.metadata.Partition;
-import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
+import org.apache.hadoop.hive.serde2.VirtualColumn;
 
 /**
  * The processor context for partition condition remover. This contains

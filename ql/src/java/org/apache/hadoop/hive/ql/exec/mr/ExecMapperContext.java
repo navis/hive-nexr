@@ -17,6 +17,8 @@
  */
 package org.apache.hadoop.hive.ql.exec.mr;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -25,9 +27,12 @@ import org.apache.hadoop.hive.ql.exec.FetchOperator;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.io.IOContext;
 import org.apache.hadoop.hive.ql.plan.MapredLocalWork;
+import org.apache.hadoop.hive.serde2.RecordIdentifier;
+import org.apache.hadoop.hive.serde2.VirtualColumn;
+import org.apache.hadoop.hive.serde2.VirtualColumnProvider;
 import org.apache.hadoop.mapred.JobConf;
 
-public class ExecMapperContext {
+public class ExecMapperContext implements VirtualColumnProvider {
 
   public static final Log l4j = ExecMapper.l4j;
 
@@ -72,7 +77,7 @@ public class ExecMapperContext {
   }
 
   /**
-   * For CompbineFileInputFormat, the mapper's input file will be changed on the
+   * For CombineFileInputFormat, the mapper's input file will be changed on the
    * fly, and the input file name is passed to jobConf by shims/initNextRecordReader.
    * If the map local work has any mapping depending on the current
    * mapper's input file, the work need to clear context and re-initialization
@@ -155,4 +160,40 @@ public class ExecMapperContext {
   public void setIoCxt(IOContext ioCxt) {
     this.ioCxt = ioCxt;
   }
+
+  @Override
+  public List<VirtualColumn> getVirtualColumns() {
+    return Arrays.asList(
+        VirtualColumn.FILENAME, VirtualColumn.BLOCKOFFSET, VirtualColumn.ROWOFFSET,
+        VirtualColumn.ROWID);
+  }
+
+  private transient Object[] rowID;
+
+  @Override
+  public Object evaluate(VirtualColumn vc) {
+    if (vc.equals(VirtualColumn.FILENAME)) {
+      return getCurrentInputPath().toString();
+    }
+    if (vc.equals(VirtualColumn.BLOCKOFFSET)) {
+      return ioCxt.getCurrentBlockStart();
+    }
+    if (vc.equals(VirtualColumn.ROWOFFSET)) {
+      return ioCxt.getCurrentRow();
+    }
+    if (vc.equals(VirtualColumn.ROWID)) {
+      RecordIdentifier context = ioCxt.getRecordIdentifier();
+      if (context != null) {
+        if (rowID == null) {
+          rowID = new Object[RecordIdentifier.Field.values().length];
+        }
+        RecordIdentifier.StructInfo.toArray(context, rowID);
+        ioCxt.setRecordIdentifier(null);//so we don't accidentally cache the value; shouldn't
+        //happen since IO layer either knows how to produce ROW__ID or not - but to be safe
+        return rowID;
+      }
+    }
+    return null;
+  }
+
 }

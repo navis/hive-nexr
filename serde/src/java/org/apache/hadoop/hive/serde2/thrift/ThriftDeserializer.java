@@ -23,7 +23,6 @@ import java.util.Properties;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.serde2.AbstractDeserializer;
 import org.apache.hadoop.hive.serde2.SerDeException;
-import org.apache.hadoop.hive.serde2.SerDeStats;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.io.Writable;
 import org.apache.thrift.protocol.TProtocolFactory;
@@ -77,11 +76,5 @@ public class ThriftDeserializer extends AbstractDeserializer {
   @Override
   public ObjectInspector getObjectInspector() throws SerDeException {
     return tsd.getObjectInspector();
-  }
-
-  @Override
-  public SerDeStats getSerDeStats() {
-    // no support for statistics
-    return null;
   }
 }

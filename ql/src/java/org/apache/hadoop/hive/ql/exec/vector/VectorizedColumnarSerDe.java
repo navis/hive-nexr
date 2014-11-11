@@ -20,6 +20,7 @@ package org.apache.hadoop.hive.ql.exec.vector;
 
 import java.nio.ByteBuffer;
 import java.sql.Timestamp;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.hadoop.hive.ql.metadata.HiveException;
@@ -27,6 +28,7 @@ import org.apache.hadoop.hive.serde2.ByteStream;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeStats;
+import org.apache.hadoop.hive.serde2.VirtualColumn;
 import org.apache.hadoop.hive.serde2.columnar.BytesRefArrayWritable;
 import org.apache.hadoop.hive.serde2.columnar.ColumnarSerDe;
 import org.apache.hadoop.hive.serde2.io.DateWritable;
@@ -273,5 +275,10 @@ public class VectorizedColumnarSerDe extends ColumnarSerDe implements Vectorized
         throw new SerDeException(e);
       }
     }
+  }
+
+  @Override
+  public List<VirtualColumn> getVirtualColumns() {
+    return Collections.emptyList(); // do not provide
   }
 }

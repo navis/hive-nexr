@@ -27,8 +27,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.ValidTxnList;
 import org.apache.hadoop.hive.ql.io.AcidInputFormat;
 import org.apache.hadoop.hive.ql.io.AcidUtils;
-import org.apache.hadoop.hive.ql.io.RecordIdentifier;
-import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
+import org.apache.hadoop.hive.serde2.RecordIdentifier;
+import org.apache.hadoop.hive.ql.metadata.VirtualColumns;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
@@ -44,6 +44,7 @@ import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 /**
@@ -631,13 +632,15 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
     // NOTE: if "columns.types" is missing, all columns will be of String type
     String columnTypeProperty = conf.get(serdeConstants.LIST_COLUMN_TYPES);
 
+    Set<String> vcs = VirtualColumns.toNames(VirtualColumns.getRegistry(conf, null));
+
     // Parse the configuration parameters
     ArrayList<String> columnNames = new ArrayList<String>();
     Deque<Integer> virtualColumns = new ArrayDeque<Integer>();
     if (columnNameProperty != null && columnNameProperty.length() > 0) {
       String[] colNames = columnNameProperty.split(",");
       for (int i = 0; i < colNames.length; i++) {
-        if (VirtualColumn.VIRTUAL_COLUMN_NAMES.contains(colNames[i])) {
+        if (vcs.contains(colNames[i])) {
           virtualColumns.addLast(i);
         } else {
           columnNames.add(colNames[i]);

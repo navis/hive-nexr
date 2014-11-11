@@ -25,6 +25,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.exec.Utilities;
+import org.apache.hadoop.hive.serde2.RecordIdentifier;
 
 /**
  * IOContext basically contains the position information of the current
@@ -89,7 +90,7 @@ public class IOContext {
   // The class name of the generic UDF being used by the filter
   private String genericUDFClassName = null;
   /**
-   * supports {@link org.apache.hadoop.hive.ql.metadata.VirtualColumn#ROWID}
+   * supports {@link org.apache.hadoop.hive.serde2.VirtualColumn#ROWID}
    */
   private  RecordIdentifier ri;
 

@@ -25,7 +25,7 @@ import java.util.Map;
 
 import org.apache.hadoop.hive.ql.exec.PTFUtils;
 import org.apache.hadoop.hive.ql.metadata.Table;
-import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
+import org.apache.hadoop.hive.serde2.VirtualColumn;
 
 /**
  * Table Scan Descriptor Currently, data is only read from a base source as part

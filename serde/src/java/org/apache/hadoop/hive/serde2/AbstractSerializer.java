@@ -61,5 +61,7 @@ public abstract class AbstractSerializer implements Serializer {
   /**
    * Returns statistics collected when serializing
    */
-  public abstract SerDeStats getSerDeStats();
+  public SerDeStats getSerDeStats() {
+    return null;
+  }
 }

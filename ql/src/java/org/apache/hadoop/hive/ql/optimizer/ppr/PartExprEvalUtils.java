@@ -30,9 +30,10 @@ import org.apache.hadoop.hive.ql.exec.ExprNodeEvaluator;
 import org.apache.hadoop.hive.ql.exec.ExprNodeEvaluatorFactory;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.Partition;
-import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
+import org.apache.hadoop.hive.ql.metadata.VirtualColumns;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
+import org.apache.hadoop.hive.serde2.VirtualColumn;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorConverters;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
@@ -88,7 +89,7 @@ public class PartExprEvalUtils {
     ois.add(rowObjectInspector);
     ois.add(partObjectInspector);
     if (hasVC) {
-      ois.add(VirtualColumn.getVCSObjectInspector(vcs));
+      ois.add(VirtualColumns.getVCSObjectInspector(vcs));
     }
     StructObjectInspector rowWithPartObjectInspector = ObjectInspectorFactory
         .getUnionStructObjectInspector(ois);
