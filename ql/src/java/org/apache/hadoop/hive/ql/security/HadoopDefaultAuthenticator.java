@@ -24,7 +24,6 @@ import java.util.List;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.session.SessionState;
-import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.hive.shims.Utils;
 import org.apache.hadoop.security.UserGroupInformation;
 
@@ -47,23 +46,26 @@ public class HadoopDefaultAuthenticator implements HiveAuthenticationProvider {
 
   @Override
   public void setConf(Configuration conf) {
+    UserGroupInformation ugi = getUGIForConf(conf);
     this.conf = conf;
-    UserGroupInformation ugi = null;
+    this.userName = ugi.getShortUserName();
+    if (ugi.getGroupNames() != null) {
+      this.groupNames = Arrays.asList(ugi.getGroupNames());
+    }
+  }
+
+  public static UserGroupInformation getUGIForConf(Configuration conf) {
+    UserGroupInformation ugi;
     try {
       ugi = Utils.getUGI();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-
     if (ugi == null) {
       throw new RuntimeException(
           "Can not initialize HadoopDefaultAuthenticator.");
     }
-
-    this.userName = ugi.getShortUserName();
-    if (ugi.getGroupNames() != null) {
-      this.groupNames = Arrays.asList(ugi.getGroupNames());
-    }
+    return ugi;
   }
 
   @Override

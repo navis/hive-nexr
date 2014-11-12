@@ -43,7 +43,12 @@ public class SessionStateUserAuthenticator implements HiveAuthenticationProvider
 
   @Override
   public String getUserName() {
-    return sessionState.getUserName();
+    String username = sessionState.getUserName();
+    if (username == null) {
+      // use login user instead
+      return HadoopDefaultAuthenticator.getUGIForConf(sessionState.getConf()).getUserName();
+    }
+    return username;
   }
 
   @Override

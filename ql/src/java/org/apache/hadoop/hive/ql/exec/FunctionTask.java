@@ -149,7 +149,7 @@ public class FunctionTask extends Task<FunctionWork> {
         funcName,
         dbName,
         className,
-        SessionState.get().getUserName(),
+        SessionState.getUserFromAuthenticator(),
         PrincipalType.USER,
         (int) (System.currentTimeMillis() / 1000),
         org.apache.hadoop.hive.metastore.api.FunctionType.JAVA,

@@ -350,21 +350,14 @@ public class HiveV1Authorizer implements HiveAuthorizer {
 
   @Override
   public List<String> getCurrentRoleNames() throws HiveAuthzPluginException {
-
-    String userName = SessionState.get().getUserName();
-    if (userName == null) {
-      userName = SessionState.getUserFromAuthenticator();
-    }
-    if (userName == null) {
-      throw new HiveAuthzPluginException("Cannot resolve current user name");
-    }
     try {
+      String userName = SessionState.getUserFromAuthenticator();
       List<String> roleNames = new ArrayList<String>();
       for (Role role : hive.listRoles(userName, PrincipalType.USER)) {
         roleNames.add(role.getRoleName());
       }
       return roleNames;
-    } catch (HiveException e) {
+    } catch (Exception e) {
       throw new HiveAuthzPluginException(e);
     }
   }

@@ -942,10 +942,13 @@ public class SessionState {
    *         null.
    */
   public static String getUserFromAuthenticator() {
-    if (SessionState.get() != null && SessionState.get().getAuthenticator() != null) {
-      return SessionState.get().getAuthenticator().getUserName();
-    }
-    return null;
+    SessionState sessionState = SessionState.get();
+    return sessionState == null ? null : sessionState.getAuthenticatedUserName();
+  }
+
+  public String getAuthenticatedUserName() {
+    HiveAuthenticationProvider authenticator = getAuthenticator();
+    return authenticator == null ? getUserName() : authenticator.getUserName();
   }
 
   static void validateFiles(List<String> newFiles) throws IllegalArgumentException {
@@ -1407,6 +1410,7 @@ public class SessionState {
     this.tezSessionState = session;
   }
 
+  // possibly not authenticated. use getAuthenticatedUserName instead
   public String getUserName() {
     return userName;
   }
