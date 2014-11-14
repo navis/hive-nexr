@@ -60,10 +60,9 @@ public class ExecuteStatementOperation extends Operation {
   public static ExecuteStatementOperation newExecuteStatementOperation(
       HiveSession parentSession, String statement, Map<String, String> confOverlay, boolean runAsync)
           throws HiveSQLException {
-    statement = statement.trim();
     CommandProcessor processor;
     try {
-      processor = CommandProcessorFactory.get(statement.split("\\s+"));
+      processor = CommandProcessorFactory.get(statement);
     } catch (SQLException e) {
       throw new HiveSQLException(e.getMessage(), e.getSQLState(), e);
     } catch (Exception e) {

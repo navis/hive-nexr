@@ -135,7 +135,8 @@ public abstract class SimpleProcessor implements CommandProcessor {
     return null;
   }
 
-  protected abstract CommandProcessorResponse runCommand(String command)
-      throws CommandNeedRetryException;
+  protected CommandProcessorResponse runCommand(String command) throws CommandNeedRetryException {
+    return new CommandProcessorResponse(0);
+  }
 
 }

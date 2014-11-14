@@ -120,7 +120,7 @@ public class OperationManager extends AbstractService {
       String statement, Map<String, String> confOverlay, boolean runAsync)
           throws HiveSQLException {
     ExecuteStatementOperation executeStatementOperation = ExecuteStatementOperation
-        .newExecuteStatementOperation(parentSession, statement, confOverlay, runAsync);
+        .newExecuteStatementOperation(parentSession, statement.trim(), confOverlay, runAsync);
     addOperation(executeStatementOperation);
     return executeStatementOperation;
   }
