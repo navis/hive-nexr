@@ -136,7 +136,7 @@ public class TestOperators extends TestCase {
                    "1234567", "1234567");
 
       assertEquals(Utilities.getTaskIdFromFilename
-                   ("/mnt/dev005/task_local_0001_m_000005_0"),
+                   ("/mnt/dev005/task_local_000005_0"),
                    "000005");
 
       System.out.println("FileSink Operator ok");

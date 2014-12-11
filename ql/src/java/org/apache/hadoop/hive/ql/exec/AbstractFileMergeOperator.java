@@ -210,17 +210,15 @@ public abstract class AbstractFileMergeOperator<T extends FileMergeDesc>
             + fss.getLen());
 
         // move any incompatible files to final path
-        if (!incompatFileSet.isEmpty()) {
-          for (Path incompatFile : incompatFileSet) {
-            Path destDir = finalPath.getParent();
-            try {
-              Utilities.renameOrMoveFiles(fs, incompatFile, destDir);
-              LOG.info("Moved incompatible file " + incompatFile + " to " +
-                  destDir);
-            } catch (HiveException e) {
-              LOG.error("Unable to move " + incompatFile + " to " + destDir);
-              throw new IOException(e);
-            }
+        for (Path incompatFile : incompatFileSet) {
+          Path markedPath = Utilities.toExcludedPath(incompatFile);
+          Path destPath = new Path(finalPath.getParent(), markedPath.getName());
+          try {
+            Utilities.renameOrMoveFiles(fs, incompatFile, destPath);
+            LOG.info("Moved incompatible file " + incompatFile + " to " + destPath);
+          } catch (HiveException e) {
+            LOG.error("Unable to move " + incompatFile + " to " + destPath);
+            throw e;
           }
         }
       } else {

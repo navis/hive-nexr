@@ -236,13 +236,12 @@ public class CustomPartitionVertex extends VertexManagerPlugin {
         } catch (IOException e) {
           throw new RuntimeException("Failed to get file split for event: " + diEvent, e);
         }
-        Set<FileSplit> fsList =
-            pathFileSplitsMap.get(Utilities.getBucketFileNameFromPathSubString(fileSplit.getPath()
-                .getName()));
+        String fileName = fileSplit.getPath().getName();
+        String bucketFileName = Utilities.getPrefixedTaskIdFromFilename(fileName);
+        Set<FileSplit> fsList = pathFileSplitsMap.get(bucketFileName);
         if (fsList == null) {
           fsList = new TreeSet<FileSplit>(new PathComparatorForSplit());
-          pathFileSplitsMap.put(
-              Utilities.getBucketFileNameFromPathSubString(fileSplit.getPath().getName()), fsList);
+          pathFileSplitsMap.put(bucketFileName, fsList);
         }
         fsList.add(fileSplit);
       }

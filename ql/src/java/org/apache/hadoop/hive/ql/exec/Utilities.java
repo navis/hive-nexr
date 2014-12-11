@@ -1535,6 +1535,8 @@ public final class Utilities {
     return src;
   }
 
+  private static final String excludedPrefix = "excluded.";
+
   private static final String tmpPrefix = "_tmp.";
   private static final String taskTmpPrefix = "_task_tmp.";
 
@@ -1543,6 +1545,13 @@ public final class Utilities {
       return orig;
     }
     return new Path(orig.getParent(), taskTmpPrefix + orig.getName());
+  }
+
+  public static Path toExcludedPath(Path orig) {
+    if (orig.getName().startsWith(excludedPrefix)) {
+      return orig;
+    }
+    return new Path(orig.getParent(), excludedPrefix + orig.getName());
   }
 
   public static Path toTempPath(Path orig) {
@@ -1557,6 +1566,11 @@ public final class Utilities {
    */
   public static Path toTempPath(String orig) {
     return toTempPath(new Path(orig));
+  }
+
+  public static boolean isExcludedPath(FileStatus file) {
+    String name = file.getPath().getName();
+    return name.startsWith(excludedPrefix);
   }
 
   /**
@@ -1634,55 +1648,43 @@ public final class Utilities {
   }
 
   /**
-   * The first group will contain the task id. The second group is the optional extension. The file
-   * name looks like: "0_0" or "0_0.gz". There may be a leading prefix (tmp_). Since getTaskId() can
-   * return an integer only - this should match a pure integer as well. {1,6} is used to limit
-   * matching for attempts #'s 0-999999.
-   */
-  private static final Pattern FILE_NAME_TO_TASK_ID_REGEX =
-      Pattern.compile("^.*?([0-9]+)(_[0-9]{1,6})?(\\..*)?$");
-
-  /**
-   * Some jobs like "INSERT INTO" jobs create copies of files like 0000001_0_copy_2.
-   * For such files,
-   * Group 1: 00000001 [taskId]
-   * Group 3: 0        [task attempId]
-   * Group 4: _copy_2  [copy suffix]
-   * Group 6: copy     [copy keyword]
-   * Group 8: 2        [copy file index]
-   */
-  private static final String COPY_KEYWORD = "_copy_"; // copy keyword
-  private static final Pattern COPY_FILE_NAME_TO_TASK_ID_REGEX =
-      Pattern.compile("^.*?"+ // any prefix
-                      "([0-9]+)"+ // taskId
-                      "(_)"+ // separator
-                      "([0-9]{1,6})?"+ // attemptId (limited to 6 digits)
-                      "((_)(\\Bcopy\\B)(_)" +
-                      "([0-9]{1,6})$)?"+ // copy file index
-                      "(\\..*)?$"); // any suffix/file extension
-
-  /**
-   * This retruns prefix part + taskID for bucket join for partitioned table
-   */
-  private static final Pattern FILE_NAME_PREFIXED_TASK_ID_REGEX =
-      Pattern.compile("^.*?((\\(.*\\))?[0-9]+)(_[0-9]{1,6})?(\\..*)?$");
-
-  /**
-   * This breaks a prefixed bucket number into the prefix and the taskID
-   */
-  private static final Pattern PREFIXED_TASK_ID_REGEX =
-      Pattern.compile("^(.*?\\(.*\\))?([0-9]+)$");
-
-  /**
-   * Get the task id from the filename. It is assumed that the filename is derived from the output
-   * of getTaskId
+   * prefix? + (<partSpec>)? + taskId + [_<task attemptId>]? + [_copy_<copy number>]? + postfix?
    *
-   * @param filename
-   *          filename to extract taskid from
+   * prefix_(part=spec)0000001_0_copy_2.postfix
+   *
+   * Group 1: prefix_(part=spec)0000001     [prefix + partSpec + taskId]
+   * Group 2: prefix_(part=spec)            [prefix + partSpec]
+   * Group 3: (part=spec)                   [partSpec]
+   * Group 4: 00000001                      [taskId]
+   * Group 5: 0                             [task attemptId]
+   * Group 6: 2                             [copy number]
+   * Group 7: .postfix                      [postfix]
    */
-  public static String getTaskIdFromFilename(String filename) {
-    return getIdFromFilename(filename, FILE_NAME_TO_TASK_ID_REGEX);
-  }
+  public static final Pattern HIVE_FILE_NAME_CONVENTION = Pattern.compile("^" +
+      "(" +
+        "(\\D*?(\\(.*\\))?)?" +   // prefix + partSpec
+        "([0-9]+)" +              // taskId
+      ")" +
+      "(?:_([0-9]{1,6}))?" +      // task attemptId (limited to 6 digits)
+      "(?:_copy_([0-9]{1,6}))*" + // copy number (limited to 6 digits)
+      "(\\..*)?" +                // postfix
+      "$");
+
+  public static final int FULL_PREFIXED_TASK_ID = 1;
+  public static final int FULL_PREFIX_ID = 2;
+  public static final int PARTSPEC_ID = 3;
+  public static final int TASK_ID = 4;
+  public static final int ATTEMPT_ID = 5;
+  public static final int COPY_ID = 6;
+  public static final int POSTFIX_ID = 7;
+
+  /**
+   * This breaks a prefixed bucket number into the prefix and the bucket number
+   * Group 1: (partition spec)
+   * Group 2: bucket number
+   */
+  public static final Pattern FILEID_CONVENTION =
+      Pattern.compile("^(.*?\\(.*\\))?([0-9]+)$");
 
   /**
    * Get the part-spec + task id from the filename. It is assumed that the filename is derived
@@ -1692,33 +1694,45 @@ public final class Utilities {
    *          filename to extract taskid from
    */
   public static String getPrefixedTaskIdFromFilename(String filename) {
-    return getIdFromFilename(filename, FILE_NAME_PREFIXED_TASK_ID_REGEX);
+    return getMatchedGroup(filename, FULL_PREFIXED_TASK_ID);
   }
 
-  private static String getIdFromFilename(String filename, Pattern pattern) {
-    String taskId = filename;
-    int dirEnd = filename.lastIndexOf(Path.SEPARATOR);
-    if (dirEnd != -1) {
-      taskId = filename.substring(dirEnd + 1);
-    }
+  /**
+   * Get the task id from the filename. It is assumed that the filename is derived from the output
+   * of getTaskId
+   *
+   * @param filename
+   *          filename to extract taskid from
+   */
+  public static String getTaskIdFromFilename(String filename) {
+    return getMatchedGroup(filename, TASK_ID);
+  }
 
-    Matcher m = pattern.matcher(taskId);
-    if (!m.matches()) {
+  private static String getMatchedGroup(String filename, int group) {
+    String taskId = getFileName(filename);
+    Matcher m = getMatcher(taskId);
+    if (m == null) {
       LOG.warn("Unable to get task id from file name: " + filename + ". Using last component"
           + taskId + " as task id.");
     } else {
-      taskId = m.group(1);
+      taskId = m.group(group);
     }
     LOG.debug("TaskId for " + filename + " = " + taskId);
     return taskId;
   }
 
-  public static String getFileNameFromDirName(String dirName) {
-    int dirEnd = dirName.lastIndexOf(Path.SEPARATOR);
+  private static Matcher getMatcher(String taskId) {
+    Matcher m = HIVE_FILE_NAME_CONVENTION.matcher(taskId);
+    return m.matches() ? m :null;
+  }
+
+  private static String getFileName(String filename) {
+    String taskId = filename;
+    int dirEnd = filename.lastIndexOf(Path.SEPARATOR);
     if (dirEnd != -1) {
-      return dirName.substring(dirEnd + 1);
+      taskId = filename.substring(dirEnd + 1);
     }
-    return dirName;
+    return taskId;
   }
 
   /**
@@ -1729,55 +1743,51 @@ public final class Utilities {
    *          filename to replace taskid "0_0" or "0_0.gz" by 33 to "33_0" or "33_0.gz"
    */
   public static String replaceTaskIdFromFilename(String filename, int bucketNum) {
-    return replaceTaskIdFromFilename(filename, String.valueOf(bucketNum));
+    String taskId = getTaskIdFromFilename(filename);
+    String newTaskId = toZeroPaddedString(String.valueOf(bucketNum), taskId.length());
+    return replaceTaskIdFromFilename(filename, taskId, newTaskId);
   }
 
   public static String replaceTaskIdFromFilename(String filename, String fileId) {
     String taskId = getTaskIdFromFilename(filename);
-    String newTaskId = replaceTaskId(taskId, fileId);
-    String ret = replaceTaskIdFromFilename(filename, taskId, newTaskId);
-    return (ret);
-  }
-
-  private static String replaceTaskId(String taskId, int bucketNum) {
-    return replaceTaskId(taskId, String.valueOf(bucketNum));
+    String newTaskId = extractPaddedBucketNum(fileId, taskId.length());
+    return replaceTaskIdFromFilename(filename, taskId, newTaskId);
   }
 
   /**
    * Returns strBucketNum with enough 0's prefixing the task ID portion of the String to make it
    * equal in length to taskId
    *
-   * @param taskId - the taskId used as a template for length
-   * @param strBucketNum - the bucket number of the output, may or may not be prefixed
+   * @param fileID - the bucket number of the output, may or may not be prefixed
+   * @param length - target length
    * @return
    */
-  private static String replaceTaskId(String taskId, String strBucketNum) {
-    Matcher m = PREFIXED_TASK_ID_REGEX.matcher(strBucketNum);
+  private static String extractPaddedBucketNum(String fileID, int length) {
+    Matcher m = FILEID_CONVENTION.matcher(fileID);
     if (!m.matches()) {
-      LOG.warn("Unable to determine bucket number from file ID: " + strBucketNum + ". Using " +
+      LOG.warn("Unable to determine bucket number from file ID: " + fileID + ". Using " +
           "file ID as bucket number.");
-      return adjustBucketNumLen(strBucketNum, taskId);
-    } else {
-      String adjustedBucketNum = adjustBucketNumLen(m.group(2), taskId);
-      return (m.group(1) == null ? "" : m.group(1)) + adjustedBucketNum;
+      return toZeroPaddedString(fileID, length);
     }
+    String partSpec = m.group(1);
+    String bucketNum = m.group(2);
+    String adjustedBucketNum = toZeroPaddedString(bucketNum, length);
+    return partSpec == null ? adjustedBucketNum : partSpec + adjustedBucketNum;
   }
 
   /**
-   * Adds 0's to the beginning of bucketNum until bucketNum and taskId are the same length.
+   * Append 0's to the input string to be the length.
    *
-   * @param bucketNum - the bucket number, should not be prefixed
-   * @param taskId - the taskId used as a template for length
+   * @param input - input string
+   * @param length - target length
    * @return
    */
-  private static String adjustBucketNumLen(String bucketNum, String taskId) {
-    int bucketNumLen = bucketNum.length();
-    int taskIdLen = taskId.length();
-    StringBuffer s = new StringBuffer();
-    for (int i = 0; i < taskIdLen - bucketNumLen; i++) {
-      s.append("0");
+  private static String toZeroPaddedString(String input, int length) {
+    StringBuilder s = new StringBuilder(length);
+    for (int i = 0; i < length - input.length(); i++) {
+      s.append('0');
     }
-    return s.toString() + bucketNum;
+    return s.toString() + input;
   }
 
   /**
@@ -1911,7 +1921,7 @@ public final class Utilities {
    *
    * @return a list of path names corresponding to should-be-created empty buckets.
    */
-  public static ArrayList<String> removeTempOrDuplicateFiles(FileSystem fs, Path path,
+  private static ArrayList<String> removeTempOrDuplicateFiles(FileSystem fs, Path path,
       DynamicPartitionCtx dpCtx) throws IOException {
     if (path == null) {
       return null;
@@ -1920,7 +1930,6 @@ public final class Utilities {
     ArrayList<String> result = new ArrayList<String>();
     if (dpCtx != null) {
       FileStatus parts[] = HiveStatsUtils.getFileStatusRecurse(path, dpCtx.getNumDPCols(), fs);
-      HashMap<String, FileStatus> taskIDToFile = null;
 
       for (int i = 0; i < parts.length; ++i) {
         assert parts[i].isDir() : "dynamic partition " + parts[i].getPath()
@@ -1936,17 +1945,15 @@ public final class Utilities {
           }
         }
 
-        taskIDToFile = removeTempOrDuplicateFiles(items, fs);
+        Map<String, FileStatus> pTaskIDToFile = removeTempOrDuplicateFiles(items, fs);
         // if the table is bucketed and enforce bucketing, we should check and generate all buckets
-        if (dpCtx.getNumBuckets() > 0 && taskIDToFile != null) {
-          // refresh the file list
-          items = fs.listStatus(parts[i].getPath());
+        if (dpCtx.getNumBuckets() > 0 && pTaskIDToFile != null) {
           // get the missing buckets and generate empty buckets
-          String taskID1 = taskIDToFile.keySet().iterator().next();
-          Path bucketPath = taskIDToFile.values().iterator().next().getPath();
+          String pTaskID1 = pTaskIDToFile.keySet().iterator().next();
+          Path bucketPath = pTaskIDToFile.values().iterator().next().getPath();
           for (int j = 0; j < dpCtx.getNumBuckets(); ++j) {
-            String taskID2 = replaceTaskId(taskID1, j);
-            if (!taskIDToFile.containsKey(taskID2)) {
+            String taskID2 = toZeroPaddedString(String.valueOf(j), pTaskID1.length());
+            if (!pTaskIDToFile.containsKey(taskID2)) {
               // create empty bucket, file name should be derived from taskID2
               String path2 = replaceTaskIdFromFilename(bucketPath.toUri().getPath().toString(), j);
               result.add(path2);
@@ -1961,7 +1968,8 @@ public final class Utilities {
     return result;
   }
 
-  public static HashMap<String, FileStatus> removeTempOrDuplicateFiles(FileStatus[] items,
+  // returns prefixed-taskID to file mapping
+  private static HashMap<String, FileStatus> removeTempOrDuplicateFiles(FileStatus[] items,
       FileSystem fs) throws IOException {
 
     if (items == null || fs == null) {
@@ -1971,94 +1979,55 @@ public final class Utilities {
     HashMap<String, FileStatus> taskIdToFile = new HashMap<String, FileStatus>();
 
     for (FileStatus one : items) {
+      if (isExcludedPath(one)) {
+        continue;
+      }
       if (isTempPath(one)) {
         if (!fs.delete(one.getPath(), true)) {
           throw new IOException("Unable to delete tmp file: " + one.getPath());
         }
       } else {
-        String taskId = getPrefixedTaskIdFromFilename(one.getPath().getName());
-        FileStatus otherFile = taskIdToFile.get(taskId);
-        if (otherFile == null) {
-          taskIdToFile.put(taskId, one);
-        } else {
+        // if the path is not auto-generated based on task-id, task mapping is meaningless
+        Matcher matcher = getMatcher(one.getPath().getName());
+        if (matcher == null) {
+          continue;
+        }
+        if (matcher.group(COPY_ID) != null) {
+          LOG.info(one.getPath() + " file identified as duplicate. This file is" +
+              " not deleted as it has copySuffix.");
+          continue;
+        }
+        String taskId = matcher.group(FULL_PREFIXED_TASK_ID);
+        FileStatus otherFile = taskIdToFile.put(taskId, one);
+        if (otherFile != null) {
           // Compare the file sizes of all the attempt files for the same task, the largest win
           // any attempt files could contain partial results (due to task failures or
           // speculative runs), but the largest should be the correct one since the result
           // of a successful run should never be smaller than a failed/speculative run.
-          FileStatus toDelete = null;
-
-          // "LOAD .. INTO" and "INSERT INTO" commands will generate files with
-          // "_copy_x" suffix. These files are usually read by map tasks and the
-          // task output gets written to some tmp path. The output file names will
-          // be of format taskId_attemptId. The usual path for all these tasks is
-          // srcPath -> taskTmpPath -> tmpPath -> finalPath.
-          // But, MergeFileTask can move files directly from src path to final path
-          // without copying it to tmp path. In such cases, different files with
-          // "_copy_x" suffix will be identified as duplicates (change in value
-          // of x is wrongly identified as attempt id) and will be deleted.
-          // To avoid that we will ignore files with "_copy_x" suffix from duplicate
-          // elimination.
-          if (!isCopyFile(one.getPath().getName())) {
-            if (otherFile.getLen() >= one.getLen()) {
-              toDelete = one;
-            } else {
-              toDelete = otherFile;
-              taskIdToFile.put(taskId, one);
-            }
-            long len1 = toDelete.getLen();
-            long len2 = taskIdToFile.get(taskId).getLen();
-            if (!fs.delete(toDelete.getPath(), true)) {
-              throw new IOException(
-                  "Unable to delete duplicate file: " + toDelete.getPath()
-                      + ". Existing file: " +
-                      taskIdToFile.get(taskId).getPath());
-            } else {
-              LOG.warn("Duplicate taskid file removed: " + toDelete.getPath() +
-                  " with length "
-                  + len1 + ". Existing file: " +
-                  taskIdToFile.get(taskId).getPath() + " with length "
-                  + len2);
-            }
+          FileStatus toDelete;
+          if (otherFile.getLen() >= one.getLen()) {
+            toDelete = one;
           } else {
-            LOG.info(one.getPath() + " file identified as duplicate. This file is" +
-                " not deleted as it has copySuffix.");
+            toDelete = otherFile;
+            taskIdToFile.put(taskId, one);
           }
+          long len1 = toDelete.getLen();
+          long len2 = taskIdToFile.get(taskId).getLen();
+          if (!fs.delete(toDelete.getPath(), true)) {
+            throw new IOException(
+                "Unable to delete duplicate file: " + toDelete.getPath()
+                    + ". Existing file: " +
+                    taskIdToFile.get(taskId).getPath());
+          }
+          LOG.warn("Duplicate taskid file removed: " + toDelete.getPath() +
+              " with length "
+              + len1 + ". Existing file: " +
+              taskIdToFile.get(taskId).getPath() + " with length "
+              + len2);
         }
       }
     }
     return taskIdToFile;
-  }
-
-  public static boolean isCopyFile(String filename) {
-    String taskId = filename;
-    String copyFileSuffix = null;
-    int dirEnd = filename.lastIndexOf(Path.SEPARATOR);
-    if (dirEnd != -1) {
-      taskId = filename.substring(dirEnd + 1);
-    }
-    Matcher m = COPY_FILE_NAME_TO_TASK_ID_REGEX.matcher(taskId);
-    if (!m.matches()) {
-      LOG.warn("Unable to verify if file name " + filename + " has _copy_ suffix.");
-    } else {
-      taskId = m.group(1);
-      copyFileSuffix = m.group(4);
-    }
-
-    LOG.debug("Filename: " + filename + " TaskId: " + taskId + " CopySuffix: " + copyFileSuffix);
-    if (taskId != null && copyFileSuffix != null) {
-      return true;
-    }
-
-    return false;
-  }
-
-  public static String getBucketFileNameFromPathSubString(String bucketName) {
-    try {
-      return bucketName.split(COPY_KEYWORD)[0];
-    } catch (Exception e) {
-      e.printStackTrace();
-      return bucketName;
-    }
   }
 
   public static String getNameMessage(Exception e) {
@@ -2143,7 +2112,7 @@ public final class Utilities {
   }
 
     /**
-     * get the jar files from specified directory or get jar files by several jar names sperated by comma
+     * get the jar files from specified directory or get jar files by several jar names separated by comma
      * @param path
      * @return
      */
@@ -2407,7 +2376,7 @@ public final class Utilities {
   }
 
   /**
-   * Copies the storage handler proeprites configured for a table descriptor to a runtime job
+   * Copies the storage handler properties configured for a table descriptor to a runtime job
    * configuration.  This differs from {@link #copyTablePropertiesToConf(org.apache.hadoop.hive.ql.plan.TableDesc, org.apache.hadoop.mapred.JobConf)}
    * in that it does not allow parameters already set in the job to override the values from the
    * table.  This is important for setting the config up for reading,
@@ -3188,7 +3157,7 @@ public final class Utilities {
           + maxReducers + " estimated totalInputFileSize=" + totalInputFileSize);
     } else {
       LOG.info("BytesPerReducer=" + bytesPerReducer + " maxReducers="
-        + maxReducers + " totalInputFileSize=" + totalInputFileSize);
+          + maxReducers + " totalInputFileSize=" + totalInputFileSize);
     }
 
     // If this map reduce job writes final data to a table and bucketing is being inferred,

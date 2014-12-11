@@ -26,7 +26,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.regex.Matcher;
 
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
@@ -138,6 +138,43 @@ public class TestUtilities extends TestCase {
       Assert.fail(e.getMessage());
     } finally {
       FileUtils.deleteQuietly(f);
+    }
+  }
+
+  public void testParseFilePath() {
+    validate("_tmp(key=value)000000_1_copy_2.tgz",
+        "_tmp(key=value)000000", "_tmp(key=value)", "(key=value)", "000000", "1", "2", ".tgz");
+
+    validate("_tmp_000000_1_copy_2.tgz",
+        "_tmp_000000", "_tmp_", null, "000000", "1", "2", ".tgz");
+    validate("(key=value)000000_1_copy_2.tgz",
+        "(key=value)000000", "(key=value)", "(key=value)", "000000", "1", "2", ".tgz");
+    validate("_tmp(key=value)000000_copy_2.tgz",
+        "_tmp(key=value)000000", "_tmp(key=value)", "(key=value)", "000000", null, "2", ".tgz");
+    validate("_tmp(key=value)000000_1.tgz",
+        "_tmp(key=value)000000", "_tmp(key=value)", "(key=value)", "000000", "1", null, ".tgz");
+    validate("_tmp(key=value)000000_1_copy_2",
+        "_tmp(key=value)000000", "_tmp(key=value)", "(key=value)", "000000", "1", "2", null);
+
+    validate("000000", "000000", "", null, "000000", null, null, null);
+    validate("_tmp_000000", "_tmp_000000", "_tmp_", null, "000000", null, null, null);
+    validate("(key=value)000000", "(key=value)000000", "(key=value)", "(key=value)", "000000", null, null, null);
+    validate("000000_1", "000000", "", null, "000000", "1", null, null);
+    validate("000000_copy_2", "000000", "", null, "000000", null, "2", null);
+    validate("000000.tgz", "000000", "", null, "000000", null, null, ".tgz");
+
+    validate("000000_0_copy_1_copy_2", "000000", "", null, "000000", "0", "2", null);
+
+    // test more combinations
+  }
+
+  private void validate(String input, String... expected) {
+    Matcher matcher = Utilities.HIVE_FILE_NAME_CONVENTION.matcher(input);
+    if (!matcher.matches()) {
+      throw new RuntimeException("Failed to parse " + input);
+    }
+    for (int i = 1; i <= matcher.groupCount(); i++) {
+      Assert.assertEquals(expected[i - 1], matcher.group(i));
     }
   }
 }

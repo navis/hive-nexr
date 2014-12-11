@@ -29,7 +29,7 @@ select * from orc_merge5b;
 set hive.merge.orcfile.stripe.level=true;
 alter table orc_merge5b concatenate;
 
--- 3 file after merging - all 0.12 format files will be merged and 0.11 files will be left behind
+-- 4 file after merging - all 0.12 format files will be merged and 0.11 files will be left behind
 analyze table orc_merge5b compute statistics noscan;
 dfs -ls ${hiveconf:hive.metastore.warehouse.dir}/orc_merge5b/;
 select * from orc_merge5b;
