@@ -21,6 +21,8 @@ package org.apache.hadoop.hive.ql.parse;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -58,6 +60,7 @@ import org.apache.hadoop.hive.ql.plan.ColumnStatsDesc;
 import org.apache.hadoop.hive.ql.plan.ColumnStatsWork;
 import org.apache.hadoop.hive.ql.plan.CreateTableDesc;
 import org.apache.hadoop.hive.ql.plan.DDLWork;
+import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDescUtils;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
@@ -403,29 +406,46 @@ public abstract class TaskCompiler {
           continue;
         }
         List<TableScanOperator> tss = new ArrayList<TableScanOperator>();
+        List<List<ExprNodeDesc>> tsExprs = new ArrayList<List<ExprNodeDesc>>();
         for (String alias : aliases) {
           Operator<?> operator = aliasToWork.get(alias);
           if (operator instanceof TableScanOperator) {
             TableScanOperator ts = (TableScanOperator) operator;
             if (ts.getConf().getFilterExpr() != null) {
               tss.add(ts);
+              tsExprs.add(ExprNodeDescUtils.split(ts.getConf().getFilterExpr()));
             }
           }
         }
+        if (tss.isEmpty()) {
+          continue;
+        }
+        Collection<ExprNodeDesc> commonSet = getCommonExprs(tsExprs);
+        if (!commonSet.isEmpty()) {
+          tsExprs = exceptCommonExpr(tsExprs, commonSet);
+        }
+        ExprNodeGenericFuncDesc commonExpr =
+            (ExprNodeGenericFuncDesc) ExprNodeDescUtils.mergePredicates(commonSet);
         // recreate filter for each TS
-        for (TableScanOperator ts : tss) {
-          ExprNodeGenericFuncDesc predicate = ts.getConf().getFilterExpr();
+        for (int i = 0 ; i < tss.size(); i++) {
+          TableScanOperator ts = tss.get(i);
+          ts.getConf().setFilterExpr(commonExpr);
+          List<ExprNodeDesc> tsExpr = tsExprs.get(i);
+          if (tsExpr.isEmpty()) {
+            continue; // nothing todo
+          }
           FilterOperator child = OperatorUtils.findSingleOperator(ts, FilterOperator.class);
           if (child != null) {
             FilterDesc filterDesc = child.getConf();
             filterDesc.setPredicate(
-                ExprNodeDescUtils.mergePredicatesWithDedup(filterDesc.getPredicate(), predicate));
+                ExprNodeDescUtils.appendPredicatesWithDedup(filterDesc.getPredicate(), tsExpr));
           } else {
+            ExprNodeDesc predicate = ExprNodeDescUtils.mergePredicates(tsExpr);
             FilterDesc filterDesc = new FilterDesc(predicate, false);
             Operator<?>[] children = new Operator[ts.getNumChild()];
-            for (int i = 0; i < children.length; i++) {
-              children[i] = ts.getChildOperators().get(i);
-              children[i].getParentOperators().clear();
+            for (int j = 0; j < children.length; j++) {
+              children[j] = ts.getChildOperators().get(j);
+              children[j].getParentOperators().clear();
             }
             Operator<?> newFilter = OperatorFactory.get(filterDesc, children);
             List<Operator<? extends OperatorDesc>> parents =
@@ -434,10 +454,32 @@ public abstract class TaskCompiler {
             ts.getChildOperators().clear();
             ts.getChildOperators().add(newFilter);
           }
-          ts.getConf().setFilterExpr(null);
         }
       }
     }
+  }
+
+  private Collection<ExprNodeDesc> getCommonExprs(List<List<ExprNodeDesc>> tsExprs) {
+    Collection<ExprNodeDesc> commonExprs = null;
+    for (List<ExprNodeDesc> exprs : tsExprs) {
+      if (commonExprs == null) {
+        commonExprs = new ArrayList<ExprNodeDesc>(exprs);
+      } else {
+        ExprNodeDescUtils.retainAll(commonExprs, exprs);
+      }
+      if (commonExprs.isEmpty()) {
+        return Collections.emptyList();
+      }
+    }
+    return commonExprs;
+  }
+
+  private List<List<ExprNodeDesc>> exceptCommonExpr(List<List<ExprNodeDesc>> tsExprs,
+     Collection<ExprNodeDesc> common) {
+    for (List<ExprNodeDesc> exprs : tsExprs) {
+      exprs.removeAll(common);
+    }
+    return tsExprs;
   }
 
   /*

@@ -19,6 +19,8 @@
 package org.apache.hadoop.hive.ql.plan;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -99,6 +101,17 @@ public class ExprNodeDescUtils {
     return false;
   }
 
+  public static ExprNodeDesc appendPredicatesWithDedup(
+      ExprNodeDesc prev, Collection<ExprNodeDesc> adding) {
+    List<ExprNodeDesc> split = split(prev);
+    for (ExprNodeDesc expr : adding) {
+      if (indexOf(expr, split) < 0) {
+        split.add(expr);
+      }
+    }
+    return mergePredicates(split);
+  }
+
   /**
    * 'and' all predicates with deduplication. (Do not use on non-deterministic exprs)
    */
@@ -124,7 +137,7 @@ public class ExprNodeDescUtils {
   /**
    * bind n predicates by AND op
    */
-  public static ExprNodeDesc mergePredicates(List<ExprNodeDesc> exprs) {
+  public static ExprNodeDesc mergePredicates(Collection<ExprNodeDesc> exprs) {
     ExprNodeDesc prev = null;
     for (ExprNodeDesc expr : exprs) {
       if (prev == null) {
@@ -157,6 +170,18 @@ public class ExprNodeDescUtils {
       split.add(current);
     }
     return split;
+  }
+
+  public static boolean retainAll(Collection<ExprNodeDesc> exprs, List<ExprNodeDesc> retainer) {
+    boolean modified = false;
+    Iterator<ExprNodeDesc> e = exprs.iterator();
+    while (e.hasNext()) {
+      if (indexOf(e.next(), retainer) < 0) {
+        modified = true;
+        e.remove();
+      }
+    }
+    return modified;
   }
 
   /**

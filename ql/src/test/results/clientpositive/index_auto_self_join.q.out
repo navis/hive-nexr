@@ -172,10 +172,7 @@ STAGE PLANS:
       Map Operator Tree:
           TableScan
             alias: a
-<<<<<<< HEAD
-            filterExpr: (((UDFToDouble(key) > 80.0) and (UDFToDouble(key) < 100.0)) and value is not null) (type: boolean)
-=======
->>>>>>> HIVE-7248 UNION ALL in hive returns incorrect results on Hbase backed table
+            filterExpr: value is not null (type: boolean)
             Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
             Filter Operator
               predicate: (((UDFToDouble(key) > 80.0) and (UDFToDouble(key) < 100.0)) and value is not null) (type: boolean)
@@ -191,12 +188,8 @@ STAGE PLANS:
                   Statistics: Num rows: 28 Data size: 297 Basic stats: COMPLETE Column stats: NONE
                   value expressions: _col0 (type: string)
           TableScan
-<<<<<<< HEAD
             alias: a
-            filterExpr: (((UDFToDouble(key) > 70.0) and (UDFToDouble(key) < 90.0)) and value is not null) (type: boolean)
-=======
-            alias: b
->>>>>>> HIVE-7248 UNION ALL in hive returns incorrect results on Hbase backed table
+            filterExpr: value is not null (type: boolean)
             Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
             Filter Operator
               predicate: (((UDFToDouble(key) > 70.0) and (UDFToDouble(key) < 90.0)) and value is not null) (type: boolean)
