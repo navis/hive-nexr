@@ -49,7 +49,7 @@ public class LazyTimestamp extends LazyPrimitive<LazyTimestampObjectInspector, T
   }
 
   /**
-   * Initilizes LazyTimestamp object by interpreting the input bytes
+   * Initializes LazyTimestamp object by interpreting the input bytes
    * as a JDBC timestamp string
    *
    * @param bytes
@@ -82,8 +82,6 @@ public class LazyTimestamp extends LazyPrimitive<LazyTimestampObjectInspector, T
     data.set(t);
   }
 
-  private static final String nullTimestamp = "NULL";
-
   /**
    * Writes a Timestamp in JDBC timestamp format to the output stream
    * @param out
@@ -100,10 +98,5 @@ public class LazyTimestamp extends LazyPrimitive<LazyTimestampObjectInspector, T
     } else {
       out.write(i.toString().getBytes("US-ASCII"));
     }
-  }
-
-  @Override
-  public TimestampWritable getWritableObject() {
-    return data;
   }
 }

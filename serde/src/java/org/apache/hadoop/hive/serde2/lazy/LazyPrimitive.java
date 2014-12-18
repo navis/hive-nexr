@@ -62,16 +62,14 @@ public abstract class LazyPrimitive<OI extends ObjectInspector, T extends Writab
     if (!(obj instanceof LazyPrimitive<?, ?>)) {
       return false;
     }
-
-    if (data == obj) {
+    if (this == obj) {
       return true;
     }
-
-    if (data == null || obj == null) {
+    LazyPrimitive<?, ?> other = (LazyPrimitive<?, ?>) obj;
+    if (isNull || other.isNull) {
       return false;
     }
-
-    return data.equals(((LazyPrimitive<?, ?>) obj).getWritableObject());
+    return data == other.data || data.equals(other.data);
   }
 
   public void logExceptionMessage(ByteArrayRef bytes, int start, int length, String dataType) {
