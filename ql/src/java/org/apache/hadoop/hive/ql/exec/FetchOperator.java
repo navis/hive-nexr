@@ -317,7 +317,7 @@ public class FetchOperator implements Serializable {
       }
     }
 
-    final FetchInputFormatSplit target = iterSplits.next();
+    final FetchInputFormatSplit target = nextSplit();
 
     @SuppressWarnings("unchecked")
     final RecordReader<WritableComparable, Writable> reader = target.getRecordReader(job);
@@ -345,7 +345,7 @@ public class FetchOperator implements Serializable {
     return currRecReader;
   }
 
-  protected FetchInputFormatSplit[] getNextSplits() throws Exception {
+  private FetchInputFormatSplit[] getNextSplits() throws Exception {
     while (getNextPath()) {
       // not using FileInputFormat.setInputPaths() here because it forces a connection to the
       // default file system - which may or may not be online during pure metadata operations
@@ -359,7 +359,7 @@ public class FetchOperator implements Serializable {
       Utilities.copyTableJobPropertiesToConf(currDesc.getTableDesc(), job);
       InputFormat inputFormat = getInputFormatFromCache(formatter, job);
 
-      InputSplit[] splits = inputFormat.getSplits(job, 1);
+      InputSplit[] splits = getSplitsFromPath(inputFormat, job, currPath);
       FetchInputFormatSplit[] inputSplits = new FetchInputFormatSplit[splits.length];
       for (int i = 0; i < splits.length; i++) {
         inputSplits[i] = new FetchInputFormatSplit(splits[i], inputFormat);
@@ -372,6 +372,37 @@ public class FetchOperator implements Serializable {
       }
     }
     return null;
+  }
+
+  protected FetchInputFormatSplit nextSplit() {
+    return iterSplits.next();
+  }
+
+  protected void skipAll() throws IOException {
+    skipCurrentInput();
+    while (iterPath != null && iterPath.hasNext()) {
+      iterPath.next();
+    }
+  }
+
+  protected void skipCurrentInput() throws IOException {
+    skipCurrentSplit();
+    while (iterSplits != null && iterSplits.hasNext()) {
+      iterSplits.next();
+    }
+  }
+
+  protected void skipCurrentSplit() throws IOException {
+    if (currRecReader != null) {
+      currRecReader.close();
+      currRecReader = null;
+    }
+    currPath = null;
+  }
+
+  protected InputSplit[] getSplitsFromPath(InputFormat formatter, JobConf conf, Path path) 
+      throws IOException {
+    return formatter.getSplits(job, 1);
   }
 
   private FetchInputFormatSplit[] splitSampling(SplitSample splitSample,
@@ -420,7 +451,7 @@ public class FetchOperator implements Serializable {
     return row != null;
   }
 
-  protected void pushRow(InspectableObject row) throws HiveException {
+  protected void pushRow(InspectableObject row) throws IOException, HiveException {
     operator.processOp(row.o, 0);
   }
 
@@ -649,7 +680,7 @@ public class FetchOperator implements Serializable {
   // for split sampling. shrinkedLength is checked against IOContext.getCurrentBlockStart,
   // which is from RecordReader.getPos(). So some inputformats which does not support getPos()
   // like HiveHBaseTableInputFormat cannot be used with this (todo)
-  private static class FetchInputFormatSplit extends HiveInputFormat.HiveInputSplit {
+  protected static class FetchInputFormatSplit extends HiveInputFormat.HiveInputSplit {
 
     // shrinked size for this split. counter part of this in normal mode is
     // InputSplitShim.shrinkedLength.

@@ -37,11 +37,14 @@ import org.apache.hadoop.hive.ql.io.HiveKey;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
 import org.apache.hadoop.hive.serde2.objectinspector.InspectableObject;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.WritableComparator;
+import org.apache.hadoop.mapred.InputFormat;
+import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputCollector;
 
@@ -132,58 +135,119 @@ public class PartitionKeySampler implements OutputCollector<HiveKey, Object> {
     }
   }
 
-  // random sampling
-  public static FetchOperator createSampler(FetchWork work, HiveConf conf, JobConf job,
-      Operator<?> operator) throws HiveException {
+  public void sampling(FetchWork work, HiveConf conf, JobConf job) 
+      throws HiveException, IOException {
+
+    Operator operator = work.getSource();
+    
     int sampleNum = conf.getIntVar(HiveConf.ConfVars.HIVESAMPLINGNUMBERFORORDERBY);
-    float samplePercent = conf.getFloatVar(HiveConf.ConfVars.HIVESAMPLINGPERCENTFORORDERBY);
-    if (samplePercent < 0.0 || samplePercent > 1.0) {
+    float sampleRatio = conf.getFloatVar(HiveConf.ConfVars.HIVESAMPLINGPERCENTFORORDERBY);
+    int numSplitsPerInput = conf.getIntVar(HiveConf.ConfVars.HIVESAMPLINGSPLITPERINPUTFORORDERBY);
+    if (sampleRatio < 0.0 || sampleRatio > 1.0) {
       throw new IllegalArgumentException("Percentile value must be within the range of 0 to 1.");
     }
-    RandomSampler sampler = new RandomSampler(work, job, operator);
-    sampler.setSampleNum(sampleNum);
-    sampler.setSamplePercent(samplePercent);
-    return sampler;
+
+    FetchSampler sampler = new FetchSampler(
+        work, job, operator, sampleNum, sampleRatio, numSplitsPerInput);
+    try {
+      operator.initialize(conf, new ObjectInspector[]{sampler.getOutputObjectInspector()});
+      OperatorUtils.setChildrenCollector(operator.getChildOperators(), this);
+      while (sampler.pushRow()) { }
+    } finally {
+      sampler.clearFetchContext();
+    }
   }
 
-  private static class RandomSampler extends FetchOperator {
+  private class FetchSampler extends FetchOperator {
 
-    private int sampleNum = 1000;
-    private float samplePercent = 0.1f;
     private final Random random = new Random();
+    
+    private final int totalSampleNum;
+    private final float ratio;
+    private final int numSplitsPerInput;
+    
+    private int numInputs;
+    private int currInput;
+    private int numSamplePerInput;
+    private int prvSampleForInput;
+    
+    private int numSplits;
+    private int currSplit;
+    private int numSamplePerSplit;
+    private int prvSampleForSplit;
 
-    private int sampled;
-
-    public RandomSampler(FetchWork work, JobConf job, Operator<?> operator)
-        throws HiveException {
+    public FetchSampler(FetchWork work, JobConf job, Operator<?> operator, 
+        int totalSampleNum, float ratio, int numSplitsPerInput) throws HiveException {
       super(work, job, operator, null);
-    }
+      this.totalSampleNum = totalSampleNum;
+      this.ratio = ratio;
+      this.numInputs = work.isPartitioned() ? work.getPartDir().size() : 1;
+      this.numSplitsPerInput = numSplitsPerInput;
 
-    public void setSampleNum(int numSample) {
-      this.sampleNum = numSample;
-    }
-
-    public void setSamplePercent(float samplePercent) {
-      this.samplePercent = samplePercent;
+      if (LOG.isInfoEnabled()) {
+        LOG.info("sample.total=" + totalSampleNum);
+        LOG.info("sample.ratio=" + ratio);
+        LOG.info("split.per.input=" + numSplitsPerInput);
+      }
     }
 
     @Override
-    public boolean pushRow() throws IOException, HiveException {
-      if (!super.pushRow()) {
-        return false;
+    protected InputSplit[] getSplitsFromPath(InputFormat formatter, JobConf job, Path path)
+        throws IOException {
+      currSplit = 0;
+      numSamplePerInput = totalRemain() / (numInputs - currInput);
+      prvSampleForInput = sampled.size();
+      currInput++;
+
+      InputSplit[] splits = formatter.getSplits(job, numSplitsPerInput);
+      numSplits = splits.length;
+
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("input.path=" + path + ", sample.per.input=" + numSamplePerInput);
       }
-      if (sampled < sampleNum) {
-        return true;
-      }
-      flushRow();
-      return false;
+      return splits;
+    }
+
+    private int totalRemain() {
+      return totalSampleNum - sampled.size();
+    }
+
+    private int inputRemain() {
+      return numSamplePerInput - (sampled.size() - prvSampleForInput);
     }
 
     @Override
-    protected void pushRow(InspectableObject row) throws HiveException {
-      if (random.nextFloat() < samplePercent) {
-        sampled++;
+    protected FetchInputFormatSplit nextSplit() {
+      numSamplePerSplit = inputRemain() / (numSplits - currSplit);
+      prvSampleForSplit = sampled.size();
+      currSplit++;
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("sample.per.split=" + numSamplePerSplit);
+      }
+      return super.nextSplit();
+    }
+
+    @Override
+    protected void pushRow(InspectableObject row) throws HiveException, IOException {
+      if (ratio <= 0 || random.nextFloat() < ratio) {
         super.pushRow(row);
+        int sampleNum = sampled.size();
+        if (sampleNum >= prvSampleForSplit + numSamplePerSplit) {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("exceeded sample.per.split=" + (sampleNum - prvSampleForSplit));
+          }
+          skipCurrentSplit();
+        } else if (sampleNum >= prvSampleForInput + numSamplePerInput) {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("exceeded sample.per.input=" + (sampleNum - prvSampleForInput));
+          }
+          skipCurrentInput();
+        } else if (sampleNum >= totalSampleNum) {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("exceeded sample.total=" + sampleNum);
+          }
+          skipAll();
+        }
       }
     }
   }

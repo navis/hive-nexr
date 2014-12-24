@@ -21,3 +21,16 @@ create table total_ordered as select * from src5 order by key, value;
 
 desc formatted total_ordered;
 select * from total_ordered;
+
+set hive.optimize.sampling.orderby.percent=0.66f;
+set hive.optimize.sampling.orderby.split.per.input=3;
+
+explain
+select * from src5 order by key, value;
+select * from src5 order by key, value;
+
+-- partitioned table 
+explain
+select * from srcpart order by key, value;
+select * from srcpart order by key, value;
+

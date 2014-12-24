@@ -1123,8 +1123,10 @@ public class HiveConf extends Configuration {
 
     HIVESAMPLINGFORORDERBY("hive.optimize.sampling.orderby", false, "Uses sampling on order-by clause for parallel execution."),
     HIVESAMPLINGNUMBERFORORDERBY("hive.optimize.sampling.orderby.number", 1000, "Total number of samples to be obtained."),
-    HIVESAMPLINGPERCENTFORORDERBY("hive.optimize.sampling.orderby.percent", 0.1f, new RatioValidator(),
+    HIVESAMPLINGPERCENTFORORDERBY("hive.optimize.sampling.orderby.percent", 0.0f, new RatioValidator(),
         "Probability with which a row will be chosen."),
+    HIVESAMPLINGSPLITPERINPUTFORORDERBY("hive.optimize.sampling.orderby.split.per.input", 1, 
+        "Numbder of splits to make for each table or partition."),
 
     // whether to optimize union followed by select followed by filesink
     // It creates sub-directories in the final output, so should not be turned on in systems

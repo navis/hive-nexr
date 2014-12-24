@@ -454,6 +454,14 @@ public class MapWork extends BaseWork {
     return new ArrayList<PartitionDesc>(aliasToPartnInfo.values());
   }
 
+  public ArrayList<PartitionDesc> getPartitionDescs(List<String> paths) {
+    ArrayList<PartitionDesc> parts = new ArrayList<PartitionDesc>();
+    for (String path : paths) {
+      parts.add(aliasToPartnInfo.get(pathToAliases.get(path).get(0)));
+    }
+    return parts;
+  }
+
   public Path getTmpHDFSPath() {
     return tmpHDFSPath;
   }

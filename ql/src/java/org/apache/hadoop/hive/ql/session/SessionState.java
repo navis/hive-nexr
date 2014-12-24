@@ -920,6 +920,10 @@ public class SessionState {
       getErrStream().println(error);
       LOG.error(error + StringUtils.defaultString(detail));
     }
+    
+    public boolean isInfoEnabled() {
+      return LOG.isInfoEnabled();
+    }
   }
 
   private static LogHelper _console;

@@ -48,10 +48,8 @@ import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.DriverContext;
 import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.QueryPlan;
-import org.apache.hadoop.hive.ql.exec.FetchOperator;
 import org.apache.hadoop.hive.ql.exec.HiveTotalOrderPartitioner;
 import org.apache.hadoop.hive.ql.exec.Operator;
-import org.apache.hadoop.hive.ql.exec.OperatorUtils;
 import org.apache.hadoop.hive.ql.exec.PartitionKeySampler;
 import org.apache.hadoop.hive.ql.exec.TableScanOperator;
 import org.apache.hadoop.hive.ql.exec.Task;
@@ -76,7 +74,6 @@ import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.ql.session.SessionState.LogHelper;
 import org.apache.hadoop.hive.ql.stats.StatsFactory;
 import org.apache.hadoop.hive.ql.stats.StatsPublisher;
-import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
@@ -500,8 +497,8 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
     Operator<?> topOp = mWork.getAliasToWork().get(alias);
     PartitionDesc partDesc = mWork.getAliasToPartnInfo().get(alias);
 
-    ArrayList<String> paths = mWork.getPaths();
-    ArrayList<PartitionDesc> parts = mWork.getPartitionDescs();
+    List<String> paths = mWork.getPaths();
+    List<PartitionDesc> parts = mWork.getPartitionDescs(paths);
 
     List<Path> inputPaths = new ArrayList<Path>(paths.size());
     for (String path : paths) {
@@ -535,16 +532,8 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
         fetchWork = new FetchWork(inputPaths, parts, partDesc.getTableDesc());
       }
       fetchWork.setSource(ts);
-
-      // random sampling
-      FetchOperator fetcher = PartitionKeySampler.createSampler(fetchWork, conf, job, ts);
-      try {
-        ts.initialize(conf, new ObjectInspector[]{fetcher.getOutputObjectInspector()});
-        OperatorUtils.setChildrenCollector(ts.getChildOperators(), sampler);
-        while (fetcher.pushRow()) { }
-      } finally {
-        fetcher.clearFetchContext();
-      }
+      
+      sampler.sampling(fetchWork, conf, job);
     } else {
       throw new IllegalArgumentException("Invalid sampling type " + mWork.getSamplingType());
     }
@@ -798,7 +787,7 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
 
   @Override
   public Collection<MapWork> getMapWork() {
-    return Collections.<MapWork>singleton(getWork().getMapWork());
+    return Collections.singleton(getWork().getMapWork());
   }
 
   @Override
