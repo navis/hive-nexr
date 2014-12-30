@@ -20,35 +20,20 @@ package org.apache.hadoop.hive.ql.index.bitmap;
 
 import java.io.IOException;
 import java.io.ObjectInput;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.LongObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorUtils;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
-import org.apache.hadoop.hive.serde2.lazy.LazyLong;
 
 /**
  * An ObjectInput that allows for conversion from an List of LongWritable
  * to an EWAH-compressed bitmap.
  */
 public class BitmapObjectInput implements ObjectInput {
-  Iterator<LongWritable> bufferIter;
-  List<LongWritable> buffer;
+  
+  private int index;
+  private long[] values;
 
-  public BitmapObjectInput() {
-    buffer = new ArrayList<LongWritable>();
-    bufferIter = buffer.iterator();
-  }
-
-  public BitmapObjectInput(List<LongWritable> l) {
-    readFromList(l);
-  }
-
-  public void readFromList(List<LongWritable> l) {
-    buffer = l;
-    bufferIter = buffer.iterator();
+  public BitmapObjectInput reset(long[] values) {
+    this.index = 0;
+    this.values = values;
+    return this;
   }
 
   @Override
@@ -124,15 +109,10 @@ public class BitmapObjectInput implements ObjectInput {
 
   @Override
   public int readInt() throws IOException {
-    if (bufferIter.hasNext()) {
-      LongObjectInspector loi = PrimitiveObjectInspectorFactory.writableLongObjectInspector;
-      Long l = PrimitiveObjectInspectorUtils.getLong(bufferIter.next(), loi);
-      return l.intValue();
-      //return bufferIter.next().intValue();
+    if (index < values.length) {
+      return (int)values[index++];
     }
-    else {
-      throw new IOException();
-    }
+    throw new IOException();
   }
 
   @Override
@@ -142,15 +122,10 @@ public class BitmapObjectInput implements ObjectInput {
 
   @Override
   public long readLong() throws IOException {
-    //LongObjectInspector loi = PrimitiveObjectInspectorFactory.writableLongObjectInspector;
-    if (bufferIter.hasNext()) {
-      LongObjectInspector loi = PrimitiveObjectInspectorFactory.writableLongObjectInspector;
-      return PrimitiveObjectInspectorUtils.getLong(bufferIter.next(), loi);
-      //return bufferIter.next();
+    if (index < values.length) {
+      return values[index++];
     }
-    else {
-      throw new IOException();
-    }
+    throw new IOException();
   }
 
   @Override

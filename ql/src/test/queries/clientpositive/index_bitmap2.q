@@ -23,7 +23,7 @@ SELECT t.bucketname as `_bucketname`, COLLECT_SET(t.offset) AS `_offsets` FROM
       WHERE key = 0 AND NOT EWAH_BITMAP_EMPTY(`_bitmaps`) UNION ALL
    SELECT `_bucketname` AS bucketname, `_offset` AS offset
       FROM default__src_src2_index__
-      WHERE value = "val2" AND NOT EWAH_BITMAP_EMPTY(`_bitmaps`)) t
+      WHERE value = "val_2" AND NOT EWAH_BITMAP_EMPTY(`_bitmaps`)) t
 GROUP BY t.bucketname;
 
 SET hive.index.blockfilter.file=${system:test.tmp.dir}/index_result;

@@ -86,7 +86,7 @@ SELECT t.bucketname as `_bucketname`, COLLECT_SET(t.offset) AS `_offsets` FROM
       WHERE key = 0 AND NOT EWAH_BITMAP_EMPTY(`_bitmaps`) UNION ALL
    SELECT `_bucketname` AS bucketname, `_offset` AS offset
       FROM default__src_src2_index__
-      WHERE value = "val2" AND NOT EWAH_BITMAP_EMPTY(`_bitmaps`)) t
+      WHERE value = "val_2" AND NOT EWAH_BITMAP_EMPTY(`_bitmaps`)) t
 GROUP BY t.bucketname
 PREHOOK: type: QUERY
 PREHOOK: Input: default@default__src_src1_index__
@@ -98,7 +98,7 @@ SELECT t.bucketname as `_bucketname`, COLLECT_SET(t.offset) AS `_offsets` FROM
       WHERE key = 0 AND NOT EWAH_BITMAP_EMPTY(`_bitmaps`) UNION ALL
    SELECT `_bucketname` AS bucketname, `_offset` AS offset
       FROM default__src_src2_index__
-      WHERE value = "val2" AND NOT EWAH_BITMAP_EMPTY(`_bitmaps`)) t
+      WHERE value = "val_2" AND NOT EWAH_BITMAP_EMPTY(`_bitmaps`)) t
 GROUP BY t.bucketname
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@default__src_src1_index__

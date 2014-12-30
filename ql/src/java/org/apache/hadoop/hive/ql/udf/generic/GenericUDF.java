@@ -179,8 +179,20 @@ public abstract class GenericUDF implements Closeable {
   /**
    * Get the String to be displayed in explain.
    */
-  public abstract String getDisplayString(String[] children);
-
+  public String getDisplayString(String[] children) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(getUdfName());
+    sb.append('(');
+    for (int i = 0; i < children.length; i++) {
+      if (i > 0) {
+        sb.append(',');
+      }
+      sb.append(children[i]);
+    }
+    sb.append(')');
+    return sb.toString();
+  }
+  
   /**
    * Close GenericUDF.
    * This is only called in runtime of MapRedTask.

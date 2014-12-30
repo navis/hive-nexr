@@ -22,19 +22,16 @@ import java.io.IOException;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.LongObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorUtils;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
 /**
  * An ObjectOutput that allows conversion from an EWAH-compressed bitmap
  * to an List of LongWritable.
  */
 public class BitmapObjectOutput implements ObjectOutput {
-  ArrayList<LongWritable> buffer = new ArrayList<LongWritable>();
+  
+  List<Long> buffer = new ArrayList<Long>();
 
-  public List<LongWritable> list() {
+  public List<Long> list() {
     return buffer;
   }
 
@@ -105,12 +102,12 @@ public class BitmapObjectOutput implements ObjectOutput {
 
   @Override
   public void writeInt(int v) throws IOException {
-    buffer.add(new LongWritable(v));
+    buffer.add((long)v);
   }
 
   @Override
   public void writeLong(long v) throws IOException {
-    buffer.add(new LongWritable(v));
+    buffer.add(v);
   }
 
   @Override
@@ -123,4 +120,7 @@ public class BitmapObjectOutput implements ObjectOutput {
     throw new UnsupportedOperationException();
   }
 
+  public void clear() {
+    buffer.clear();
+  }
 }

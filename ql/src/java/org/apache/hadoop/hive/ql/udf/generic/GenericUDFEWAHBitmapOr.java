@@ -18,7 +18,7 @@
 
 package org.apache.hadoop.hive.ql.udf.generic;
 
-import javaewah.EWAHCompressedBitmap;
+import com.googlecode.javaewah.EWAHCompressedBitmap;
 
 import org.apache.hadoop.hive.ql.exec.Description;
 
@@ -36,7 +36,8 @@ public class GenericUDFEWAHBitmapOr extends AbstractGenericUDFEWAHBitmapBop {
 
   @Override
   protected EWAHCompressedBitmap bitmapBop(
-      EWAHCompressedBitmap bitmap1, EWAHCompressedBitmap bitmap2) {
-    return bitmap1.or(bitmap2);
+      EWAHCompressedBitmap bitmap1, EWAHCompressedBitmap bitmap2, EWAHCompressedBitmap container) {
+    bitmap1.orToContainer(bitmap2, container);
+    return container;
   }
 }
