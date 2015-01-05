@@ -249,9 +249,9 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t1
 POSTHOOK: Output: default@t2
 POSTHOOK: Lineage: t2.a SIMPLE [(t1)t1.FieldSchema(name:a, type:string, comment:null), ]
-POSTHOOK: Lineage: t2.b SIMPLE [(t1)t1.FieldSchema(name:b, type:string, comment:null), ]
-POSTHOOK: Lineage: t2.c EXPRESSION [(t1)t1.FieldSchema(name:c, type:string, comment:null), ]
-POSTHOOK: Lineage: t2.d EXPRESSION [(t1)t1.FieldSchema(name:c, type:string, comment:null), ]
+POSTHOOK: Lineage: t2.b SIMPLE [(t1)t1.FieldSchema(name:a, type:string, comment:null), ]
+POSTHOOK: Lineage: t2.c EXPRESSION [(t1)t1.FieldSchema(name:a, type:string, comment:null), ]
+POSTHOOK: Lineage: t2.d EXPRESSION [(t1)t1.FieldSchema(name:a, type:string, comment:null), ]
 PREHOOK: query: EXPLAIN
 SELECT a, b, sum(c+d) from T2 group by a, b with cube
 PREHOOK: type: QUERY
@@ -344,18 +344,19 @@ POSTHOOK: query: SELECT a, b, sum(c+d) from T2 group by a, b with cube
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t2
 #### A masked pattern was here ####
-NULL	NULL	46
-NULL	1	8
-NULL	2	28
-NULL	3	10
-1	NULL	6
-1	1	6
-2	NULL	18
+NULL	NULL	42
+NULL	1	2
+NULL	2	8
+NULL	3	6
+NULL	5	10
+NULL	8	16
+1	NULL	2
+1	1	2
+2	NULL	8
 2	2	8
-2	3	10
-3	NULL	16
-3	2	16
-5	NULL	4
-5	2	4
-8	NULL	2
-8	1	2
+3	NULL	6
+3	3	6
+5	NULL	10
+5	5	10
+8	NULL	16
+8	8	16

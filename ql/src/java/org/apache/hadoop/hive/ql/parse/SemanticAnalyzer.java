@@ -25,6 +25,7 @@ import java.io.Serializable;
 import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -2883,7 +2884,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
   // TODO: make aliases unique, otherwise needless rewriting takes place
   int genColListRegex(String colRegex, String tabAlias, ASTNode sel,
     ArrayList<ExprNodeDesc> col_list, HashSet<ColumnInfo> excludeCols, RowResolver input,
-    RowResolver colSrcRR, int pos, RowResolver output, List<String> aliases,
+    RowResolver colSrcRR, int pos, RowResolver output, Collection<String> aliases,
     boolean ensureUniqueCols) throws SemanticException {
 
     if (colSrcRR == null) {
@@ -2989,8 +2990,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           }
         } else {
           output.put(tmp[0], tmp[1], oColInfo);
-          pos++;
         }
+        pos++;
         matched++;
 
         if (unparseTranslator.isEnabled()) {
@@ -3521,7 +3522,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
     if (root.getType() == HiveParser.DOT) {
       ASTNode tab = (ASTNode) root.getChild(0);
-      if (tab.getType() != HiveParser.TOK_TABLE_OR_COL) {
+      if (tab.getType() == HiveParser.TOK_TABLE_OR_COL) {
         String t = unescapeIdentifier(tab.getChild(0).getText());
         if (inputRR.hasTableAlias(t)) {
           alias.tableAlias = t;
@@ -3968,7 +3969,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     if (colAlias.functionString != null) {
       return colAlias.functionString + outPos;
     }
-    return ExprNodeDescUtils.recommendInputName(exp);
+    String column = ExprNodeDescUtils.recommendInputName(exp);
+    if (column != null && !column.startsWith(autogenColAliasPrfxLbl)) {
+      return column;
+    }
+    return null;
   }
 
   String generateOuputColName(int outPos) {

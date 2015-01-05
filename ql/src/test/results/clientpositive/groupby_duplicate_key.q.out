@@ -165,13 +165,13 @@ POSTHOOK: query: select key,dummy1,dummy2 from dummy
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@dummy
 #### A masked pattern was here ####
-165	X	X
-238	X	X
-255	X	X
-27	X	X
-278	X	X
-311	X	X
-409	X	X
-484	X	X
-86	X	X
-98	X	X
+165	165	165
+238	238	238
+255	255	255
+27	27	27
+278	278	278
+311	311	311
+409	409	409
+484	484	484
+86	86	86
+98	98	98
