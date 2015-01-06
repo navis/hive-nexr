@@ -1041,6 +1041,10 @@ public final class ObjectInspectorUtils {
     return ((ConstantObjectInspector)oi).getWritableConstantValue();
   }
 
+  public static String getConstantString(ObjectInspector oi) {
+    return ((ConstantObjectInspector)oi).getWritableConstantValue().toString();
+  }
+
   public static boolean supportsConstantObjectInspector(ObjectInspector oi) {
     switch (oi.getCategory()) {
       case PRIMITIVE:

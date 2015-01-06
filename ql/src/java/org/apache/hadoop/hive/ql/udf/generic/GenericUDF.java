@@ -21,6 +21,7 @@ package org.apache.hadoop.hive.ql.udf.generic;
 import java.io.Closeable;
 import java.io.IOException;
 
+import org.apache.hadoop.hive.ql.exec.Description;
 import org.apache.hadoop.hive.ql.exec.MapredContext;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
@@ -29,6 +30,7 @@ import org.apache.hadoop.hive.ql.udf.UDFType;
 import org.apache.hadoop.hive.serde2.objectinspector.ConstantObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
+import org.apache.hive.common.util.AnnotationUtils;
 
 /**
  * A Generic User-defined function (GenericUDF) for the use with Hive.
@@ -179,7 +181,18 @@ public abstract class GenericUDF implements Closeable {
   /**
    * Get the String to be displayed in explain.
    */
-  public abstract String getDisplayString(String[] children);
+  public String getDisplayString(String[] children) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(getUdfName()).append('(');
+    for (int i = 0; i < children.length; i++) {
+      sb.append(children[i]);
+      if (i + 1 != children.length) {
+        sb.append(',');
+      }
+    }
+    sb.append(')');
+    return sb.toString();
+  }
 
   /**
    * Close GenericUDF.
@@ -196,7 +209,8 @@ public abstract class GenericUDF implements Closeable {
   }
 
   public String getUdfName() {
-    return getClass().getName();
+    Description description = AnnotationUtils.getAnnotation(getClass(), Description.class);
+    return description == null ? getClass().getName() : description.name();
   }
 
   /**
