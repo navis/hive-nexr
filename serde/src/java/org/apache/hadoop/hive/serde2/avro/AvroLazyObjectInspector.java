@@ -88,7 +88,7 @@ public class AvroLazyObjectInspector extends LazySimpleStructObjectInspector {
   @Deprecated
   public AvroLazyObjectInspector(List<String> structFieldNames,
       List<ObjectInspector> structFieldObjectInspectors, List<String> structFieldComments,
-      byte separator, Text nullSequence, boolean lastColumnTakesRest, boolean escaped,
+      byte[] separator, Text nullSequence, boolean lastColumnTakesRest, boolean escaped,
       byte escapeChar) {
     super(structFieldNames, structFieldObjectInspectors, structFieldComments, separator,
         nullSequence, lastColumnTakesRest, escaped, escapeChar);
@@ -96,7 +96,7 @@ public class AvroLazyObjectInspector extends LazySimpleStructObjectInspector {
 
   public AvroLazyObjectInspector(List<String> structFieldNames,
       List<ObjectInspector> structFieldObjectInspectors, List<String> structFieldComments,
-      byte separator, LazyObjectInspectorParameters lazyParams) {
+      byte[] separator, LazyObjectInspectorParameters lazyParams) {
     super(structFieldNames, structFieldObjectInspectors, structFieldComments, separator, lazyParams);
   }
 

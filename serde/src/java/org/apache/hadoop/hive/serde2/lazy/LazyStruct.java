@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import com.google.common.primitives.Bytes;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.serde2.SerDeException;
@@ -57,8 +56,11 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
    * Note that startPosition[arrayLength] = begin + length + 1; that makes sure
    * we can use the same formula to compute the length of each element of the
    * array.
+   *
+   * note updated to use separate arrays for start and end position to allow for trim
    */
-  int[] startPosition;
+  int[] fieldStart;
+  int[] fieldLength;
 
   /**
    * The fields of the struct.
@@ -96,7 +98,7 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
    */
   private void parse() {
 
-    byte separator = oi.getSeparator();
+    byte[] separator = oi.getSeparator();
     boolean lastColumnTakesRest = oi.getLastColumnTakesRest();
     boolean isEscaped = oi.isEscaped();
     byte escapeChar = oi.getEscapeChar();
@@ -105,48 +107,40 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
       initLazyFields(oi.getAllStructFieldRefs());
     }
 
-    int structByteEnd = start + length;
-    int fieldId = 0;
-    int fieldByteBegin = start;
-    int fieldByteEnd = start;
-    byte[] bytes = this.bytes.getData();
+    final int structByteEnd = start + length;
+    
+    final byte[] data = bytes.getData();
 
     // Go through all bytes in the byte[]
-    while (fieldByteEnd <= structByteEnd) {
-      if (fieldByteEnd == structByteEnd || bytes[fieldByteEnd] == separator) {
-        // Reached the end of a field?
-        if (lastColumnTakesRest && fieldId == fields.length - 1) {
-          fieldByteEnd = structByteEnd;
-        }
-        startPosition[fieldId] = fieldByteBegin;
-        fieldId++;
-        if (fieldId == fields.length || fieldByteEnd == structByteEnd) {
-          // All fields have been parsed, or bytes have been parsed.
-          // We need to set the startPosition of fields.length to ensure we
-          // can use the same formula to calculate the length of each field.
-          // For missing fields, their starting positions will all be the same,
-          // which will make their lengths to be -1 and uncheckedGetField will
-          // return these fields as NULLs.
-          for (int i = fieldId; i <= fields.length; i++) {
-            startPosition[i] = fieldByteEnd + 1;
-          }
+    
+    Arrays.fill(fieldStart, -1);
+    Arrays.fill(fieldLength, -1);
+
+    int fieldId = 0;
+    int index = start;
+    
+    fieldStart[0] = index;
+    while (index <= structByteEnd) {
+      if (index == structByteEnd || isDelimiter(data, index, separator)) {
+        if (fieldId == fields.length - 1) {
+          fieldLength[fieldId] = 
+              (lastColumnTakesRest ? structByteEnd : index) - fieldStart[fieldId];
           break;
         }
-        fieldByteBegin = fieldByteEnd + 1;
-        fieldByteEnd++;
+        fieldLength[fieldId] = index - fieldStart[fieldId];
+        fieldStart[++fieldId] = index += separator.length;
       } else {
-        if (isEscaped && bytes[fieldByteEnd] == escapeChar
-            && fieldByteEnd + 1 < structByteEnd) {
+        if (isEscaped && data[index] == escapeChar) {
           // ignore the char after escape_char
-          fieldByteEnd += 2;
+          index += 2;
         } else {
-          fieldByteEnd++;
+          index++;
         }
       }
     }
 
     // Extra bytes at the end?
-    if (!extraFieldWarned && fieldByteEnd < structByteEnd) {
+    if (!extraFieldWarned && index < structByteEnd) {
       extraFieldWarned = true;
       LOG.warn("Extra bytes detected at the end of the row! Ignoring similar "
           + "problems.");
@@ -173,9 +167,8 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
       }
     }
     fieldInited = new boolean[fields.length];
-    // Extra element to make sure we have the same formula to compute the
-    // length of each element of the array.
-    startPosition = new int[fields.length + 1];
+    fieldStart = new int[fields.length];
+    fieldLength = new int[fields.length];
   }
 
   protected LazyObjectBase createLazyField(int fieldID, StructField fieldRef) throws SerDeException {
@@ -218,12 +211,10 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
     }
     fieldInited[fieldID] = true;
 
-    int fieldByteBegin = startPosition[fieldID];
-    int fieldLength = startPosition[fieldID + 1] - startPosition[fieldID] - 1;
-    if (isNull(oi.getNullSequence(), bytes, fieldByteBegin, fieldLength)) {
+    if (isNull(oi.getNullSequence(), bytes, fieldStart[fieldID], fieldLength[fieldID])) {
       fields[fieldID].setNull();
     } else {
-      fields[fieldID].init(bytes, fieldByteBegin, fieldLength);
+      fields[fieldID].init(bytes, fieldStart[fieldID], fieldLength[fieldID]);
     }
     return fields[fieldID].getObject();
   }
@@ -278,59 +269,16 @@ public class LazyStruct extends LazyNonPrimitive<LazySimpleStructObjectInspector
     return serializedSize;
   }
 
-  // parse the struct using multi-char delimiter
-  public void parseMultiDelimit(byte[] rawRow, byte[] fieldDelimit) {
-    if (rawRow == null || fieldDelimit == null) {
-      return;
+  private boolean isDelimiter(byte[] data, int index, byte[] delimiter) {
+    if (data.length < index + delimiter.length) {
+      return false;
     }
-    if (fields == null) {
-      List<? extends StructField> fieldRefs = oi.getAllStructFieldRefs();
-      fields = new LazyObject[fieldRefs.size()];
-      for (int i = 0; i < fields.length; i++) {
-        fields[i] = LazyFactory.createLazyObject(fieldRefs.get(i).getFieldObjectInspector());
-      }
-      fieldInited = new boolean[fields.length];
-      startPosition = new int[fields.length + 1];
-    }
-    // the indexes of the delimiters
-    int[] delimitIndexes = findIndexes(rawRow, fieldDelimit);
-    int diff = fieldDelimit.length - 1;
-    // first field always starts from 0, even when missing
-    startPosition[0] = 0;
-    for (int i = 1; i < fields.length; i++) {
-      if (delimitIndexes[i - 1] != -1) {
-        int start = delimitIndexes[i - 1] + fieldDelimit.length;
-        startPosition[i] = start - i * diff;
-      } else {
-        startPosition[i] = length + 1;
+    for (int i = 0; i < delimiter.length; i++) {
+      if (data[index + i] != delimiter[i]) {
+        return false;
       }
     }
-    startPosition[fields.length] = length + 1;
-    Arrays.fill(fieldInited, false);
-    parsed = true;
-  }
-
-  // find all the indexes of the sub byte[]
-  private int[] findIndexes(byte[] array, byte[] target) {
-    if (fields.length <= 1) {
-      return new int[0];
-    }
-    int[] indexes = new int[fields.length - 1];
-    Arrays.fill(indexes, -1);
-    indexes[0] = Bytes.indexOf(array, target);
-    if (indexes[0] == -1) {
-      return indexes;
-    }
-    int indexInNewArray = indexes[0];
-    for (int i = 1; i < indexes.length; i++) {
-      array = Arrays.copyOfRange(array, indexInNewArray + target.length, array.length);
-      indexInNewArray = Bytes.indexOf(array, target);
-      if (indexInNewArray == -1) {
-        break;
-      }
-      indexes[i] = indexInNewArray + indexes[i - 1] + target.length;
-    }
-    return indexes;
+    return true;
   }
 
   /**

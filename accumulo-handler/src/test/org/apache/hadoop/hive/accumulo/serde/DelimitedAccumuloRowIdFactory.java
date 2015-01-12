@@ -63,7 +63,7 @@ public class DelimitedAccumuloRowIdFactory extends DefaultAccumuloRowIdFactory {
 
   @Override
   public ObjectInspector createRowIdObjectInspector(TypeInfo type) throws SerDeException {
-    return LazyFactory.createLazyObjectInspector(type, new byte[] {separator}, 0,
+    return LazyFactory.createLazyObjectInspector(type, new byte[][] {{separator}}, 0,
         serdeParams.getNullSequence(), serdeParams.isEscaped(), serdeParams.getEscapeChar());
   }
 

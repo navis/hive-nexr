@@ -144,7 +144,7 @@ public class HiveIndexResult {
     int firstEnd = 0;
     int i = 0;
     for (int index = 0; index < bytes.length; index++) {
-      if (bytes[index] == LazySerDeParameters.DefaultSeparators[0]) {
+      if (bytes[index] == LazySerDeParameters.DefaultSeparators[0][0]) {
         i++;
         firstEnd = index;
       }
@@ -169,7 +169,7 @@ public class HiveIndexResult {
     int currentStart = firstEnd + 1;
     int currentEnd = firstEnd + 1;
     for (; currentEnd < bytes.length; currentEnd++) {
-      if (bytes[currentEnd] == LazySerDeParameters.DefaultSeparators[1]) {
+      if (bytes[currentEnd] == LazySerDeParameters.DefaultSeparators[1][0]) {
         String one_offset = new String(bytes, currentStart, currentEnd
             - currentStart);
         Long offset = Long.parseLong(one_offset);

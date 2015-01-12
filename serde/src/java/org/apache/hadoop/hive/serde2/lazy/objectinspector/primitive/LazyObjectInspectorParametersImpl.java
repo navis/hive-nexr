@@ -23,7 +23,6 @@ import java.util.List;
 
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.io.Text;
 
 public class LazyObjectInspectorParametersImpl implements
@@ -32,7 +31,7 @@ public class LazyObjectInspectorParametersImpl implements
   protected byte escapeChar;
   protected boolean extendedBooleanLiteral;
   protected List<String> timestampFormats;
-  protected byte[] separators;
+  protected byte[][] separators;
   protected Text nullSequence;
   protected boolean lastColumnTakesRest;
 
@@ -45,7 +44,7 @@ public class LazyObjectInspectorParametersImpl implements
 
   public LazyObjectInspectorParametersImpl(boolean escaped, byte escapeChar,
       boolean extendedBooleanLiteral, List<String> timestampFormats,
-      byte[] separators, Text nullSequence) {
+      byte[][] separators, Text nullSequence) {
     super();
     this.escaped = escaped;
     this.escapeChar = escapeChar;
@@ -58,7 +57,7 @@ public class LazyObjectInspectorParametersImpl implements
 
   public LazyObjectInspectorParametersImpl(boolean escaped, byte escapeChar,
       boolean extendedBooleanLiteral, List<String> timestampFormats,
-      byte[] separators, Text nullSequence, boolean lastColumnTakesRest) {
+      byte[][] separators, Text nullSequence, boolean lastColumnTakesRest) {
     super();
     this.escaped = escaped;
     this.escapeChar = escapeChar;
@@ -100,7 +99,7 @@ public class LazyObjectInspectorParametersImpl implements
   }
 
   @Override
-  public byte[] getSeparators() {
+  public byte[][] getSeparators() {
     return separators;
   }
 

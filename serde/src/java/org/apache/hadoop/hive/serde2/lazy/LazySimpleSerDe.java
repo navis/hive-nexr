@@ -19,18 +19,14 @@
 package org.apache.hadoop.hive.serde2.lazy;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.AbstractEncodingAwareSerDe;
 import org.apache.hadoop.hive.serde2.ByteStream;
@@ -38,8 +34,6 @@ import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeSpec;
 import org.apache.hadoop.hive.serde2.SerDeStats;
 import org.apache.hadoop.hive.serde2.SerDeUtils;
-import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyObjectInspectorParameters;
-import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyObjectInspectorParametersImpl;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.MapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -50,14 +44,10 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.UnionObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.io.BinaryComparable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.hive.common.util.HiveStringUtils;
-
 
 /**
  * LazySimpleSerDe can be used to read the same data format as
@@ -290,7 +280,7 @@ public class LazySimpleSerDe extends AbstractEncodingAwareSerDe {
    * @throws SerDeException
    */
   public static void serialize(ByteStream.Output out, Object obj,
-      ObjectInspector objInspector, byte[] separators, int level,
+      ObjectInspector objInspector, byte[][] separators, int level,
       Text nullSequence, boolean escaped, byte escapeChar, boolean[] needsEscape)
       throws IOException, SerDeException {
 
@@ -299,7 +289,7 @@ public class LazySimpleSerDe extends AbstractEncodingAwareSerDe {
       return;
     }
 
-    char separator;
+    byte[] separator;
     List<?> list;
     switch (objInspector.getCategory()) {
     case PRIMITIVE:
@@ -308,7 +298,7 @@ public class LazySimpleSerDe extends AbstractEncodingAwareSerDe {
           needsEscape);
       return;
     case LIST:
-      separator = (char) LazyUtils.getSeparator(separators, level);
+      separator = LazyUtils.getSeparator(separators, level);
       ListObjectInspector loi = (ListObjectInspector) objInspector;
       list = loi.getList(obj);
       ObjectInspector eoi = loi.getListElementObjectInspector();
@@ -325,9 +315,8 @@ public class LazySimpleSerDe extends AbstractEncodingAwareSerDe {
       }
       return;
     case MAP:
-      separator = (char) LazyUtils.getSeparator(separators, level);
-      char keyValueSeparator =
-           (char) LazyUtils.getSeparator(separators, level + 1);
+      separator = LazyUtils.getSeparator(separators, level);
+      byte[] keyValueSeparator = LazyUtils.getSeparator(separators, level + 1);
 
       MapObjectInspector moi = (MapObjectInspector) objInspector;
       ObjectInspector koi = moi.getMapKeyObjectInspector();
@@ -352,7 +341,7 @@ public class LazySimpleSerDe extends AbstractEncodingAwareSerDe {
       }
       return;
     case STRUCT:
-      separator = (char) LazyUtils.getSeparator(separators, level);
+      separator = LazyUtils.getSeparator(separators, level);
       StructObjectInspector soi = (StructObjectInspector) objInspector;
       List<? extends StructField> fields = soi.getAllStructFieldRefs();
       list = soi.getStructFieldsDataAsList(obj);
@@ -370,7 +359,7 @@ public class LazySimpleSerDe extends AbstractEncodingAwareSerDe {
       }
       return;
     case UNION:
-      separator = (char) LazyUtils.getSeparator(separators, level);
+      separator = LazyUtils.getSeparator(separators, level);
       UnionObjectInspector uoi = (UnionObjectInspector) objInspector;
       List<? extends ObjectInspector> ois = uoi.getObjectInspectors();
       if (ois == null) {

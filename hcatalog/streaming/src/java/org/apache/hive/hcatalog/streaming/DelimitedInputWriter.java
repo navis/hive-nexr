@@ -30,8 +30,8 @@ import org.apache.hadoop.hive.serde2.AbstractSerDe;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeUtils;
-import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.serde2.lazy.LazySerDeParameters;
+import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.io.BytesWritable;
 
 import java.io.IOException;
@@ -48,7 +48,7 @@ import java.util.Properties;
 public class DelimitedInputWriter extends AbstractRecordWriter {
   private final boolean reorderingNeeded;
   private String delimiter;
-  private char serdeSeparator;
+  private final String serdeSeparator;
   private int[] fieldToColMapping;
   private final ArrayList<String> tableColumns;
   private AbstractSerDe serde = null;
@@ -90,9 +90,14 @@ public class DelimitedInputWriter extends AbstractRecordWriter {
           throws ClassNotFoundException, ConnectionError, SerializationError,
                  InvalidColumn, StreamingException {
      this(colNamesForFields, delimiter, endPoint, conf,
-             (char) LazySerDeParameters.DefaultSeparators[0]);
+             new String(LazySerDeParameters.DefaultSeparators[0]));
    }
 
+  public DelimitedInputWriter(String[] colNamesForFields, String delimiter,
+      HiveEndPoint endPoint, HiveConf conf, char serdeSeparator) 
+      throws ClassNotFoundException, StreamingException {
+    this(colNamesForFields, delimiter, endPoint, conf, String.valueOf(serdeSeparator));
+  }
   /**
    * Constructor. Allows overriding separator of the LazySimpleSerde
    * @param colNamesForFields Column name assignment for input fields
@@ -109,7 +114,7 @@ public class DelimitedInputWriter extends AbstractRecordWriter {
    * @throws InvalidColumn any element in colNamesForFields refers to a non existing column
    */
   public DelimitedInputWriter(String[] colNamesForFields, String delimiter,
-                              HiveEndPoint endPoint, HiveConf conf, char serdeSeparator)
+                              HiveEndPoint endPoint, HiveConf conf, String serdeSeparator)
           throws ClassNotFoundException, ConnectionError, SerializationError,
                  InvalidColumn, StreamingException {
     super(endPoint, conf);
@@ -119,11 +124,10 @@ public class DelimitedInputWriter extends AbstractRecordWriter {
     this.fieldToColMapping = getFieldReordering(colNamesForFields, getTableColumns());
     this.reorderingNeeded = isReorderingNeeded(delimiter, getTableColumns());
     LOG.debug("Field reordering needed = " + this.reorderingNeeded + ", for endpoint " + endPoint);
-    this.serdeSeparator = serdeSeparator;
   }
 
   private boolean isReorderingNeeded(String delimiter, ArrayList<String> tableColumns) {
-    return !( delimiter.equals(String.valueOf(getSerdeSeparator()))
+    return !( delimiter.equals(getSerdeSeparator())
             && areFieldsInColOrder(fieldToColMapping)
             && tableColumns.size()>=fieldToColMapping.length );
   }
@@ -185,7 +189,7 @@ public class DelimitedInputWriter extends AbstractRecordWriter {
 
   // handles nulls in items[]
   // TODO: perhaps can be made more efficient by creating a byte[] directly
-  private static byte[] join(String[] items, char separator) {
+  private static byte[] join(String[] items, String separator) {
     StringBuffer buff = new StringBuffer(100);
     if(items.length == 0)
       return "".getBytes();
@@ -248,7 +252,7 @@ public class DelimitedInputWriter extends AbstractRecordWriter {
           throws SerializationError {
     try {
       Properties tableProps = MetaStoreUtils.getTableMetadata(tbl);
-      tableProps.setProperty("field.delim", String.valueOf(serdeSeparator));
+      tableProps.setProperty("field.delim", getSerdeSeparator());
       LazySimpleSerDe serde = new LazySimpleSerDe();
       SerDeUtils.initializeSerDe(serde, conf, tableProps, null);
       return serde;
@@ -266,7 +270,7 @@ public class DelimitedInputWriter extends AbstractRecordWriter {
     return  colNames;
   }
 
-  public char getSerdeSeparator() {
+  public String getSerdeSeparator() {
     return serdeSeparator;
   }
 }

@@ -48,7 +48,7 @@ public final class LazyObjectInspectorFactory {
   @Deprecated
   public static LazySimpleStructObjectInspector getLazySimpleStructObjectInspector(
       List<String> structFieldNames,
-      List<ObjectInspector> structFieldObjectInspectors, byte separator,
+      List<ObjectInspector> structFieldObjectInspectors, byte[] separator,
       Text nullSequence, boolean lastColumnTakesRest, boolean escaped,
       byte escapeChar) {
     return getLazySimpleStructObjectInspector(structFieldNames,
@@ -59,7 +59,7 @@ public final class LazyObjectInspectorFactory {
   @Deprecated
   public static LazySimpleStructObjectInspector getLazySimpleStructObjectInspector(
       List<String> structFieldNames,
-      List<ObjectInspector> structFieldObjectInspectors, byte separator,
+      List<ObjectInspector> structFieldObjectInspectors, byte[] separator,
       Text nullSequence, boolean lastColumnTakesRest, boolean escaped,
       byte escapeChar, ObjectInspectorOptions option) {
     return getLazySimpleStructObjectInspector(structFieldNames,
@@ -71,7 +71,7 @@ public final class LazyObjectInspectorFactory {
   public static LazySimpleStructObjectInspector getLazySimpleStructObjectInspector(
       List<String> structFieldNames,
       List<ObjectInspector> structFieldObjectInspectors, List<String> structFieldComments,
-      byte separator, Text nullSequence, boolean lastColumnTakesRest,
+      byte[] separator, Text nullSequence, boolean lastColumnTakesRest,
       boolean escaped, byte escapeChar) {
     return getLazySimpleStructObjectInspector(structFieldNames, structFieldObjectInspectors,
       structFieldComments, separator, nullSequence, lastColumnTakesRest, escaped, escapeChar,
@@ -82,7 +82,7 @@ public final class LazyObjectInspectorFactory {
   public static LazySimpleStructObjectInspector getLazySimpleStructObjectInspector(
       List<String> structFieldNames,
       List<ObjectInspector> structFieldObjectInspectors, List<String> structFieldComments,
-      byte separator, Text nullSequence, boolean lastColumnTakesRest,
+      byte[] separator, Text nullSequence, boolean lastColumnTakesRest,
       boolean escaped,byte escapeChar, ObjectInspectorOptions option) {
 
     return getLazySimpleStructObjectInspector(structFieldNames, structFieldObjectInspectors,
@@ -95,12 +95,12 @@ public final class LazyObjectInspectorFactory {
   public static LazySimpleStructObjectInspector getLazySimpleStructObjectInspector(
       List<String> structFieldNames,
       List<ObjectInspector> structFieldObjectInspectors, List<String> structFieldComments,
-      byte separator,
+      byte[] separator,
       LazyObjectInspectorParameters lazyParams, ObjectInspectorOptions option) {
     ArrayList<Object> signature = new ArrayList<Object>();
     signature.add(structFieldNames);
     signature.add(structFieldObjectInspectors);
-    signature.add(Byte.valueOf(separator));
+    signature.add(new String(separator));
     signature.add(lazyParams.getNullSequence().toString());
     signature.add(Boolean.valueOf(lazyParams.isLastColumnTakesRest()));
     LazyObjectInspectorFactory.addCommonLazyParamsToSignature(lazyParams, signature);

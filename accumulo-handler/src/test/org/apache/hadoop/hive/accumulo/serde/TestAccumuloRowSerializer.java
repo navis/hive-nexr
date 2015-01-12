@@ -255,7 +255,7 @@ public class TestAccumuloRowSerializer {
 
     TypeInfo stringTypeInfo = TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME);
     LazyStringObjectInspector stringOI = (LazyStringObjectInspector) LazyFactory
-        .createLazyObjectInspector(stringTypeInfo, new byte[] {0}, 0,
+        .createLazyObjectInspector(stringTypeInfo, new byte[][] {{0}}, 0,
             serDeParams.getNullSequence(), serDeParams.isEscaped(), serDeParams.getEscapeChar());
 
     LazyMapObjectInspector mapOI = LazyObjectInspectorFactory.getLazySimpleMapObjectInspector(
@@ -263,7 +263,7 @@ public class TestAccumuloRowSerializer {
         serDeParams.isEscaped(), serDeParams.getEscapeChar());
 
     LazySimpleStructObjectInspector structOI = (LazySimpleStructObjectInspector) LazyObjectInspectorFactory
-        .getLazySimpleStructObjectInspector(columns, Arrays.asList(stringOI, mapOI), (byte) ' ',
+        .getLazySimpleStructObjectInspector(columns, Arrays.asList(stringOI, mapOI), new byte[]{' '},
             serDeParams.getNullSequence(), serDeParams.isLastColumnTakesRest(),
             serDeParams.isEscaped(), serDeParams.getEscapeChar());
 

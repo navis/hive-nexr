@@ -43,7 +43,7 @@ import org.apache.hadoop.io.Text;
  */
 public class LazySimpleStructObjectInspector extends BaseStructObjectInspector {
 
-  private byte separator;
+  private byte[] separator;
   private LazyObjectInspectorParameters lazyParams;
 
   protected LazySimpleStructObjectInspector() {
@@ -55,7 +55,7 @@ public class LazySimpleStructObjectInspector extends BaseStructObjectInspector {
    */
   @Deprecated
   protected LazySimpleStructObjectInspector(List<String> structFieldNames,
-      List<ObjectInspector> structFieldObjectInspectors, byte separator,
+      List<ObjectInspector> structFieldObjectInspectors, byte[] separator,
       Text nullSequence, boolean lastColumnTakesRest, boolean escaped,
       byte escapeChar) {
     init(structFieldNames, structFieldObjectInspectors, null, separator,
@@ -65,7 +65,7 @@ public class LazySimpleStructObjectInspector extends BaseStructObjectInspector {
   @Deprecated
   public LazySimpleStructObjectInspector(List<String> structFieldNames,
       List<ObjectInspector> structFieldObjectInspectors,
-      List<String> structFieldComments, byte separator, Text nullSequence,
+      List<String> structFieldComments, byte[] separator, Text nullSequence,
       boolean lastColumnTakesRest, boolean escaped, byte escapeChar) {
     init(structFieldNames, structFieldObjectInspectors, structFieldComments,
         separator, nullSequence, lastColumnTakesRest, escaped, escapeChar);
@@ -73,14 +73,14 @@ public class LazySimpleStructObjectInspector extends BaseStructObjectInspector {
 
   public LazySimpleStructObjectInspector(List<String> structFieldNames,
       List<ObjectInspector> structFieldObjectInspectors,
-      List<String> structFieldComments, byte separator, LazyObjectInspectorParameters lazyParams) {
+      List<String> structFieldComments, byte[] separator, LazyObjectInspectorParameters lazyParams) {
     init(structFieldNames, structFieldObjectInspectors, structFieldComments,
         separator, lazyParams);
   }
 
   protected void init(List<String> structFieldNames,
       List<ObjectInspector> structFieldObjectInspectors,
-      List<String> structFieldComments, byte separator,
+      List<String> structFieldComments, byte[] separator,
       Text nullSequence, boolean lastColumnTakesRest, boolean escaped,
       byte escapeChar) {
     LazyObjectInspectorParameters lazyParams =
@@ -92,7 +92,7 @@ public class LazySimpleStructObjectInspector extends BaseStructObjectInspector {
 
   protected void init(List<String> structFieldNames,
       List<ObjectInspector> structFieldObjectInspectors,
-      List<String> structFieldComments, byte separator,
+      List<String> structFieldComments, byte[] separator,
       LazyObjectInspectorParameters lazyParams) {
     init(structFieldNames, structFieldObjectInspectors, structFieldComments);
     this.separator = separator;
@@ -145,7 +145,7 @@ public class LazySimpleStructObjectInspector extends BaseStructObjectInspector {
   }
 
   // For LazyStruct
-  public byte getSeparator() {
+  public byte[] getSeparator() {
     return separator;
   }
 

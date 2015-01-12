@@ -96,9 +96,6 @@ public class AccumuloRowSerializer {
     StructField field = fields.get(rowIdOffset);
     Object value = columnValues.get(rowIdOffset);
 
-    // The ObjectInspector for the row ID
-    ObjectInspector fieldObjectInspector = field.getFieldObjectInspector();
-
     // Serialize the row component using the RowIdFactory. In the normal case, this will just
     // delegate back to the "local" serializeRowId method
     byte[] data = rowIdFactory.serializeRowId(value, field, output);
@@ -122,7 +119,7 @@ public class AccumuloRowSerializer {
       }
 
       // The ObjectInspector for the current column
-      fieldObjectInspector = field.getFieldObjectInspector();
+      ObjectInspector fieldObjectInspector = field.getFieldObjectInspector();
 
       // Make sure we got the right implementation of a ColumnMapping
       ColumnMapping mapping = mappings.get(i);
@@ -273,7 +270,7 @@ public class AccumuloRowSerializer {
         }
         return;
       case LIST:
-        char separator = (char) serDeParams.getSeparators()[level];
+        byte[] separator = serDeParams.getSeparators()[level];
         ListObjectInspector loi = (ListObjectInspector) oi;
         List<?> list = loi.getList(value);
         ObjectInspector eoi = loi.getListElementObjectInspector();
@@ -290,8 +287,8 @@ public class AccumuloRowSerializer {
         }
         return;
       case MAP:
-        char sep = (char) serDeParams.getSeparators()[level];
-        char keyValueSeparator = (char) serDeParams.getSeparators()[level + 1];
+        byte[] sep = serDeParams.getSeparators()[level];
+        byte[] keyValueSeparator = serDeParams.getSeparators()[level + 1];
         MapObjectInspector moi = (MapObjectInspector) oi;
         ObjectInspector koi = moi.getMapKeyObjectInspector();
         ObjectInspector voi = moi.getMapValueObjectInspector();
@@ -315,7 +312,7 @@ public class AccumuloRowSerializer {
         }
         return;
       case STRUCT:
-        sep = (char) serDeParams.getSeparators()[level];
+        sep = serDeParams.getSeparators()[level];
         StructObjectInspector soi = (StructObjectInspector) oi;
         List<? extends StructField> fields = soi.getAllStructFieldRefs();
         list = soi.getStructFieldsDataAsList(value);

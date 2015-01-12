@@ -51,7 +51,7 @@ public class HBaseRowSerializer {
   private final ColumnMapping keyMapping;
   private final ColumnMapping timestampMapping;
   private final ColumnMapping[] columnMappings;
-  private final byte[] separators;      // the separators array
+  private final byte[][] separators;      // the separators array
   private final boolean escaped;        // whether we need to escape the data when writing out
   private final byte escapeChar;        // which char to use as the escape char, e.g. '\\'
   private final boolean[] needsEscape;  // which chars need to be escaped. 
@@ -237,7 +237,7 @@ public class HBaseRowSerializer {
             (PrimitiveObjectInspector) objInspector, escaped, escapeChar, needsEscape);
         return true;
       case LIST:
-        char separator = (char) separators[level];
+        byte[] separator = separators[level];
         ListObjectInspector loi = (ListObjectInspector)objInspector;
         List<?> list = loi.getList(obj);
         ObjectInspector eoi = loi.getListElementObjectInspector();
@@ -253,8 +253,8 @@ public class HBaseRowSerializer {
         }
         return true;
       case MAP:
-        char sep = (char) separators[level];
-        char keyValueSeparator = (char) separators[level+1];
+        byte[] sep = separators[level];
+        byte[] keyValueSeparator = separators[level+1];
         MapObjectInspector moi = (MapObjectInspector) objInspector;
         ObjectInspector koi = moi.getMapKeyObjectInspector();
         ObjectInspector voi = moi.getMapValueObjectInspector();
@@ -277,7 +277,7 @@ public class HBaseRowSerializer {
         }
         return true;
       case STRUCT:
-        sep = (char)separators[level];
+        sep = separators[level];
         StructObjectInspector soi = (StructObjectInspector)objInspector;
         List<? extends StructField> fields = soi.getAllStructFieldRefs();
         list = soi.getStructFieldsDataAsList(obj);

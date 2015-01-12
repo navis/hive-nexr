@@ -55,6 +55,11 @@ import org.apache.hadoop.io.Writable;
  * TestLazyHBaseObject is a test for the LazyHBaseXXX classes.
  */
 public class TestLazyHBaseObject extends TestCase {
+  
+  private final byte[][] separator1 = {{(byte) 1}, {(byte) 2}};
+  private final byte[][] separator2 = {{(byte)'#'},{(byte)'\t'}};
+  private final byte[][] separator3 = {{' '}, {':'}, {'='}};
+  
   /**
    * Test the LazyMap class with Integer-to-String.
    * @throws SerDeException
@@ -64,7 +69,7 @@ public class TestLazyHBaseObject extends TestCase {
     Text nullSequence = new Text("\\N");
     ObjectInspector oi = LazyFactory.createLazyObjectInspector(
       TypeInfoUtils.getTypeInfosFromTypeString("map<int,string>").get(0),
-      new byte[]{(byte)1, (byte)2}, 0, nullSequence, false, (byte)0);
+        separator1, 0, nullSequence, false, (byte)0);
 
     LazyHBaseCellMap b = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
 
@@ -126,7 +131,7 @@ public class TestLazyHBaseObject extends TestCase {
     Text nullSequence = new Text("\\N");
     ObjectInspector oi = LazyFactory.createLazyObjectInspector(
       TypeInfoUtils.getTypeInfosFromTypeString("map<string,string>").get(0),
-      new byte[]{(byte)'#', (byte)'\t'}, 0, nullSequence, false, (byte)0);
+      separator2, 0, nullSequence, false, (byte)0);
 
     LazyHBaseCellMap b = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
 
@@ -189,7 +194,7 @@ public class TestLazyHBaseObject extends TestCase {
     Text nullSequence = new Text("\\N");
     TypeInfo mapBinaryIntKeyValue = TypeInfoUtils.getTypeInfoFromTypeString("map<int,int>");
     ObjectInspector oi = LazyFactory.createLazyObjectInspector(
-        mapBinaryIntKeyValue, new byte [] {(byte)1, (byte) 2}, 0, nullSequence, false, (byte) 0);
+        mapBinaryIntKeyValue, separator1, 0, nullSequence, false, (byte) 0);
     LazyHBaseCellMap hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
 
     List<KeyValue> kvs = new ArrayList<KeyValue>();
@@ -232,7 +237,7 @@ public class TestLazyHBaseObject extends TestCase {
     TypeInfo mapBinaryByteKeyValue =
       TypeInfoUtils.getTypeInfoFromTypeString("map<tinyint,tinyint>");
     oi = LazyFactory.createLazyObjectInspector(
-        mapBinaryByteKeyValue, new byte [] {(byte) 1, (byte) 2}, 0, nullSequence, false, (byte) 0);
+        mapBinaryByteKeyValue, separator1, 0, nullSequence, false, (byte) 0);
     hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
     byte [] cfByte = "cf-byte".getBytes();
     kvs.clear();
@@ -270,7 +275,7 @@ public class TestLazyHBaseObject extends TestCase {
     TypeInfo mapBinaryShortKeyValue =
       TypeInfoUtils.getTypeInfoFromTypeString("map<smallint,smallint>");
     oi = LazyFactory.createLazyObjectInspector(
-      mapBinaryShortKeyValue, new byte [] {(byte) 1, (byte) 2}, 0, nullSequence, false, (byte) 0);
+      mapBinaryShortKeyValue, separator1, 0, nullSequence, false, (byte) 0);
     hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
     byte [] cfShort = "cf-short".getBytes();
     kvs.clear();
@@ -308,7 +313,7 @@ public class TestLazyHBaseObject extends TestCase {
     TypeInfo mapBinaryLongKeyValue =
       TypeInfoUtils.getTypeInfoFromTypeString("map<bigint,bigint>");
     oi = LazyFactory.createLazyObjectInspector(
-        mapBinaryLongKeyValue, new byte [] {(byte) 1, (byte) 2}, 0, nullSequence, false, (byte) 0);
+        mapBinaryLongKeyValue, separator1, 0, nullSequence, false, (byte) 0);
     hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
     byte [] cfLong = "cf-long".getBytes();
     kvs.clear();
@@ -346,7 +351,7 @@ public class TestLazyHBaseObject extends TestCase {
     TypeInfo mapBinaryFloatKeyValue =
       TypeInfoUtils.getTypeInfoFromTypeString("map<float,float>");
     oi = LazyFactory.createLazyObjectInspector(
-        mapBinaryFloatKeyValue, new byte [] {(byte) 1, (byte) 2}, 0, nullSequence, false,
+        mapBinaryFloatKeyValue, separator1, 0, nullSequence, false,
         (byte) 0);
     hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
     byte [] cfFloat = "cf-float".getBytes();
@@ -386,7 +391,7 @@ public class TestLazyHBaseObject extends TestCase {
     TypeInfo mapBinaryDoubleKeyValue =
       TypeInfoUtils.getTypeInfoFromTypeString("map<double,double>");
     oi = LazyFactory.createLazyObjectInspector(
-        mapBinaryDoubleKeyValue, new byte [] {(byte) 1, (byte) 2}, 0, nullSequence, false,
+        mapBinaryDoubleKeyValue, separator1, 0, nullSequence, false,
         (byte) 0);
     hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
     byte [] cfDouble = "cf-double".getBytes();
@@ -425,7 +430,7 @@ public class TestLazyHBaseObject extends TestCase {
     TypeInfo mapBinaryBooleanKeyValue =
       TypeInfoUtils.getTypeInfoFromTypeString("map<boolean,boolean>");
     oi = LazyFactory.createLazyObjectInspector(
-        mapBinaryBooleanKeyValue, new byte [] {(byte) 1, (byte) 2}, 0, nullSequence, false,
+        mapBinaryBooleanKeyValue, separator1, 0, nullSequence, false,
         (byte) 0);
     hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
     byte [] cfBoolean = "cf-boolean".getBytes();
@@ -481,7 +486,7 @@ public class TestLazyHBaseObject extends TestCase {
     }
 
     ObjectInspector oi = LazyFactory.createLazyStructInspector(fieldNames,
-      fieldTypeInfos, new byte[] {' ', ':', '='},
+      fieldTypeInfos, separator3,
       nullSequence, false, false, (byte)0);
     LazyHBaseRow o = new LazyHBaseRow((LazySimpleStructObjectInspector) oi, columnMappings);
 
@@ -607,7 +612,7 @@ public class TestLazyHBaseObject extends TestCase {
     ObjectInspector oi = LazyFactory.createLazyStructInspector(
       fieldNames,
       fieldTypeInfos,
-      new byte[] {' ', ':', '='},
+      separator3,
       nullSequence, false, false, (byte) 0);
     LazyHBaseRow o = new LazyHBaseRow((LazySimpleStructObjectInspector) oi, columnMappings);
 
@@ -731,7 +736,7 @@ public class TestLazyHBaseObject extends TestCase {
 
     ObjectInspector oi =
       LazyFactory.createLazyStructInspector(fieldNames, fieldTypeInfos,
-          new byte [] {' ', ':', '='}, nullSequence, false, false, (byte) 0);
+          separator3, nullSequence, false, false, (byte) 0);
 
     LazyHBaseRow o = new LazyHBaseRow((LazySimpleStructObjectInspector) oi, columnMappings);
 

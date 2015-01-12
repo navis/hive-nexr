@@ -391,26 +391,26 @@ public class TestAccumuloSerDe {
         tableProperties, AccumuloSerDe.class.getSimpleName());
     LazySerDeParameters serDeParams = accumuloSerDeParams.getSerDeParameters();
 
-    byte[] seps = serDeParams.getSeparators();
+    byte[][] seps = serDeParams.getSeparators();
 
     // struct<map<k:v,k:v>_map<k:v,k:v>>>
 
     TypeInfo stringTypeInfo = TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME);
     LazyStringObjectInspector stringOI = (LazyStringObjectInspector) LazyFactory
-        .createLazyObjectInspector(stringTypeInfo, new byte[] {0}, 0,
+        .createLazyObjectInspector(stringTypeInfo, new byte[][] {{0}}, 0,
             serDeParams.getNullSequence(), serDeParams.isEscaped(), serDeParams.getEscapeChar());
 
     LazyMapObjectInspector mapOI = LazyObjectInspectorFactory.getLazySimpleMapObjectInspector(
-        stringOI, stringOI, seps[3], seps[4], serDeParams.getNullSequence(),
+        stringOI, stringOI, seps[3][0], seps[4][0], serDeParams.getNullSequence(),
         serDeParams.isEscaped(), serDeParams.getEscapeChar());
 
-    LazySimpleStructObjectInspector rowStructOI = (LazySimpleStructObjectInspector) LazyObjectInspectorFactory
+    LazySimpleStructObjectInspector rowStructOI = LazyObjectInspectorFactory
         .getLazySimpleStructObjectInspector(structColNames,
-            Arrays.<ObjectInspector> asList(mapOI, mapOI), (byte) seps[2],
+            Arrays.<ObjectInspector> asList(mapOI, mapOI), seps[2],
             serDeParams.getNullSequence(), serDeParams.isLastColumnTakesRest(),
             serDeParams.isEscaped(), serDeParams.getEscapeChar());
 
-    LazySimpleStructObjectInspector structOI = (LazySimpleStructObjectInspector) LazyObjectInspectorFactory
+    LazySimpleStructObjectInspector structOI = LazyObjectInspectorFactory
         .getLazySimpleStructObjectInspector(columns, Arrays.asList(rowStructOI, stringOI), seps[1],
             serDeParams.getNullSequence(), serDeParams.isLastColumnTakesRest(),
             serDeParams.isEscaped(), serDeParams.getEscapeChar());

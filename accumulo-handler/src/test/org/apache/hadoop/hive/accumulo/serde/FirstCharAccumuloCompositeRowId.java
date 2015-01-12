@@ -48,7 +48,7 @@ public class FirstCharAccumuloCompositeRowId extends AccumuloCompositeRowId {
 
     // The separator for the hive row would be using \x02, so the separator for this struct would be
     // \x02 + 1 = \x03
-    char separator = (char) ((int) oi.getSeparator() + 1);
+    char separator = (char) ((int) oi.getSeparator()[0] + 1); // todo
 
     log.info("Separator: " + String.format("%04x", (int) separator));
 

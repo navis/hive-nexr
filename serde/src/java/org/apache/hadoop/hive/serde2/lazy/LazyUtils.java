@@ -21,10 +21,10 @@ package org.apache.hadoop.hive.serde2.lazy;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.util.Arrays;
-import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.hive.serde2.SerDeException;
@@ -357,7 +357,7 @@ public final class LazyUtils {
    * @return separator at given level
    * @throws SerDeException
    */
-  static byte getSeparator(byte[] separators, int level) throws SerDeException {
+  static byte[] getSeparator(byte[][] separators, int level) throws SerDeException {
     try{
       return separators[level];
     }catch(ArrayIndexOutOfBoundsException e){
@@ -375,6 +375,15 @@ public final class LazyUtils {
       
       throw new SerDeException(msg, e);
     }
+  }
+
+  static byte getSingleSeparator(byte[][] separators, int level) throws SerDeException {
+    byte[] separator = getSeparator(separators, level);
+    if (separator.length > 1) {
+      throw new SerDeException("Expected single byte separator but " + 
+          new BytesWritable(separator) + " is acquired");
+    }
+    return separator[0];
   }
 
   public static void copyAndEscapeStringDataToText(byte[] inputBytes, int start, int length,
@@ -416,7 +425,7 @@ public final class LazyUtils {
   }
 
   /**
-   * Return the byte value of the number string.
+   * Return delimiter bytes value of the number string.
    *
    * @param altValue
    *          The string containing a number.
@@ -424,17 +433,35 @@ public final class LazyUtils {
    *          If the altValue does not represent a number, return the
    *          defaultVal.
    */
-  public static byte getByte(String altValue, byte defaultVal) {
-    if (altValue != null && altValue.length() > 0) {
-      try {
-        return Byte.valueOf(altValue).byteValue();
-      } catch (NumberFormatException e) {
-        return (byte) altValue.charAt(0);
-      }
+  public static byte[] getDelimiter(String altValue, byte[] defaultVal) {
+    if (altValue == null || altValue.isEmpty()) {
+      return defaultVal;
     }
-    return defaultVal;
+    try {
+      return new byte[] {Byte.valueOf(altValue).byteValue()};
+    } catch (NumberFormatException e) {
+      // ignore
+    }
+    try {
+      return altValue.getBytes("UTF-8");
+    } catch (UnsupportedEncodingException e) {
+      return altValue.getBytes();
+    }
   }
-  
+
+  public static byte getSingleDelimiter(String altValue, byte defaultVal) {
+    byte[] delimiter = getDelimiter(altValue, null);
+    if (delimiter == null) {
+      return defaultVal;
+    }
+    if (delimiter.length > 1) {
+      throw new RuntimeException("Expected single byte char but " +
+          new BytesWritable(delimiter) + " is acquired");
+    }
+    return delimiter[0];
+  }
+
+
   private LazyUtils() {
     // prevent instantiation
   }

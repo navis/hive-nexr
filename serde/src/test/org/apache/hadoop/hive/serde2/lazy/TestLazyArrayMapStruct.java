@@ -31,9 +31,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeUtils;
 import org.apache.hadoop.hive.serde2.io.ByteWritable;
-import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryFactory;
-import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryMap;
-import org.apache.hadoop.hive.serde2.lazybinary.objectinspector.LazyBinaryObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
@@ -61,7 +58,7 @@ public class TestLazyArrayMapStruct extends TestCase {
       Text nullSequence = new Text("\\N");
       ObjectInspector oi = LazyFactory.createLazyObjectInspector(TypeInfoUtils
           .getTypeInfosFromTypeString("array<tinyint>").get(0),
-          new byte[] {(byte) 1}, 0, nullSequence, false, (byte) 0);
+          new byte[][] {{(byte) 1}}, 0, nullSequence, false, (byte) 0);
       LazyArray b = (LazyArray) LazyFactory.createLazyObject(oi);
       byte[] data = new byte[] {'-', '1', 1, '\\', 'N', 1, '8'};
       TestLazyPrimitive.initLazyObject(b, data, 0, data.length);
@@ -83,7 +80,7 @@ public class TestLazyArrayMapStruct extends TestCase {
       // Array of String
       oi = LazyFactory.createLazyObjectInspector(TypeInfoUtils
           .getTypeInfosFromTypeString("array<string>").get(0),
-          new byte[] {(byte) '\t'}, 0, nullSequence, false, (byte) 0);
+          new byte[][] {{(byte) '\t'}}, 0, nullSequence, false, (byte) 0);
       b = (LazyArray) LazyFactory.createLazyObject(oi);
       data = new byte[] {'a', 'b', '\t', 'c', '\t', '\\', 'N', '\t', '\t', 'd'};
       // Note: the first and last element of the byte[] are NOT used
@@ -141,7 +138,7 @@ public class TestLazyArrayMapStruct extends TestCase {
         ObjectInspector oi = LazyFactory
             .createLazyObjectInspector(TypeInfoUtils
             .getTypeInfosFromTypeString("map<int,string>").get(0),
-            new byte[] {(byte) 1, (byte) 2}, 0, nullSequence, false,
+            new byte[][] {{(byte) 1}, {(byte) 2}}, 0, nullSequence, false,
             (byte) 0);
         LazyMap b = (LazyMap) LazyFactory.createLazyObject(oi);
         byte[] data = new byte[] {'2', 2, 'd', 'e', 'f', 1, '-', '1', 2, '\\',
@@ -167,7 +164,7 @@ public class TestLazyArrayMapStruct extends TestCase {
         Text nullSequence = new Text("\\N");
         ObjectInspector oi = LazyFactory.createLazyObjectInspector(
             TypeInfoUtils.getTypeInfosFromTypeString("map<string,string>").get(
-            0), new byte[] {(byte) '#', (byte) '\t'}, 0, nullSequence,
+            0), new byte[][] {{(byte) '#'}, {(byte) '\t'}}, 0, nullSequence,
             false, (byte) 0);
         LazyMap b = (LazyMap) LazyFactory.createLazyObject(oi);
         byte[] data = new byte[] {'2', '\t', 'd', '\t', 'f', '#', '2', '\t',
@@ -206,7 +203,7 @@ public class TestLazyArrayMapStruct extends TestCase {
         Text nullSequence = new Text("");
         ObjectInspector oi = LazyFactory.createLazyObjectInspector(
             TypeInfoUtils.getTypeInfosFromTypeString("map<string,string>").get(
-            0), new byte[] {'\2', '\3'}, 0, nullSequence,
+            0), new byte[][] {{'\2'}, {'\3'}}, 0, nullSequence,
             false, (byte) 0);
         LazyMap b = (LazyMap) LazyFactory.createLazyObject(oi);
 
@@ -237,7 +234,7 @@ public class TestLazyArrayMapStruct extends TestCase {
         Text nullSequence = new Text("");
         ObjectInspector oi = LazyFactory.createLazyObjectInspector(
             TypeInfoUtils.getTypeInfosFromTypeString("map<string,string>").get(
-            0), new byte[] {'\2', '\3'}, 0, nullSequence,
+            0), new byte[][] {{'\2'}, {'\3'}}, 0, nullSequence,
             false, (byte) 0);
         LazyMap b = (LazyMap) LazyFactory.createLazyObject(oi);
 
@@ -269,7 +266,7 @@ public class TestLazyArrayMapStruct extends TestCase {
         Text nullSequence = new Text("");
         ObjectInspector oi = LazyFactory.createLazyObjectInspector(
             TypeInfoUtils.getTypeInfosFromTypeString("map<string,string>").get(
-            0), new byte[] {'\2', '\3'}, 0, nullSequence,
+            0), new byte[][] {{'\2'}, {'\3'}}, 0, nullSequence,
             false, (byte) 0);
         LazyMap b = (LazyMap) LazyFactory.createLazyObject(oi);
 
@@ -312,7 +309,7 @@ public class TestLazyArrayMapStruct extends TestCase {
         ObjectInspector oi = LazyFactory
             .createLazyObjectInspector(TypeInfoUtils
             .getTypeInfosFromTypeString("map<int,string>").get(0),
-            new byte[] {(byte) 1, (byte) 2}, 0, nullSequence, false,
+            new byte[][] {{(byte) 1}, {(byte) 2}}, 0, nullSequence, false,
             (byte) 0);
         LazyMap b = (LazyMap) LazyFactory.createLazyObject(oi);
         byte[] data = new byte[] {'2', 2, 'd', 'e', 'f', 1, '-', '1', 2, '\\',
@@ -338,7 +335,7 @@ public class TestLazyArrayMapStruct extends TestCase {
         Text nullSequence = new Text("\\N");
         ObjectInspector oi = LazyFactory.createLazyObjectInspector(
             TypeInfoUtils.getTypeInfosFromTypeString("map<string,string>").get(
-            0), new byte[] {(byte) '#', (byte) '\t'}, 0, nullSequence,
+            0), new byte[][] {{(byte) '#'}, {(byte) '\t'}}, 0, nullSequence,
             false, (byte) 0);
         LazyMap b = (LazyMap) LazyFactory.createLazyObject(oi);
         byte[] data = new byte[] {'2', '\t', 'd', '\t', 'f', '#', '2', '\t',
@@ -377,7 +374,7 @@ public class TestLazyArrayMapStruct extends TestCase {
         Text nullSequence = new Text("\\N");
 
         ObjectInspector oi = LazyFactory.createLazyStructInspector(fieldNames,
-            fieldTypeInfos, new byte[] {' ', ':', '='}, nullSequence, false,
+            fieldTypeInfos, new byte[][] {{' '}, {':'}, {'='}}, nullSequence, false,
             false, (byte) 0);
         LazyStruct o = (LazyStruct) LazyFactory.createLazyObject(oi);
 
@@ -430,7 +427,7 @@ public class TestLazyArrayMapStruct extends TestCase {
         // test LastColumnTakesRest
         oi = LazyFactory.createLazyStructInspector(Arrays.asList(new String[] {
             "a", "b", "c", "d"}), fieldTypeInfos,
-            new byte[] {' ', ':', '='}, nullSequence, true, false, (byte) 0);
+            new byte[][] {{' '}, {':'}, {'='}}, nullSequence, true, false, (byte) 0);
         o = (LazyStruct) LazyFactory.createLazyObject(oi);
         data = new Text("\\N a d=\\N:f=g:h has tail");
         TestLazyPrimitive.initLazyObject(o, data.getBytes(), 0, data
@@ -456,7 +453,7 @@ public class TestLazyArrayMapStruct extends TestCase {
         Text nullSequence = new Text("\\N");
 
         ObjectInspector oi = LazyFactory.createLazyObjectInspector(typeInfo,
-            new byte[] {'^', ':', '='}, 0, nullSequence, false, (byte) 0);
+            new byte[][] {{'^'}, {':'}, {'='}}, 0, nullSequence, false, (byte) 0);
         LazyUnion o = (LazyUnion) LazyFactory.createLazyObject(oi);
 
         Text data;
@@ -696,23 +693,23 @@ public class TestLazyArrayMapStruct extends TestCase {
     LazySerDeParameters serdeParams = new LazySerDeParameters(conf, tableProp, LazySimpleSerDe.class.getName());
     
     //create the serialized string for type
-    byte[] separators = serdeParams.getSeparators();
-    System.err.println("Using separator " +  (char)separators[nestingLevel]);
+    byte[][] separators = serdeParams.getSeparators();
+    System.err.println("Using separator " +  (char)separators[nestingLevel][0]);
     byte [] serializedRow = null;
     switch(dtype){
     case LIST:
-      serializedRow = new byte[] {'8',separators[nestingLevel],'9'};
+      serializedRow = new byte[] {'8',separators[nestingLevel][0],'9'};
       break;
     case MAP:
-      byte kvSep = separators[nestingLevel+1];
-      byte kvPairSep = separators[nestingLevel];
+      byte kvSep = separators[nestingLevel+1][0];
+      byte kvPairSep = separators[nestingLevel][0];
       serializedRow = new byte[] {'1', kvSep, '1', kvPairSep, '2', kvSep, '2'};
       break;
     case STRUCT:
-      serializedRow = new byte[] {'8',separators[nestingLevel],'9'};
+      serializedRow = new byte[] {'8',separators[nestingLevel][0],'9'};
       break;
     case UNION:
-      serializedRow = new byte[] {'0',separators[nestingLevel],'9'};
+      serializedRow = new byte[] {'0',separators[nestingLevel][0],'9'};
       break;
     default :
         fail("type not supported by test case");

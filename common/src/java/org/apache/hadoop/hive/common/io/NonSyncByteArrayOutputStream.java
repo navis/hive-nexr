@@ -67,6 +67,11 @@ public class NonSyncByteArrayOutputStream extends ByteArrayOutputStream {
     count += 1;
   }
 
+  @Override
+  public void write(byte[] b) {
+    write(b, 0, b.length);
+  }
+
   private int enLargeBuffer(int increment) {
     int temp = count + increment;
     int newLen = temp;

@@ -32,7 +32,6 @@ import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.*;
 import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
-import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.serde2.lazy.LazyStruct;
 import org.apache.hadoop.hive.serde2.lazy.LazyUtils;
 import org.apache.hadoop.hive.serde2.lazy.LazySerDeParameters;
@@ -105,9 +104,9 @@ public class MultiDelimitSerDe extends AbstractSerDe {
 
     // get the collection separator and map key separator
     // TODO: use serdeConstants.COLLECTION_DELIM when the typo is fixed
-    collSep = LazyUtils.getByte(tbl.getProperty(COLLECTION_DELIM),
+    collSep = LazyUtils.getSingleDelimiter(tbl.getProperty(COLLECTION_DELIM),
         DEFAULT_SEPARATORS[1]);
-    keySep = LazyUtils.getByte(tbl.getProperty(serdeConstants.MAPKEY_DELIM),
+    keySep = LazyUtils.getSingleDelimiter(tbl.getProperty(serdeConstants.MAPKEY_DELIM),
         DEFAULT_SEPARATORS[2]);
     serdeParams.setSeparator(1, collSep);
     serdeParams.setSeparator(2, keySep);
@@ -156,8 +155,6 @@ public class MultiDelimitSerDe extends AbstractSerDe {
     }
     byteArrayRef.setData(rowStr.replaceAll(Pattern.quote(fieldDelimited), "\1").getBytes());
     cachedLazyStruct.init(byteArrayRef, 0, byteArrayRef.getData().length);
-    // use the multi-char delimiter to parse the lazy struct
-    cachedLazyStruct.parseMultiDelimit(rowStr.getBytes(), fieldDelimited.getBytes());
     return cachedLazyStruct;
   }
 
@@ -201,7 +198,7 @@ public class MultiDelimitSerDe extends AbstractSerDe {
   // Consider such a row "strAQ==\1", str is a string, AQ== is the delimiter and \1
   // is the binary data.
   private static void serializeNoEncode(ByteStream.Output out, Object obj,
-      ObjectInspector objInspector, byte[] separators, int level,
+      ObjectInspector objInspector, byte[][] separators, int level,
       Text nullSequence, boolean escaped, byte escapeChar, boolean[] needsEscape)
       throws IOException, SerDeException {
     if (obj == null) {
@@ -224,7 +221,7 @@ public class MultiDelimitSerDe extends AbstractSerDe {
         }
         return;
       case LIST:
-        separator = (char) separators[level];
+        separator = (char) separators[level][0];
         ListObjectInspector loi = (ListObjectInspector) objInspector;
         list = loi.getList(obj);
         ObjectInspector eoi = loi.getListElementObjectInspector();
@@ -241,8 +238,8 @@ public class MultiDelimitSerDe extends AbstractSerDe {
         }
         return;
       case MAP:
-        separator = (char) separators[level];
-        char keyValueSeparator = (char) separators[level + 1];
+        separator = (char) separators[level][0];
+        char keyValueSeparator = (char) separators[level + 1][0];
 
         MapObjectInspector moi = (MapObjectInspector) objInspector;
         ObjectInspector koi = moi.getMapKeyObjectInspector();
@@ -267,7 +264,7 @@ public class MultiDelimitSerDe extends AbstractSerDe {
         }
         return;
       case STRUCT:
-        separator = (char) separators[level];
+        separator = (char) separators[level][0];
         StructObjectInspector soi = (StructObjectInspector) objInspector;
         List<? extends StructField> fields = soi.getAllStructFieldRefs();
         list = soi.getStructFieldsDataAsList(obj);

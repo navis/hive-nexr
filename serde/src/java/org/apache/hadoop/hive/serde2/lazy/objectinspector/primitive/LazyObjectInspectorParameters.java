@@ -27,7 +27,7 @@ public interface LazyObjectInspectorParameters {
   public byte getEscapeChar();
   public boolean isExtendedBooleanLiteral();
   public List<String> getTimestampFormats();
-  public byte[] getSeparators();
+  public byte[][] getSeparators();
   public Text getNullSequence();
   public boolean isLastColumnTakesRest();
 }

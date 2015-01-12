@@ -340,16 +340,16 @@ public class TestHiveAccumuloTableOutputFormat {
 
     TypeInfo stringTypeInfo = TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME);
     LazyStringObjectInspector stringOI = (LazyStringObjectInspector) LazyFactory
-        .createLazyObjectInspector(stringTypeInfo, new byte[] {0}, 0,
+        .createLazyObjectInspector(stringTypeInfo, new byte[][] {{0}}, 0,
             serDeParams.getNullSequence(), serDeParams.isEscaped(), serDeParams.getEscapeChar());
 
     LazyMapObjectInspector mapOI = LazyObjectInspectorFactory.getLazySimpleMapObjectInspector(
         stringOI, stringOI, (byte) ',', (byte) ':', serDeParams.getNullSequence(),
         serDeParams.isEscaped(), serDeParams.getEscapeChar());
 
-    LazySimpleStructObjectInspector structOI = (LazySimpleStructObjectInspector) LazyObjectInspectorFactory
+    LazySimpleStructObjectInspector structOI = LazyObjectInspectorFactory
         .getLazySimpleStructObjectInspector(Arrays.asList("row", "data"),
-            Arrays.asList(stringOI, mapOI), (byte) ' ', serDeParams.getNullSequence(),
+            Arrays.asList(stringOI, mapOI), new byte[] {' '}, serDeParams.getNullSequence(),
             serDeParams.isLastColumnTakesRest(), serDeParams.isEscaped(),
             serDeParams.getEscapeChar());
 

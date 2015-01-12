@@ -2,9 +2,7 @@ package org.apache.hadoop.hive.serde2.lazy;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
@@ -23,7 +21,7 @@ import org.apache.hive.common.util.HiveStringUtils;
  *
  */
 public class LazySerDeParameters implements LazyObjectInspectorParameters {
-  public static final byte[] DefaultSeparators = {(byte) 1, (byte) 2, (byte) 3};
+  public static final byte[][] DefaultSeparators = {{(byte) 1}, {(byte) 2}, {(byte) 3}};
   public static final String SERIALIZATION_EXTEND_NESTING_LEVELS
   	= "hive.serialization.extend.nesting.levels";
   public static final String SERIALIZATION_EXTEND_ADDITIONAL_NESTING_LEVELS
@@ -35,7 +33,7 @@ public class LazySerDeParameters implements LazyObjectInspectorParameters {
   // The list of bytes used for the separators in the column (a nested struct 
   // such as Array<Array<int>> will use multiple separators).
   // The list of separators + escapeChar are the bytes required to be escaped.
-  private byte[] separators;	
+  private byte[][] separators;	
 
   private String nullString;
   private Text nullSequence;
@@ -75,10 +73,10 @@ public class LazySerDeParameters implements LazyObjectInspectorParameters {
     String escapeProperty = tbl.getProperty(serdeConstants.ESCAPE_CHAR);
     escaped = (escapeProperty != null);
     if (escaped) {
-      escapeChar = LazyUtils.getByte(escapeProperty, (byte) '\\');
+      escapeChar = LazyUtils.getSingleDelimiter(escapeProperty, (byte) '\\');
       needsEscape[escapeChar & 0xFF] = true;  // Converts the negative byte into positive index
-      for (byte b : separators) {
-        needsEscape[b & 0xFF] = true;         // Converts the negative byte into positive index
+      for (byte[] b : separators) {
+        needsEscape[b[0] & 0xFF] = true;      // Converts the negative byte into positive index
       }
     }
     
@@ -137,7 +135,7 @@ public class LazySerDeParameters implements LazyObjectInspectorParameters {
     return columnNames;
   }
 
-  public byte[] getSeparators() {   	
+  public byte[][] getSeparators() {   	
     return separators;
   }
 
@@ -176,8 +174,12 @@ public class LazySerDeParameters implements LazyObjectInspectorParameters {
   public List<String> getTimestampFormats() {
     return timestampFormats;
   }
-  
+
   public void setSeparator(int index, byte separator) throws SerDeException {
+    setSeparator(index, new byte[]{separator}); 
+  }
+  
+  public void setSeparator(int index, byte[] separator) throws SerDeException {
     if (index < 0 || index >= separators.length) {
       throw new SerDeException("Invalid separator array index value: " + index);
     }
@@ -194,7 +196,7 @@ public class LazySerDeParameters implements LazyObjectInspectorParameters {
    * @param tableProperties table properties to extract the user provided separators
    */
   private void collectSeparators(Properties tableProperties) {	
-    List<Byte> separatorCandidates = new ArrayList<Byte>();
+    List<byte[]> separatorCandidates = new ArrayList<byte[]>();
 
     String extendNestingValue = tableProperties.getProperty(SERIALIZATION_EXTEND_NESTING_LEVELS);
     String extendAdditionalNestingValue = tableProperties.getProperty(SERIALIZATION_EXTEND_ADDITIONAL_NESTING_LEVELS);
@@ -202,11 +204,12 @@ public class LazySerDeParameters implements LazyObjectInspectorParameters {
     boolean extendedAdditionalNesting = extendAdditionalNestingValue != null 
     		&& extendAdditionalNestingValue.equalsIgnoreCase("true");
 
-    separatorCandidates.add(LazyUtils.getByte(tableProperties.getProperty(serdeConstants.FIELD_DELIM,
-        tableProperties.getProperty(serdeConstants.SERIALIZATION_FORMAT)), DefaultSeparators[0]));
-    separatorCandidates.add(LazyUtils.getByte(tableProperties
-        .getProperty(serdeConstants.COLLECTION_DELIM), DefaultSeparators[1]));
-    separatorCandidates.add(LazyUtils.getByte(
+    separatorCandidates.add(LazyUtils.getDelimiter(
+        tableProperties.getProperty(serdeConstants.FIELD_DELIM,
+            tableProperties.getProperty(serdeConstants.SERIALIZATION_FORMAT)), DefaultSeparators[0]));
+    separatorCandidates.add(LazyUtils.getDelimiter(
+        tableProperties.getProperty(serdeConstants.COLLECTION_DELIM), DefaultSeparators[1]));
+    separatorCandidates.add(LazyUtils.getDelimiter(
         tableProperties.getProperty(serdeConstants.MAPKEY_DELIM), DefaultSeparators[2]));
     
     //use only control chars that are very unlikely to be part of the string
@@ -217,18 +220,18 @@ public class LazySerDeParameters implements LazyObjectInspectorParameters {
     // 13 (carriage return, CR, \r, ^M),
     // 27 (escape, ESC, \e [GCC only], ^[).
     for (byte b = 4; b <= 8; b++ ) {
-    	separatorCandidates.add(b);
+    	separatorCandidates.add(new byte[]{b});
     }
-    separatorCandidates.add((byte)11);
+    separatorCandidates.add(new byte[]{11});
     for (byte b = 14; b <= 26; b++ ) {
-      separatorCandidates.add(b);
+      separatorCandidates.add(new byte[]{b});
     }
     for (byte b = 28; b <= 31; b++ ) {
-      separatorCandidates.add(b);
+      separatorCandidates.add(new byte[]{b});
     }
 
     for (byte b = -128; b <= -1; b++ ) {
-      separatorCandidates.add(b);
+      separatorCandidates.add(new byte[]{b});
     }
 
     int numSeparators = 8;
@@ -238,7 +241,7 @@ public class LazySerDeParameters implements LazyObjectInspectorParameters {
       numSeparators = 24;
     }
 
-    separators = new byte[numSeparators];
+    separators = new byte[numSeparators][];
     for (int i = 0; i < numSeparators; i++) {
       separators[i] = separatorCandidates.get(i);
     }

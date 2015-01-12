@@ -93,7 +93,7 @@ public class TestDefaultAccumuloRowIdFactory {
     Assert.assertEquals(LazyMapObjectInspector.class, OIs.get(1).getClass());
 
     LazySimpleStructObjectInspector structOI = (LazySimpleStructObjectInspector) OIs.get(0);
-    Assert.assertEquals(2, (int) structOI.getSeparator());
+    Assert.assertEquals(2, (int) structOI.getSeparator()[0]);
 
     LazyMapObjectInspector mapOI = (LazyMapObjectInspector) OIs.get(1);
     Assert.assertEquals(2, (int) mapOI.getItemSeparator());

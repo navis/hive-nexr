@@ -220,7 +220,7 @@ public final class LazyFactory {
    */
   @Deprecated
   public static ObjectInspector createLazyObjectInspector(TypeInfo typeInfo,
-  		byte[] separators, int separatorIndex, Text nullSequence, boolean escaped,
+      byte[][] separators, int separatorIndex, Text nullSequence, boolean escaped,
       byte escapeChar, ObjectInspectorOptions option) throws SerDeException {
     return createLazyObjectInspector(typeInfo, separators, separatorIndex, nullSequence,
         escaped, escapeChar, false, option);
@@ -245,7 +245,7 @@ public final class LazyFactory {
    */
   @Deprecated
   public static ObjectInspector createLazyObjectInspector(TypeInfo typeInfo,
-  		byte[] separators, int separatorIndex, Text nullSequence, boolean escaped,
+      byte[][] separators, int separatorIndex, Text nullSequence, boolean escaped,
       byte escapeChar) throws SerDeException {
     return createLazyObjectInspector(typeInfo, separators, separatorIndex, nullSequence,
         escaped, escapeChar, false, ObjectInspectorOptions.JAVA);
@@ -267,7 +267,7 @@ public final class LazyFactory {
    */
   @Deprecated
   public static ObjectInspector createLazyObjectInspector(TypeInfo typeInfo,
-  		byte[] separators, int separatorIndex, Text nullSequence, boolean escaped,
+      byte[][] separators, int separatorIndex, Text nullSequence, boolean escaped,
       byte escapeChar, boolean extendedBooleanLiteral) throws SerDeException {
     return createLazyObjectInspector(typeInfo, separators, separatorIndex, nullSequence, escaped,
         escapeChar, extendedBooleanLiteral, ObjectInspectorOptions.JAVA);
@@ -289,7 +289,7 @@ public final class LazyFactory {
    */
   @Deprecated
   public static ObjectInspector createLazyObjectInspector(TypeInfo typeInfo,
-  		byte[] separators, int separatorIndex, Text nullSequence, boolean escaped,
+      byte[][] separators, int separatorIndex, Text nullSequence, boolean escaped,
       byte escapeChar, boolean extendedBooleanLiteral, ObjectInspectorOptions option) throws SerDeException {
     LazyObjectInspectorParametersImpl lazyParams = new LazyObjectInspectorParametersImpl(
         escaped, escapeChar, extendedBooleanLiteral, null, separators, nullSequence);
@@ -323,14 +323,14 @@ public final class LazyFactory {
               separatorIndex + 2, lazyParams, option),
           createLazyObjectInspector(((MapTypeInfo) typeInfo).getMapValueTypeInfo(),
               separatorIndex + 2, lazyParams, option),
-          LazyUtils.getSeparator(lazyParams.getSeparators(), separatorIndex),
-          LazyUtils.getSeparator(lazyParams.getSeparators(), separatorIndex+1),
+          LazyUtils.getSingleSeparator(lazyParams.getSeparators(), separatorIndex),
+          LazyUtils.getSingleSeparator(lazyParams.getSeparators(), separatorIndex+1),
           lazyParams);
     case LIST:
       return LazyObjectInspectorFactory.getLazySimpleListObjectInspector(
           createLazyObjectInspector(((ListTypeInfo) typeInfo)
-          .getListElementTypeInfo(), separatorIndex + 1,
-          lazyParams, option), LazyUtils.getSeparator(lazyParams.getSeparators(), separatorIndex),
+          .getListElementTypeInfo(), separatorIndex + 1, lazyParams, option), 
+          LazyUtils.getSingleSeparator(lazyParams.getSeparators(), separatorIndex),
           lazyParams);
    case STRUCT:
       StructTypeInfo structTypeInfo = (StructTypeInfo) typeInfo;
@@ -355,7 +355,7 @@ public final class LazyFactory {
             separatorIndex + 1, lazyParams, option));
       }
       return LazyObjectInspectorFactory.getLazyUnionObjectInspector(lazyOIs,
-          LazyUtils.getSeparator(lazyParams.getSeparators(), separatorIndex),
+          LazyUtils.getSingleSeparator(lazyParams.getSeparators(), separatorIndex),
           lazyParams);
    }
 
@@ -375,7 +375,7 @@ public final class LazyFactory {
    */
   @Deprecated
   public static ObjectInspector createLazyStructInspector(
-      List<String> columnNames, List<TypeInfo> typeInfos, byte[] separators,
+      List<String> columnNames, List<TypeInfo> typeInfos, byte[][] separators,
       Text nullSequence, boolean lastColumnTakesRest, boolean escaped,
       byte escapeChar) throws SerDeException {
     return createLazyStructInspector(columnNames, typeInfos, separators,
@@ -396,7 +396,7 @@ public final class LazyFactory {
    */
   @Deprecated
   public static ObjectInspector createLazyStructInspector(
-     List<String> columnNames, List<TypeInfo> typeInfos, byte[] separators,
+      List<String> columnNames, List<TypeInfo> typeInfos, byte[][] separators,
       Text nullSequence, boolean lastColumnTakesRest, boolean escaped,
       byte escapeChar, boolean extendedBooleanLiteral) throws SerDeException {
     LazyObjectInspectorParametersImpl lazyParams = new LazyObjectInspectorParametersImpl(
@@ -441,7 +441,7 @@ public final class LazyFactory {
    */
   @Deprecated
   public static ObjectInspector createColumnarStructInspector(
-      List<String> columnNames, List<TypeInfo> columnTypes, byte[] separators,
+      List<String> columnNames, List<TypeInfo> columnTypes, byte[][] separators,
       Text nullSequence, boolean escaped, byte escapeChar) throws SerDeException {
     LazyObjectInspectorParametersImpl lazyParams = new LazyObjectInspectorParametersImpl(
         escaped, escapeChar, false, null, separators, nullSequence);

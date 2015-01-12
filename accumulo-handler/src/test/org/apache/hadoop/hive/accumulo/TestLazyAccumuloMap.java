@@ -40,6 +40,8 @@ import org.junit.Test;
  */
 public class TestLazyAccumuloMap {
 
+  private final byte[][] separator = {{(byte) 1}, {(byte) 2}};
+  
   protected byte[] toBytes(int i) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream out = new DataOutputStream(baos);
@@ -65,7 +67,7 @@ public class TestLazyAccumuloMap {
     // Map of Integer to String
     Text nullSequence = new Text("\\N");
     ObjectInspector oi = LazyFactory.createLazyObjectInspector(TypeInfoUtils
-        .getTypeInfosFromTypeString("map<string,string>").get(0), new byte[] {(byte) 1, (byte) 2},
+        .getTypeInfosFromTypeString("map<string,string>").get(0), separator,
         0, nullSequence, false, (byte) 0);
 
     LazyAccumuloMap map = new LazyAccumuloMap((LazyMapObjectInspector) oi);
@@ -97,7 +99,7 @@ public class TestLazyAccumuloMap {
     // Map of Integer to Integer
     Text nullSequence = new Text("\\N");
     ObjectInspector oi = LazyFactory.createLazyObjectInspector(TypeInfoUtils
-        .getTypeInfosFromTypeString("map<int,int>").get(0), new byte[] {(byte) 1, (byte) 2}, 0,
+        .getTypeInfosFromTypeString("map<int,int>").get(0), separator, 0,
         nullSequence, false, (byte) 0);
 
     LazyAccumuloMap map = new LazyAccumuloMap((LazyMapObjectInspector) oi);
@@ -133,7 +135,7 @@ public class TestLazyAccumuloMap {
     // Map of Integer to String
     Text nullSequence = new Text("\\N");
     ObjectInspector oi = LazyFactory.createLazyObjectInspector(TypeInfoUtils
-        .getTypeInfosFromTypeString("map<int,int>").get(0), new byte[] {(byte) 1, (byte) 2}, 0,
+        .getTypeInfosFromTypeString("map<int,int>").get(0), separator, 0,
         nullSequence, false, (byte) 0);
 
     LazyAccumuloMap map = new LazyAccumuloMap((LazyMapObjectInspector) oi);
@@ -169,7 +171,7 @@ public class TestLazyAccumuloMap {
     // Map of Integer to String
     Text nullSequence = new Text("\\N");
     ObjectInspector oi = LazyFactory.createLazyObjectInspector(TypeInfoUtils
-        .getTypeInfosFromTypeString("map<int,int>").get(0), new byte[] {(byte) 1, (byte) 2}, 0,
+        .getTypeInfosFromTypeString("map<int,int>").get(0), separator, 0,
         nullSequence, false, (byte) 0);
 
     LazyAccumuloMap map = new LazyAccumuloMap((LazyMapObjectInspector) oi);
