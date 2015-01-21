@@ -847,3 +847,121 @@ alice allen	65609
 alice allen	65662
 alice allen	65670
 alice allen	65720
+PREHOOK: query: -- preceding + preceding, following + following
+
+-- streaming
+select value, 
+  min(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  max(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  sum(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  first_value(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  last_value(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  min(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  max(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  sum(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  first_value(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  last_value(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  min(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  max(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  sum(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  first_value(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  last_value(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING)
+from src tablesample (10 rows)
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: -- preceding + preceding, following + following
+
+-- streaming
+select value, 
+  min(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  max(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  sum(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  first_value(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  last_value(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  min(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  max(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  sum(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  first_value(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  last_value(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  min(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  max(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  sum(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  first_value(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  last_value(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING)
+from src tablesample (10 rows)
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+val_484	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	98	278	376	98	278
+val_98	484	484	484	484	484	484	484	484	484	484	255	278	533	278	255
+val_278	98	484	582	484	98	98	484	582	484	98	255	409	664	255	409
+val_255	98	278	376	98	278	98	484	860	484	278	165	409	574	409	165
+val_409	255	278	533	278	255	98	484	1115	484	255	27	165	192	165	27
+val_165	255	409	664	255	409	98	484	1524	484	409	27	311	338	27	311
+val_27	165	409	574	409	165	98	484	1689	484	165	86	311	397	311	86
+val_311	27	165	192	165	27	27	484	1716	484	27	86	238	324	86	238
+val_86	27	311	338	27	311	27	484	2027	484	311	238	238	238	238	238
+val_238	86	311	397	311	86	27	484	2113	484	86	NULL	NULL	NULL	NULL	NULL
+PREHOOK: query: -- non-streaming
+select value, 
+  min(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  max(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  sum(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  first_value(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  last_value(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  min(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  max(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  sum(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  first_value(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  last_value(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  min(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  max(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  sum(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  first_value(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  last_value(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  min(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING),
+  max(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING),
+  sum(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING),
+  first_value(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING),
+  last_value(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING)
+from src tablesample (10 rows)
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+#### A masked pattern was here ####
+POSTHOOK: query: -- non-streaming
+select value, 
+  min(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  max(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  sum(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  first_value(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  last_value(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  min(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  max(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  sum(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  first_value(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  last_value(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  min(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  max(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  sum(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  first_value(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  last_value(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  min(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING),
+  max(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING),
+  sum(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING),
+  first_value(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING),
+  last_value(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING)
+from src tablesample (10 rows)
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+#### A masked pattern was here ####
+val_484	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	98	278	376	98	278	27	409	1867	98	238
+val_98	484	484	484	484	484	484	484	484	484	484	255	278	533	278	255	27	409	1769	278	238
+val_278	98	484	582	484	98	98	484	582	484	98	255	409	664	255	409	27	409	1491	255	238
+val_255	98	278	376	98	278	98	484	860	484	278	165	409	574	409	165	27	409	1236	409	238
+val_409	255	278	533	278	255	98	484	1115	484	255	27	165	192	165	27	27	311	827	165	238
+val_165	255	409	664	255	409	98	484	1524	484	409	27	311	338	27	311	27	311	662	27	238
+val_27	165	409	574	409	165	98	484	1689	484	165	86	311	397	311	86	86	311	635	311	238
+val_311	27	165	192	165	27	27	484	1716	484	27	86	238	324	86	238	86	238	324	86	238
+val_86	27	311	338	27	311	27	484	2027	484	311	238	238	238	238	238	238	238	238	238	238
+val_238	86	311	397	311	86	27	484	2113	484	86	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL

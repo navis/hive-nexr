@@ -29,7 +29,6 @@ import org.apache.hadoop.hive.ql.exec.WindowFunctionDescription;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.parse.WindowingSpec.BoundarySpec;
-import org.apache.hadoop.hive.ql.plan.ptf.BoundaryDef;
 import org.apache.hadoop.hive.ql.plan.ptf.WindowFrameDef;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.AggregationBuffer;
 import org.apache.hadoop.hive.ql.util.JavaDataModel;
@@ -154,9 +153,7 @@ public class GenericUDAFFirstValue extends AbstractGenericUDAFResolver {
 
     @Override
     public GenericUDAFEvaluator getWindowingEvaluator(WindowFrameDef wFrmDef) {
-      BoundaryDef start = wFrmDef.getStart();
-      BoundaryDef end = wFrmDef.getEnd();
-      return new FirstValStreamingFixedWindow(this, start.getAmt(), end.getAmt());
+      return new FirstValStreamingFixedWindow(this, wFrmDef);
     }
 
   }
@@ -178,8 +175,8 @@ public class GenericUDAFFirstValue extends AbstractGenericUDAFResolver {
 
       private final Deque<ValIndexPair> valueChain;
 
-      public State(int numPreceding, int numFollowing, AggregationBuffer buf) {
-        super(numPreceding, numFollowing, buf);
+      public State(int numPreceding, int numFollowing, int offset, AggregationBuffer buf) {
+        super(numPreceding, numFollowing, offset, buf);
         valueChain = new ArrayDeque<ValIndexPair>(numPreceding + numFollowing + 1);
       }
 
@@ -212,9 +209,8 @@ public class GenericUDAFFirstValue extends AbstractGenericUDAFResolver {
       }
     }
 
-    public FirstValStreamingFixedWindow(GenericUDAFEvaluator wrappedEval, int numPreceding,
-      int numFollowing) {
-      super(wrappedEval, numPreceding, numFollowing);
+    public FirstValStreamingFixedWindow(GenericUDAFEvaluator wrappedEval, WindowFrameDef wFrmDef) {
+      super(wrappedEval, wFrmDef);
     }
 
     @Override
@@ -225,7 +221,7 @@ public class GenericUDAFFirstValue extends AbstractGenericUDAFResolver {
     @Override
     public AggregationBuffer getNewAggregationBuffer() throws HiveException {
       AggregationBuffer underlying = wrappedEval.getNewAggregationBuffer();
-      return new State(numPreceding, numFollowing, underlying);
+      return new State(numPreceding, numFollowing, offset, underlying);
     }
 
     protected ObjectInspector inputOI() {
@@ -274,12 +270,8 @@ public class GenericUDAFFirstValue extends AbstractGenericUDAFResolver {
       }
       s.numRows++;
 
-      if (s.valueChain.size() > 0) {
-        int fIdx = (Integer) s.valueChain.getFirst().idx;
-        if (s.numPreceding != BoundarySpec.UNBOUNDED_AMOUNT
-            && s.numRows > fIdx + s.numPreceding + s.numFollowing) {
-          s.valueChain.removeFirst();
-        }
+      if (!s.valueChain.isEmpty() && s.isWindowFull(s.valueChain.getFirst().idx)) {
+        s.valueChain.removeFirst();
       }
     }
 
@@ -291,17 +283,12 @@ public class GenericUDAFFirstValue extends AbstractGenericUDAFResolver {
       for (int i = 0; i < s.numFollowing; i++) {
         s.results.add(r == null ? null : r.val);
         s.numRows++;
-        if (r != null) {
-          int fIdx = (Integer) r.idx;
-          if (s.numPreceding != BoundarySpec.UNBOUNDED_AMOUNT
-              && s.numRows > fIdx + s.numPreceding + s.numFollowing
-              && !s.valueChain.isEmpty()) {
-            s.valueChain.removeFirst();
-            r = !s.valueChain.isEmpty() ? s.valueChain.getFirst() : r;
-          }
+        if (r != null && s.isWindowFull(r.idx)) {
+          s.valueChain.removeFirst();
+          r = !s.valueChain.isEmpty() ? s.valueChain.getFirst() : r;
         }
       }
-
+      super.terminate(agg);
       return null;
     }
 

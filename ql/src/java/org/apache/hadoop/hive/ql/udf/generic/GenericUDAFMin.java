@@ -23,7 +23,6 @@ import org.apache.hadoop.hive.ql.exec.Description;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentTypeException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
-import org.apache.hadoop.hive.ql.plan.ptf.BoundaryDef;
 import org.apache.hadoop.hive.ql.plan.ptf.WindowFrameDef;
 import org.apache.hadoop.hive.ql.udf.UDFType;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFMax.MaxStreamingFixedWindow;
@@ -125,18 +124,15 @@ public class GenericUDAFMin extends AbstractGenericUDAFResolver {
 
     @Override
     public GenericUDAFEvaluator getWindowingEvaluator(WindowFrameDef wFrmDef) {
-      BoundaryDef start = wFrmDef.getStart();
-      BoundaryDef end = wFrmDef.getEnd();
-      return new MinStreamingFixedWindow(this, start.getAmt(), end.getAmt());
+      return new MinStreamingFixedWindow(this, wFrmDef);
     }
 
   }
 
   static class MinStreamingFixedWindow extends MaxStreamingFixedWindow {
 
-    public MinStreamingFixedWindow(GenericUDAFEvaluator wrappedEval,
-        int numPreceding, int numFollowing) {
-      super(wrappedEval, numPreceding, numFollowing);
+    public MinStreamingFixedWindow(GenericUDAFEvaluator wrappedEval, WindowFrameDef wFrmDef) {
+      super(wrappedEval, wFrmDef);
     }
 
     protected ObjectInspector inputOI() {

@@ -25,8 +25,6 @@ import org.apache.hadoop.hive.ql.exec.UDFArgumentTypeException;
 import org.apache.hadoop.hive.ql.exec.WindowFunctionDescription;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
-import org.apache.hadoop.hive.ql.parse.WindowingSpec.BoundarySpec;
-import org.apache.hadoop.hive.ql.plan.ptf.BoundaryDef;
 import org.apache.hadoop.hive.ql.plan.ptf.WindowFrameDef;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.AggregationBuffer;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -141,9 +139,7 @@ public class GenericUDAFLastValue extends AbstractGenericUDAFResolver {
 
     @Override
     public GenericUDAFEvaluator getWindowingEvaluator(WindowFrameDef wFrmDef) {
-      BoundaryDef start = wFrmDef.getStart();
-      BoundaryDef end = wFrmDef.getEnd();
-      return new LastValStreamingFixedWindow(this, start.getAmt(), end.getAmt());
+      return new LastValStreamingFixedWindow(this, wFrmDef);
     }
   }
 
@@ -154,8 +150,8 @@ public class GenericUDAFLastValue extends AbstractGenericUDAFResolver {
       private Object lastValue;
       private int lastIdx;
 
-      public State(int numPreceding, int numFollowing, AggregationBuffer buf) {
-        super(numPreceding, numFollowing, buf);
+      public State(int numPreceding, int numFollowing, int offset, AggregationBuffer buf) {
+        super(numPreceding, numFollowing, offset, buf);
         lastValue = null;
         lastIdx = -1;
       }
@@ -179,9 +175,8 @@ public class GenericUDAFLastValue extends AbstractGenericUDAFResolver {
       }
     }
 
-    public LastValStreamingFixedWindow(GenericUDAFEvaluator wrappedEval, int numPreceding,
-      int numFollowing) {
-      super(wrappedEval, numPreceding, numFollowing);
+    public LastValStreamingFixedWindow(GenericUDAFEvaluator wrappedEval, WindowFrameDef wFrmDef) {
+      super(wrappedEval, wFrmDef);
     }
 
     @Override
@@ -192,7 +187,7 @@ public class GenericUDAFLastValue extends AbstractGenericUDAFResolver {
     @Override
     public AggregationBuffer getNewAggregationBuffer() throws HiveException {
       AggregationBuffer underlying = wrappedEval.getNewAggregationBuffer();
-      return new State(numPreceding, numFollowing, underlying);
+      return new State(numPreceding, numFollowing, offset, underlying);
     }
 
     protected ObjectInspector inputOI() {
@@ -218,12 +213,9 @@ public class GenericUDAFLastValue extends AbstractGenericUDAFResolver {
       if (!lb.skipNulls || o != null) {
         s.lastValue = o;
         s.lastIdx = s.numRows;
-      } else if (lb.skipNulls && s.lastIdx != -1) {
-        if (s.numPreceding != BoundarySpec.UNBOUNDED_AMOUNT
-            && s.numRows > s.lastIdx + s.numPreceding + s.numFollowing) {
-          s.lastValue = null;
-          s.lastIdx = -1;
-        }
+      } else if (lb.skipNulls && s.lastIdx != -1 && s.isWindowFull(s.lastIdx)) {
+        s.lastValue = null;
+        s.lastIdx = -1;
       }
 
       if (s.numRows >= (s.numFollowing)) {
@@ -237,17 +229,15 @@ public class GenericUDAFLastValue extends AbstractGenericUDAFResolver {
       State s = (State) agg;
       LastValueBuffer lb = (LastValueBuffer) s.wrappedBuf;
 
-      if (lb.skipNulls && s.lastIdx != -1) {
-        if (s.numPreceding != BoundarySpec.UNBOUNDED_AMOUNT
-            && s.numRows > s.lastIdx + s.numPreceding + s.numFollowing) {
-          s.lastValue = null;
-          s.lastIdx = -1;
-        }
+      if (lb.skipNulls && s.lastIdx != -1 && s.isWindowFull(s.lastIdx)) {
+        s.lastValue = null;
+        s.lastIdx = -1;
       }
 
       for (int i = 0; i < s.numFollowing; i++) {
         s.results.add(s.lastValue);
       }
+      super.terminate(agg);
 
       return null;
     }

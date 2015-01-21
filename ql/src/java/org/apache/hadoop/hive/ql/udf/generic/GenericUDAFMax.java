@@ -27,10 +27,8 @@ import org.apache.hadoop.hive.ql.exec.UDFArgumentTypeException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.parse.WindowingSpec.BoundarySpec;
-import org.apache.hadoop.hive.ql.plan.ptf.BoundaryDef;
 import org.apache.hadoop.hive.ql.plan.ptf.WindowFrameDef;
 import org.apache.hadoop.hive.ql.udf.UDFType;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.AggregationBuffer;
 import org.apache.hadoop.hive.ql.util.JavaDataModel;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
@@ -130,9 +128,7 @@ public class GenericUDAFMax extends AbstractGenericUDAFResolver {
 
     @Override
     public GenericUDAFEvaluator getWindowingEvaluator(WindowFrameDef wFrmDef) {
-      BoundaryDef start = wFrmDef.getStart();
-      BoundaryDef end = wFrmDef.getEnd();
-      return new MaxStreamingFixedWindow(this, start.getAmt(), end.getAmt());
+      return new MaxStreamingFixedWindow(this, wFrmDef);
     }
 
   }
@@ -166,8 +162,8 @@ public class GenericUDAFMax extends AbstractGenericUDAFResolver {
     class State extends GenericUDAFStreamingEvaluator<Object>.StreamingState {
       private final Deque<Object[]> maxChain;
 
-      public State(int numPreceding, int numFollowing, AggregationBuffer buf) {
-        super(numPreceding, numFollowing, buf);
+      public State(int numPreceding, int numFollowing, int offset, AggregationBuffer buf) {
+        super(numPreceding, numFollowing, offset, buf);
         maxChain = new ArrayDeque<Object[]>(numPreceding + numFollowing + 1);
       }
 
@@ -201,15 +197,14 @@ public class GenericUDAFMax extends AbstractGenericUDAFResolver {
 
     }
 
-    public MaxStreamingFixedWindow(GenericUDAFEvaluator wrappedEval,
-        int numPreceding, int numFollowing) {
-      super(wrappedEval, numPreceding, numFollowing);
+    public MaxStreamingFixedWindow(GenericUDAFEvaluator wrappedEval, WindowFrameDef wFrmDef) {
+      super(wrappedEval, wFrmDef);
     }
 
     @Override
     public AggregationBuffer getNewAggregationBuffer() throws HiveException {
       AggregationBuffer underlying = wrappedEval.getNewAggregationBuffer();
-      return new State(numPreceding, numFollowing, underlying);
+      return new State(numPreceding, numFollowing, offset, underlying);
     }
 
     protected ObjectInspector inputOI() {
@@ -253,8 +248,7 @@ public class GenericUDAFMax extends AbstractGenericUDAFResolver {
       s.numRows++;
 
       int fIdx = (Integer) s.maxChain.getFirst()[1];
-      if (s.numPreceding != BoundarySpec.UNBOUNDED_AMOUNT
-          && s.numRows > fIdx + s.numPreceding + s.numFollowing) {
+      if (s.isWindowFull(fIdx)) {
         s.maxChain.removeFirst();
       }
     }
@@ -275,23 +269,18 @@ public class GenericUDAFMax extends AbstractGenericUDAFResolver {
 
     @Override
     public Object terminate(AggregationBuffer agg) throws HiveException {
-
       State s = (State) agg;
-      Object[] r = s.maxChain.getFirst();
+      Object[] r = s.maxChain.isEmpty() ? null : s.maxChain.getFirst();
 
       for (int i = 0; i < s.numFollowing; i++) {
-        s.results.add(r[0]);
+        s.results.add(r == null ? null : r[0]);
         s.numRows++;
-        int fIdx = (Integer) r[1];
-        if (s.numPreceding != BoundarySpec.UNBOUNDED_AMOUNT
-            && s.numRows - s.numFollowing + i > fIdx + s.numPreceding
-            && !s.maxChain.isEmpty()) {
+        if (r != null && s.isWindowFull((Integer) r[1])) {
           s.maxChain.removeFirst();
           r = !s.maxChain.isEmpty() ? s.maxChain.getFirst() : r;
         }
       }
-
-      return null;
+      return super.terminate(agg);
     }
 
     @Override

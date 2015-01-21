@@ -38,3 +38,48 @@ select s, i, round((avg(d) over  w1 + 10.0) - (avg(d) over w1 - 10.0),2) from ov
 set hive.cbo.enable=false;
 -- HIVE-9228 
 select s, i from ( select s, i, round((avg(d) over  w1 + 10.0) - (avg(d) over w1 - 10.0),2) from over10k window w1 as (partition by s order by i)) X limit 7;
+
+-- preceding + preceding, following + following
+
+-- streaming
+select value, 
+  min(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  max(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  sum(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  first_value(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  last_value(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  min(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  max(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  sum(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  first_value(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  last_value(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  min(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  max(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  sum(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  first_value(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  last_value(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING)
+from src tablesample (10 rows);
+
+-- non-streaming
+select value, 
+  min(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  max(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  sum(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  first_value(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  last_value(cast(key as int)) over (ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING),
+  min(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  max(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  sum(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  first_value(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  last_value(cast(key as int)) over (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),
+  min(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  max(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  sum(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  first_value(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  last_value(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING),
+  min(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING),
+  max(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING),
+  sum(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING),
+  first_value(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING),
+  last_value(cast(key as int)) over (ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING)
+from src tablesample (10 rows);

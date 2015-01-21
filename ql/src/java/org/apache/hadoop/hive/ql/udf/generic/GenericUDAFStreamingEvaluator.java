@@ -22,8 +22,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.ql.parse.WindowingSpec;
 import org.apache.hadoop.hive.ql.parse.WindowingSpec.BoundarySpec;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.AggregationBuffer;
+import org.apache.hadoop.hive.ql.plan.ptf.BoundaryDef;
+import org.apache.hadoop.hive.ql.plan.ptf.WindowFrameDef;
 import org.apache.hadoop.hive.ql.util.JavaDataModel;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 
@@ -32,14 +34,30 @@ public abstract class GenericUDAFStreamingEvaluator<T1> extends
     GenericUDAFEvaluator implements ISupportStreamingModeForWindowing {
 
   protected final GenericUDAFEvaluator wrappedEval;
+
+  protected final int offset;
   protected final int numPreceding;
   protected final int numFollowing;
 
-  public GenericUDAFStreamingEvaluator(GenericUDAFEvaluator wrappedEval,
-      int numPreceding, int numFollowing) {
+  public GenericUDAFStreamingEvaluator(GenericUDAFEvaluator wrappedEval, WindowFrameDef frameDef) {
     this.wrappedEval = wrappedEval;
-    this.numPreceding = numPreceding;
-    this.numFollowing = numFollowing;
+    BoundaryDef start = frameDef.getStart();
+    BoundaryDef end = frameDef.getEnd();
+    if (start.getDirection() == WindowingSpec.Direction.FOLLOWING) {
+      offset = start.getAmt();
+      numPreceding = 0;
+      numFollowing = end.getAmt() == BoundarySpec.UNBOUNDED_AMOUNT ? 
+          BoundarySpec.UNBOUNDED_AMOUNT : end.getAmt() - start.getAmt();
+    } else if (end.getDirection() == WindowingSpec.Direction.PRECEDING) {
+      offset = -end.getAmt();
+      numPreceding = start.getAmt() == BoundarySpec.UNBOUNDED_AMOUNT ?
+          BoundarySpec.UNBOUNDED_AMOUNT : start.getAmt() - end.getAmt();
+      numFollowing = 0;
+    } else {
+      offset = 0;
+      numPreceding = start.getAmt();
+      numFollowing = end.getAmt();
+    }
     this.mode = wrappedEval.mode;
   }
 
@@ -48,19 +66,49 @@ public abstract class GenericUDAFStreamingEvaluator<T1> extends
     final int numPreceding;
     final int numFollowing;
     final List<T1> results;
+    final int offset;
     int numRows;
 
-    StreamingState(int numPreceding, int numFollowing, AggregationBuffer buf) {
+    StreamingState(int numPreceding, int numFollowing, int offset, AggregationBuffer buf) {
       this.wrappedBuf = buf;
       this.numPreceding = numPreceding;
       this.numFollowing = numFollowing;
-      results = new ArrayList<T1>();
-      numRows = 0;
+      this.results = new ArrayList<T1>();
+      for (int x = offset; x < 0; x++) {
+        results.add(null);  // nulls for minus offset (preceding + preceding)  
+      }
+      this.offset = Math.max(0, offset);
     }
 
     protected void reset() {
       results.clear();
       numRows = 0;
+    }
+
+    protected Object getNextResult() {
+      if (results.size() > offset) {
+        T1 res = results.remove(offset);
+        if (res == null) {
+          return ISupportStreamingModeForWindowing.NULL_RESULT;
+        }
+        return res;
+      }
+      return null;
+    }
+
+    protected void terminate() {
+      for (int x = offset; x > 0; x--) {
+        results.add(null);  // nulls for positive offset (following + following)
+      }
+    }
+    
+    protected boolean isWindowFull() {
+      return isWindowFull(0);
+    }
+
+    protected boolean isWindowFull(int offset) {
+      return numPreceding != BoundarySpec.UNBOUNDED_AMOUNT &&
+          numRows > numPreceding + numFollowing + offset;
     }
   }
 
@@ -78,6 +126,12 @@ public abstract class GenericUDAFStreamingEvaluator<T1> extends
   }
 
   @Override
+  public Object terminate(AggregationBuffer agg) throws HiveException {
+    ((StreamingState) agg).terminate();
+    return null;
+  }
+
+  @Override
   public Object terminatePartial(AggregationBuffer agg) throws HiveException {
     throw new HiveException(getClass().getSimpleName()
         + ": terminatePartial not supported");
@@ -91,32 +145,23 @@ public abstract class GenericUDAFStreamingEvaluator<T1> extends
 
   @Override
   public Object getNextResult(AggregationBuffer agg) throws HiveException {
-    StreamingState ss = (StreamingState) agg;
-    if (!ss.results.isEmpty()) {
-      T1 res = ss.results.remove(0);
-      if (res == null) {
-        return ISupportStreamingModeForWindowing.NULL_RESULT;
-      }
-      return res;
-    }
-    return null;
+    return ((StreamingState) agg).getNextResult();
   }
 
   public static abstract class SumAvgEnhancer<T1, T2> extends
       GenericUDAFStreamingEvaluator<T1> {
 
-    public SumAvgEnhancer(GenericUDAFEvaluator wrappedEval, int numPreceding,
-        int numFollowing) {
-      super(wrappedEval, numPreceding, numFollowing);
+    public SumAvgEnhancer(GenericUDAFEvaluator wrappedEval, WindowFrameDef frameDef) {
+      super(wrappedEval, frameDef);
     }
 
     class SumAvgStreamingState extends StreamingState {
 
       final List<T2> intermediateVals;
 
-      SumAvgStreamingState(int numPreceding, int numFollowing,
+      SumAvgStreamingState(int numPreceding, int numFollowing, int offset,
           AggregationBuffer buf) {
-        super(numPreceding, numFollowing, buf);
+        super(numPreceding, numFollowing, offset, buf);
         intermediateVals = new ArrayList<T2>();
       }
 
@@ -152,7 +197,7 @@ public abstract class GenericUDAFStreamingEvaluator<T1> extends
     @Override
     public AggregationBuffer getNewAggregationBuffer() throws HiveException {
       AggregationBuffer underlying = wrappedEval.getNewAggregationBuffer();
-      return new SumAvgStreamingState(numPreceding, numFollowing, underlying);
+      return new SumAvgStreamingState(numPreceding, numFollowing, offset, underlying);
     }
 
     @Override
@@ -175,13 +220,11 @@ public abstract class GenericUDAFStreamingEvaluator<T1> extends
     @Override
     public Object terminate(AggregationBuffer agg) throws HiveException {
       SumAvgStreamingState ss = (SumAvgStreamingState) agg;
-      Object o = wrappedEval.terminate(ss.wrappedBuf);
-
       for (int i = 0; i < ss.numFollowing; i++) {
         ss.results.add(getNextResult(ss));
         ss.numRows++;
       }
-      return o;
+      return super.terminate(agg);
     }
 
     @Override

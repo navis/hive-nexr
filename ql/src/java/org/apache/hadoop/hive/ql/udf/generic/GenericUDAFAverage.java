@@ -26,8 +26,6 @@ import org.apache.hadoop.hive.ql.exec.Description;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentTypeException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
-import org.apache.hadoop.hive.ql.parse.WindowingSpec.BoundarySpec;
-import org.apache.hadoop.hive.ql.plan.ptf.BoundaryDef;
 import org.apache.hadoop.hive.ql.plan.ptf.WindowFrameDef;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.AggregationBuffer;
 import org.apache.hadoop.hive.ql.util.JavaDataModel;
@@ -159,11 +157,8 @@ public class GenericUDAFAverage extends AbstractGenericUDAFResolver {
     @Override
     public GenericUDAFEvaluator getWindowingEvaluator(WindowFrameDef wFrmDef) {
 
-      BoundaryDef start = wFrmDef.getStart();
-      BoundaryDef end = wFrmDef.getEnd();
-
       return new GenericUDAFStreamingEvaluator.SumAvgEnhancer<DoubleWritable, Object[]>(this,
-          start.getAmt(), end.getAmt()) {
+          wFrmDef) {
 
         @Override
         protected DoubleWritable getNextResult(
@@ -172,8 +167,7 @@ public class GenericUDAFAverage extends AbstractGenericUDAFResolver {
           AverageAggregationBuffer<Double> myagg = (AverageAggregationBuffer<Double>) ss.wrappedBuf;
           Double r = myagg.count == 0 ? null : myagg.sum;
           long cnt = myagg.count;
-          if (ss.numPreceding != BoundarySpec.UNBOUNDED_AMOUNT
-              && (ss.numRows - ss.numFollowing) >= (ss.numPreceding + 1)) {
+          if (ss.isWindowFull()) {
             Object[] o = ss.intermediateVals.remove(0);
             if (o != null) {
               Double d = (Double) o[0];
@@ -289,11 +283,8 @@ public class GenericUDAFAverage extends AbstractGenericUDAFResolver {
     @Override
     public GenericUDAFEvaluator getWindowingEvaluator(WindowFrameDef wFrmDef) {
 
-      BoundaryDef start = wFrmDef.getStart();
-      BoundaryDef end = wFrmDef.getEnd();
-
       return new GenericUDAFStreamingEvaluator.SumAvgEnhancer<HiveDecimalWritable, Object[]>(
-          this, start.getAmt(), end.getAmt()) {
+          this, wFrmDef) {
 
         @Override
         protected HiveDecimalWritable getNextResult(
@@ -302,8 +293,7 @@ public class GenericUDAFAverage extends AbstractGenericUDAFResolver {
           AverageAggregationBuffer<HiveDecimal> myagg = (AverageAggregationBuffer<HiveDecimal>) ss.wrappedBuf;
           HiveDecimal r = myagg.count == 0 ? null : myagg.sum;
           long cnt = myagg.count;
-          if (ss.numPreceding != BoundarySpec.UNBOUNDED_AMOUNT
-              && (ss.numRows - ss.numFollowing) >= (ss.numPreceding + 1)) {
+          if (ss.isWindowFull()) {
             Object[] o = ss.intermediateVals.remove(0);
             if (o != null) {
               HiveDecimal d = (HiveDecimal) o[0];

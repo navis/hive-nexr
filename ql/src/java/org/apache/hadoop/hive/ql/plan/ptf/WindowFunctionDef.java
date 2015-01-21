@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.ql.plan.Explain;
+import org.apache.hadoop.hive.ql.parse.WindowingSpec;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
 
 @Explain(displayName = "window function definition")
@@ -124,4 +125,14 @@ public class WindowFunctionDef extends WindowExpressionDef {
     this.pivotResult = pivotResult;
   }
 
+  // todo window frame not including current row cannot be evaluated 
+  public boolean windowIncludesCurrent() {
+    return windowFrame == null || 
+        (windowFrame.getStart().getDirection() != windowFrame.getEnd().getDirection());
+  }
+
+  public boolean isUnboundedFollowing() {
+    return windowFrame != null && 
+        windowFrame.getEnd().getAmt() == WindowingSpec.BoundarySpec.UNBOUNDED_AMOUNT;  
+  }
 }

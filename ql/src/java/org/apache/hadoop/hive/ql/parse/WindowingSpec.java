@@ -274,7 +274,7 @@ public class WindowingSpec {
     }
 
     if ( end.getDirection() == Direction.PRECEDING &&
-        start.getAmt() == BoundarySpec.UNBOUNDED_AMOUNT ) {
+        end.getAmt() == BoundarySpec.UNBOUNDED_AMOUNT ) {
       throw new SemanticException("End of a WindowFrame cannot be UNBOUNDED PRECEDING");
     }
 
@@ -559,6 +559,18 @@ public class WindowingSpec {
     public abstract void setDirection(Direction dir);
     public abstract void setAmt(int amt);
     public abstract int getAmt();
+    
+    public int getDirectedAmt() {
+      return getDirection() == Direction.PRECEDING ? -getAmt() : getAmt(); 
+    }
+    
+    public int compareTo(BoundarySpec other) {
+      int c = getDirection().compareTo(other.getDirection());
+      if (c == 0) {
+        c = getDirectedAmt() - other.getDirectedAmt();
+      }
+      return c;
+    }
   }
 
   public static class RangeBoundarySpec extends BoundarySpec
@@ -607,17 +619,6 @@ public class WindowingSpec {
       return String.format("range(%s %s)", (amt == UNBOUNDED_AMOUNT ? "Unbounded" : amt),
           direction);
     }
-
-    public int compareTo(BoundarySpec other)
-    {
-      int c = direction.compareTo(other.getDirection());
-      if (c != 0) {
-        return c;
-      }
-      RangeBoundarySpec rb = (RangeBoundarySpec) other;
-      return amt - rb.amt;
-    }
-
   }
 
   public static class CurrentRowSpec extends BoundarySpec
@@ -637,13 +638,13 @@ public class WindowingSpec {
     }
 
     @Override
-    public void setDirection(Direction dir) {}
+    public void setDirection(Direction dir) {
+      throw new IllegalStateException("Should not set direction for CURRENT row spec");
+    }
+    
     @Override
-    public void setAmt(int amt) {}
-
-    public int compareTo(BoundarySpec other)
-    {
-      return getDirection().compareTo(other.getDirection());
+    public void setAmt(int amt) {
+      throw new IllegalStateException("Should not set value for CURRENT row spec");
     }
 
     @Override
@@ -705,17 +706,6 @@ public class WindowingSpec {
     {
       return String.format("value(%s %s %s)", expression.toStringTree(), amt, direction);
     }
-
-    public int compareTo(BoundarySpec other)
-    {
-      int c = direction.compareTo(other.getDirection());
-      if (c != 0) {
-        return c;
-      }
-      ValueBoundarySpec vb = (ValueBoundarySpec) other;
-      return amt - vb.amt;
-    }
-
   }
 
 }

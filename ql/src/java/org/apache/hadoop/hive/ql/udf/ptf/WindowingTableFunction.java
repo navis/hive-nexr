@@ -667,10 +667,7 @@ public class WindowingTableFunction extends TableFunctionEvaluator {
     int amt = b.getAmt();
     switch(d) {
     case PRECEDING:
-      if ( amt == 0 ) {
-        return currRow + 1;
-      }
-      return currRow - amt;
+      return currRow - amt + 1;
     case CURRENT:
       return currRow + 1;
     case FOLLOWING:
@@ -1219,6 +1216,7 @@ public class WindowingTableFunction extends TableFunctionEvaluator {
 
     ArrayList<Object> output;
     List<?>[] outputFromPivotFunctions;
+    ISupportStreamingModeForWindowing[] windowingEvals;
     int currIdx;
     PTFPartition iPart;
     /*
@@ -1235,7 +1233,7 @@ public class WindowingTableFunction extends TableFunctionEvaluator {
     RankLimit rnkLimit;
 
     WindowingIterator(PTFPartition iPart, ArrayList<Object> output,
-        List<?>[] outputFromPivotFunctions, int[] wFnsToProcess) {
+        List<?>[] outputFromPivotFunctions, int[] wFnsToProcess) throws HiveException {
       this.iPart = iPart;
       this.output = output;
       this.outputFromPivotFunctions = outputFromPivotFunctions;
@@ -1246,17 +1244,27 @@ public class WindowingTableFunction extends TableFunctionEvaluator {
       ptfDesc = getQueryDef();
       inputOI = iPart.getOutputOI();
 
-      aggBuffers = new AggregationBuffer[wTFnDef.getWindowFunctions().size()];
-      args = new Object[wTFnDef.getWindowFunctions().size()][];
-      try {
+      List<WindowFunctionDef> windowFunctions = wTFnDef.getWindowFunctions();
+      windowingEvals = new ISupportStreamingModeForWindowing[windowFunctions.size()];
+      
+      if (ptfDesc.getLlInfo().getLeadLagExprs() == null) {
+        aggBuffers = new AggregationBuffer[windowFunctions.size()];
+        args = new Object[windowFunctions.size()][];
         for (int j : wFnsToProcess) {
-          WindowFunctionDef wFn = wTFnDef.getWindowFunctions().get(j);
-          aggBuffers[j] = wFn.getWFnEval().getNewAggregationBuffer();
-          args[j] = new Object[wFn.getArgs() == null ? 0 : wFn.getArgs().size()];
+          WindowFunctionDef wFn = windowFunctions.get(j);
+          if (!wFn.windowIncludesCurrent()) {
+            // cannot return evaluation of window function for a row immediately
+            continue;
+          }
+          GenericUDAFEvaluator wFnEval = wFn.getWFnEval();
+          if (wFnEval instanceof ISupportStreamingModeForWindowing) {
+            windowingEvals[j] = (ISupportStreamingModeForWindowing) wFnEval;
+            aggBuffers[j] = wFnEval.getNewAggregationBuffer();
+            args[j] = new Object[wFn.getArgs() == null ? 0 : wFn.getArgs().size()];
+          }
         }
-      } catch (HiveException he) {
-        throw new RuntimeException(he);
       }
+      
       if ( WindowingTableFunction.this.rnkLimitDef != null ) {
         rnkLimit = new RankLimit(WindowingTableFunction.this.rnkLimitDef);
       }
@@ -1283,17 +1291,10 @@ public class WindowingTableFunction extends TableFunctionEvaluator {
       try {
         for (int j : wFnsToProcess) {
           WindowFunctionDef wFn = wTFnDef.getWindowFunctions().get(j);
-          if (wFn.getWFnEval() instanceof ISupportStreamingModeForWindowing) {
-            Object iRow = iPart.getAt(currIdx);
-            int a = 0;
-            if (wFn.getArgs() != null) {
-              for (PTFExpressionDef arg : wFn.getArgs()) {
-                args[j][a++] = arg.getExprEvaluator().evaluate(iRow);
-              }
-            }
-            wFn.getWFnEval().aggregate(aggBuffers[j], args[j]);
-            Object out = ((ISupportStreamingModeForWindowing) wFn.getWFnEval())
-                .getNextResult(aggBuffers[j]);
+          if (windowingEvals[j] != null) {
+            makeArgs(args[j], wFn.getArgs());
+            ((GenericUDAFEvaluator)windowingEvals[j]).aggregate(aggBuffers[j], args[j]);
+            Object out = windowingEvals[j].getNextResult(aggBuffers[j]);
             out = ObjectInspectorUtils.copyToStandardObject(out, wFn.getOI());
             output.set(j, out);
           } else {
@@ -1319,6 +1320,17 @@ public class WindowingTableFunction extends TableFunctionEvaluator {
       }
       currIdx++;
       return output;
+    }
+
+    private void makeArgs(Object[] args, List<PTFExpressionDef> exprs) throws HiveException {
+      if (args.length == 0) {
+        return;
+      }
+      Object iRow = iPart.getAt(currIdx);
+      int i = 0;
+      for (PTFExpressionDef arg : exprs) {
+        args[i++] = arg.getExprEvaluator().evaluate(iRow);
+      }
     }
 
     @Override
