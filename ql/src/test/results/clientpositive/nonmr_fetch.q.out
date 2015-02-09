@@ -14,6 +14,7 @@ STAGE PLANS:
       Processor Tree:
         TableScan
           alias: src
+          Row Limit Per Split: 10
           Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
           Select Operator
             expressions: key (type: string), value (type: string)
@@ -56,6 +57,7 @@ STAGE PLANS:
       Processor Tree:
         TableScan
           alias: srcpart
+          Row Limit Per Split: 10
           Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
           Select Operator
             expressions: key (type: string), value (type: string), '2008-04-08' (type: string), '11' (type: string)
@@ -100,6 +102,7 @@ STAGE PLANS:
       Processor Tree:
         TableScan
           alias: src
+          Row Limit Per Split: 10
           Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
           Select Operator
             expressions: key (type: string)
@@ -144,6 +147,7 @@ STAGE PLANS:
       Processor Tree:
         TableScan
           alias: srcpart
+          Row Limit Per Split: 10
           Statistics: Num rows: 2000 Data size: 21248 Basic stats: COMPLETE Column stats: NONE
           Filter Operator
             predicate: (UDFToDouble(key) > 100.0) (type: boolean)
@@ -180,9 +184,6 @@ POSTHOOK: Input: default@srcpart@ds=2008-04-09/hr=12
 255	val_255	2008-04-08	11
 278	val_278	2008-04-08	11
 484	val_484	2008-04-08	11
-265	val_265	2008-04-08	11
-193	val_193	2008-04-08	11
-401	val_401	2008-04-08	11
 PREHOOK: query: -- negative, table sampling
 explain select * from src TABLESAMPLE (0.25 PERCENT) limit 10
 PREHOOK: type: QUERY
@@ -255,6 +256,7 @@ STAGE PLANS:
       Processor Tree:
         TableScan
           alias: src
+          Row Limit Per Split: 10
           Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
           Select Operator
             expressions: key (type: string), value (type: string)
@@ -297,6 +299,7 @@ STAGE PLANS:
       Processor Tree:
         TableScan
           alias: srcpart
+          Row Limit Per Split: 10
           Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
           Select Operator
             expressions: key (type: string), value (type: string), '2008-04-08' (type: string), '11' (type: string)
@@ -343,6 +346,7 @@ STAGE PLANS:
       Processor Tree:
         TableScan
           alias: src
+          Row Limit Per Split: 10
           Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
           Select Operator
             expressions: (UDFToInteger(key) * 10) (type: int), upper(value) (type: string)
@@ -434,6 +438,7 @@ STAGE PLANS:
       Processor Tree:
         TableScan
           alias: srcpart
+          Row Limit Per Split: 10
           Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
           Select Operator
             expressions: key (type: string)
@@ -527,6 +532,7 @@ STAGE PLANS:
       Processor Tree:
         TableScan
           alias: srcpart
+          Row Limit Per Split: 30
           Statistics: Num rows: 2000 Data size: 21248 Basic stats: COMPLETE Column stats: NONE
           Filter Operator
             predicate: (UDFToDouble(key) < 10.0) (type: boolean)
@@ -556,36 +562,6 @@ POSTHOOK: Input: default@srcpart@ds=2008-04-08/hr=12
 POSTHOOK: Input: default@srcpart@ds=2008-04-09/hr=11
 POSTHOOK: Input: default@srcpart@ds=2008-04-09/hr=12
 #### A masked pattern was here ####
-0	val_0	2008-04-08	11	968
-4	val_4	2008-04-08	11	1218
-8	val_8	2008-04-08	11	1916
-0	val_0	2008-04-08	11	2088
-0	val_0	2008-04-08	11	2632
-5	val_5	2008-04-08	11	3060
-5	val_5	2008-04-08	11	3864
-2	val_2	2008-04-08	11	4004
-5	val_5	2008-04-08	11	4540
-9	val_9	2008-04-08	11	5398
-0	val_0	2008-04-08	12	968
-4	val_4	2008-04-08	12	1218
-8	val_8	2008-04-08	12	1916
-0	val_0	2008-04-08	12	2088
-0	val_0	2008-04-08	12	2632
-5	val_5	2008-04-08	12	3060
-5	val_5	2008-04-08	12	3864
-2	val_2	2008-04-08	12	4004
-5	val_5	2008-04-08	12	4540
-9	val_9	2008-04-08	12	5398
-0	val_0	2008-04-09	11	968
-4	val_4	2008-04-09	11	1218
-8	val_8	2008-04-09	11	1916
-0	val_0	2008-04-09	11	2088
-0	val_0	2008-04-09	11	2632
-5	val_5	2008-04-09	11	3060
-5	val_5	2008-04-09	11	3864
-2	val_2	2008-04-09	11	4004
-5	val_5	2008-04-09	11	4540
-9	val_9	2008-04-09	11	5398
 PREHOOK: query: -- bucket sampling
 explain select *, BLOCK__OFFSET__INSIDE__FILE from src TABLESAMPLE (BUCKET 1 OUT OF 40 ON key)
 PREHOOK: type: QUERY

@@ -36,6 +36,8 @@ public final class ColumnProjectionUtils {
   private static final String READ_COLUMN_IDS_CONF_STR_DEFAULT = "";
   private static final boolean READ_ALL_COLUMNS_DEFAULT = true;
 
+  public static final String SPLIT_ROW_LIMIT = "hive.split.row.limit";
+
   /**
    * @deprecated for backwards compatibility with <= 0.12, use setReadAllColumns
    */
@@ -184,6 +186,14 @@ public final class ColumnProjectionUtils {
       }
     }
     return id;
+  }
+
+  public static void setRowLimit(Configuration conf, int rowLimit) {
+    conf.setInt(SPLIT_ROW_LIMIT, rowLimit);
+  }
+
+  public static int getRowLimit(Configuration conf) {
+    return conf.getInt(SPLIT_ROW_LIMIT, -1);
   }
 
   private ColumnProjectionUtils() {

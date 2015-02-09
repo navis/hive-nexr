@@ -57,6 +57,7 @@ STAGE PLANS:
       Map Operator Tree:
           TableScan
             alias: value_src
+            Row Limit Per Split: 1
             Statistics: Num rows: 0 Data size: 24 Basic stats: PARTIAL Column stats: NONE
             Select Operator
               expressions: in_file(str_val, '../../data/files/test2.dat') (type: boolean), in_file(ch_val, '../../data/files/test2.dat') (type: boolean), in_file(vch_val, '../../data/files/test2.dat') (type: boolean), in_file(str_val_neg, '../../data/files/test2.dat') (type: boolean), in_file(ch_val_neg, '../../data/files/test2.dat') (type: boolean), in_file(vch_val_neg, '../../data/files/test2.dat') (type: boolean), in_file('303', '../../data/files/test2.dat') (type: boolean), in_file('304', '../../data/files/test2.dat') (type: boolean), in_file(UDFToString(null), '../../data/files/test2.dat') (type: boolean)

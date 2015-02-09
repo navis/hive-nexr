@@ -1098,6 +1098,7 @@ STAGE PLANS:
       Map Operator Tree:
           TableScan
             alias: decimal_udf
+            Row Limit Per Split: 1
             Statistics: Num rows: 38 Data size: 4296 Basic stats: COMPLETE Column stats: NONE
             Select Operator
               expressions: (key / CAST( 0 AS decimal(10,0))) (type: decimal(22,12))
@@ -1144,6 +1145,7 @@ STAGE PLANS:
       Map Operator Tree:
           TableScan
             alias: decimal_udf
+            Row Limit Per Split: 1
             Statistics: Num rows: 38 Data size: 4296 Basic stats: COMPLETE Column stats: NONE
             Select Operator
               expressions: (UDFToDouble(key) / UDFToDouble(null)) (type: double)

@@ -12,6 +12,7 @@ STAGE PLANS:
       Processor Tree:
         TableScan
           alias: srcpart
+          Row Limit Per Split: 10
           Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
           Select Operator
             expressions: key (type: string), value (type: string), '2008-04-08' (type: string), '11' (type: string)
@@ -36,6 +37,7 @@ STAGE PLANS:
       Processor Tree:
         TableScan
           alias: src
+          Row Limit Per Split: 10
           Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
           Select Operator
             expressions: (UDFToInteger(key) * 10) (type: int), upper(value) (type: string)
@@ -60,6 +62,7 @@ STAGE PLANS:
       Processor Tree:
         TableScan
           alias: srcpart
+          Row Limit Per Split: 10
           Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
           Select Operator
             expressions: key (type: string), value (type: string), '2008-04-08' (type: string), '11' (type: string)
@@ -84,6 +87,7 @@ STAGE PLANS:
       Processor Tree:
         TableScan
           alias: src
+          Row Limit Per Split: 10
           Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
           Select Operator
             expressions: (UDFToInteger(key) * 10) (type: int), upper(value) (type: string)
@@ -133,6 +137,7 @@ STAGE PLANS:
       Processor Tree:
         TableScan
           alias: srcpart
+          Row Limit Per Split: 10
           Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
           Select Operator
             expressions: key (type: string), value (type: string), '2008-04-08' (type: string), '11' (type: string)
@@ -157,6 +162,7 @@ STAGE PLANS:
       Processor Tree:
         TableScan
           alias: src
+          Row Limit Per Split: 10
           Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
           Select Operator
             expressions: (UDFToInteger(key) * 10) (type: int), upper(value) (type: string)

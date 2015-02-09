@@ -117,6 +117,7 @@ STAGE PLANS:
       Map Operator Tree:
           TableScan
             alias: over1korc
+            Row Limit Per Split: 20
             Statistics: Num rows: 1049 Data size: 311170 Basic stats: COMPLETE Column stats: NONE
             Select Operator
               expressions: s (type: string), concat(concat('      ', s), '      ') (type: string), concat(concat('|', rtrim(concat(concat('      ', s), '      '))), '|') (type: string)

@@ -22,6 +22,7 @@ STAGE PLANS:
       Processor Tree:
         TableScan
           alias: src
+          Row Limit Per Split: 1
           Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: COMPLETE
           Select Operator
             expressions: 'facebook' (type: string), 'facebook' (type: string), 'facebook' (type: string), 'facebook' (type: string), 'facebook' (type: string), 'facebook' (type: string), 'facebook' (type: string), 'facebook' (type: string), 'facebook' (type: string), 'facebook' (type: string)

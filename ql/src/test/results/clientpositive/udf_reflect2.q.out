@@ -317,6 +317,7 @@ STAGE PLANS:
       Processor Tree:
         TableScan
           alias: src
+          Row Limit Per Split: 5
           Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
           GatherStats: false
           Select Operator

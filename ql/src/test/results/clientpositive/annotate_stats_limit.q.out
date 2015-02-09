@@ -99,6 +99,7 @@ STAGE PLANS:
       Processor Tree:
         TableScan
           alias: loc_orc
+          Row Limit Per Split: 4
           Statistics: Num rows: 8 Data size: 796 Basic stats: COMPLETE Column stats: COMPLETE
           Select Operator
             expressions: state (type: string), locid (type: int), zip (type: bigint), year (type: int)
@@ -127,6 +128,7 @@ STAGE PLANS:
       Processor Tree:
         TableScan
           alias: loc_orc
+          Row Limit Per Split: 16
           Statistics: Num rows: 8 Data size: 796 Basic stats: COMPLETE Column stats: COMPLETE
           Select Operator
             expressions: state (type: string), locid (type: int), zip (type: bigint), year (type: int)

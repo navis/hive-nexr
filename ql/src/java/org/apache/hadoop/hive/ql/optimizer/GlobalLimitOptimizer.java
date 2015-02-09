@@ -24,6 +24,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.exec.FilterOperator;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
@@ -77,7 +78,7 @@ public class GlobalLimitOptimizer implements Transform {
     // The query only qualifies when there are only one top operator
     // and there is no transformer or UDTF and no block sampling
     // is used.
-    if (ctx.getTryCount() == 0 && topOps.size() == 1
+    if (ctx.isFirstOrLast() && topOps.size() == 1
         && !globalLimitCtx.ifHasTransformOrUDTF() &&
         nameToSplitSample.isEmpty()) {
 
@@ -104,7 +105,10 @@ public class GlobalLimitOptimizer implements Transform {
           Set<FilterOperator> filterOps =
                   OperatorUtils.findOperators(ts, FilterOperator.class);
           if (filterOps.size() == 0) {
-            globalLimitCtx.enableOpt(tempGlobalLimit);
+            if (HiveConf.getBoolVar(pctx.getConf(), HiveConf.ConfVars.HIVELIMITOPTENABLE)) {
+              globalLimitCtx.enableOpt(tempGlobalLimit);
+            }
+            ts.getConf().setRowLimit(tempGlobalLimit);
           }
         } else {
           // check if the pruner only contains partition columns
@@ -125,7 +129,10 @@ public class GlobalLimitOptimizer implements Transform {
             // If there is any unknown partition, create a map-reduce job for
             // the filter to prune correctly
             if (!partsList.hasUnknownPartitions()) {
-              globalLimitCtx.enableOpt(tempGlobalLimit);
+              if (HiveConf.getBoolVar(pctx.getConf(), HiveConf.ConfVars.HIVELIMITOPTENABLE)) {
+                globalLimitCtx.enableOpt(tempGlobalLimit);
+              }
+              ts.getConf().setRowLimit(tempGlobalLimit);
             }
           }
         }

@@ -236,8 +236,10 @@ public class TableScanDesc extends AbstractOperatorDesc {
     this.maxStatsKeyPrefixLength = maxStatsKeyPrefixLength;
   }
 
-  public void setRowLimit(int rowLimit) {
-    this.rowLimit = rowLimit;
+  public void setRowLimit(int newLimit) {
+    if (rowLimit < 0 || newLimit < rowLimit) {
+      rowLimit = newLimit;
+    }
   }
 
   public int getRowLimit() {

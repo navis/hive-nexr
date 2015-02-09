@@ -906,6 +906,7 @@ STAGE PLANS:
       Map Operator Tree:
           TableScan
             alias: date_udf_flight_orc
+            Row Limit Per Split: 10
             Statistics: Num rows: 137 Data size: 13152 Basic stats: COMPLETE Column stats: NONE
             Select Operator
               expressions: fl_date (type: date), to_date(date_add(fl_date, 2)) (type: string), to_date(date_sub(fl_date, 2)) (type: string), datediff(fl_date, date_add(fl_date, 2)) (type: int), datediff(fl_date, date_sub(fl_date, 2)) (type: int), datediff(date_add(fl_date, 2), date_sub(fl_date, 2)) (type: int)

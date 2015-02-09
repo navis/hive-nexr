@@ -585,6 +585,10 @@ public class QBParseInfo {
     return destToAggregationExprs;
   }
 
+  public LinkedHashMap<String, LinkedHashMap<String, ASTNode>> getDestToWindowingExprs() {
+    return destToWindowingExprs;
+  }
+
   public HashMap<String, List<ASTNode>> getDestToDistinctFuncExprs() {
     return destToDistinctFuncExprs;
   }

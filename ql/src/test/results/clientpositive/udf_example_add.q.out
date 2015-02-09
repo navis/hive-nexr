@@ -34,6 +34,7 @@ STAGE PLANS:
       Processor Tree:
         TableScan
           alias: src
+          Row Limit Per Split: 1
           Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: COMPLETE
           Select Operator
             expressions: 3 (type: int), 6 (type: int), 10 (type: int), 3.3000000000000003 (type: double), 6.6 (type: double), 11.0 (type: double), 10.4 (type: double)

@@ -695,4 +695,8 @@ public class Context {
   public AcidUtils.Operation getAcidOperation() {
     return acidOperation;
   }
+
+  public boolean isFirstOrLast() {
+    return tryCount == 0 || tryCount == Integer.MAX_VALUE;
+  }
 }
