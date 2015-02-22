@@ -21,22 +21,45 @@ package org.apache.hadoop.hive.ql.debug;
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Method;
 
 import javax.management.MBeanServer;
 
 import org.apache.commons.lang.StringUtils;
-
-import com.sun.management.HotSpotDiagnosticMXBean;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * Debug utility methods for Hive.
  */
 public class Utils {
+
+  private static final Log LOG = LogFactory.getLog(Utils.class.getName());
+  
   private static final String HOTSPOT_BEAN_NAME = "com.sun.management:type=HotSpotDiagnostic";
-  private static volatile HotSpotDiagnosticMXBean hotspotMBean;
+  
+  private static final Class HOTSPOT_DIAG_MXBEAN_ITF;
+  private static final Method DUMP_HEAP_METHOD;
+
+  private static volatile Object hotspotMBean;
+  
+  static {
+    Class clazz;
+    Method method;
+    try {
+      clazz = Class.forName("com.sun.management.HotSpotDiagnosticMXBean");
+      method = clazz.getMethod("dumpHeap", String.class, boolean.class);
+    } catch (Exception e) {
+      LOG.info("HotSpotDiagnosticMXBean is not supported");
+      clazz = null;
+      method = null;
+    }
+    HOTSPOT_DIAG_MXBEAN_ITF = clazz;
+    DUMP_HEAP_METHOD = method;
+  }
 
   /**
-   * Dumps process heap to a file in temp directoty.
+   * Dumps process heap to a file in temp directory.
    * @param args Strings to use to build a file name (dump_arg0_arg1_....).
    */
   public static void dumpHeapToTmp(String... args) {
@@ -59,10 +82,14 @@ public class Utils {
    */
   public static void dumpHeap(String fileName, boolean live) {
     if (hotspotMBean == null) {
+      if (HOTSPOT_DIAG_MXBEAN_ITF == null) {
+        LOG.info("HotSpotDiagnosticMXBean is not supported.. failed to dump to " + fileName);
+        return;
+      }
       try {
         MBeanServer server = ManagementFactory.getPlatformMBeanServer();
         hotspotMBean = ManagementFactory.newPlatformMXBeanProxy(server,
-            HOTSPOT_BEAN_NAME, HotSpotDiagnosticMXBean.class);
+            HOTSPOT_BEAN_NAME, HOTSPOT_DIAG_MXBEAN_ITF);
       } catch (RuntimeException re) {
           throw re;
       } catch (Exception exp) {
@@ -70,7 +97,7 @@ public class Utils {
       }
     }
     try {
-        hotspotMBean.dumpHeap(fileName, live);
+      DUMP_HEAP_METHOD.invoke(hotspotMBean, fileName, live);
     } catch (RuntimeException re) {
         throw re;
     } catch (Exception exp) {
